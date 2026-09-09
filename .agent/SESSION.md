@@ -2,27 +2,35 @@
 
 ## Changed
 
-- Added the MIT license and propagated `license = "MIT"` through workspace package metadata.
-- Expanded the repository `.gitignore` for Rust build output, editor files, OS metadata, local environment files, and logs.
-- Added `.github/workflows/ci.yml` with native Linux, Windows, and macOS x86_64/ARM64 jobs. Every job runs formatting, check, test, and Clippy gates on stable Rust.
-- Accepted ADR-0008 for the MIT license, retained internal naming, six target OS/architecture combinations, and evidence-based minimum OS support floors.
-- Updated ADR-0001, ADR-0002, ADR-0003, architecture, roadmap, current state, task queue, and README to reflect the decisions.
-- Added a deliberately narrow early integration checkpoint after PTY, terminal state, window, primitive renderer, and keyboard foundations exist.
+- Added dependency-free `terminal-core` modules for cells, cell colors/attributes, terminal dimensions, cursor state, and a screen grid.
+- `TerminalDimensions` rejects zero sizes, dimensions above 4,096 rows or columns, and grids above 1,048,576 cells.
+- `ScreenGrid` uses zero-based `(row, column)` access over row-major storage and returns `None` for out-of-bounds access.
+- The grid owns its cursor. Absolute out-of-bounds moves return `CursorError` without moving; relative moves clamp to screen edges, including extreme signed deltas.
+- Clearing replaces all cells with the default blank cell without moving the cursor.
+- Resize preserves the top-left rectangular intersection, blanks newly exposed cells, drops cells outside the new rectangle, and clamps the cursor.
+- Added 19 public-API tests. No external dependency, parser, mode, scrollback, PTY, renderer, or application integration was added.
 
 ## Validation
 
-- `go run github.com/rhysd/actionlint/cmd/actionlint@latest .github/workflows/ci.yml`: passed with actionlint 1.7.12.
-- All four required Cargo gates passed locally using the installed `x86_64-pc-windows-gnu` target via `CARGO_BUILD_TARGET`; seven empty test targets ran zero tests.
-- `cargo metadata --format-version 1 --no-deps`: confirmed seven packages, MIT metadata on every package, and zero dependencies.
-- `.gitignore` rules were verified with `git check-ignore`; `git diff --check` passed.
+- All four required repository Cargo gates passed locally with `CARGO_BUILD_TARGET=x86_64-pc-windows-gnu`.
+- Workspace tests passed: 19 `terminal-core` integration tests, no failures.
+- `cargo metadata --format-version 1 --no-deps` confirmed that `terminal-core` has zero dependencies.
+- Static scan found no `unsafe`, forbidden architectural dependencies, parser/PTY references, TODOs, or FIXMEs in `terminal-core/src`.
+- Independent review passed with no security concerns, logic errors, or architecture violations. Its three test-gap suggestions were addressed with exact-boundary, extreme-cursor-delta, and mixed-axis-resize tests.
+- Foundation CI run 34327296818 was verified green across all six native OS/architecture jobs before M1 began.
+
+## Compatibility-sensitive decisions
+
+- A cell currently stores one Rust `char`; combining sequences, wide-cell continuation markers, graphemes, and ligatures require a later content-model extension.
+- Cell attributes currently contain default/indexed/RGB foreground and background colors only; style attributes remain future work.
+- Resize uses top-left rectangular preservation without line reflow. Compatibility work must decide whether and when reflow or bottom anchoring is required.
+- Dimension limits are explicit public resource limits and should change only with tests and memory/compatibility evidence.
 
 ## Known limitations
 
-- The repository has no configured remote, so the six-job GitHub Actions matrix has not executed. Cross-platform status must not be called green until an authenticated run succeeds on every configured runner.
-- Default MSVC-target test linking remains unavailable on this machine because the Visual C++ build tools and Windows import libraries are missing; Git Bash resolves `link.exe` to GNU coreutils.
-- Minimum OS versions remain intentionally undecided until exact dependency versions, toolchains, SDKs, backend requirements, and oldest-candidate platform tests provide evidence.
-- No terminal behavior or external application dependency has been added.
+- The local Git Bash environment cannot link the default MSVC target because Visual C++ build tools and Windows import libraries are unavailable; the installed Windows GNU target is used for linked local tests.
+- This feature branch has not run remote CI yet.
 
 ## Next recommended task
 
-After the first six-job CI run is green, begin M1 by defining bounded cell, attribute, screen-grid, and cursor models in `terminal-core` with unit tests for construction, indexing, cursor bounds, clearing, and resize invariants. Do not add `vte` in that first slice.
+Add a narrow, std-only terminal-mode model with explicit tested transitions and ownership rules. Do not add `vte` or parser behavior in that slice.

@@ -2,13 +2,14 @@
 
 ## Next
 
-- [ ] Push the foundation to a remote and require the first CI run to pass on all six native OS/architecture runners before beginning M1.
-- [ ] Begin M1 with bounded terminal cell, attribute, grid, and cursor primitives plus focused unit tests; do not add parsing or rendering in that task.
+- [ ] Add the next M1 slice: define terminal modes and their explicit state transitions in `terminal-core`; keep the slice std-only and parser-independent.
 
 ## Later
 
+- [ ] Introduce a project-owned `TerminalState` facade and integrate incremental `vte` parsing only after its model contract and tests are defined.
+- [ ] Extend cell content for combining and wide-character invariants during the Unicode compatibility slice; do not assume the current single-`char` representation is final.
+- [ ] Decide resize reflow behavior during the compatibility milestone; the current top-left preservation rule does not perform terminal line reflow.
 - [ ] Determine minimum OS versions from pinned stack requirements and real platform validation when those dependencies are introduced; record the result in a new ADR.
-- [ ] Resolve renderer fallback, operational defaults, telemetry policy, and compatibility-version matrix before their owning implementation or release gate.
 
 ## Deferred by scope
 

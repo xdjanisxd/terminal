@@ -29,6 +29,14 @@ input -> command resolver or terminal encoder -> PTY writer
 
 The renderer consumes terminal snapshots/state and damage information; it does not own terminal semantics. Platform-specific implementations remain behind narrow project-owned interfaces.
 
+## Initial terminal-core model invariants
+
+- `TerminalDimensions` is non-zero and rejects per-axis and total-cell resource limits.
+- `ScreenGrid` uses zero-based `(row, column)` coordinates over row-major storage; checked access returns `None` outside the grid.
+- A screen grid owns its cursor so cursor mutations and resize keep it inside current dimensions.
+- Clearing writes default blank cells without moving the cursor.
+- Resize preserves the top-left rectangular intersection, blanks newly exposed cells, discards cells outside the new rectangle, and clamps the cursor. It does not yet implement terminal line reflow.
+
 ## Runtime model
 
 Use one process. The main thread owns the `winit` event loop, input, windows, and render scheduling. PTY reads and child communication run on worker threads and wake the event loop when work is available. Start with `std::thread` and `std::sync`; add an async runtime or more workers only for a demonstrated architectural need. Avoid polling and request redraws only on state changes.

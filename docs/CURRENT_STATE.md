@@ -2,27 +2,24 @@
 
 ## Working
 
-- Valid Cargo workspace with resolver version 3 and seven dependency-free structural packages
-- Required repository knowledge system and agent handoff files
-- Initial accepted architecture decision records
-- MIT license and inherited Cargo package license metadata
-- GitHub Actions workflow containing the four required Cargo gates for Windows, Linux, and macOS on x86_64 and ARM64 native runners
+- Valid Rust workspace, MIT metadata, and required repository knowledge system
+- Cross-platform GitHub Actions gates verified on Windows, Linux, and macOS for x86_64 and ARM64
+- Dependency-free `terminal-core` models for bounded dimensions, cells, colors/attributes, row-major screen storage, and a grid-owned bounded cursor
+- Zero-based checked cell access, default-cell clearing, and top-left-preserving resize with cursor clamping
+- Nineteen public-API model tests covering construction, resource boundaries, indexing, access, cursor bounds, clearing, and resize behavior
 
 ## Partial
 
-- Public branding is intentionally deferred and does not block the current internal package names
-- Minimum operating-system versions are intentionally deferred until selected stack versions and platform behavior provide evidence
-- Component crates contain only module documentation and an empty application entry point
-- Cross-platform CI is configured but has not run because this repository has no remote or commit yet
+- `Cell` stores one Unicode scalar and foreground/background colors; combining characters, wide-cell continuations, style attributes, and grapheme behavior are not modeled yet
+- Resize preserves the top-left rectangular intersection and does not reflow text; final terminal resize/reflow semantics remain future compatibility work
+- Public branding and minimum operating-system versions remain intentionally deferred as documented in ADR-0008
 
 ## Missing
 
-- Terminal application behavior and external dependencies
-- Terminal core, PTY integration, renderer, workspace, configuration, and platform implementations
-- A verified remote CI run and release packaging
+- Terminal modes, `TerminalState`, escape parsing, `vte`, scrollback, selection, and terminal replies
+- PTY, renderer, input, configuration, workspace, and platform implementations
 - Compatibility and performance baselines
 
 ## Known issues
 
-- No implemented application behavior exists yet
-- The local Git Bash environment lacks the MSVC build tools required to link default-target tests; CI is expected to provide a correctly initialized Windows toolchain
+- The local Git Bash environment lacks the MSVC build tools required to link default-target tests; linked local validation uses the installed Windows GNU target
