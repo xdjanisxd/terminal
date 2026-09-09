@@ -2,7 +2,7 @@
 
 ## Status
 
-This document defines intended boundaries. The repository currently contains dependency-free `terminal-core` screen and mode models, but no parser, PTY, renderer, or application behavior.
+This document defines intended boundaries. The repository currently contains a dependency-free `TerminalState` facade over screen and mode models, but no parser, PTY, renderer, or application behavior.
 
 ## Conceptual components
 
@@ -45,6 +45,14 @@ The renderer consumes terminal snapshots/state and damage information; it does n
 - Origin mode is intentionally deferred. Setting or resetting it must atomically coordinate cursor homing, scrolling margins, saved cursor state, and future primary/alternate-screen behavior through `TerminalState`.
 - A future parser translates protocol numeric identifiers into typed project-owned operations. Numeric VT/xterm mode identifiers are not exposed by the core model.
 - Future primary and alternate screens own separate screen state. Terminal-global and input-related modes remain owned once by `TerminalState`; protocol-specific save/restore behavior must be modeled explicitly rather than implied by buffer switching.
+
+## TerminalState boundary
+
+- `TerminalState` privately owns one active `ScreenGrid`, `TerminalModes`, and `InputModes`.
+- Callers receive immutable screen and mode access. Cursor movement, clearing, resizing, and mode transitions use semantic methods on `TerminalState`.
+- Future parser adapters translate protocol input into `TerminalState` operations rather than mutating owned low-level models directly.
+- Low-level model types remain independently constructible and testable, but the facade exposes no mutable reference to its owned values.
+- The current project-owned reset preserves dimensions, clears the active screen, homes the cursor, and restores supported modes to defaults. It is not DECSTR or RIS.
 
 ## Runtime model
 

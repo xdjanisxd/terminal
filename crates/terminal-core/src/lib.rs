@@ -5,6 +5,7 @@ mod cursor;
 mod dimensions;
 mod grid;
 mod modes;
+mod state;
 
 pub use cell::{Cell, CellAttributes, CellColor};
 pub use cursor::{Cursor, CursorError};
@@ -14,3 +15,4 @@ pub use modes::{
     AutoWrapMode, CharacterInsertionMode, CursorKeyMode, CursorVisibility, InputModes,
     TerminalModes,
 };
+pub use state::TerminalState;
