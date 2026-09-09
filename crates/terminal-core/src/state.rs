@@ -1,7 +1,37 @@
+use std::{error::Error, fmt};
+
 use crate::{
-    AutoWrapMode, CharacterInsertionMode, Cursor, CursorKeyMode, CursorVisibility, InputModes,
-    ScreenGrid, TerminalDimensions, TerminalModes,
+    AutoWrapMode, Cell, CellAttributes, CharacterInsertionMode, Cursor, CursorKeyMode,
+    CursorVisibility, InputModes, ScreenGrid, TerminalDimensions, TerminalModes,
 };
+
+/// Failure to print a character through the terminal semantic boundary.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PrintError {
+    /// Control functions must use their dedicated semantic operation.
+    ControlCharacter(char),
+    /// Width-sensitive Unicode is deferred until cell width can be modeled.
+    UnsupportedCharacter(char),
+}
+
+impl fmt::Display for PrintError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::ControlCharacter(character) => write!(
+                formatter,
+                "control character U+{:04X} is not printable terminal output",
+                *character as u32
+            ),
+            Self::UnsupportedCharacter(character) => write!(
+                formatter,
+                "character U+{:04X} is outside the supported single-cell ASCII range",
+                *character as u32
+            ),
+        }
+    }
+}
+
+impl Error for PrintError {}
 
 /// Parser-independent owner of the active terminal semantic state.
 ///
@@ -37,6 +67,7 @@ pub struct TerminalState {
     screen: ScreenGrid,
     terminal_modes: TerminalModes,
     input_modes: InputModes,
+    wrap_pending: bool,
 }
 
 impl TerminalState {
@@ -46,6 +77,7 @@ impl TerminalState {
             screen: ScreenGrid::new(dimensions),
             terminal_modes: TerminalModes::default(),
             input_modes: InputModes::default(),
+            wrap_pending: false,
         }
     }
 
@@ -70,22 +102,101 @@ impl TerminalState {
         row: usize,
         column: usize,
     ) -> Result<(), crate::CursorError> {
-        self.screen.set_cursor_position(row, column)
+        let result = self.screen.set_cursor_position(row, column);
+        if result.is_ok() {
+            self.wrap_pending = false;
+        }
+        result
     }
 
     /// Moves the cursor by signed deltas, clamping at screen edges.
     pub fn move_cursor(&mut self, row_delta: isize, column_delta: isize) {
         self.screen.move_cursor(row_delta, column_delta);
+        self.wrap_pending = false;
+    }
+
+    /// Prints one supported single-cell ASCII character at the cursor.
+    ///
+    /// The current fixed-width model accepts ASCII space through tilde and
+    /// stores each character in one cell with default attributes. Other
+    /// Unicode is rejected until width and combining behavior can be modeled
+    /// without approximation.
+    pub fn print_character(&mut self, character: char) -> Result<(), PrintError> {
+        if character.is_control() {
+            return Err(PrintError::ControlCharacter(character));
+        }
+        if !character.is_ascii() {
+            return Err(PrintError::UnsupportedCharacter(character));
+        }
+
+        if self.wrap_pending {
+            self.wrap_before_print();
+        }
+
+        let cursor = self.cursor();
+        let cell = Cell::new(character, CellAttributes::default());
+        match self.terminal_modes.character_insertion() {
+            CharacterInsertionMode::Replace => {
+                *self
+                    .screen
+                    .cell_mut(cursor.row(), cursor.column())
+                    .expect("terminal cursor is always in bounds") = cell;
+            }
+            CharacterInsertionMode::Insert => {
+                self.screen.insert_cell(cursor.row(), cursor.column(), cell);
+            }
+        }
+
+        if cursor.column() + 1 < self.dimensions().columns() {
+            self.screen.move_cursor(0, 1);
+        } else {
+            self.wrap_pending = self.terminal_modes.auto_wrap() == AutoWrapMode::Enabled;
+        }
+
+        Ok(())
+    }
+
+    /// Moves the cursor to the first column of its current row.
+    pub fn carriage_return(&mut self) {
+        let row = self.cursor().row();
+        self.screen
+            .set_cursor_position(row, 0)
+            .expect("first column is always in bounds");
+        self.wrap_pending = false;
+    }
+
+    /// Moves down one row, scrolling the active screen at its bottom edge.
+    ///
+    /// This is an in-screen scroll only; discarded top-row cells are not kept
+    /// as scrollback. The cursor column and any delayed-wrap condition are
+    /// unchanged.
+    pub fn line_feed(&mut self) {
+        let cursor = self.cursor();
+        if cursor.row() + 1 < self.dimensions().rows() {
+            self.screen.move_cursor(1, 0);
+        } else {
+            self.screen.scroll_up_one_row();
+        }
+    }
+
+    /// Moves left one column without erasing and without reverse wrapping.
+    pub fn backspace(&mut self) {
+        if self.cursor().column() > 0 {
+            self.screen.move_cursor(0, -1);
+            self.wrap_pending = false;
+        }
     }
 
     /// Clears every active-screen cell without moving the cursor.
     pub fn clear_screen(&mut self) {
         self.screen.clear();
+        self.wrap_pending = false;
     }
 
     /// Resizes the active screen using `ScreenGrid` preservation semantics.
     pub fn resize(&mut self, dimensions: TerminalDimensions) {
         self.screen.resize(dimensions);
+        self.wrap_pending = false;
     }
 
     /// Returns read-only terminal-global modes.
@@ -101,6 +212,9 @@ impl TerminalState {
     /// Sets the right-margin wrapping behavior.
     pub fn set_auto_wrap(&mut self, auto_wrap: AutoWrapMode) {
         self.terminal_modes.set_auto_wrap(auto_wrap);
+        if auto_wrap == AutoWrapMode::Disabled {
+            self.wrap_pending = false;
+        }
     }
 
     /// Sets whether new characters replace or insert before existing cells.
@@ -125,6 +239,17 @@ impl TerminalState {
     /// preserved. This is not an implementation of DECSTR or RIS.
     pub fn reset(&mut self) {
         *self = Self::new(self.dimensions());
+    }
+
+    fn wrap_before_print(&mut self) {
+        debug_assert_eq!(
+            self.terminal_modes.auto_wrap(),
+            AutoWrapMode::Enabled,
+            "pending wrap is cleared when auto-wrap is disabled"
+        );
+
+        self.line_feed();
+        self.carriage_return();
     }
 }
 

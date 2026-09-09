@@ -2,7 +2,7 @@
 
 ## Status
 
-This document defines intended boundaries. The repository currently contains a dependency-free `TerminalState` facade over screen and mode models, but no parser, PTY, renderer, or application behavior.
+This document defines intended boundaries. The repository currently contains a dependency-free `TerminalState` facade with basic printable and control semantics over screen and mode models, but no parser, PTY, renderer, or application behavior.
 
 ## Conceptual components
 
@@ -36,12 +36,13 @@ The renderer consumes terminal snapshots/state and damage information; it does n
 - A screen grid owns its cursor so cursor mutations and resize keep it inside current dimensions.
 - Clearing writes default blank cells without moving the cursor.
 - Resize preserves the top-left rectangular intersection, blanks newly exposed cells, discards cells outside the new rectangle, and clamps the cursor. It does not yet implement terminal line reflow.
+- Line feed at the bottom row scrolls the active fixed-size grid up by one row and blanks the new bottom row. Discarded cells are not retained because scrollback is not modeled yet.
 
 ## Mode ownership
 
 - `TerminalModes` owns values shared across the terminal: cursor visibility, auto-wrap, and insert/replace behavior. Defaults are visible, enabled, and replace.
 - `InputModes` separately owns output-controlled state consumed by future keyboard encoding. Application cursor keys default to normal encoding.
-- The current subset contains no screen-local mode. Cursor, cells, and future margins/wrap-pending state are screen-local state, but are not interchangeable with mode flags.
+- The current subset contains no screen-local mode. Cursor, cells, delayed-wrap state, and future margins are screen-local state, but are not interchangeable with mode flags. The single-screen `TerminalState` currently stores delayed-wrap state privately; future screen-buffer ownership must keep separate delayed-wrap state per primary or alternate screen.
 - Origin mode is intentionally deferred. Setting or resetting it must atomically coordinate cursor homing, scrolling margins, saved cursor state, and future primary/alternate-screen behavior through `TerminalState`.
 - A future parser translates protocol numeric identifiers into typed project-owned operations. Numeric VT/xterm mode identifiers are not exposed by the core model.
 - Future primary and alternate screens own separate screen state. Terminal-global and input-related modes remain owned once by `TerminalState`; protocol-specific save/restore behavior must be modeled explicitly rather than implied by buffer switching.
@@ -49,10 +50,12 @@ The renderer consumes terminal snapshots/state and damage information; it does n
 ## TerminalState boundary
 
 - `TerminalState` privately owns one active `ScreenGrid`, `TerminalModes`, and `InputModes`.
-- Callers receive immutable screen and mode access. Cursor movement, clearing, resizing, and mode transitions use semantic methods on `TerminalState`.
+- Callers receive immutable screen and mode access. Printable output, carriage return, line feed, backspace, cursor movement, clearing, resizing, and mode transitions use semantic methods on `TerminalState`.
 - Future parser adapters translate protocol input into `TerminalState` operations rather than mutating owned low-level models directly.
 - Low-level model types remain independently constructible and testable, but the facade exposes no mutable reference to its owned values.
 - The current project-owned reset preserves dimensions, clears the active screen, homes the cursor, and restores supported modes to defaults. It is not DECSTR or RIS.
+- Printing uses VT-style delayed wrapping: writing the final column leaves the cursor there and records a private pending wrap; the next printable character wraps before it is written when auto-wrap is enabled. Disabling auto-wrap keeps output at the final column. Cursor positioning, carriage return, clearing, resize, and reset cancel a pending wrap. Line feed preserves pending wrap as well as the cursor column; backspace cancels it only when the cursor can move left.
+- Printing currently accepts only ASCII space through tilde, whose one-cell width the model can guarantee without external Unicode data. Insert mode shifts those fixed-width cells right within the current row and discards the final cell. Other Unicode is rejected rather than approximating combining or wide-character behavior.
 
 ## Runtime model
 

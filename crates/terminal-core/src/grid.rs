@@ -63,6 +63,25 @@ impl ScreenGrid {
         self.cells.fill(Cell::default());
     }
 
+    pub(crate) fn insert_cell(&mut self, row: usize, column: usize, cell: Cell) {
+        let index = self
+            .index_of(row, column)
+            .expect("terminal state keeps cell writes in bounds");
+        let row_end = (row + 1) * self.dimensions.columns();
+
+        if index + 1 < row_end {
+            self.cells.copy_within(index..row_end - 1, index + 1);
+        }
+        self.cells[index] = cell;
+    }
+
+    pub(crate) fn scroll_up_one_row(&mut self) {
+        let columns = self.dimensions.columns();
+        let cell_count = self.cells.len();
+        self.cells.copy_within(columns.., 0);
+        self.cells[cell_count - columns..].fill(Cell::default());
+    }
+
     /// Resizes while preserving the top-left intersection of the old and new grids.
     ///
     /// Newly exposed cells are default blank cells. Cells below or to the right of
