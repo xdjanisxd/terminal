@@ -2,11 +2,11 @@
 
 ## Next
 
-- [ ] Integrate a minimal incremental `vte` adapter behind a project-owned interface and translate printable input plus basic executed controls into `TerminalState` operations. Test arbitrary input chunking and keep CSI, SGR, PTY, rendering, and broader compatibility behavior out of that slice.
+- [ ] Run authenticated cross-platform CI for the completed M1 terminal-core foundation and merge only after all six configured runners pass.
 
 ## Later
 
-- [ ] Add bounded malformed/incomplete parser-state tests before expanding escape-sequence coverage.
+- [ ] Start M2 with a narrow typed cursor/erase semantic slice through `TerminalState`; keep protocol numeric identifiers inside the parser adapter.
 - [ ] Add origin mode only with scrolling-region state, cursor homing, saved-state behavior, and primary/alternate-screen semantics coordinated atomically by `TerminalState`.
 - [ ] Defer line-feed/new-line mode and application keypad mode until their behavior is required by parser/input milestones; do not grow a speculative mode catalog.
 - [ ] Add horizontal-tab behavior only with terminal-owned mutable tab stops, including default stops and resize/reset behavior; do not approximate it as permanently fixed eight-column movement.
