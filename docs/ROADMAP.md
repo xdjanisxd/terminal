@@ -18,7 +18,8 @@ Completion marks require tested acceptance criteria, not code presence alone.
 ## M1: Terminal core foundation
 
 - [x] Define bounded cell, attribute, screen-grid, and cursor models as the first independently tested `terminal-core` behavior
-- [ ] Add terminal modes to the model with explicit state transitions
+- [x] Add terminal-global and input-related modes with explicit typed state transitions
+- [ ] Introduce a parser-independent `TerminalState` facade for atomic terminal operations
 - [ ] Integrate incremental `vte` parsing behind project-owned interfaces
 - [ ] Test printable text, arbitrary input chunking, malformed input, and bounded parser state
 

@@ -6,18 +6,22 @@
 - Cross-platform GitHub Actions gates verified on Windows, Linux, and macOS for x86_64 and ARM64
 - Dependency-free `terminal-core` models for bounded dimensions, cells, colors/attributes, row-major screen storage, and a grid-owned bounded cursor
 - Zero-based checked cell access, default-cell clearing, and top-left-preserving resize with cursor clamping
-- Nineteen public-API model tests covering construction, resource boundaries, indexing, access, cursor bounds, clearing, and resize behavior
+- Typed terminal-global modes for cursor visibility, auto-wrap, and insert/replace behavior
+- Separate typed input-related state for normal/application cursor keys
+- Twenty-nine public-API integration tests: 19 screen-model tests and 10 mode tests
 
 ## Partial
 
+- Mode storage and transitions exist, but no `TerminalState` coordinates modes with screen operations yet
+- Origin mode is deliberately deferred because a correct transition must coordinate scrolling margins, cursor homing, saved state, and future primary/alternate-screen behavior
 - `Cell` stores one Unicode scalar and foreground/background colors; combining characters, wide-cell continuations, style attributes, and grapheme behavior are not modeled yet
 - Resize preserves the top-left rectangular intersection and does not reflow text; final terminal resize/reflow semantics remain future compatibility work
 - Public branding and minimum operating-system versions remain intentionally deferred as documented in ADR-0008
 
 ## Missing
 
-- Terminal modes, `TerminalState`, escape parsing, `vte`, scrollback, selection, and terminal replies
-- PTY, renderer, input, configuration, workspace, and platform implementations
+- `TerminalState`, escape parsing, `vte`, scrollback, selection, terminal replies, scrolling margins, saved cursor state, and alternate screens
+- PTY, renderer, input encoding, configuration, workspace, and platform implementations
 - Compatibility and performance baselines
 
 ## Known issues
