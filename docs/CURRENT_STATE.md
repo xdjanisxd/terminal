@@ -4,7 +4,7 @@
 
 - Valid Rust workspace, MIT metadata, and required repository knowledge system
 - Cross-platform GitHub Actions gates verified on Windows, Linux, and macOS for x86_64 and ARM64
-- Dependency-free `terminal-core` models for bounded dimensions, cells, colors/attributes, row-major screen storage, and a grid-owned bounded cursor
+- Project-owned `terminal-core` models for bounded dimensions, cells, colors/attributes, row-major screen storage, and a grid-owned bounded cursor
 - Zero-based checked cell access, default-cell clearing, and top-left-preserving resize with cursor clamping
 - Typed terminal-global modes for cursor visibility, auto-wrap, and insert/replace behavior
 - Separate typed input-related state for normal/application cursor keys
@@ -12,21 +12,26 @@
 - Controlled state operations for cursor movement, clearing, resizing, supported mode changes, and a project-owned reset
 - Parser-independent printable-character, carriage-return, line-feed, and backspace operations routed through `TerminalState`
 - Delayed right-margin wrapping, auto-wrap suppression, fixed-screen bottom scrolling, and fixed-width insert/replace output behavior
-- Sixty-four `terminal-core` unit/integration tests plus three compile-fail ownership tests
+- Incremental project-owned `TerminalParser` adapter encapsulating `vte` and preserving parser state across input chunks
+- Parser routing for printable input, CR, LF, and BS; unsupported parser actions are ignored without approximation
+- Bounded, resumable semantic-error reporting with exact consumed-byte counts
+- Bounded 1,024-byte OSC parser storage by compiling `vte` without its default `std` feature
+- Eighty-four `terminal-core` unit/integration tests plus three compile-fail ownership tests
 
 ## Partial
 
 - `TerminalState::reset` restores the current model to initial state at existing dimensions; it is explicitly not DECSTR or RIS
 - `Cell` stores one Unicode scalar and foreground/background colors; combining characters, wide-cell continuations, style attributes, and grapheme behavior are not modeled yet
 - Printable output accepts only single-cell ASCII space through tilde and uses default attributes; all other Unicode and active rendition state remain explicitly deferred
+- The parser recognizes broader VTE syntax incrementally, but only printable input, CR, LF, and BS currently have terminal semantics
 - Resize preserves the top-left rectangular intersection and does not reflow text; final terminal resize/reflow semantics remain future compatibility work
 - Public branding and minimum operating-system versions remain intentionally deferred as documented in ADR-0008
 
 ## Missing
 
-- Escape parsing, `vte`, horizontal tab stops, scrollback, selection, terminal replies, scrolling margins, saved cursor state, origin mode, and alternate screens
+- CSI/SGR semantics, cursor-position and erase escape behavior, mode dispatch, OSC/DCS semantics, horizontal tab stops, terminal replies, scrolling margins, saved cursor state, origin mode, and alternate screens
 - PTY, renderer, input encoding, configuration, workspace, and platform implementations
-- Compatibility and performance baselines
+- Scrollback and compatibility/performance baselines
 
 ## Known issues
 

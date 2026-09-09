@@ -2,7 +2,7 @@
 
 ## Status
 
-This document defines intended boundaries. The repository currently contains a dependency-free `TerminalState` facade with basic printable and control semantics over screen and mode models, but no parser, PTY, renderer, or application behavior.
+This document defines intended boundaries. The repository currently contains a project-owned incremental parser adapter over `vte` and a `TerminalState` facade with basic printable and control semantics, but no PTY, renderer, or application behavior.
 
 ## Conceptual components
 
@@ -23,7 +23,7 @@ The current internal packages are `terminal-app`, `terminal-core`, `terminal-pty
 Primary data flow:
 
 ```text
-PTY bytes -> vte parser -> TerminalState -> renderer
+raw terminal bytes -> TerminalParser -> private vte parser/callbacks -> TerminalState -> renderer
 input -> command resolver or terminal encoder -> PTY writer
 ```
 
@@ -56,6 +56,14 @@ The renderer consumes terminal snapshots/state and damage information; it does n
 - The current project-owned reset preserves dimensions, clears the active screen, homes the cursor, and restores supported modes to defaults. It is not DECSTR or RIS.
 - Printing uses VT-style delayed wrapping: writing the final column leaves the cursor there and records a private pending wrap; the next printable character wraps before it is written when auto-wrap is enabled. Disabling auto-wrap keeps output at the final column. Cursor positioning, carriage return, clearing, resize, and reset cancel a pending wrap. Line feed preserves pending wrap as well as the cursor column; backspace cancels it only when the cursor can move left.
 - Printing currently accepts only ASCII space through tilde, whose one-cell width the model can guarantee without external Unicode data. Insert mode shifts those fixed-width cells right within the current row and discards the final cell. Other Unicode is rejected rather than approximating combining or wide-character behavior.
+
+## Parser boundary
+
+- `TerminalParser` is the public project-owned incremental byte interface. It owns parser state across calls and exposes no `vte` parser, callback, parameter, or action type.
+- A private `vte::Perform` implementation translates printable characters, CR, LF, and BS into `TerminalState` semantic methods only. It never mutates grids or mode models directly.
+- CSI, ESC, OSC, DCS, unsupported executed controls, and their parser callbacks are currently no-ops. The parser still consumes them incrementally so input following a complete unsupported sequence returns to normal parsing without an approximation of that sequence's behavior.
+- `vte` is compiled without default features so OSC collection uses a fixed 1,024-byte buffer rather than an unbounded `Vec`. Excess unsupported OSC payload is discarded by the parser.
+- `TerminalParser::advance` processes without per-byte allocation and uses `vte` termination checks to stop before callbacks following the first `TerminalState` semantic error can mutate state. Its project-owned error reports both that semantic error and the number of bytes consumed, allowing the caller to resume with the unconsumed suffix without losing later errors silently. The count can be zero when malformed UTF-8 retained from a prior chunk is rejected before the current byte is reprocessed.
 
 ## Runtime model
 
