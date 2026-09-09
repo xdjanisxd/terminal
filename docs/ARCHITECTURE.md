@@ -2,7 +2,7 @@
 
 ## Status
 
-This document defines intended boundaries. The repository currently contains a project-owned incremental parser adapter over `vte` and a `TerminalState` facade with basic printable and control semantics, but no PTY, renderer, or application behavior.
+This document defines intended boundaries. The repository currently contains a project-owned incremental parser adapter over `vte` and a `TerminalState` facade with printable, basic control, cursor-movement, and erase semantics, but no PTY, renderer, or application behavior.
 
 ## Conceptual components
 
@@ -44,24 +44,25 @@ The renderer consumes terminal snapshots/state and damage information; it does n
 - `InputModes` separately owns output-controlled state consumed by future keyboard encoding. Application cursor keys default to normal encoding.
 - The current subset contains no screen-local mode. Cursor, cells, delayed-wrap state, and future margins are screen-local state, but are not interchangeable with mode flags. The single-screen `TerminalState` currently stores delayed-wrap state privately; future screen-buffer ownership must keep separate delayed-wrap state per primary or alternate screen.
 - Origin mode is intentionally deferred. Setting or resetting it must atomically coordinate cursor homing, scrolling margins, saved cursor state, and future primary/alternate-screen behavior through `TerminalState`.
-- A future parser translates protocol numeric identifiers into typed project-owned operations. Numeric VT/xterm mode identifiers are not exposed by the core model.
+- The parser adapter translates supported protocol parameters into typed project-owned operations. Numeric VT/xterm identifiers are not exposed by the core model.
 - Future primary and alternate screens own separate screen state. Terminal-global and input-related modes remain owned once by `TerminalState`; protocol-specific save/restore behavior must be modeled explicitly rather than implied by buffer switching.
 
 ## TerminalState boundary
 
 - `TerminalState` privately owns one active `ScreenGrid`, `TerminalModes`, and `InputModes`.
-- Callers receive immutable screen and mode access. Printable output, carriage return, line feed, backspace, cursor movement, clearing, resizing, and mode transitions use semantic methods on `TerminalState`.
-- Future parser adapters translate protocol input into `TerminalState` operations rather than mutating owned low-level models directly.
+- Callers receive immutable screen and mode access. Printable output, carriage return, line feed, backspace, typed cursor movement, typed erase, clearing, resizing, and mode transitions use semantic methods on `TerminalState`.
+- Parser adapters translate protocol input into `TerminalState` operations rather than mutating owned low-level models directly.
 - Low-level model types remain independently constructible and testable, but the facade exposes no mutable reference to its owned values.
 - The current project-owned reset preserves dimensions, clears the active screen, homes the cursor, and restores supported modes to defaults. It is not DECSTR or RIS.
-- Printing uses VT-style delayed wrapping: writing the final column leaves the cursor there and records a private pending wrap; the next printable character wraps before it is written when auto-wrap is enabled. Disabling auto-wrap keeps output at the final column. Cursor positioning, carriage return, clearing, resize, and reset cancel a pending wrap. Line feed preserves pending wrap as well as the cursor column; backspace cancels it only when the cursor can move left.
+- Printing uses VT-style delayed wrapping: writing the final column leaves the cursor there and records a private pending wrap; the next printable character wraps before it is written when auto-wrap is enabled. Disabling auto-wrap keeps output at the final column. Typed cursor movement, carriage return, erase, clearing, resize, and reset cancel a pending wrap. Line feed preserves pending wrap as well as the cursor column; backspace cancels it only when the cursor can move left.
 - Printing currently accepts only ASCII space through tilde, whose one-cell width the model can guarantee without external Unicode data. Insert mode shifts those fixed-width cells right within the current row and discards the final cell. Other Unicode is rejected rather than approximating combining or wide-character behavior.
 
 ## Parser boundary
 
 - `TerminalParser` is the public project-owned incremental byte interface. It owns parser state across calls and exposes no `vte` parser, callback, parameter, or action type.
-- A private `vte::Perform` implementation translates printable characters, CR, LF, and BS into `TerminalState` semantic methods only. It never mutates grids or mode models directly.
-- CSI, ESC, OSC, DCS, unsupported executed controls, and their parser callbacks are currently no-ops. The parser still consumes them incrementally so input following a complete unsupported sequence returns to normal parsing without an approximation of that sequence's behavior.
+- A private `vte::Perform` implementation translates printable characters, CR, LF, BS, and the supported cursor/erase CSI subset into `TerminalState` semantic methods only. It never mutates grids or mode models directly.
+- The supported CSI subset is CUU, CUD, CUF, CUB, CUP/HVP, CHA, VPA, ED modes 0-2, and EL modes 0-2. CSI parameters remain private `vte` values until the adapter normalizes omitted and zero parameters and converts one-based absolute coordinates to project-owned zero-based semantics.
+- ESC, OSC, DCS, unsupported executed controls, and unsupported or malformed CSI callbacks are no-ops. The parser still consumes them incrementally so input following a complete unsupported sequence returns to normal parsing without an approximation of that sequence's behavior.
 - `vte` is compiled without default features so OSC collection uses a fixed 1,024-byte buffer rather than an unbounded `Vec`. Excess unsupported OSC payload is discarded by the parser.
 - `TerminalParser::advance` processes without per-byte allocation and uses `vte` termination checks to stop before callbacks following the first `TerminalState` semantic error can mutate state. Its project-owned error reports both that semantic error and the number of bytes consumed, allowing the caller to resume with the unconsumed suffix without losing later errors silently. The count can be zero when malformed UTF-8 retained from a prior chunk is rejected before the current byte is reprocessed.
 
