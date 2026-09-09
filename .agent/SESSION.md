@@ -2,35 +2,36 @@
 
 ## Changed
 
-- Added a std-only `terminal-core` mode model with typed enums, private storage, documented defaults, and explicit setters.
-- `TerminalModes` owns terminal-global cursor visibility, auto-wrap, and insert/replace behavior.
-- `InputModes` separately owns normal/application cursor-key state for later consumption by input encoding.
-- Added 10 public-API mode tests covering defaults, both directions of every transition, repeated/idempotent changes, unrelated-mode independence, and input/global ownership separation.
-- No numeric parser identifiers, parser, `vte`, PTY, renderer, input encoder, scrollback, alternate screen, SGR expansion, or external dependency was added.
-- An initial per-screen origin-mode design was rejected during independent review and removed before completion.
+- Added parser-independent `TerminalState` in `crates/terminal-core/src/state.rs` and exported it from `lib.rs`.
+- `TerminalState` privately owns one active `ScreenGrid`, `TerminalModes`, and `InputModes`.
+- Added controlled operations for absolute/relative cursor movement, screen clear, resize, supported terminal mode changes, and cursor-key mode changes.
+- Added a project-owned `reset` that preserves dimensions, clears the screen, homes the cursor, and restores all currently supported modes to defaults; it is not DECSTR or RIS.
+- Screen and mode accessors return immutable references; compile-fail doctests enforce that state-owned values cannot be mutated through those accessors.
+- Lower-level model APIs were not restricted because independently owned models remain testable and the facade exposes no mutable path to its owned values.
+- Added 12 facade tests: nine public integration tests and three internal delegation/content tests, plus three compile-fail ownership doctests.
+- No parser, `vte`, PTY, renderer, input encoder, scrollback, alternate screen, or dependency was added.
 
 ## Validation
 
-- All four required repository Cargo gates passed locally with `CARGO_BUILD_TARGET=x86_64-pc-windows-gnu`.
-- Workspace tests passed: 29 `terminal-core` integration tests, including 10 mode tests; no failures.
-- `cargo metadata --format-version 1 --no-deps` confirmed that `terminal-core` has zero dependencies.
-- Static scan found no `unsafe`, forbidden architectural dependencies, parser identifiers, or out-of-scope subsystem references in the new mode module.
-- Independent review passed after the origin-mode correction. It found no remaining blockers; its setter-isolation test suggestion was addressed.
+- All required local Cargo gates passed with `CARGO_BUILD_TARGET=x86_64-pc-windows-gnu`.
+- `terminal-core` passed 41 unit/integration tests and three compile-fail doctests.
+- Cargo metadata confirmed zero `terminal-core` dependencies.
+- Independent review passed with no security, logic, architecture, scope, or compatibility blockers; all three reported coverage gaps were addressed.
 
-## Compatibility-sensitive decisions
+## Decisions
 
-- Cursor visibility, auto-wrap, and insert/replace are terminal-global state.
-- Application cursor-key mode is terminal-core state because terminal output controls it, but it is isolated in `InputModes` because a future input encoder consumes it.
-- No screen-local mode is included in this slice. Screen-local cursor, margins, and wrap-pending values are state, not automatically mode flags.
-- Origin mode is deferred until `TerminalState` can apply its cursor-home and scrolling-region effects atomically and define DECSC/DECRC plus 47/1047/1049 interactions.
-- Line-feed/new-line mode, application keypad mode, cursor blinking, mouse/focus reporting, and other historical modes remain unmodeled until owning behavior requires them.
+- `TerminalState` is the semantic mutation boundary for future parser adapters.
+- Read-only screen/mode access is explicit; callers receive no mutable references into state-owned values.
+- Reset is a project-owned model reset, not an approximation of DECSTR or RIS.
+- Existing `ScreenGrid`, `TerminalModes`, and `InputModes` mutation APIs remain public for independent model use and tests; they cannot bypass ownership inside `TerminalState`.
 
 ## Known limitations
 
-- These types store mode values only; no terminal writing, reset operation, parser mapping, rendering, or input encoding consumes them yet.
-- The local Git Bash environment cannot link the default MSVC target because Visual C++ build tools and Windows import libraries are unavailable; the installed Windows GNU target is used for linked local tests.
-- This feature branch has not run remote CI yet.
+- No printable-character operation or parser adapter exists yet.
+- Reset reconstructs the grid at existing dimensions; this is simple and correct but may briefly allocate replacement storage before old storage is released.
+- The local Git Bash environment cannot link the default MSVC target; linked local tests use the installed Windows GNU target.
+- This feature branch has not run remote CI.
 
 ## Next recommended task
 
-Introduce a small parser-independent `TerminalState` facade that owns the active `ScreenGrid`, `TerminalModes`, and `InputModes`, then define atomic reset and semantic state operations with tests. Do not add `vte` in that slice.
+Integrate a minimal incremental `vte` adapter behind a project-owned interface and route printable-character behavior through `TerminalState`, with arbitrary chunk-boundary tests. Do not add CSI, SGR, PTY, rendering, or broader compatibility behavior in that slice.

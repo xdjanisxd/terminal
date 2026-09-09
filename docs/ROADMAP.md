@@ -19,7 +19,7 @@ Completion marks require tested acceptance criteria, not code presence alone.
 
 - [x] Define bounded cell, attribute, screen-grid, and cursor models as the first independently tested `terminal-core` behavior
 - [x] Add terminal-global and input-related modes with explicit typed state transitions
-- [ ] Introduce a parser-independent `TerminalState` facade for atomic terminal operations
+- [x] Introduce a parser-independent `TerminalState` facade for atomic terminal operations
 - [ ] Integrate incremental `vte` parsing behind project-owned interfaces
 - [ ] Test printable text, arbitrary input chunking, malformed input, and bounded parser state
 

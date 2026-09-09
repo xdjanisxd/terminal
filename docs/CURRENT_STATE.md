@@ -8,19 +8,20 @@
 - Zero-based checked cell access, default-cell clearing, and top-left-preserving resize with cursor clamping
 - Typed terminal-global modes for cursor visibility, auto-wrap, and insert/replace behavior
 - Separate typed input-related state for normal/application cursor keys
-- Twenty-nine public-API integration tests: 19 screen-model tests and 10 mode tests
+- Parser-independent `TerminalState` owning one active `ScreenGrid`, `TerminalModes`, and `InputModes`
+- Controlled state operations for cursor movement, clearing, resizing, supported mode changes, and a project-owned reset
+- Forty-one `terminal-core` unit/integration tests plus three compile-fail ownership tests
 
 ## Partial
 
-- Mode storage and transitions exist, but no `TerminalState` coordinates modes with screen operations yet
-- Origin mode is deliberately deferred because a correct transition must coordinate scrolling margins, cursor homing, saved state, and future primary/alternate-screen behavior
+- `TerminalState::reset` restores the current model to initial state at existing dimensions; it is explicitly not DECSTR or RIS
 - `Cell` stores one Unicode scalar and foreground/background colors; combining characters, wide-cell continuations, style attributes, and grapheme behavior are not modeled yet
 - Resize preserves the top-left rectangular intersection and does not reflow text; final terminal resize/reflow semantics remain future compatibility work
 - Public branding and minimum operating-system versions remain intentionally deferred as documented in ADR-0008
 
 ## Missing
 
-- `TerminalState`, escape parsing, `vte`, scrollback, selection, terminal replies, scrolling margins, saved cursor state, and alternate screens
+- Escape parsing, `vte`, printable-character semantics, scrollback, selection, terminal replies, scrolling margins, saved cursor state, origin mode, and alternate screens
 - PTY, renderer, input encoding, configuration, workspace, and platform implementations
 - Compatibility and performance baselines
 
