@@ -2,7 +2,7 @@
 
 ## Current state
 
-M1 terminal-core foundation is complete locally.
+The first M2 terminal-compatibility slice is complete.
 
 Implemented:
 
@@ -15,6 +15,9 @@ Implemented:
 * incremental project-owned `TerminalParser`
 * private `vte` integration
 * chunk-safe parser state and resumable semantic errors
+* typed relative and absolute cursor movement through `TerminalState`
+* typed display/line erase directions through `TerminalState`
+* private CSI translation for CUU/CUD/CUF/CUB, CUP/HVP, CHA/VPA, ED, and EL
 
 `terminal-core` currently depends only on `vte`, with default features disabled.
 
@@ -22,14 +25,14 @@ Implemented:
 
 Local required Cargo gates pass on `x86_64-pc-windows-gnu`.
 
-Current terminal-core coverage includes 84 unit/integration tests plus ownership doctests.
+Current terminal-core coverage includes 94 unit/integration tests plus ownership doctests.
 
-Remote CI for the current M1 branch still needs to pass on all six configured platform runners before merge.
+Authenticated CI passes on all six configured Windows, Linux, and macOS x86_64/ARM64 runners.
 
 ## Important limitations
 
 * Printable content is currently ASCII U+0020..U+007E only.
-* CSI/SGR cursor and erase semantics are not implemented yet.
+* CSI support remains intentionally limited to the cursor and erase sequences in this slice; SGR, scrolling, mode dispatch, and replies are not implemented yet.
 * Unicode combining/wide-cell behavior is deferred.
 * No PTY, renderer, scrollback, alternate screen, or terminal replies exist yet.
 * Resize still uses top-left preservation with no line reflow.
@@ -42,7 +45,5 @@ See:
 
 ## Next
 
-1. Run authenticated cross-platform CI for the M1 branch.
-2. Merge after all six jobs pass.
-3. Begin M2 with typed cursor and erase semantics through `TerminalState`.
+1. Add a narrow mode-dispatch slice for the existing insert/replace, auto-wrap, and cursor-visibility model without adding speculative modes.
 

@@ -33,6 +33,33 @@ impl fmt::Display for PrintError {
 
 impl Error for PrintError {}
 
+/// Parser-independent cursor movement over zero-based terminal coordinates.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CursorMovement {
+    Up(usize),
+    Down(usize),
+    Forward(usize),
+    Backward(usize),
+    Position { row: usize, column: usize },
+    HorizontalAbsolute(usize),
+    VerticalAbsolute(usize),
+}
+
+/// The terminal area affected by an erase operation.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum EraseRegion {
+    Display,
+    Line,
+}
+
+/// Direction of an inclusive erase relative to the cursor.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum EraseDirection {
+    CursorToEnd,
+    StartToCursor,
+    EntireRegion,
+}
+
 /// Parser-independent owner of the active terminal semantic state.
 ///
 /// The facade exposes its screen and modes read-only. Mutations that affect the
@@ -109,9 +136,37 @@ impl TerminalState {
         result
     }
 
-    /// Moves the cursor by signed deltas, clamping at screen edges.
-    pub fn move_cursor(&mut self, row_delta: isize, column_delta: isize) {
-        self.screen.move_cursor(row_delta, column_delta);
+    /// Applies a typed cursor movement, clamping at screen edges.
+    pub fn move_cursor(&mut self, movement: CursorMovement) {
+        let cursor = self.cursor();
+        let dimensions = self.dimensions();
+        let maximum_row = dimensions.rows() - 1;
+        let maximum_column = dimensions.columns() - 1;
+        let (row, column) = match movement {
+            CursorMovement::Up(amount) => (cursor.row().saturating_sub(amount), cursor.column()),
+            CursorMovement::Down(amount) => (
+                cursor.row().saturating_add(amount).min(maximum_row),
+                cursor.column(),
+            ),
+            CursorMovement::Forward(amount) => (
+                cursor.row(),
+                cursor.column().saturating_add(amount).min(maximum_column),
+            ),
+            CursorMovement::Backward(amount) => {
+                (cursor.row(), cursor.column().saturating_sub(amount))
+            }
+            CursorMovement::Position { row, column } => {
+                (row.min(maximum_row), column.min(maximum_column))
+            }
+            CursorMovement::HorizontalAbsolute(column) => {
+                (cursor.row(), column.min(maximum_column))
+            }
+            CursorMovement::VerticalAbsolute(row) => (row.min(maximum_row), cursor.column()),
+        };
+
+        self.screen
+            .set_cursor_position(row, column)
+            .expect("clamped semantic cursor position is always in bounds");
         self.wrap_pending = false;
     }
 
@@ -190,6 +245,28 @@ impl TerminalState {
     /// Clears every active-screen cell without moving the cursor.
     pub fn clear_screen(&mut self) {
         self.screen.clear();
+        self.wrap_pending = false;
+    }
+
+    /// Erases default blank cells in the selected region without moving the cursor.
+    pub fn erase(&mut self, region: EraseRegion, direction: EraseDirection) {
+        let cursor = self.cursor();
+        let columns = self.dimensions().columns();
+        let cursor_index = cursor.row() * columns + cursor.column();
+        let (region_start, region_end) = match region {
+            EraseRegion::Display => (0, self.dimensions().cell_count()),
+            EraseRegion::Line => {
+                let start = cursor.row() * columns;
+                (start, start + columns)
+            }
+        };
+        let (start, end) = match direction {
+            EraseDirection::CursorToEnd => (cursor_index, region_end),
+            EraseDirection::StartToCursor => (region_start, cursor_index + 1),
+            EraseDirection::EntireRegion => (region_start, region_end),
+        };
+
+        self.screen.erase_cells(start, end);
         self.wrap_pending = false;
     }
 

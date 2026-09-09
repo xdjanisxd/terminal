@@ -155,14 +155,106 @@ fn parser_state_persists_across_csi_chunk_boundaries() {
 }
 
 #[test]
+fn routes_supported_cursor_csi_with_defaults_zeroes_and_large_parameters() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(8, 6).unwrap());
+
+    parser.advance(&mut state, b"\x1b[4;5H").unwrap();
+    assert_eq!((state.cursor().row(), state.cursor().column()), (3, 4));
+    parser.advance(&mut state, b"\x1b[A\x1b[0C").unwrap();
+    assert_eq!((state.cursor().row(), state.cursor().column()), (2, 5));
+    parser.advance(&mut state, b"\x1b[2B\x1b[3D").unwrap();
+    assert_eq!((state.cursor().row(), state.cursor().column()), (4, 2));
+    parser.advance(&mut state, b"\x1b[0;0f").unwrap();
+    assert_eq!((state.cursor().row(), state.cursor().column()), (0, 0));
+    parser.advance(&mut state, b"\x1b[6d\x1b[8G").unwrap();
+    assert_eq!((state.cursor().row(), state.cursor().column()), (5, 7));
+    parser
+        .advance(&mut state, b"\x1b[65535A\x1b[65535D")
+        .unwrap();
+    assert_eq!((state.cursor().row(), state.cursor().column()), (0, 0));
+}
+
+#[test]
+fn routes_supported_erase_csi_and_preserves_cursor() {
+    let cases = [
+        (b"\x1b[K".as_slice(), ["abcde", "fg   ", "klmno"]),
+        (b"\x1b[0K".as_slice(), ["abcde", "fg   ", "klmno"]),
+        (b"\x1b[1K".as_slice(), ["abcde", "   ij", "klmno"]),
+        (b"\x1b[2K".as_slice(), ["abcde", "     ", "klmno"]),
+        (b"\x1b[J".as_slice(), ["abcde", "fg   ", "     "]),
+        (b"\x1b[0J".as_slice(), ["abcde", "fg   ", "     "]),
+        (b"\x1b[1J".as_slice(), ["     ", "   ij", "klmno"]),
+        (b"\x1b[2J".as_slice(), ["     ", "     ", "     "]),
+    ];
+
+    for (sequence, expected) in cases {
+        let mut parser = TerminalParser::new();
+        let mut state = TerminalState::new(TerminalDimensions::new(5, 3).unwrap());
+        parser
+            .advance(&mut state, b"abcde\x1b[2;1Hfghij\x1b[3;1Hklmno\x1b[2;3H")
+            .unwrap();
+
+        parser.advance(&mut state, sequence).unwrap();
+
+        for (row, expected_row) in expected.into_iter().enumerate() {
+            assert_eq!(row_text(&state, row), expected_row, "sequence {sequence:?}");
+        }
+        assert_eq!((state.cursor().row(), state.cursor().column()), (1, 2));
+        assert_eq!(
+            state.screen().cell(1, 2).unwrap().attributes(),
+            &terminal_core::CellAttributes::default()
+        );
+    }
+}
+
+#[test]
+fn supported_csi_is_chunk_safe_at_every_byte_boundary() {
+    let input = b"ab\x1b[2D!\x1b[3;4H#\x1b[1A\x1b[0C\x1b[K\x1b[2JZ";
+    let expected = parse_in_chunks(input, input.len());
+
+    for split in 0..=input.len() {
+        let mut parser = TerminalParser::new();
+        let mut state = TerminalState::new(TerminalDimensions::new(12, 4).unwrap());
+        parser.advance(&mut state, &input[..split]).unwrap();
+        parser.advance(&mut state, &input[split..]).unwrap();
+        assert_observable_state_eq(&state, &expected);
+    }
+}
+
+#[test]
+fn multiple_successive_csi_sequences_mix_with_printable_output() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(6, 3).unwrap());
+
+    parser
+        .advance(
+            &mut state,
+            b"abc\x1b[2D!\x1b[2B\x1b[6G?\x1b[1A\x1b[2K\x1b[1GX",
+        )
+        .unwrap();
+
+    assert_eq!(row_text(&state, 0), "a!c   ");
+    assert_eq!(row_text(&state, 1), "X     ");
+    assert_eq!(row_text(&state, 2), "     ?");
+}
+
+#[test]
 fn unsupported_csi_is_ignored_without_corrupting_state() {
     let mut parser = TerminalParser::new();
-    let mut state = TerminalState::new(TerminalDimensions::new(5, 1).unwrap());
+    let mut state = TerminalState::new(TerminalDimensions::new(5, 3).unwrap());
 
-    parser.advance(&mut state, b"ab\x1b[2Jc").unwrap();
+    parser
+        .advance(
+            &mut state,
+            b"\x1b[3;3H\x1b[3J\x1b[1;2A\x1b[1:2D\x1b[1;2;3H\x1b[?2Jc",
+        )
+        .unwrap();
 
-    assert_eq!(row_text(&state, 0), "abc  ");
-    assert_eq!((state.cursor().row(), state.cursor().column()), (0, 3));
+    assert_eq!(row_text(&state, 0), "     ");
+    assert_eq!(row_text(&state, 1), "     ");
+    assert_eq!(row_text(&state, 2), "  c  ");
+    assert_eq!((state.cursor().row(), state.cursor().column()), (2, 3));
 }
 
 #[test]

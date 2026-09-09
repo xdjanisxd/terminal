@@ -17,4 +17,4 @@ pub use modes::{
     TerminalModes,
 };
 pub use parser::{TerminalParser, TerminalParserError};
-pub use state::{PrintError, TerminalState};
+pub use state::{CursorMovement, EraseDirection, EraseRegion, PrintError, TerminalState};

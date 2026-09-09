@@ -75,6 +75,10 @@ impl ScreenGrid {
         self.cells[index] = cell;
     }
 
+    pub(crate) fn erase_cells(&mut self, start: usize, end: usize) {
+        self.cells[start..end].fill(Cell::default());
+    }
+
     pub(crate) fn scroll_up_one_row(&mut self) {
         let columns = self.dimensions.columns();
         let cell_count = self.cells.len();

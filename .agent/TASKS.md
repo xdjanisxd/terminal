@@ -2,11 +2,11 @@
 
 ## Next
 
-- [ ] Run authenticated cross-platform CI for the completed M1 terminal-core foundation and merge only after all six configured runners pass.
+- [ ] Add a narrow parser mode-dispatch slice only for already-modeled insert/replace, auto-wrap, and cursor-visibility state; keep numeric identifiers private and do not grow the mode catalog speculatively.
 
 ## Later
 
-- [ ] Start M2 with a narrow typed cursor/erase semantic slice through `TerminalState`; keep protocol numeric identifiers inside the parser adapter.
+- [x] Start M2 with a narrow typed cursor/erase semantic slice through `TerminalState`; keep protocol numeric identifiers inside the parser adapter.
 - [ ] Add origin mode only with scrolling-region state, cursor homing, saved-state behavior, and primary/alternate-screen semantics coordinated atomically by `TerminalState`.
 - [ ] Defer line-feed/new-line mode and application keypad mode until their behavior is required by parser/input milestones; do not grow a speculative mode catalog.
 - [ ] Add horizontal-tab behavior only with terminal-owned mutable tab stops, including default stops and resize/reset behavior; do not approximate it as permanently fixed eight-column movement.

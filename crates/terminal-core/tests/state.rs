@@ -1,12 +1,179 @@
 use terminal_core::{
-    AutoWrapMode, CharacterInsertionMode, CursorError, CursorKeyMode, CursorVisibility, PrintError,
-    TerminalDimensions, TerminalState,
+    AutoWrapMode, CharacterInsertionMode, CursorError, CursorKeyMode, CursorMovement,
+    CursorVisibility, EraseDirection, EraseRegion, PrintError, TerminalDimensions, TerminalState,
 };
 
 fn row_text(state: &TerminalState, row: usize) -> String {
     (0..state.dimensions().columns())
         .map(|column| state.screen().cell(row, column).unwrap().character())
         .collect()
+}
+
+fn filled_state(columns: usize, rows: usize) -> TerminalState {
+    let mut state = TerminalState::new(TerminalDimensions::new(columns, rows).unwrap());
+    for row in 0..rows {
+        state.set_cursor_position(row, 0).unwrap();
+        for offset in 0..columns {
+            state
+                .print_character(char::from(
+                    b'a' + u8::try_from((row * columns + offset) % 26).unwrap(),
+                ))
+                .unwrap();
+        }
+    }
+    state
+}
+
+fn assert_default_cell(state: &TerminalState, row: usize, column: usize) {
+    let cell = state.screen().cell(row, column).unwrap();
+    assert_eq!(cell, &terminal_core::Cell::default());
+    assert_eq!(cell.attributes(), &terminal_core::CellAttributes::default());
+}
+
+#[test]
+fn typed_cursor_movements_cover_relative_and_absolute_semantics() {
+    let mut state = TerminalState::new(TerminalDimensions::new(8, 6).unwrap());
+    state.set_cursor_position(3, 4).unwrap();
+
+    state.move_cursor(CursorMovement::Up(2));
+    assert_eq!((state.cursor().row(), state.cursor().column()), (1, 4));
+    state.move_cursor(CursorMovement::Down(3));
+    assert_eq!((state.cursor().row(), state.cursor().column()), (4, 4));
+    state.move_cursor(CursorMovement::Forward(2));
+    assert_eq!((state.cursor().row(), state.cursor().column()), (4, 6));
+    state.move_cursor(CursorMovement::Backward(5));
+    assert_eq!((state.cursor().row(), state.cursor().column()), (4, 1));
+    state.move_cursor(CursorMovement::Position { row: 2, column: 3 });
+    assert_eq!((state.cursor().row(), state.cursor().column()), (2, 3));
+    state.move_cursor(CursorMovement::HorizontalAbsolute(7));
+    assert_eq!((state.cursor().row(), state.cursor().column()), (2, 7));
+    state.move_cursor(CursorMovement::VerticalAbsolute(5));
+    assert_eq!((state.cursor().row(), state.cursor().column()), (5, 7));
+}
+
+#[test]
+fn typed_cursor_movements_clamp_zero_and_extreme_amounts_to_screen_bounds() {
+    let mut state = TerminalState::new(TerminalDimensions::new(8, 6).unwrap());
+    state.set_cursor_position(2, 3).unwrap();
+
+    state.move_cursor(CursorMovement::Up(0));
+    state.move_cursor(CursorMovement::Forward(0));
+    assert_eq!((state.cursor().row(), state.cursor().column()), (2, 3));
+
+    state.move_cursor(CursorMovement::Up(usize::MAX));
+    state.move_cursor(CursorMovement::Backward(usize::MAX));
+    assert_eq!((state.cursor().row(), state.cursor().column()), (0, 0));
+    state.move_cursor(CursorMovement::Down(usize::MAX));
+    state.move_cursor(CursorMovement::Forward(usize::MAX));
+    assert_eq!((state.cursor().row(), state.cursor().column()), (5, 7));
+
+    state.move_cursor(CursorMovement::Position {
+        row: usize::MAX,
+        column: usize::MAX,
+    });
+    assert_eq!((state.cursor().row(), state.cursor().column()), (5, 7));
+}
+
+#[test]
+fn every_typed_cursor_operation_cancels_delayed_wrap() {
+    let movements = [
+        CursorMovement::Up(1),
+        CursorMovement::Down(1),
+        CursorMovement::Forward(1),
+        CursorMovement::Backward(1),
+        CursorMovement::Position { row: 0, column: 1 },
+        CursorMovement::HorizontalAbsolute(1),
+        CursorMovement::VerticalAbsolute(0),
+    ];
+
+    for movement in movements {
+        let mut state = TerminalState::new(TerminalDimensions::new(2, 2).unwrap());
+        state.print_character('a').unwrap();
+        state.print_character('b').unwrap();
+
+        state.move_cursor(movement);
+        let cursor_before_print = state.cursor();
+        state.print_character('x').unwrap();
+
+        assert_eq!(
+            state
+                .screen()
+                .cell(cursor_before_print.row(), cursor_before_print.column())
+                .unwrap()
+                .character(),
+            'x',
+            "movement {movement:?} left delayed wrap pending"
+        );
+    }
+}
+
+#[test]
+fn erase_in_line_supports_all_directions_without_moving_the_cursor() {
+    let cases = [
+        (EraseDirection::CursorToEnd, "ab   "),
+        (EraseDirection::StartToCursor, "   de"),
+        (EraseDirection::EntireRegion, "     "),
+    ];
+
+    for (direction, expected) in cases {
+        let mut state = filled_state(5, 2);
+        state.set_cursor_position(0, 2).unwrap();
+        let dimensions = state.dimensions();
+        let modes = *state.terminal_modes();
+        let input_modes = *state.input_modes();
+
+        state.erase(EraseRegion::Line, direction);
+
+        assert_eq!(row_text(&state, 0), expected);
+        assert_eq!(row_text(&state, 1), "fghij");
+        assert_eq!((state.cursor().row(), state.cursor().column()), (0, 2));
+        assert_eq!(state.dimensions(), dimensions);
+        assert_eq!(*state.terminal_modes(), modes);
+        assert_eq!(*state.input_modes(), input_modes);
+        assert_default_cell(&state, 0, 2);
+    }
+}
+
+#[test]
+fn erase_in_display_supports_all_directions_without_moving_the_cursor() {
+    let cases = [
+        (EraseDirection::CursorToEnd, ["abc", "d  ", "   "]),
+        (EraseDirection::StartToCursor, ["   ", "  f", "ghi"]),
+        (EraseDirection::EntireRegion, ["   ", "   ", "   "]),
+    ];
+
+    for (direction, expected) in cases {
+        let mut state = filled_state(3, 3);
+        state.set_cursor_position(1, 1).unwrap();
+        let dimensions = state.dimensions();
+        let modes = *state.terminal_modes();
+        let input_modes = *state.input_modes();
+
+        state.erase(EraseRegion::Display, direction);
+
+        for (row, expected_row) in expected.into_iter().enumerate() {
+            assert_eq!(row_text(&state, row), expected_row);
+        }
+        assert_eq!((state.cursor().row(), state.cursor().column()), (1, 1));
+        assert_eq!(state.dimensions(), dimensions);
+        assert_eq!(*state.terminal_modes(), modes);
+        assert_eq!(*state.input_modes(), input_modes);
+        assert_default_cell(&state, 1, 1);
+    }
+}
+
+#[test]
+fn erase_cancels_delayed_wrap_without_moving_the_cursor() {
+    let mut state = TerminalState::new(TerminalDimensions::new(2, 2).unwrap());
+    state.print_character('a').unwrap();
+    state.print_character('b').unwrap();
+
+    state.erase(EraseRegion::Line, EraseDirection::CursorToEnd);
+    state.print_character('x').unwrap();
+
+    assert_eq!(row_text(&state, 0), "ax");
+    assert_eq!(row_text(&state, 1), "  ");
+    assert_eq!((state.cursor().row(), state.cursor().column()), (0, 1));
 }
 
 #[test]
@@ -363,7 +530,8 @@ fn coordinates_absolute_and_relative_cursor_operations() {
     );
     assert_eq!((state.cursor().row(), state.cursor().column()), (1, 1));
 
-    state.move_cursor(-10, 10);
+    state.move_cursor(CursorMovement::Up(10));
+    state.move_cursor(CursorMovement::Forward(10));
     assert_eq!((state.cursor().row(), state.cursor().column()), (0, 2));
 }
 
