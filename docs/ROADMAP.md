@@ -13,11 +13,11 @@ Completion marks require tested acceptance criteria, not code presence alone.
 - [x] Retain internal `terminal-*` names without blocking on public branding
 - [x] Record Windows, Linux, and macOS x86_64/ARM64 targets and an evidence-based process for deciding OS support floors
 - [x] Configure all required Cargo quality gates on native CI runners for all six OS/architecture combinations
-- [ ] Confirm the first authenticated CI run succeeds on all six configured runners
+- [x] Confirm the first authenticated CI run succeeds on all six configured runners
 
 ## M1: Terminal core foundation
 
-- [ ] Define bounded cell, attribute, screen-grid, and cursor models as the first independently tested `terminal-core` behavior
+- [x] Define bounded cell, attribute, screen-grid, and cursor models as the first independently tested `terminal-core` behavior
 - [ ] Add terminal modes to the model with explicit state transitions
 - [ ] Integrate incremental `vte` parsing behind project-owned interfaces
 - [ ] Test printable text, arbitrary input chunking, malformed input, and bounded parser state
