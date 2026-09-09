@@ -2,7 +2,7 @@
 
 ## Current state
 
-The first M2 terminal-compatibility slice is complete locally on `feat/m2-cursor-erase-semantics`.
+The first M2 terminal-compatibility slice is complete.
 
 Implemented:
 
@@ -27,7 +27,7 @@ Local required Cargo gates pass on `x86_64-pc-windows-gnu`.
 
 Current terminal-core coverage includes 94 unit/integration tests plus ownership doctests.
 
-Remote CI for the current M2 branch still needs to pass on all six configured platform runners before merge.
+Authenticated CI passes on all six configured Windows, Linux, and macOS x86_64/ARM64 runners.
 
 ## Important limitations
 
@@ -45,7 +45,5 @@ See:
 
 ## Next
 
-1. Run authenticated cross-platform CI for the M2 branch.
-2. Merge after all six jobs pass.
-3. Add a narrow mode-dispatch slice for the existing insert/replace, auto-wrap, and cursor-visibility model without adding speculative modes.
+1. Add a narrow mode-dispatch slice for the existing insert/replace, auto-wrap, and cursor-visibility model without adding speculative modes.
 
