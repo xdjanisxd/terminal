@@ -2,35 +2,35 @@
 
 ## Changed
 
-- Added dependency-free `terminal-core` modules for cells, cell colors/attributes, terminal dimensions, cursor state, and a screen grid.
-- `TerminalDimensions` rejects zero sizes, dimensions above 4,096 rows or columns, and grids above 1,048,576 cells.
-- `ScreenGrid` uses zero-based `(row, column)` access over row-major storage and returns `None` for out-of-bounds access.
-- The grid owns its cursor. Absolute out-of-bounds moves return `CursorError` without moving; relative moves clamp to screen edges, including extreme signed deltas.
-- Clearing replaces all cells with the default blank cell without moving the cursor.
-- Resize preserves the top-left rectangular intersection, blanks newly exposed cells, drops cells outside the new rectangle, and clamps the cursor.
-- Added 19 public-API tests. No external dependency, parser, mode, scrollback, PTY, renderer, or application integration was added.
+- Added a std-only `terminal-core` mode model with typed enums, private storage, documented defaults, and explicit setters.
+- `TerminalModes` owns terminal-global cursor visibility, auto-wrap, and insert/replace behavior.
+- `InputModes` separately owns normal/application cursor-key state for later consumption by input encoding.
+- Added 10 public-API mode tests covering defaults, both directions of every transition, repeated/idempotent changes, unrelated-mode independence, and input/global ownership separation.
+- No numeric parser identifiers, parser, `vte`, PTY, renderer, input encoder, scrollback, alternate screen, SGR expansion, or external dependency was added.
+- An initial per-screen origin-mode design was rejected during independent review and removed before completion.
 
 ## Validation
 
 - All four required repository Cargo gates passed locally with `CARGO_BUILD_TARGET=x86_64-pc-windows-gnu`.
-- Workspace tests passed: 19 `terminal-core` integration tests, no failures.
+- Workspace tests passed: 29 `terminal-core` integration tests, including 10 mode tests; no failures.
 - `cargo metadata --format-version 1 --no-deps` confirmed that `terminal-core` has zero dependencies.
-- Static scan found no `unsafe`, forbidden architectural dependencies, parser/PTY references, TODOs, or FIXMEs in `terminal-core/src`.
-- Independent review passed with no security concerns, logic errors, or architecture violations. Its three test-gap suggestions were addressed with exact-boundary, extreme-cursor-delta, and mixed-axis-resize tests.
-- Foundation CI run 34327296818 was verified green across all six native OS/architecture jobs before M1 began.
+- Static scan found no `unsafe`, forbidden architectural dependencies, parser identifiers, or out-of-scope subsystem references in the new mode module.
+- Independent review passed after the origin-mode correction. It found no remaining blockers; its setter-isolation test suggestion was addressed.
 
 ## Compatibility-sensitive decisions
 
-- A cell currently stores one Rust `char`; combining sequences, wide-cell continuation markers, graphemes, and ligatures require a later content-model extension.
-- Cell attributes currently contain default/indexed/RGB foreground and background colors only; style attributes remain future work.
-- Resize uses top-left rectangular preservation without line reflow. Compatibility work must decide whether and when reflow or bottom anchoring is required.
-- Dimension limits are explicit public resource limits and should change only with tests and memory/compatibility evidence.
+- Cursor visibility, auto-wrap, and insert/replace are terminal-global state.
+- Application cursor-key mode is terminal-core state because terminal output controls it, but it is isolated in `InputModes` because a future input encoder consumes it.
+- No screen-local mode is included in this slice. Screen-local cursor, margins, and wrap-pending values are state, not automatically mode flags.
+- Origin mode is deferred until `TerminalState` can apply its cursor-home and scrolling-region effects atomically and define DECSC/DECRC plus 47/1047/1049 interactions.
+- Line-feed/new-line mode, application keypad mode, cursor blinking, mouse/focus reporting, and other historical modes remain unmodeled until owning behavior requires them.
 
 ## Known limitations
 
+- These types store mode values only; no terminal writing, reset operation, parser mapping, rendering, or input encoding consumes them yet.
 - The local Git Bash environment cannot link the default MSVC target because Visual C++ build tools and Windows import libraries are unavailable; the installed Windows GNU target is used for linked local tests.
 - This feature branch has not run remote CI yet.
 
 ## Next recommended task
 
-Add a narrow, std-only terminal-mode model with explicit tested transitions and ownership rules. Do not add `vte` or parser behavior in that slice.
+Introduce a small parser-independent `TerminalState` facade that owns the active `ScreenGrid`, `TerminalModes`, and `InputModes`, then define atomic reset and semantic state operations with tests. Do not add `vte` in that slice.

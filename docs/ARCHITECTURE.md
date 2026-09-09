@@ -1,8 +1,8 @@
-rchitecture
+# Architecture
 
 ## Status
 
-This document defines intended boundaries. The repository currently contains dependency-free structural crates but no terminal implementation.
+This document defines intended boundaries. The repository currently contains dependency-free `terminal-core` screen and mode models, but no parser, PTY, renderer, or application behavior.
 
 ## Conceptual components
 
@@ -36,6 +36,15 @@ The renderer consumes terminal snapshots/state and damage information; it does n
 - A screen grid owns its cursor so cursor mutations and resize keep it inside current dimensions.
 - Clearing writes default blank cells without moving the cursor.
 - Resize preserves the top-left rectangular intersection, blanks newly exposed cells, discards cells outside the new rectangle, and clamps the cursor. It does not yet implement terminal line reflow.
+
+## Mode ownership
+
+- `TerminalModes` owns values shared across the terminal: cursor visibility, auto-wrap, and insert/replace behavior. Defaults are visible, enabled, and replace.
+- `InputModes` separately owns output-controlled state consumed by future keyboard encoding. Application cursor keys default to normal encoding.
+- The current subset contains no screen-local mode. Cursor, cells, and future margins/wrap-pending state are screen-local state, but are not interchangeable with mode flags.
+- Origin mode is intentionally deferred. Setting or resetting it must atomically coordinate cursor homing, scrolling margins, saved cursor state, and future primary/alternate-screen behavior through `TerminalState`.
+- A future parser translates protocol numeric identifiers into typed project-owned operations. Numeric VT/xterm mode identifiers are not exposed by the core model.
+- Future primary and alternate screens own separate screen state. Terminal-global and input-related modes remain owned once by `TerminalState`; protocol-specific save/restore behavior must be modeled explicitly rather than implied by buffer switching.
 
 ## Runtime model
 
