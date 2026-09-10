@@ -1,11 +1,17 @@
 use std::{error::Error, fmt};
 
-use crate::{CursorMovement, EraseDirection, EraseRegion, PrintError, TerminalState};
+use crate::{
+    AutoWrapMode, CharacterInsertionMode, CursorMovement, CursorVisibility, EraseDirection,
+    EraseRegion, PrintError, TerminalState,
+};
 
 // Compile vte without its std feature so OSC buffering uses its fixed-capacity
 // ArrayVec instead of an unbounded Vec. Unsupported OSC data beyond this limit
 // is discarded by vte and never reaches terminal semantics.
 const MAX_OSC_BYTES: usize = 1024;
+const INSERT_REPLACE_MODE: u16 = 4;
+const AUTO_WRAP_MODE: u16 = 7;
+const CURSOR_VISIBILITY_MODE: u16 = 25;
 
 /// Incremental raw-byte parser for the supported terminal-core semantics.
 ///
@@ -115,6 +121,42 @@ impl<'a> SemanticPerformer<'a> {
             semantic_error: None,
         }
     }
+
+    fn dispatch_mode(&mut self, params: &vte::Params, private: bool, enabled: bool) {
+        for parameter in params {
+            let [mode] = parameter else {
+                continue;
+            };
+
+            match (private, *mode) {
+                (false, INSERT_REPLACE_MODE) => {
+                    let insertion = if enabled {
+                        CharacterInsertionMode::Insert
+                    } else {
+                        CharacterInsertionMode::Replace
+                    };
+                    self.terminal.set_character_insertion(insertion);
+                }
+                (true, AUTO_WRAP_MODE) => {
+                    let auto_wrap = if enabled {
+                        AutoWrapMode::Enabled
+                    } else {
+                        AutoWrapMode::Disabled
+                    };
+                    self.terminal.set_auto_wrap(auto_wrap);
+                }
+                (true, CURSOR_VISIBILITY_MODE) => {
+                    let visibility = if enabled {
+                        CursorVisibility::Visible
+                    } else {
+                        CursorVisibility::Hidden
+                    };
+                    self.terminal.set_cursor_visibility(visibility);
+                }
+                _ => {}
+            }
+        }
+    }
 }
 
 impl vte::Perform for SemanticPerformer<'_> {
@@ -144,7 +186,21 @@ impl vte::Perform for SemanticPerformer<'_> {
         has_ignored_intermediates: bool,
         action: char,
     ) {
-        if self.semantic_error.is_some() || has_ignored_intermediates || !intermediates.is_empty() {
+        if self.semantic_error.is_some() || has_ignored_intermediates {
+            return;
+        }
+
+        if matches!(action, 'h' | 'l') {
+            let private = match intermediates {
+                [] => false,
+                [b'?'] => true,
+                _ => return,
+            };
+            self.dispatch_mode(params, private, action == 'h');
+            return;
+        }
+
+        if !intermediates.is_empty() {
             return;
         }
 

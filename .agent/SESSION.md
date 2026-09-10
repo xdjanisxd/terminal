@@ -2,7 +2,7 @@
 
 ## Current state
 
-The first M2 terminal-compatibility slice is complete.
+The parser mode-dispatch M2 slice is complete.
 
 Implemented:
 
@@ -18,6 +18,8 @@ Implemented:
 * typed relative and absolute cursor movement through `TerminalState`
 * typed display/line erase directions through `TerminalState`
 * private CSI translation for CUU/CUD/CUF/CUB, CUP/HVP, CHA/VPA, ED, and EL
+* private CSI mode translation for standard IRM and DEC-private DECAWM/DECTCEM
+* parser-controlled insert/replace output and delayed-wrap cancellation through existing `TerminalState` semantics
 
 `terminal-core` currently depends only on `vte`, with default features disabled.
 
@@ -25,14 +27,15 @@ Implemented:
 
 Local required Cargo gates pass on `x86_64-pc-windows-gnu`.
 
-Current terminal-core coverage includes 94 unit/integration tests plus ownership doctests.
+Current terminal-core coverage includes 103 unit/integration tests plus ownership doctests.
 
 Authenticated CI passes on all six configured Windows, Linux, and macOS x86_64/ARM64 runners.
 
 ## Important limitations
 
 * Printable content is currently ASCII U+0020..U+007E only.
-* CSI support remains intentionally limited to the cursor and erase sequences in this slice; SGR, scrolling, mode dispatch, and replies are not implemented yet.
+* CSI mode support is intentionally limited to standard IRM and DEC-private DECAWM/DECTCEM; all other mode identifiers remain no-ops.
+* SGR, additional scrolling behavior, terminal replies, and remaining modes are not implemented yet.
 * Unicode combining/wide-cell behavior is deferred.
 * No PTY, renderer, scrollback, alternate screen, or terminal replies exist yet.
 * Resize still uses top-left preservation with no line reflow.
@@ -45,5 +48,5 @@ See:
 
 ## Next
 
-1. Add a narrow mode-dispatch slice for the existing insert/replace, auto-wrap, and cursor-visibility model without adding speculative modes.
+1. Add horizontal-tab behavior with terminal-owned mutable tab stops, including default stops and resize/reset behavior.
 

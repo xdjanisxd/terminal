@@ -2,7 +2,7 @@
 
 ## Status
 
-This document defines intended boundaries. The repository currently contains a project-owned incremental parser adapter over `vte` and a `TerminalState` facade with printable, basic control, cursor-movement, and erase semantics, but no PTY, renderer, or application behavior.
+This document defines intended boundaries. The repository currently contains a project-owned incremental parser adapter over `vte` and a `TerminalState` facade with printable, basic control, cursor-movement, erase, and narrow mode semantics, but no PTY, renderer, or application behavior.
 
 ## Conceptual components
 
@@ -60,8 +60,8 @@ The renderer consumes terminal snapshots/state and damage information; it does n
 ## Parser boundary
 
 - `TerminalParser` is the public project-owned incremental byte interface. It owns parser state across calls and exposes no `vte` parser, callback, parameter, or action type.
-- A private `vte::Perform` implementation translates printable characters, CR, LF, BS, and the supported cursor/erase CSI subset into `TerminalState` semantic methods only. It never mutates grids or mode models directly.
-- The supported CSI subset is CUU, CUD, CUF, CUB, CUP/HVP, CHA, VPA, ED modes 0-2, and EL modes 0-2. CSI parameters remain private `vte` values until the adapter normalizes omitted and zero parameters and converts one-based absolute coordinates to project-owned zero-based semantics.
+- A private `vte::Perform` implementation translates printable characters, CR, LF, BS, and the supported cursor/erase/mode CSI subset into `TerminalState` semantic methods only. It never mutates grids or mode models directly.
+- The supported CSI subset is CUU, CUD, CUF, CUB, CUP/HVP, CHA, VPA, ED modes 0-2, EL modes 0-2, standard IRM, and private DECAWM and DECTCEM. CSI parameters and numeric mode identifiers remain private to the adapter; cursor operations normalize omitted and zero parameters and convert one-based absolute coordinates to project-owned zero-based semantics. Unsupported and malformed mode parameters are ignored individually without preventing supported parameters in the same syntactically valid sequence from taking effect.
 - ESC, OSC, DCS, unsupported executed controls, and unsupported or malformed CSI callbacks are no-ops. The parser still consumes them incrementally so input following a complete unsupported sequence returns to normal parsing without an approximation of that sequence's behavior.
 - `vte` is compiled without default features so OSC collection uses a fixed 1,024-byte buffer rather than an unbounded `Vec`. Excess unsupported OSC payload is discarded by the parser.
 - `TerminalParser::advance` processes without per-byte allocation and uses `vte` termination checks to stop before callbacks following the first `TerminalState` semantic error can mutate state. Its project-owned error reports both that semantic error and the number of bytes consumed, allowing the caller to resume with the unconsumed suffix without losing later errors silently. The count can be zero when malformed UTF-8 retained from a prior chunk is rejected before the current byte is reprocessed.
