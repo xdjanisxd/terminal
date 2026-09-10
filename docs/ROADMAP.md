@@ -26,6 +26,7 @@ Completion marks require tested acceptance criteria, not code presence alone.
 ## M2: Terminal compatibility
 
 - [x] Implement and test the first typed cursor-movement and erase compatibility slice
+- [x] Connect parser dispatch for the existing insert/replace, auto-wrap, and cursor-visibility modes
 - [ ] Implement and test remaining commonly used scroll, SGR, mode, and reply behavior
 - [ ] Implement Unicode combining and wide-cell invariants
 - [ ] Implement primary/alternate screens, resize behavior, and bounded scrollback

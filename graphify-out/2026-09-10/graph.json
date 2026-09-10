@@ -50,7 +50,7 @@
       "label": "cursor.rs",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": "cursor.rs",
       "source_file": "crates/terminal-core/src/cursor.rs",
@@ -61,7 +61,7 @@
       "label": "Cursor",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": "cursor",
       "source_file": "crates/terminal-core/src/cursor.rs",
@@ -72,7 +72,7 @@
       "label": ".clamp_to()",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": ".clamp_to()",
       "source_file": "crates/terminal-core/src/cursor.rs",
@@ -83,7 +83,7 @@
       "label": ".column()",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": ".column()",
       "source_file": "crates/terminal-core/src/cursor.rs",
@@ -94,7 +94,7 @@
       "label": ".move_by()",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": ".move_by()",
       "source_file": "crates/terminal-core/src/cursor.rs",
@@ -105,7 +105,7 @@
       "label": ".origin()",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": ".origin()",
       "source_file": "crates/terminal-core/src/cursor.rs",
@@ -116,7 +116,7 @@
       "label": ".row()",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": ".row()",
       "source_file": "crates/terminal-core/src/cursor.rs",
@@ -127,7 +127,7 @@
       "label": ".set_position()",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": ".set_position()",
       "source_file": "crates/terminal-core/src/cursor.rs",
@@ -138,7 +138,7 @@
       "label": "CursorError",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": "cursorerror",
       "source_file": "crates/terminal-core/src/cursor.rs",
@@ -149,7 +149,7 @@
       "label": ".fmt()",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": ".fmt()",
       "source_file": "crates/terminal-core/src/cursor.rs",
@@ -160,7 +160,7 @@
       "label": "offset_clamped()",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": "offset_clamped()",
       "source_file": "crates/terminal-core/src/cursor.rs",
@@ -171,7 +171,7 @@
       "label": "Display",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": "display",
       "source_file": "",
@@ -182,7 +182,7 @@
       "label": "Error",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": "error",
       "source_file": "",
@@ -193,7 +193,7 @@
       "label": "Formatter",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": "formatter",
       "source_file": "",
@@ -204,7 +204,7 @@
       "label": "Result",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": "result",
       "source_file": "",
@@ -215,7 +215,7 @@
       "label": "Self",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": "self",
       "source_file": "",
@@ -226,7 +226,7 @@
       "label": "dimensions.rs",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": "dimensions.rs",
       "source_file": "crates/terminal-core/src/dimensions.rs",
@@ -237,7 +237,7 @@
       "label": "DimensionsError",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": "dimensionserror",
       "source_file": "crates/terminal-core/src/dimensions.rs",
@@ -248,7 +248,7 @@
       "label": ".fmt()",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": ".fmt()",
       "source_file": "crates/terminal-core/src/dimensions.rs",
@@ -259,7 +259,7 @@
       "label": "Display",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": "display",
       "source_file": "",
@@ -270,7 +270,7 @@
       "label": "Error",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": "error",
       "source_file": "",
@@ -281,7 +281,7 @@
       "label": "Formatter",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": "formatter",
       "source_file": "",
@@ -292,7 +292,7 @@
       "label": "Result",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": "result",
       "source_file": "",
@@ -303,7 +303,7 @@
       "label": "Self",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": "self",
       "source_file": "",
@@ -314,7 +314,7 @@
       "label": "TerminalDimensions",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": "terminaldimensions",
       "source_file": "crates/terminal-core/src/dimensions.rs",
@@ -325,7 +325,7 @@
       "label": ".cell_count()",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": ".cell_count()",
       "source_file": "crates/terminal-core/src/dimensions.rs",
@@ -336,7 +336,7 @@
       "label": ".columns()",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": ".columns()",
       "source_file": "crates/terminal-core/src/dimensions.rs",
@@ -347,7 +347,7 @@
       "label": ".new()",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": ".new()",
       "source_file": "crates/terminal-core/src/dimensions.rs",
@@ -358,18 +358,29 @@
       "label": ".rows()",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": ".rows()",
       "source_file": "crates/terminal-core/src/dimensions.rs",
       "source_location": "L50"
     },
     {
+      "id": "crates_terminal_core_src_grid",
+      "label": "grid.rs",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "Cursor and Grid Bounds",
+      "file_type": "code",
+      "norm_label": "grid.rs",
+      "source_file": "crates/terminal-core/src/grid.rs",
+      "source_location": "L1"
+    },
+    {
       "id": "crates_terminal_core_src_grid_rs_result",
       "label": "Result",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": "result",
       "source_file": "",
@@ -380,18 +391,40 @@
       "label": "Self",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": "self",
       "source_file": "",
       "source_location": ""
     },
     {
+      "id": "crates_terminal_core_src_grid_screengrid",
+      "label": "ScreenGrid",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "Cursor and Grid Bounds",
+      "file_type": "code",
+      "norm_label": "screengrid",
+      "source_file": "crates/terminal-core/src/grid.rs",
+      "source_location": "L5"
+    },
+    {
+      "id": "crates_terminal_core_src_grid_screengrid_clear",
+      "label": ".clear()",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "Cursor and Grid Bounds",
+      "file_type": "code",
+      "norm_label": ".clear()",
+      "source_file": "crates/terminal-core/src/grid.rs",
+      "source_location": "L62"
+    },
+    {
       "id": "crates_terminal_core_src_grid_screengrid_cursor",
       "label": ".cursor()",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": ".cursor()",
       "source_file": "crates/terminal-core/src/grid.rs",
@@ -402,18 +435,40 @@
       "label": ".dimensions()",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": ".dimensions()",
       "source_file": "crates/terminal-core/src/grid.rs",
       "source_location": "L20"
     },
     {
+      "id": "crates_terminal_core_src_grid_screengrid_erase_cells",
+      "label": ".erase_cells()",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "Cursor and Grid Bounds",
+      "file_type": "code",
+      "norm_label": ".erase_cells()",
+      "source_file": "crates/terminal-core/src/grid.rs",
+      "source_location": "L78"
+    },
+    {
+      "id": "crates_terminal_core_src_grid_screengrid_move_cursor",
+      "label": ".move_cursor()",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "Cursor and Grid Bounds",
+      "file_type": "code",
+      "norm_label": ".move_cursor()",
+      "source_file": "crates/terminal-core/src/grid.rs",
+      "source_location": "L56"
+    },
+    {
       "id": "crates_terminal_core_src_grid_screengrid_new",
       "label": ".new()",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": ".new()",
       "source_file": "crates/terminal-core/src/grid.rs",
@@ -424,31 +479,86 @@
       "label": ".resize()",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": ".resize()",
       "source_file": "crates/terminal-core/src/grid.rs",
       "source_location": "L93"
     },
     {
+      "id": "crates_terminal_core_src_grid_screengrid_scroll_up_one_row",
+      "label": ".scroll_up_one_row()",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "Cursor and Grid Bounds",
+      "file_type": "code",
+      "norm_label": ".scroll_up_one_row()",
+      "source_file": "crates/terminal-core/src/grid.rs",
+      "source_location": "L82"
+    },
+    {
       "id": "crates_terminal_core_src_grid_screengrid_set_cursor_position",
       "label": ".set_cursor_position()",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": ".set_cursor_position()",
       "source_file": "crates/terminal-core/src/grid.rs",
       "source_location": "L51"
     },
     {
+      "id": "crates_terminal_core_src_lib",
+      "label": "terminal-core/src/lib.rs",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "Cursor and Grid Bounds",
+      "file_type": "code",
+      "norm_label": "terminal-core/src/lib.rs",
+      "source_file": "crates/terminal-core/src/lib.rs",
+      "source_location": "L1"
+    },
+    {
+      "id": "crates_terminal_core_src_state_terminalstate_screen",
+      "label": ".screen()",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "Cursor and Grid Bounds",
+      "file_type": "code",
+      "norm_label": ".screen()",
+      "source_file": "crates/terminal-core/src/state.rs",
+      "source_location": "L117"
+    },
+    {
       "id": "nonzerousize",
       "label": "NonZeroUsize",
       "_origin": "ast",
       "community": 0,
-      "community_name": "TerminalDimensions",
+      "community_name": "Cursor and Grid Bounds",
       "file_type": "code",
       "norm_label": "nonzerousize",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "parser",
+      "label": "Parser",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "Cursor and Grid Bounds",
+      "file_type": "code",
+      "norm_label": "parser",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "vec",
+      "label": "Vec",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "Cursor and Grid Bounds",
+      "file_type": "code",
+      "norm_label": "vec",
       "source_file": "",
       "source_location": ""
     },
@@ -1105,7 +1215,7 @@
       "label": "src/parser.rs",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": "src/parser.rs",
       "source_file": "crates/terminal-core/src/parser.rs",
@@ -1116,18 +1226,18 @@
       "label": "default_one()",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": "default_one()",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L266"
+      "source_location": "L210"
     },
     {
       "id": "crates_terminal_core_src_parser_rs_default",
       "label": "Default",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": "default",
       "source_file": "",
@@ -1138,7 +1248,7 @@
       "label": "Display",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": "display",
       "source_file": "",
@@ -1149,7 +1259,7 @@
       "label": "Error",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": "error",
       "source_file": "",
@@ -1160,7 +1270,7 @@
       "label": "Formatter",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": "formatter",
       "source_file": "",
@@ -1171,7 +1281,7 @@
       "label": "Option",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": "option",
       "source_file": "",
@@ -1182,7 +1292,7 @@
       "label": "Result",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": "result",
       "source_file": "",
@@ -1193,7 +1303,7 @@
       "label": "Self",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": "self",
       "source_file": "",
@@ -1204,205 +1314,194 @@
       "label": "SemanticPerformer",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": "semanticperformer",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L112"
+      "source_location": "L106"
     },
     {
       "id": "crates_terminal_core_src_parser_semanticperformer_a",
       "label": "SemanticPerformer<'a>",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": "semanticperformer<'a>",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L117"
-    },
-    {
-      "id": "crates_terminal_core_src_parser_semanticperformer_a_dispatch_mode",
-      "label": ".dispatch_mode()",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "SemanticPerformer",
-      "file_type": "code",
-      "norm_label": ".dispatch_mode()",
-      "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L125"
+      "source_location": "L111"
     },
     {
       "id": "crates_terminal_core_src_parser_semanticperformer_a_new",
       "label": ".new()",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": ".new()",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L118"
+      "source_location": "L112"
     },
     {
       "id": "crates_terminal_core_src_parser_semanticperformer_csi_dispatch",
       "label": ".csi_dispatch()",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": ".csi_dispatch()",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L182"
+      "source_location": "L140"
     },
     {
       "id": "crates_terminal_core_src_parser_semanticperformer_execute",
       "label": ".execute()",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": ".execute()",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L169"
+      "source_location": "L127"
     },
     {
       "id": "crates_terminal_core_src_parser_semanticperformer_print",
       "label": ".print()",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": ".print()",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L163"
+      "source_location": "L121"
     },
     {
       "id": "crates_terminal_core_src_parser_semanticperformer_terminated",
       "label": ".terminated()",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": ".terminated()",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L248"
+      "source_location": "L192"
     },
     {
       "id": "crates_terminal_core_src_parser_simple_csi_parameters",
       "label": "simple_csi_parameters()",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": "simple_csi_parameters()",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L253"
+      "source_location": "L197"
     },
     {
       "id": "crates_terminal_core_src_parser_terminalparser",
       "label": "TerminalParser",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": "terminalparser",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L25"
+      "source_location": "L19"
     },
     {
       "id": "crates_terminal_core_src_parser_terminalparser_advance",
       "label": ".advance()",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": ".advance()",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L45"
+      "source_location": "L39"
     },
     {
       "id": "crates_terminal_core_src_parser_terminalparser_default",
       "label": ".default()",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": ".default()",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L72"
+      "source_location": "L66"
     },
     {
       "id": "crates_terminal_core_src_parser_terminalparser_new",
       "label": ".new()",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": ".new()",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L31"
+      "source_location": "L25"
     },
     {
       "id": "crates_terminal_core_src_parser_terminalparsererror",
       "label": "TerminalParserError",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": "terminalparsererror",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L79"
+      "source_location": "L73"
     },
     {
       "id": "crates_terminal_core_src_parser_terminalparsererror_bytes_consumed",
       "label": ".bytes_consumed()",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": ".bytes_consumed()",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L86"
+      "source_location": "L80"
     },
     {
       "id": "crates_terminal_core_src_parser_terminalparsererror_fmt",
       "label": ".fmt()",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": ".fmt()",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L97"
+      "source_location": "L91"
     },
     {
       "id": "crates_terminal_core_src_parser_terminalparsererror_semantic_error",
       "label": ".semantic_error()",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": ".semantic_error()",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L91"
+      "source_location": "L85"
     },
     {
       "id": "crates_terminal_core_src_parser_terminalparsererror_source",
       "label": ".source()",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": ".source()",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L107"
+      "source_location": "L101"
     },
     {
       "id": "crates_terminal_core_src_state_printerror",
       "label": "PrintError",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": "printerror",
       "source_file": "crates/terminal-core/src/state.rs",
@@ -1413,7 +1512,7 @@
       "label": ".fmt()",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": ".fmt()",
       "source_file": "crates/terminal-core/src/state.rs",
@@ -1424,7 +1523,7 @@
       "label": "Display",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": "display",
       "source_file": "",
@@ -1435,7 +1534,7 @@
       "label": "Error",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": "error",
       "source_file": "",
@@ -1446,7 +1545,7 @@
       "label": "Formatter",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": "formatter",
       "source_file": "",
@@ -1457,7 +1556,7 @@
       "label": "MAX_OSC_BYTES",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": "max_osc_bytes",
       "source_file": "",
@@ -1468,7 +1567,7 @@
       "label": "Params",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": "params",
       "source_file": "",
@@ -1479,7 +1578,7 @@
       "label": "Perform",
       "_origin": "ast",
       "community": 3,
-      "community_name": "SemanticPerformer",
+      "community_name": "Parser Adapter Implementation",
       "file_type": "code",
       "norm_label": "perform",
       "source_file": "",
@@ -1490,7 +1589,7 @@
       "label": "tests/parser.rs",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "tests/parser.rs",
       "source_file": "crates/terminal-core/tests/parser.rs",
@@ -1501,407 +1600,308 @@
       "label": "assert_observable_state_eq()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "assert_observable_state_eq()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L12"
+      "source_location": "L11"
     },
     {
       "id": "crates_terminal_core_tests_parser_byte_at_a_time_matches_one_shot_input",
       "label": "byte_at_a_time_matches_one_shot_input()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "byte_at_a_time_matches_one_shot_input()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L99"
+      "source_location": "L98"
     },
     {
       "id": "crates_terminal_core_tests_parser_every_split_point_matches_one_shot_input",
       "label": "every_split_point_matches_one_shot_input()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "every_split_point_matches_one_shot_input()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L108"
+      "source_location": "L107"
     },
     {
       "id": "crates_terminal_core_tests_parser_malformed_or_incomplete_escape_input_does_not_panic_or_mutate_state",
       "label": "malformed_or_incomplete_escape_input_does_not_panic_or_mutate_state()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "malformed_or_incomplete_escape_input_does_not_panic_or_mutate_state()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L289"
+      "source_location": "L288"
     },
     {
       "id": "crates_terminal_core_tests_parser_malformed_partial_utf8_does_not_execute_reprocessed_control_after_error",
       "label": "malformed_partial_utf8_does_not_execute_reprocessed_control_after_error()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "malformed_partial_utf8_does_not_execute_reprocessed_control_after_error()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L379"
+      "source_location": "L378"
     },
     {
       "id": "crates_terminal_core_tests_parser_malformed_partial_utf8_surfaces_error_before_reprocessing_current_byte",
       "label": "malformed_partial_utf8_surfaces_error_before_reprocessing_current_byte()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "malformed_partial_utf8_surfaces_error_before_reprocessing_current_byte()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L360"
-    },
-    {
-      "id": "crates_terminal_core_tests_parser_malformed_private_and_subparameter_mode_forms_do_not_panic_or_change_modes",
-      "label": "malformed_private_and_subparameter_mode_forms_do_not_panic_or_change_modes()",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "tests/parser.rs",
-      "file_type": "code",
-      "norm_label": "malformed_private_and_subparameter_mode_forms_do_not_panic_or_change_modes()",
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L578"
+      "source_location": "L359"
     },
     {
       "id": "crates_terminal_core_tests_parser_many_chunk_sizes_match_one_shot_input",
       "label": "many_chunk_sizes_match_one_shot_input()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "many_chunk_sizes_match_one_shot_input()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L123"
-    },
-    {
-      "id": "crates_terminal_core_tests_parser_mode_sequences_handle_multiple_and_mixed_supported_parameters",
-      "label": "mode_sequences_handle_multiple_and_mixed_supported_parameters()",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "tests/parser.rs",
-      "file_type": "code",
-      "norm_label": "mode_sequences_handle_multiple_and_mixed_supported_parameters()",
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L451"
+      "source_location": "L122"
     },
     {
       "id": "crates_terminal_core_tests_parser_multiple_successive_csi_sequences_mix_with_printable_output",
       "label": "multiple_successive_csi_sequences_mix_with_printable_output()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "multiple_successive_csi_sequences_mix_with_printable_output()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L227"
-    },
-    {
-      "id": "crates_terminal_core_tests_parser_omitted_unsupported_and_wrong_private_modes_are_safe_no_ops",
-      "label": "omitted_unsupported_and_wrong_private_modes_are_safe_no_ops()",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "tests/parser.rs",
-      "file_type": "code",
-      "norm_label": "omitted_unsupported_and_wrong_private_modes_are_safe_no_ops()",
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L477"
+      "source_location": "L226"
     },
     {
       "id": "crates_terminal_core_tests_parser_oversized_unsupported_osc_is_bounded_and_does_not_corrupt_state",
       "label": "oversized_unsupported_osc_is_bounded_and_does_not_corrupt_state()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "oversized_unsupported_osc_is_bounded_and_does_not_corrupt_state()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L308"
+      "source_location": "L307"
     },
     {
       "id": "crates_terminal_core_tests_parser_parse_in_chunks",
       "label": "parse_in_chunks()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "parse_in_chunks()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L29"
-    },
-    {
-      "id": "crates_terminal_core_tests_parser_parser_controlled_auto_wrap_clears_and_does_not_create_pending_wrap",
-      "label": "parser_controlled_auto_wrap_clears_and_does_not_create_pending_wrap()",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "tests/parser.rs",
-      "file_type": "code",
-      "norm_label": "parser_controlled_auto_wrap_clears_and_does_not_create_pending_wrap()",
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L520"
-    },
-    {
-      "id": "crates_terminal_core_tests_parser_parser_controlled_insert_mode_changes_printable_output_semantics",
-      "label": "parser_controlled_insert_mode_changes_printable_output_semantics()",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "tests/parser.rs",
-      "file_type": "code",
-      "norm_label": "parser_controlled_insert_mode_changes_printable_output_semantics()",
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L503"
+      "source_location": "L28"
     },
     {
       "id": "crates_terminal_core_tests_parser_parser_error_is_project_owned_and_exposes_standard_error_source",
       "label": "parser_error_is_project_owned_and_exposes_standard_error_source()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "parser_error_is_project_owned_and_exposes_standard_error_source()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L395"
-    },
-    {
-      "id": "crates_terminal_core_tests_parser_parser_mode_dispatch_is_chunk_safe_at_every_byte_boundary",
-      "label": "parser_mode_dispatch_is_chunk_safe_at_every_byte_boundary()",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "tests/parser.rs",
-      "file_type": "code",
-      "norm_label": "parser_mode_dispatch_is_chunk_safe_at_every_byte_boundary()",
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L538"
+      "source_location": "L394"
     },
     {
       "id": "crates_terminal_core_tests_parser_parser_state_persists_across_csi_chunk_boundaries",
       "label": "parser_state_persists_across_csi_chunk_boundaries()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "parser_state_persists_across_csi_chunk_boundaries()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L147"
+      "source_location": "L146"
     },
     {
       "id": "crates_terminal_core_tests_parser_parses_mixed_printable_and_supported_control_input",
       "label": "parses_mixed_printable_and_supported_control_input()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "parses_mixed_printable_and_supported_control_input()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L86"
+      "source_location": "L85"
     },
     {
       "id": "crates_terminal_core_tests_parser_parses_simple_printable_ascii_stream",
       "label": "parses_simple_printable_ascii_stream()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "parses_simple_printable_ascii_stream()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L41"
-    },
-    {
-      "id": "crates_terminal_core_tests_parser_private_mode_sequences_control_auto_wrap_and_cursor_visibility",
-      "label": "private_mode_sequences_control_auto_wrap_and_cursor_visibility()",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "tests/parser.rs",
-      "file_type": "code",
-      "norm_label": "private_mode_sequences_control_auto_wrap_and_cursor_visibility()",
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L431"
+      "source_location": "L40"
     },
     {
       "id": "crates_terminal_core_tests_parser_routes_backspace_to_terminal_state_without_erasing",
       "label": "routes_backspace_to_terminal_state_without_erasing()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "routes_backspace_to_terminal_state_without_erasing()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L75"
+      "source_location": "L74"
     },
     {
       "id": "crates_terminal_core_tests_parser_routes_carriage_return_to_terminal_state",
       "label": "routes_carriage_return_to_terminal_state()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "routes_carriage_return_to_terminal_state()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L52"
+      "source_location": "L51"
     },
     {
       "id": "crates_terminal_core_tests_parser_routes_line_feed_to_terminal_state_without_implying_carriage_return",
       "label": "routes_line_feed_to_terminal_state_without_implying_carriage_return()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "routes_line_feed_to_terminal_state_without_implying_carriage_return()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L63"
+      "source_location": "L62"
     },
     {
       "id": "crates_terminal_core_tests_parser_routes_supported_cursor_csi_with_defaults_zeroes_and_large_parameters",
       "label": "routes_supported_cursor_csi_with_defaults_zeroes_and_large_parameters()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "routes_supported_cursor_csi_with_defaults_zeroes_and_large_parameters()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L159"
+      "source_location": "L158"
     },
     {
       "id": "crates_terminal_core_tests_parser_routes_supported_erase_csi_and_preserves_cursor",
       "label": "routes_supported_erase_csi_and_preserves_cursor()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "routes_supported_erase_csi_and_preserves_cursor()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L180"
+      "source_location": "L179"
     },
     {
       "id": "crates_terminal_core_tests_parser_row_text",
       "label": "row_text()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "row_text()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L6"
+      "source_location": "L5"
     },
     {
       "id": "crates_terminal_core_tests_parser_rs_string",
       "label": "String",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "string",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "crates_terminal_core_tests_parser_standard_mode_sequences_control_insert_and_replace_modes",
-      "label": "standard_mode_sequences_control_insert_and_replace_modes()",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "tests/parser.rs",
-      "file_type": "code",
-      "norm_label": "standard_mode_sequences_control_insert_and_replace_modes()",
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L413"
-    },
-    {
-      "id": "crates_terminal_core_tests_parser_successive_mode_sequences_preserve_unrelated_state",
-      "label": "successive_mode_sequences_preserve_unrelated_state()",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "tests/parser.rs",
-      "file_type": "code",
-      "norm_label": "successive_mode_sequences_preserve_unrelated_state()",
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L552"
-    },
-    {
       "id": "crates_terminal_core_tests_parser_supported_csi_is_chunk_safe_at_every_byte_boundary",
       "label": "supported_csi_is_chunk_safe_at_every_byte_boundary()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "supported_csi_is_chunk_safe_at_every_byte_boundary()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L213"
+      "source_location": "L212"
     },
     {
       "id": "crates_terminal_core_tests_parser_supports_multiple_successive_chunks",
       "label": "supports_multiple_successive_chunks()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "supports_multiple_successive_chunks()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L134"
+      "source_location": "L133"
     },
     {
       "id": "crates_terminal_core_tests_parser_unsupported_controls_are_ignored_without_approximation",
       "label": "unsupported_controls_are_ignored_without_approximation()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "unsupported_controls_are_ignored_without_approximation()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L278"
+      "source_location": "L277"
     },
     {
       "id": "crates_terminal_core_tests_parser_unsupported_csi_is_ignored_without_corrupting_state",
       "label": "unsupported_csi_is_ignored_without_corrupting_state()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "unsupported_csi_is_ignored_without_corrupting_state()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L244"
+      "source_location": "L243"
     },
     {
       "id": "crates_terminal_core_tests_parser_unsupported_osc_and_dcs_are_ignored_without_corrupting_state",
       "label": "unsupported_osc_and_dcs_are_ignored_without_corrupting_state()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "unsupported_osc_and_dcs_are_ignored_without_corrupting_state()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L262"
+      "source_location": "L261"
     },
     {
       "id": "crates_terminal_core_tests_parser_unsupported_unicode_error_is_reported_when_split_codepoint_completes",
       "label": "unsupported_unicode_error_is_reported_when_split_codepoint_completes()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "unsupported_unicode_error_is_reported_when_split_codepoint_completes()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L343"
+      "source_location": "L342"
     },
     {
       "id": "crates_terminal_core_tests_parser_unsupported_unicode_returns_a_bounded_error_with_consumed_bytes",
       "label": "unsupported_unicode_returns_a_bounded_error_with_consumed_bytes()",
       "_origin": "ast",
       "community": 4,
-      "community_name": "tests/parser.rs",
+      "community_name": "Parser Chunking Tests",
       "file_type": "code",
       "norm_label": "unsupported_unicode_returns_a_bounded_error_with_consumed_bytes()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L322"
+      "source_location": "L321"
     },
     {
       "id": "crates_terminal_core_src_modes",
@@ -2623,7 +2623,7 @@
       "label": "cell.rs",
       "_origin": "ast",
       "community": 8,
-      "community_name": "ScreenGrid",
+      "community_name": "Cell and Attributes",
       "file_type": "code",
       "norm_label": "cell.rs",
       "source_file": "crates/terminal-core/src/cell.rs",
@@ -2634,7 +2634,7 @@
       "label": "Cell",
       "_origin": "ast",
       "community": 8,
-      "community_name": "ScreenGrid",
+      "community_name": "Cell and Attributes",
       "file_type": "code",
       "norm_label": "cell",
       "source_file": "crates/terminal-core/src/cell.rs",
@@ -2645,7 +2645,7 @@
       "label": ".attributes()",
       "_origin": "ast",
       "community": 8,
-      "community_name": "ScreenGrid",
+      "community_name": "Cell and Attributes",
       "file_type": "code",
       "norm_label": ".attributes()",
       "source_file": "crates/terminal-core/src/cell.rs",
@@ -2656,7 +2656,7 @@
       "label": ".character()",
       "_origin": "ast",
       "community": 8,
-      "community_name": "ScreenGrid",
+      "community_name": "Cell and Attributes",
       "file_type": "code",
       "norm_label": ".character()",
       "source_file": "crates/terminal-core/src/cell.rs",
@@ -2667,7 +2667,7 @@
       "label": ".default()",
       "_origin": "ast",
       "community": 8,
-      "community_name": "ScreenGrid",
+      "community_name": "Cell and Attributes",
       "file_type": "code",
       "norm_label": ".default()",
       "source_file": "crates/terminal-core/src/cell.rs",
@@ -2678,7 +2678,7 @@
       "label": ".new()",
       "_origin": "ast",
       "community": 8,
-      "community_name": "ScreenGrid",
+      "community_name": "Cell and Attributes",
       "file_type": "code",
       "norm_label": ".new()",
       "source_file": "crates/terminal-core/src/cell.rs",
@@ -2689,7 +2689,7 @@
       "label": "CellAttributes",
       "_origin": "ast",
       "community": 8,
-      "community_name": "ScreenGrid",
+      "community_name": "Cell and Attributes",
       "file_type": "code",
       "norm_label": "cellattributes",
       "source_file": "crates/terminal-core/src/cell.rs",
@@ -2700,7 +2700,7 @@
       "label": ".background()",
       "_origin": "ast",
       "community": 8,
-      "community_name": "ScreenGrid",
+      "community_name": "Cell and Attributes",
       "file_type": "code",
       "norm_label": ".background()",
       "source_file": "crates/terminal-core/src/cell.rs",
@@ -2711,7 +2711,7 @@
       "label": ".foreground()",
       "_origin": "ast",
       "community": 8,
-      "community_name": "ScreenGrid",
+      "community_name": "Cell and Attributes",
       "file_type": "code",
       "norm_label": ".foreground()",
       "source_file": "crates/terminal-core/src/cell.rs",
@@ -2722,7 +2722,7 @@
       "label": ".new()",
       "_origin": "ast",
       "community": 8,
-      "community_name": "ScreenGrid",
+      "community_name": "Cell and Attributes",
       "file_type": "code",
       "norm_label": ".new()",
       "source_file": "crates/terminal-core/src/cell.rs",
@@ -2733,7 +2733,7 @@
       "label": "CellColor",
       "_origin": "ast",
       "community": 8,
-      "community_name": "ScreenGrid",
+      "community_name": "Cell and Attributes",
       "file_type": "code",
       "norm_label": "cellcolor",
       "source_file": "crates/terminal-core/src/cell.rs",
@@ -2744,7 +2744,7 @@
       "label": "Default",
       "_origin": "ast",
       "community": 8,
-      "community_name": "ScreenGrid",
+      "community_name": "Cell and Attributes",
       "file_type": "code",
       "norm_label": "default",
       "source_file": "",
@@ -2755,51 +2755,29 @@
       "label": "Self",
       "_origin": "ast",
       "community": 8,
-      "community_name": "ScreenGrid",
+      "community_name": "Cell and Attributes",
       "file_type": "code",
       "norm_label": "self",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "crates_terminal_core_src_grid",
-      "label": "grid.rs",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "ScreenGrid",
-      "file_type": "code",
-      "norm_label": "grid.rs",
-      "source_file": "crates/terminal-core/src/grid.rs",
-      "source_location": "L1"
-    },
-    {
       "id": "crates_terminal_core_src_grid_rs_option",
       "label": "Option",
       "_origin": "ast",
       "community": 8,
-      "community_name": "ScreenGrid",
+      "community_name": "Cell and Attributes",
       "file_type": "code",
       "norm_label": "option",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "crates_terminal_core_src_grid_screengrid",
-      "label": "ScreenGrid",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "ScreenGrid",
-      "file_type": "code",
-      "norm_label": "screengrid",
-      "source_file": "crates/terminal-core/src/grid.rs",
-      "source_location": "L5"
-    },
-    {
       "id": "crates_terminal_core_src_grid_screengrid_cell",
       "label": ".cell()",
       "_origin": "ast",
       "community": 8,
-      "community_name": "ScreenGrid",
+      "community_name": "Cell and Attributes",
       "file_type": "code",
       "norm_label": ".cell()",
       "source_file": "crates/terminal-core/src/grid.rs",
@@ -2810,40 +2788,18 @@
       "label": ".cell_mut()",
       "_origin": "ast",
       "community": 8,
-      "community_name": "ScreenGrid",
+      "community_name": "Cell and Attributes",
       "file_type": "code",
       "norm_label": ".cell_mut()",
       "source_file": "crates/terminal-core/src/grid.rs",
       "source_location": "L40"
     },
     {
-      "id": "crates_terminal_core_src_grid_screengrid_clear",
-      "label": ".clear()",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "ScreenGrid",
-      "file_type": "code",
-      "norm_label": ".clear()",
-      "source_file": "crates/terminal-core/src/grid.rs",
-      "source_location": "L62"
-    },
-    {
-      "id": "crates_terminal_core_src_grid_screengrid_erase_cells",
-      "label": ".erase_cells()",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "ScreenGrid",
-      "file_type": "code",
-      "norm_label": ".erase_cells()",
-      "source_file": "crates/terminal-core/src/grid.rs",
-      "source_location": "L78"
-    },
-    {
       "id": "crates_terminal_core_src_grid_screengrid_index_of",
       "label": ".index_of()",
       "_origin": "ast",
       "community": 8,
-      "community_name": "ScreenGrid",
+      "community_name": "Cell and Attributes",
       "file_type": "code",
       "norm_label": ".index_of()",
       "source_file": "crates/terminal-core/src/grid.rs",
@@ -2854,77 +2810,11 @@
       "label": ".insert_cell()",
       "_origin": "ast",
       "community": 8,
-      "community_name": "ScreenGrid",
+      "community_name": "Cell and Attributes",
       "file_type": "code",
       "norm_label": ".insert_cell()",
       "source_file": "crates/terminal-core/src/grid.rs",
       "source_location": "L66"
-    },
-    {
-      "id": "crates_terminal_core_src_grid_screengrid_move_cursor",
-      "label": ".move_cursor()",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "ScreenGrid",
-      "file_type": "code",
-      "norm_label": ".move_cursor()",
-      "source_file": "crates/terminal-core/src/grid.rs",
-      "source_location": "L56"
-    },
-    {
-      "id": "crates_terminal_core_src_grid_screengrid_scroll_up_one_row",
-      "label": ".scroll_up_one_row()",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "ScreenGrid",
-      "file_type": "code",
-      "norm_label": ".scroll_up_one_row()",
-      "source_file": "crates/terminal-core/src/grid.rs",
-      "source_location": "L82"
-    },
-    {
-      "id": "crates_terminal_core_src_lib",
-      "label": "terminal-core/src/lib.rs",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "ScreenGrid",
-      "file_type": "code",
-      "norm_label": "terminal-core/src/lib.rs",
-      "source_file": "crates/terminal-core/src/lib.rs",
-      "source_location": "L1"
-    },
-    {
-      "id": "crates_terminal_core_src_state_terminalstate_screen",
-      "label": ".screen()",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "ScreenGrid",
-      "file_type": "code",
-      "norm_label": ".screen()",
-      "source_file": "crates/terminal-core/src/state.rs",
-      "source_location": "L117"
-    },
-    {
-      "id": "parser",
-      "label": "Parser",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "ScreenGrid",
-      "file_type": "code",
-      "norm_label": "parser",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "vec",
-      "label": "Vec",
-      "_origin": "ast",
-      "community": 8,
-      "community_name": "ScreenGrid",
-      "file_type": "code",
-      "norm_label": "vec",
-      "source_file": "",
-      "source_location": ""
     },
     {
       "id": "crates_terminal_core_tests_modes",
@@ -3827,18 +3717,6 @@
     },
     {
       "source": "crates_terminal_core_src_parser_semanticperformer_csi_dispatch",
-      "target": "crates_terminal_core_src_parser_semanticperformer_a_dispatch_mode",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L199",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_src_parser_semanticperformer_csi_dispatch",
       "target": "crates_terminal_core_src_parser_simple_csi_parameters",
       "relation": "calls",
       "_origin": "ast",
@@ -3846,7 +3724,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L207",
+      "source_location": "L151",
       "weight": 1.0
     },
     {
@@ -3858,7 +3736,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L212",
+      "source_location": "L156",
       "weight": 1.0
     },
     {
@@ -3870,7 +3748,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L50",
+      "source_location": "L44",
       "weight": 1.0
     },
     {
@@ -3882,7 +3760,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L73",
+      "source_location": "L67",
       "weight": 1.0
     },
     {
@@ -4218,7 +4096,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L101",
+      "source_location": "L100",
       "weight": 1.0
     },
     {
@@ -4230,7 +4108,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L104",
+      "source_location": "L103",
       "weight": 1.0
     },
     {
@@ -4242,7 +4120,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L110",
+      "source_location": "L109",
       "weight": 1.0
     },
     {
@@ -4254,7 +4132,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L118",
+      "source_location": "L117",
       "weight": 1.0
     },
     {
@@ -4266,7 +4144,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L125",
+      "source_location": "L124",
       "weight": 1.0
     },
     {
@@ -4278,43 +4156,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L129",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser_parser_mode_dispatch_is_chunk_safe_at_every_byte_boundary",
-      "target": "crates_terminal_core_tests_parser_parse_in_chunks",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L540",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser_parser_mode_dispatch_is_chunk_safe_at_every_byte_boundary",
-      "target": "crates_terminal_core_tests_parser_assert_observable_state_eq",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L547",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser_successive_mode_sequences_preserve_unrelated_state",
-      "target": "crates_terminal_core_tests_parser_row_text",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L559",
+      "source_location": "L128",
       "weight": 1.0
     },
     {
@@ -4326,7 +4168,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L215",
+      "source_location": "L214",
       "weight": 1.0
     },
     {
@@ -4338,7 +4180,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L222",
+      "source_location": "L221",
       "weight": 1.0
     },
     {
@@ -4518,7 +4360,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L113",
+      "source_location": "L107",
       "weight": 1.0
     },
     {
@@ -4530,7 +4372,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L114",
+      "source_location": "L108",
       "weight": 1.0
     },
     {
@@ -4542,7 +4384,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L26",
+      "source_location": "L20",
       "weight": 1.0
     },
     {
@@ -4554,7 +4396,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L81",
+      "source_location": "L75",
       "weight": 1.0
     },
     {
@@ -4686,7 +4528,7 @@
       "confidence_score": 1.0,
       "context": "generic_arg",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L114",
+      "source_location": "L108",
       "weight": 1.0
     },
     {
@@ -4698,7 +4540,7 @@
       "confidence_score": 1.0,
       "context": "generic_arg",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L26",
+      "source_location": "L20",
       "weight": 1.0
     },
     {
@@ -4710,7 +4552,7 @@
       "confidence_score": 1.0,
       "context": "generic_arg",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L45",
+      "source_location": "L39",
       "weight": 1.0
     },
     {
@@ -4722,7 +4564,7 @@
       "confidence_score": 1.0,
       "context": "generic_arg",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L107",
+      "source_location": "L101",
       "weight": 1.0
     },
     {
@@ -4990,18 +4832,6 @@
       "weight": 1.0
     },
     {
-      "source": "crates_terminal_core_src_parser_semanticperformer_a_dispatch_mode",
-      "target": "params",
-      "relation": "references",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "parameter_type",
-      "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L125",
-      "weight": 1.0
-    },
-    {
       "source": "crates_terminal_core_src_parser_semanticperformer_a_new",
       "target": "crates_terminal_core_src_state_terminalstate",
       "relation": "references",
@@ -5010,7 +4840,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L118",
+      "source_location": "L112",
       "weight": 1.0
     },
     {
@@ -5022,7 +4852,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L182",
+      "source_location": "L140",
       "weight": 1.0
     },
     {
@@ -5034,7 +4864,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L253",
+      "source_location": "L197",
       "weight": 1.0
     },
     {
@@ -5046,7 +4876,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L45",
+      "source_location": "L39",
       "weight": 1.0
     },
     {
@@ -5058,7 +4888,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L97",
+      "source_location": "L91",
       "weight": 1.0
     },
     {
@@ -5190,7 +5020,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L12",
+      "source_location": "L11",
       "weight": 1.0
     },
     {
@@ -5202,7 +5032,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L6",
+      "source_location": "L5",
       "weight": 1.0
     },
     {
@@ -5502,7 +5332,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L118",
+      "source_location": "L112",
       "weight": 1.0
     },
     {
@@ -5514,7 +5344,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L253",
+      "source_location": "L197",
       "weight": 1.0
     },
     {
@@ -5526,7 +5356,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L45",
+      "source_location": "L39",
       "weight": 1.0
     },
     {
@@ -5538,7 +5368,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L72",
+      "source_location": "L66",
       "weight": 1.0
     },
     {
@@ -5550,7 +5380,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L31",
+      "source_location": "L25",
       "weight": 1.0
     },
     {
@@ -5562,7 +5392,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L97",
+      "source_location": "L91",
       "weight": 1.0
     },
     {
@@ -5574,7 +5404,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L91",
+      "source_location": "L85",
       "weight": 1.0
     },
     {
@@ -5586,7 +5416,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L107",
+      "source_location": "L101",
       "weight": 1.0
     },
     {
@@ -5706,7 +5536,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L29",
+      "source_location": "L28",
       "weight": 1.0
     },
     {
@@ -5718,7 +5548,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L6",
+      "source_location": "L5",
       "weight": 1.0
     },
     {
@@ -5929,7 +5759,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L112",
+      "source_location": "L106",
       "weight": 1.0
     },
     {
@@ -5940,7 +5770,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L25",
+      "source_location": "L19",
       "weight": 1.0
     },
     {
@@ -5951,7 +5781,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L253",
+      "source_location": "L197",
       "weight": 1.0
     },
     {
@@ -5962,7 +5792,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L266",
+      "source_location": "L210",
       "weight": 1.0
     },
     {
@@ -5973,7 +5803,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L79",
+      "source_location": "L73",
       "weight": 1.0
     },
     {
@@ -6391,7 +6221,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L108",
+      "source_location": "L107",
       "weight": 1.0
     },
     {
@@ -6402,7 +6232,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L12",
+      "source_location": "L11",
       "weight": 1.0
     },
     {
@@ -6413,7 +6243,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L123",
+      "source_location": "L122",
       "weight": 1.0
     },
     {
@@ -6424,7 +6254,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L134",
+      "source_location": "L133",
       "weight": 1.0
     },
     {
@@ -6435,7 +6265,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L147",
+      "source_location": "L146",
       "weight": 1.0
     },
     {
@@ -6446,7 +6276,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L159",
+      "source_location": "L158",
       "weight": 1.0
     },
     {
@@ -6457,7 +6287,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L180",
+      "source_location": "L179",
       "weight": 1.0
     },
     {
@@ -6468,7 +6298,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L213",
+      "source_location": "L212",
       "weight": 1.0
     },
     {
@@ -6479,7 +6309,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L227",
+      "source_location": "L226",
       "weight": 1.0
     },
     {
@@ -6490,7 +6320,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L244",
+      "source_location": "L243",
       "weight": 1.0
     },
     {
@@ -6501,7 +6331,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L262",
+      "source_location": "L261",
       "weight": 1.0
     },
     {
@@ -6512,18 +6342,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L278",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_malformed_or_incomplete_escape_input_does_not_panic_or_mutate_state",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L289",
+      "source_location": "L277",
       "weight": 1.0
     },
     {
@@ -6534,7 +6353,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L29",
+      "source_location": "L28",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_parser",
+      "target": "crates_terminal_core_tests_parser_malformed_or_incomplete_escape_input_does_not_panic_or_mutate_state",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/parser.rs",
+      "source_location": "L288",
       "weight": 1.0
     },
     {
@@ -6545,7 +6375,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L308",
+      "source_location": "L307",
       "weight": 1.0
     },
     {
@@ -6556,7 +6386,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L322",
+      "source_location": "L321",
       "weight": 1.0
     },
     {
@@ -6567,7 +6397,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L343",
+      "source_location": "L342",
       "weight": 1.0
     },
     {
@@ -6578,7 +6408,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L360",
+      "source_location": "L359",
       "weight": 1.0
     },
     {
@@ -6589,7 +6419,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L379",
+      "source_location": "L378",
       "weight": 1.0
     },
     {
@@ -6600,7 +6430,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L395",
+      "source_location": "L394",
       "weight": 1.0
     },
     {
@@ -6611,117 +6441,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L41",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_standard_mode_sequences_control_insert_and_replace_modes",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L413",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_private_mode_sequences_control_auto_wrap_and_cursor_visibility",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L431",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_mode_sequences_handle_multiple_and_mixed_supported_parameters",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L451",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_omitted_unsupported_and_wrong_private_modes_are_safe_no_ops",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L477",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_parser_controlled_insert_mode_changes_printable_output_semantics",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L503",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_routes_carriage_return_to_terminal_state",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L52",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_parser_controlled_auto_wrap_clears_and_does_not_create_pending_wrap",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L520",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_parser_mode_dispatch_is_chunk_safe_at_every_byte_boundary",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L538",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_successive_mode_sequences_preserve_unrelated_state",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L552",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_malformed_private_and_subparameter_mode_forms_do_not_panic_or_change_modes",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L578",
+      "source_location": "L40",
       "weight": 1.0
     },
     {
@@ -6732,7 +6452,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L6",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_parser",
+      "target": "crates_terminal_core_tests_parser_routes_carriage_return_to_terminal_state",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/parser.rs",
+      "source_location": "L51",
       "weight": 1.0
     },
     {
@@ -6743,7 +6474,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L63",
+      "source_location": "L62",
       "weight": 1.0
     },
     {
@@ -6754,7 +6485,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L75",
+      "source_location": "L74",
       "weight": 1.0
     },
     {
@@ -6765,7 +6496,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L86",
+      "source_location": "L85",
       "weight": 1.0
     },
     {
@@ -6776,7 +6507,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L99",
+      "source_location": "L98",
       "weight": 1.0
     },
     {
@@ -7293,7 +7024,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L162",
+      "source_location": "L120",
       "weight": 1.0
     },
     {
@@ -7304,7 +7035,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L71",
+      "source_location": "L65",
       "weight": 1.0
     },
     {
@@ -7315,7 +7046,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L106",
+      "source_location": "L100",
       "weight": 1.0
     },
     {
@@ -7326,7 +7057,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L96",
+      "source_location": "L90",
       "weight": 1.0
     },
     {
@@ -7799,7 +7530,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L163",
+      "source_location": "L121",
       "weight": 1.0
     },
     {
@@ -7810,7 +7541,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L169",
+      "source_location": "L127",
       "weight": 1.0
     },
     {
@@ -7821,7 +7552,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L182",
+      "source_location": "L140",
       "weight": 1.0
     },
     {
@@ -7832,7 +7563,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L248",
+      "source_location": "L192",
       "weight": 1.0
     },
     {
@@ -7843,18 +7574,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L118",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_src_parser_semanticperformer_a",
-      "target": "crates_terminal_core_src_parser_semanticperformer_a_dispatch_mode",
-      "relation": "method",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L125",
+      "source_location": "L112",
       "weight": 1.0
     },
     {
@@ -7865,7 +7585,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L31",
+      "source_location": "L25",
       "weight": 1.0
     },
     {
@@ -7876,7 +7596,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L45",
+      "source_location": "L39",
       "weight": 1.0
     },
     {
@@ -7887,7 +7607,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L72",
+      "source_location": "L66",
       "weight": 1.0
     },
     {
@@ -7898,7 +7618,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L107",
+      "source_location": "L101",
       "weight": 1.0
     },
     {
@@ -7909,7 +7629,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L86",
+      "source_location": "L80",
       "weight": 1.0
     },
     {
@@ -7920,7 +7640,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L91",
+      "source_location": "L85",
       "weight": 1.0
     },
     {
@@ -7931,7 +7651,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L97",
+      "source_location": "L91",
       "weight": 1.0
     },
     {
@@ -8845,5 +8565,5 @@
       "source_file": "docs/decisions/ADR-0008-license-naming-target-architectures.md"
     }
   ],
-  "built_at_commit": "1d0a452c36e10183d8aa790b340f9d20fbb08ba7"
+  "built_at_commit": "bcf8d615363f96b811e9730390e4bd048a217aee"
 }

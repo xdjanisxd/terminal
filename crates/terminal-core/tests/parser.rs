@@ -1,5 +1,6 @@
 use terminal_core::{
-    PrintError, TerminalDimensions, TerminalParser, TerminalParserError, TerminalState,
+    AutoWrapMode, CharacterInsertionMode, CursorKeyMode, CursorVisibility, PrintError,
+    TerminalDimensions, TerminalParser, TerminalParserError, TerminalState,
 };
 
 fn row_text(state: &TerminalState, row: usize) -> String {
@@ -406,4 +407,192 @@ fn parser_error_is_project_owned_and_exposes_standard_error_source() {
         error.semantic_error(),
         PrintError::UnsupportedCharacter('é')
     );
+}
+
+#[test]
+fn standard_mode_sequences_control_insert_and_replace_modes() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(6, 1).unwrap());
+
+    parser.advance(&mut state, b"\x1b[4h").unwrap();
+    assert_eq!(
+        state.terminal_modes().character_insertion(),
+        CharacterInsertionMode::Insert
+    );
+
+    parser.advance(&mut state, b"\x1b[4l").unwrap();
+    assert_eq!(
+        state.terminal_modes().character_insertion(),
+        CharacterInsertionMode::Replace
+    );
+}
+
+#[test]
+fn private_mode_sequences_control_auto_wrap_and_cursor_visibility() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(6, 1).unwrap());
+
+    parser.advance(&mut state, b"\x1b[?7l\x1b[?25l").unwrap();
+    assert_eq!(state.terminal_modes().auto_wrap(), AutoWrapMode::Disabled);
+    assert_eq!(
+        state.terminal_modes().cursor_visibility(),
+        CursorVisibility::Hidden
+    );
+
+    parser.advance(&mut state, b"\x1b[?7h\x1b[?25h").unwrap();
+    assert_eq!(state.terminal_modes().auto_wrap(), AutoWrapMode::Enabled);
+    assert_eq!(
+        state.terminal_modes().cursor_visibility(),
+        CursorVisibility::Visible
+    );
+}
+
+#[test]
+fn mode_sequences_handle_multiple_and_mixed_supported_parameters() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(6, 1).unwrap());
+
+    parser.advance(&mut state, b"\x1b[?7;999;25l").unwrap();
+    assert_eq!(state.terminal_modes().auto_wrap(), AutoWrapMode::Disabled);
+    assert_eq!(
+        state.terminal_modes().cursor_visibility(),
+        CursorVisibility::Hidden
+    );
+
+    parser.advance(&mut state, b"\x1b[3;4;999h").unwrap();
+    assert_eq!(
+        state.terminal_modes().character_insertion(),
+        CharacterInsertionMode::Insert
+    );
+
+    parser.advance(&mut state, b"\x1b[?25;7h").unwrap();
+    assert_eq!(state.terminal_modes().auto_wrap(), AutoWrapMode::Enabled);
+    assert_eq!(
+        state.terminal_modes().cursor_visibility(),
+        CursorVisibility::Visible
+    );
+}
+
+#[test]
+fn omitted_unsupported_and_wrong_private_modes_are_safe_no_ops() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(6, 1).unwrap());
+    state.set_cursor_key_mode(CursorKeyMode::Application);
+    parser.advance(&mut state, b"abc").unwrap();
+    let dimensions = state.dimensions();
+    let cursor = state.cursor();
+
+    parser
+        .advance(
+            &mut state,
+            b"\x1b[h\x1b[l\x1b[999h\x1b[999l\x1b[7l\x1b[25l\x1b[?4h",
+        )
+        .unwrap();
+
+    assert_eq!(state.dimensions(), dimensions);
+    assert_eq!(state.cursor(), cursor);
+    assert_eq!(row_text(&state, 0), "abc   ");
+    assert_eq!(state.terminal_modes(), &Default::default());
+    assert_eq!(
+        state.input_modes().cursor_keys(),
+        CursorKeyMode::Application
+    );
+}
+
+#[test]
+fn parser_controlled_insert_mode_changes_printable_output_semantics() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(6, 1).unwrap());
+
+    parser
+        .advance(&mut state, b"abcde\x1b[1;2H\x1b[4hX\x1b[4lY")
+        .unwrap();
+
+    assert_eq!(row_text(&state, 0), "aXYcde");
+    assert_eq!((state.cursor().row(), state.cursor().column()), (0, 3));
+    assert_eq!(
+        state.terminal_modes().character_insertion(),
+        CharacterInsertionMode::Replace
+    );
+}
+
+#[test]
+fn parser_controlled_auto_wrap_clears_and_does_not_create_pending_wrap() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(3, 2).unwrap());
+
+    parser
+        .advance(&mut state, b"abc\x1b[?7lX\x1b[?7hY")
+        .unwrap();
+
+    assert_eq!(row_text(&state, 0), "abY");
+    assert_eq!(row_text(&state, 1), "   ");
+    assert_eq!((state.cursor().row(), state.cursor().column()), (0, 2));
+
+    parser.advance(&mut state, b"Z").unwrap();
+    assert_eq!(row_text(&state, 1), "Z  ");
+    assert_eq!((state.cursor().row(), state.cursor().column()), (1, 1));
+}
+
+#[test]
+fn parser_mode_dispatch_is_chunk_safe_at_every_byte_boundary() {
+    let input = b"ab\x1b[4hX\x1b[4lY\x1b[?7;25lZ\x1b[?999;25;7h!";
+    let expected = parse_in_chunks(input, input.len());
+
+    for split in 0..=input.len() {
+        let mut parser = TerminalParser::new();
+        let mut state = TerminalState::new(TerminalDimensions::new(12, 4).unwrap());
+        parser.advance(&mut state, &input[..split]).unwrap();
+        parser.advance(&mut state, &input[split..]).unwrap();
+        assert_observable_state_eq(&state, &expected);
+    }
+}
+
+#[test]
+fn successive_mode_sequences_preserve_unrelated_state() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(6, 2).unwrap());
+    state.set_cursor_key_mode(CursorKeyMode::Application);
+    parser.advance(&mut state, b"abc\x1b[2;3H").unwrap();
+    let dimensions = state.dimensions();
+    let cursor = state.cursor();
+    let cells = [row_text(&state, 0), row_text(&state, 1)];
+
+    parser
+        .advance(
+            &mut state,
+            b"\x1b[4h\x1b[?7l\x1b[?25l\x1b[4l\x1b[?7h\x1b[?25h",
+        )
+        .unwrap();
+
+    assert_eq!(state.dimensions(), dimensions);
+    assert_eq!(state.cursor(), cursor);
+    assert_eq!([row_text(&state, 0), row_text(&state, 1)], cells);
+    assert_eq!(
+        state.input_modes().cursor_keys(),
+        CursorKeyMode::Application
+    );
+}
+
+#[test]
+fn malformed_private_and_subparameter_mode_forms_do_not_panic_or_change_modes() {
+    let inputs: &[&[u8]] = &[
+        b"\x1b[?",
+        b"\x1b[?7",
+        b"\x1b[?7:h",
+        b"\x1b[4:1h",
+        b"\x1b[??7h",
+        b"\x1b[>7h",
+    ];
+
+    for input in inputs {
+        let mut parser = TerminalParser::new();
+        let mut state = TerminalState::new(TerminalDimensions::new(4, 1).unwrap());
+        parser.advance(&mut state, input).unwrap();
+        assert_eq!(
+            state.terminal_modes(),
+            &Default::default(),
+            "input {input:?}"
+        );
+    }
 }
