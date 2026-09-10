@@ -1,6 +1,7 @@
 use terminal_core::{
-    AutoWrapMode, CharacterInsertionMode, CursorKeyMode, CursorVisibility, PrintError,
-    TerminalDimensions, TerminalParser, TerminalParserError, TerminalState,
+    AutoWrapMode, CellAttributes, CellColor, CharacterInsertionMode, CursorKeyMode,
+    CursorVisibility, InverseVideo, ItalicStyle, PrintError, TerminalDimensions, TerminalParser,
+    TerminalParserError, TerminalState, TextIntensity, UnderlineStyle,
 };
 
 fn row_text(state: &TerminalState, row: usize) -> String {
@@ -14,6 +15,7 @@ fn assert_observable_state_eq(actual: &TerminalState, expected: &TerminalState) 
     assert_eq!(actual.cursor(), expected.cursor());
     assert_eq!(actual.terminal_modes(), expected.terminal_modes());
     assert_eq!(actual.input_modes(), expected.input_modes());
+    assert_eq!(actual.current_rendition(), expected.current_rendition());
     for column in 0..actual.dimensions().columns() {
         assert_eq!(
             actual.has_horizontal_tab_stop(column),
@@ -694,5 +696,207 @@ fn unsupported_malformed_and_incomplete_tab_forms_are_safe_no_ops() {
             vec![5],
             "input {input:?}"
         );
+    }
+}
+
+#[test]
+fn sgr_style_set_and_clear_pairs_are_independent() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(4, 1).unwrap());
+
+    parser.advance(&mut state, b"\x1b[1;3;4;7m").unwrap();
+    assert_eq!(state.current_rendition().intensity(), TextIntensity::Bold);
+    assert_eq!(state.current_rendition().italic(), ItalicStyle::Italic);
+    assert_eq!(
+        state.current_rendition().underline(),
+        UnderlineStyle::Enabled
+    );
+    assert_eq!(state.current_rendition().inverse(), InverseVideo::Enabled);
+
+    parser.advance(&mut state, b"\x1b[22m").unwrap();
+    assert_eq!(state.current_rendition().intensity(), TextIntensity::Normal);
+    assert_eq!(state.current_rendition().italic(), ItalicStyle::Italic);
+    parser.advance(&mut state, b"\x1b[23m").unwrap();
+    assert_eq!(state.current_rendition().italic(), ItalicStyle::Upright);
+    assert_eq!(
+        state.current_rendition().underline(),
+        UnderlineStyle::Enabled
+    );
+    parser.advance(&mut state, b"\x1b[24m").unwrap();
+    assert_eq!(
+        state.current_rendition().underline(),
+        UnderlineStyle::Disabled
+    );
+    assert_eq!(state.current_rendition().inverse(), InverseVideo::Enabled);
+    parser.advance(&mut state, b"\x1b[27m").unwrap();
+    assert_eq!(state.current_rendition(), &CellAttributes::default());
+}
+
+#[test]
+fn sgr_maps_all_standard_and_bright_foreground_colors() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(4, 1).unwrap());
+
+    for (code, index) in (30..=37).zip(0..=7) {
+        parser
+            .advance(&mut state, format!("\x1b[{code}m").as_bytes())
+            .unwrap();
+        assert_eq!(
+            state.current_rendition().foreground(),
+            CellColor::Indexed(index)
+        );
+    }
+    for (code, index) in (90..=97).zip(8..=15) {
+        parser
+            .advance(&mut state, format!("\x1b[{code}m").as_bytes())
+            .unwrap();
+        assert_eq!(
+            state.current_rendition().foreground(),
+            CellColor::Indexed(index)
+        );
+    }
+}
+
+#[test]
+fn sgr_maps_all_standard_and_bright_background_colors() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(4, 1).unwrap());
+
+    for (code, index) in (40..=47).zip(0..=7) {
+        parser
+            .advance(&mut state, format!("\x1b[{code}m").as_bytes())
+            .unwrap();
+        assert_eq!(
+            state.current_rendition().background(),
+            CellColor::Indexed(index)
+        );
+    }
+    for (code, index) in (100..=107).zip(8..=15) {
+        parser
+            .advance(&mut state, format!("\x1b[{code}m").as_bytes())
+            .unwrap();
+        assert_eq!(
+            state.current_rendition().background(),
+            CellColor::Indexed(index)
+        );
+    }
+}
+
+#[test]
+fn sgr_default_color_codes_restore_only_the_selected_channel() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(4, 1).unwrap());
+
+    parser.advance(&mut state, b"\x1b[1;31;104m").unwrap();
+    parser.advance(&mut state, b"\x1b[39m").unwrap();
+    assert_eq!(state.current_rendition().foreground(), CellColor::Default);
+    assert_eq!(
+        state.current_rendition().background(),
+        CellColor::Indexed(12)
+    );
+    assert_eq!(state.current_rendition().intensity(), TextIntensity::Bold);
+
+    parser.advance(&mut state, b"\x1b[49m").unwrap();
+    assert_eq!(state.current_rendition().background(), CellColor::Default);
+    assert_eq!(state.current_rendition().intensity(), TextIntensity::Bold);
+}
+
+#[test]
+fn sgr_zero_bare_and_empty_parameters_reset_the_complete_rendition() {
+    for reset in [b"\x1b[0m".as_slice(), b"\x1b[m", b"\x1b[;m"] {
+        let mut parser = TerminalParser::new();
+        let mut state = TerminalState::new(TerminalDimensions::new(4, 1).unwrap());
+        parser.advance(&mut state, b"\x1b[1;3;4;7;35;106m").unwrap();
+
+        parser.advance(&mut state, reset).unwrap();
+
+        assert_eq!(state.current_rendition(), &CellAttributes::default());
+    }
+}
+
+#[test]
+fn sgr_parameters_apply_in_order_including_empty_parameters() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(4, 1).unwrap());
+
+    parser
+        .advance(&mut state, b"\x1b[31;39;92;44;49;103;1;22;1m")
+        .unwrap();
+    assert_eq!(
+        state.current_rendition().foreground(),
+        CellColor::Indexed(10)
+    );
+    assert_eq!(
+        state.current_rendition().background(),
+        CellColor::Indexed(11)
+    );
+    assert_eq!(state.current_rendition().intensity(), TextIntensity::Bold);
+
+    parser.advance(&mut state, b"\x1b[1;;3m").unwrap();
+    assert_eq!(state.current_rendition().intensity(), TextIntensity::Normal);
+    assert_eq!(state.current_rendition().italic(), ItalicStyle::Italic);
+    assert_eq!(state.current_rendition().foreground(), CellColor::Default);
+    assert_eq!(state.current_rendition().background(), CellColor::Default);
+}
+
+#[test]
+fn unsupported_sgr_parameters_and_subparameters_are_individual_no_ops() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(4, 1).unwrap());
+    parser.advance(&mut state, b"\x1b[32;44m").unwrap();
+    let initial = *state.current_rendition();
+
+    parser
+        .advance(&mut state, b"\x1b[2;5;8;9;38;48;58;999m")
+        .unwrap();
+    assert_eq!(state.current_rendition(), &initial);
+
+    parser
+        .advance(&mut state, b"\x1b[1;38:2:255:0:0;3m")
+        .unwrap();
+    assert_eq!(state.current_rendition().intensity(), TextIntensity::Bold);
+    assert_eq!(state.current_rendition().italic(), ItalicStyle::Italic);
+    assert_eq!(
+        state.current_rendition().foreground(),
+        CellColor::Indexed(2)
+    );
+    assert_eq!(
+        state.current_rendition().background(),
+        CellColor::Indexed(4)
+    );
+}
+
+#[test]
+fn parser_printing_snapshots_rendition_without_changing_existing_cells() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(5, 1).unwrap());
+
+    parser
+        .advance(&mut state, b"a\x1b[1;3;4;7;91;104mb\x1b[0mc")
+        .unwrap();
+
+    let default = CellAttributes::default();
+    assert_eq!(state.screen().cell(0, 0).unwrap().attributes(), &default);
+    let styled = state.screen().cell(0, 1).unwrap().attributes();
+    assert_eq!(styled.intensity(), TextIntensity::Bold);
+    assert_eq!(styled.italic(), ItalicStyle::Italic);
+    assert_eq!(styled.underline(), UnderlineStyle::Enabled);
+    assert_eq!(styled.inverse(), InverseVideo::Enabled);
+    assert_eq!(styled.foreground(), CellColor::Indexed(9));
+    assert_eq!(styled.background(), CellColor::Indexed(12));
+    assert_eq!(state.screen().cell(0, 2).unwrap().attributes(), &default);
+}
+
+#[test]
+fn representative_sgr_stream_is_chunk_safe_at_every_byte_boundary() {
+    let input = b"a\x1b[1;31;44mb\x1b[22;39;104mc\x1b[0md\t\x1b[?25l!";
+    let expected = parse_in_chunks(input, input.len());
+
+    for split in 0..=input.len() {
+        let mut parser = TerminalParser::new();
+        let mut state = TerminalState::new(TerminalDimensions::new(12, 4).unwrap());
+        parser.advance(&mut state, &input[..split]).unwrap();
+        parser.advance(&mut state, &input[split..]).unwrap();
+        assert_observable_state_eq(&state, &expected);
     }
 }

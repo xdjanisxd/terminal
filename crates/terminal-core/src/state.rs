@@ -2,8 +2,9 @@ use std::{error::Error, fmt};
 
 use crate::tabs::HorizontalTabStops;
 use crate::{
-    AutoWrapMode, Cell, CellAttributes, CharacterInsertionMode, Cursor, CursorKeyMode,
-    CursorVisibility, InputModes, ScreenGrid, TerminalDimensions, TerminalModes,
+    AutoWrapMode, Cell, CellAttributes, CellColor, CharacterInsertionMode, Cursor, CursorKeyMode,
+    CursorVisibility, InputModes, InverseVideo, ItalicStyle, ScreenGrid, TerminalDimensions,
+    TerminalModes, TextIntensity, UnderlineStyle,
 };
 
 /// Failure to print a character through the terminal semantic boundary.
@@ -95,6 +96,7 @@ pub struct TerminalState {
     screen: ScreenGrid,
     terminal_modes: TerminalModes,
     input_modes: InputModes,
+    current_rendition: CellAttributes,
     horizontal_tab_stops: HorizontalTabStops,
     wrap_pending: bool,
 }
@@ -106,6 +108,7 @@ impl TerminalState {
             screen: ScreenGrid::new(dimensions),
             terminal_modes: TerminalModes::default(),
             input_modes: InputModes::default(),
+            current_rendition: CellAttributes::default(),
             horizontal_tab_stops: HorizontalTabStops::new(dimensions.columns()),
             wrap_pending: false,
         }
@@ -176,9 +179,8 @@ impl TerminalState {
     /// Prints one supported single-cell ASCII character at the cursor.
     ///
     /// The current fixed-width model accepts ASCII space through tilde and
-    /// stores each character in one cell with default attributes. Other
-    /// Unicode is rejected until width and combining behavior can be modeled
-    /// without approximation.
+    /// snapshots the current rendition into the cell. Other Unicode is rejected
+    /// until width and combining behavior can be modeled without approximation.
     pub fn print_character(&mut self, character: char) -> Result<(), PrintError> {
         if character.is_control() {
             return Err(PrintError::ControlCharacter(character));
@@ -192,7 +194,7 @@ impl TerminalState {
         }
 
         let cursor = self.cursor();
-        let cell = Cell::new(character, CellAttributes::default());
+        let cell = Cell::new(character, self.current_rendition);
         match self.terminal_modes.character_insertion() {
             CharacterInsertionMode::Replace => {
                 *self
@@ -319,6 +321,46 @@ impl TerminalState {
         self.screen.resize(dimensions);
         self.horizontal_tab_stops.resize(dimensions.columns());
         self.wrap_pending = false;
+    }
+
+    /// Returns the current rendition copied into newly printed cells.
+    pub const fn current_rendition(&self) -> &CellAttributes {
+        &self.current_rendition
+    }
+
+    /// Restores the complete current rendition to documented defaults.
+    pub fn reset_rendition(&mut self) {
+        self.current_rendition = CellAttributes::default();
+    }
+
+    /// Sets the current text intensity.
+    pub fn set_text_intensity(&mut self, intensity: TextIntensity) {
+        self.current_rendition.set_intensity(intensity);
+    }
+
+    /// Sets the current italic style.
+    pub fn set_italic_style(&mut self, italic: ItalicStyle) {
+        self.current_rendition.set_italic(italic);
+    }
+
+    /// Sets the current underline style.
+    pub fn set_underline_style(&mut self, underline: UnderlineStyle) {
+        self.current_rendition.set_underline(underline);
+    }
+
+    /// Sets whether current output uses inverse video.
+    pub fn set_inverse_video(&mut self, inverse: InverseVideo) {
+        self.current_rendition.set_inverse(inverse);
+    }
+
+    /// Sets the current foreground color.
+    pub fn set_foreground_color(&mut self, foreground: CellColor) {
+        self.current_rendition.set_foreground(foreground);
+    }
+
+    /// Sets the current background color.
+    pub fn set_background_color(&mut self, background: CellColor) {
+        self.current_rendition.set_background(background);
     }
 
     /// Returns read-only terminal-global modes.

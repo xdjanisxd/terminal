@@ -2,7 +2,7 @@
 
 ## Current state
 
-The horizontal-tab M2 slice is complete.
+The basic SGR current-rendition M2 slice is complete.
 
 Implemented:
 
@@ -23,6 +23,10 @@ Implemented:
 * terminal-owned mutable horizontal tab stops with conventional eight-column defaults
 * bounded HT movement, HTS, and current/all TBC through `TerminalState`
 * explicit tab-stop resize and reset behavior
+* typed current rendition for intensity, italic, underline, inverse, foreground, and background
+* new printable cells snapshot current rendition without retroactively changing existing cells
+* SGR reset, style set/clear, ANSI standard/bright colors, and per-channel defaults through `TerminalState`
+* ordered SGR parameter handling with bare/empty reset behavior and safe unsupported-parameter no-ops
 
 `terminal-core` currently depends only on `vte`, with default features disabled.
 
@@ -30,16 +34,19 @@ Implemented:
 
 Local required Cargo gates pass on `x86_64-pc-windows-gnu`.
 
-Current terminal-core coverage includes 116 unit/integration tests plus ownership doctests.
+Current terminal-core coverage includes 134 unit/integration tests plus ownership doctests.
 
-Authenticated CI passes on all six configured Windows, Linux, and macOS x86_64/ARM64 runners.
+Structural Graphify data refreshed locally to 472 nodes and 611 edges. Semantic enrichment was unavailable because no supported LLM API key is configured.
+
+Remote CI has not run for this unpushed slice and remains the merge gate.
 
 ## Important limitations
 
 * Printable content is currently ASCII U+0020..U+007E only.
 * CSI mode support is intentionally limited to standard IRM and DEC-private DECAWM/DECTCEM; all other mode identifiers remain no-ops.
 * Horizontal tabs are cursor-only: they do not write tab characters or spaces into cells. HT cancels delayed wrap and remains on the final column when no later stop exists.
-* SGR, additional scrolling behavior, terminal replies, and remaining modes are not implemented yet.
+* SGR is intentionally limited to reset, bold, italic, underline, inverse, ANSI 16 colors, and per-channel defaults; indexed 256-color, truecolor, and additional styles are deferred.
+* Additional scrolling behavior, terminal replies, and remaining modes are not implemented yet.
 * Unicode combining/wide-cell behavior is deferred.
 * No PTY, renderer, scrollback, alternate screen, or terminal replies exist yet.
 * Resize still uses top-left preservation with no line reflow.
@@ -52,5 +59,5 @@ See:
 
 ## Next
 
-1. Define a narrow SGR slice around project-owned current rendition state and the existing `CellColor` model without adding unrelated style flags.
+1. Add bounded SGR indexed-color parsing for `38;5;n` and `48;5;n` using the existing `CellColor::Indexed` model while keeping truecolor deferred.
 
