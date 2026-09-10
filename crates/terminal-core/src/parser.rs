@@ -12,6 +12,8 @@ const MAX_OSC_BYTES: usize = 1024;
 const INSERT_REPLACE_MODE: u16 = 4;
 const AUTO_WRAP_MODE: u16 = 7;
 const CURSOR_VISIBILITY_MODE: u16 = 25;
+const CLEAR_CURRENT_TAB_STOP: u16 = 0;
+const CLEAR_ALL_TAB_STOPS: u16 = 3;
 
 /// Incremental raw-byte parser for the supported terminal-core semantics.
 ///
@@ -20,8 +22,9 @@ const CURSOR_VISIBILITY_MODE: u16 = 25;
 /// and a [`TerminalState`] only.
 ///
 /// This compatibility stage handles printable characters, carriage return,
-/// line feed, backspace, and the supported cursor/erase CSI subset. All other
-/// parser actions are safely ignored.
+/// line feed, backspace, horizontal tabs and tab stops, the supported
+/// cursor/erase CSI subset, and narrow mode dispatch for existing terminal-core
+/// mode state. All other parser actions are safely ignored.
 pub struct TerminalParser {
     parser: vte::Parser<MAX_OSC_BYTES>,
 }
@@ -173,9 +176,20 @@ impl vte::Perform for SemanticPerformer<'_> {
 
         match byte {
             0x08 => self.terminal.backspace(),
+            0x09 => self.terminal.horizontal_tab(),
             0x0A => self.terminal.line_feed(),
             0x0D => self.terminal.carriage_return(),
             _ => {}
+        }
+    }
+
+    fn esc_dispatch(&mut self, intermediates: &[u8], has_ignored_intermediates: bool, byte: u8) {
+        if self.semantic_error.is_none()
+            && !has_ignored_intermediates
+            && intermediates.is_empty()
+            && byte == b'H'
+        {
+            self.terminal.set_horizontal_tab_stop();
         }
     }
 
@@ -207,6 +221,17 @@ impl vte::Perform for SemanticPerformer<'_> {
         let Some((values, count)) = simple_csi_parameters(params) else {
             return;
         };
+
+        if action == 'g' {
+            match (count, values[0]) {
+                (0 | 1, CLEAR_CURRENT_TAB_STOP) => {
+                    self.terminal.clear_horizontal_tab_stop();
+                }
+                (1, CLEAR_ALL_TAB_STOPS) => self.terminal.clear_all_horizontal_tab_stops(),
+                _ => {}
+            }
+            return;
+        }
 
         let movement = match action {
             'A' if count <= 1 => Some(CursorMovement::Up(default_one(values[0]))),

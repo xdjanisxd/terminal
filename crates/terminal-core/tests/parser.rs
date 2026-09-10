@@ -14,6 +14,13 @@ fn assert_observable_state_eq(actual: &TerminalState, expected: &TerminalState) 
     assert_eq!(actual.cursor(), expected.cursor());
     assert_eq!(actual.terminal_modes(), expected.terminal_modes());
     assert_eq!(actual.input_modes(), expected.input_modes());
+    for column in 0..actual.dimensions().columns() {
+        assert_eq!(
+            actual.has_horizontal_tab_stop(column),
+            expected.has_horizontal_tab_stop(column),
+            "tab-stop mismatch at column {column}"
+        );
+    }
 
     for row in 0..actual.dimensions().rows() {
         for column in 0..actual.dimensions().columns() {
@@ -279,7 +286,7 @@ fn unsupported_controls_are_ignored_without_approximation() {
     let mut parser = TerminalParser::new();
     let mut state = TerminalState::new(TerminalDimensions::new(4, 1).unwrap());
 
-    parser.advance(&mut state, b"a\tb\x07c").unwrap();
+    parser.advance(&mut state, b"a\x0bb\x07c").unwrap();
 
     assert_eq!(row_text(&state, 0), "abc ");
     assert_eq!((state.cursor().row(), state.cursor().column()), (0, 3));
@@ -592,6 +599,99 @@ fn malformed_private_and_subparameter_mode_forms_do_not_panic_or_change_modes() 
         assert_eq!(
             state.terminal_modes(),
             &Default::default(),
+            "input {input:?}"
+        );
+    }
+}
+
+#[test]
+fn parses_horizontal_tab_with_mixed_printable_input_in_one_chunk() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(12, 1).unwrap());
+
+    parser.advance(&mut state, b"abc\tX").unwrap();
+
+    assert_eq!(row_text(&state, 0), "abc     X   ");
+    assert_eq!((state.cursor().row(), state.cursor().column()), (0, 9));
+}
+
+#[test]
+fn parser_sets_and_clears_horizontal_tab_stops() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(20, 1).unwrap());
+    state.set_cursor_visibility(CursorVisibility::Hidden);
+    state.set_auto_wrap(AutoWrapMode::Disabled);
+    state.set_character_insertion(CharacterInsertionMode::Insert);
+    state.set_cursor_key_mode(CursorKeyMode::Application);
+    let terminal_modes = *state.terminal_modes();
+    let input_modes = *state.input_modes();
+
+    parser
+        .advance(
+            &mut state,
+            b"\x1b[6G\x1bH\x1b[1G\tX\x1b[6G\x1b[g\x1b[1G\tY\x1b[3g\x1b[1G\tZ",
+        )
+        .unwrap();
+
+    assert!((0..20).all(|column| !state.has_horizontal_tab_stop(column)));
+    assert_eq!(row_text(&state, 0), "     X  Y          Z");
+    assert_eq!((state.cursor().row(), state.cursor().column()), (0, 19));
+    assert_eq!(*state.terminal_modes(), terminal_modes);
+    assert_eq!(*state.input_modes(), input_modes);
+}
+
+#[test]
+fn parser_horizontal_tab_resolves_delayed_wrap() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(9, 2).unwrap());
+
+    parser.advance(&mut state, b"abcdefghi\tX").unwrap();
+
+    assert_eq!(row_text(&state, 0), "abcdefghX");
+    assert_eq!(row_text(&state, 1), "         ");
+    assert_eq!((state.cursor().row(), state.cursor().column()), (0, 8));
+}
+
+#[test]
+fn parser_tab_sequences_are_chunk_safe_at_every_byte_boundary() {
+    let input = b"ab\tC\x1b[6G\x1bH\x1b[1G\tX\x1b[6G\x1b[g\x1b[1G\tY\x1b[3g\x1b[1G\tZ";
+    let expected = parse_in_chunks(input, input.len());
+
+    for split in 0..=input.len() {
+        let mut parser = TerminalParser::new();
+        let mut state = TerminalState::new(TerminalDimensions::new(12, 4).unwrap());
+        parser.advance(&mut state, &input[..split]).unwrap();
+        parser.advance(&mut state, &input[split..]).unwrap();
+        assert_observable_state_eq(&state, &expected);
+    }
+}
+
+#[test]
+fn unsupported_malformed_and_incomplete_tab_forms_are_safe_no_ops() {
+    let inputs: &[&[u8]] = &[
+        b"\x1b#H",
+        b"\x1b[1g",
+        b"\x1b[0;3g",
+        b"\x1b[?3g",
+        b"\x1b[3:0g",
+        b"\x1b[",
+        b"\x1b",
+    ];
+
+    for input in inputs {
+        let mut parser = TerminalParser::new();
+        let mut state = TerminalState::new(TerminalDimensions::new(20, 1).unwrap());
+        state.clear_all_horizontal_tab_stops();
+        state.set_cursor_position(0, 5).unwrap();
+        state.set_horizontal_tab_stop();
+
+        parser.advance(&mut state, input).unwrap();
+
+        assert_eq!(
+            (0..20)
+                .filter(|&column| state.has_horizontal_tab_stop(column))
+                .collect::<Vec<_>>(),
+            vec![5],
             "input {input:?}"
         );
     }
