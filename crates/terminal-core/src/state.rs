@@ -1,5 +1,6 @@
 use std::{error::Error, fmt};
 
+use crate::tabs::HorizontalTabStops;
 use crate::{
     AutoWrapMode, Cell, CellAttributes, CharacterInsertionMode, Cursor, CursorKeyMode,
     CursorVisibility, InputModes, ScreenGrid, TerminalDimensions, TerminalModes,
@@ -94,6 +95,7 @@ pub struct TerminalState {
     screen: ScreenGrid,
     terminal_modes: TerminalModes,
     input_modes: InputModes,
+    horizontal_tab_stops: HorizontalTabStops,
     wrap_pending: bool,
 }
 
@@ -104,6 +106,7 @@ impl TerminalState {
             screen: ScreenGrid::new(dimensions),
             terminal_modes: TerminalModes::default(),
             input_modes: InputModes::default(),
+            horizontal_tab_stops: HorizontalTabStops::new(dimensions.columns()),
             wrap_pending: false,
         }
     }
@@ -242,6 +245,43 @@ impl TerminalState {
         }
     }
 
+    /// Moves to the next horizontal tab stop or the final column.
+    ///
+    /// A stop at the current column is skipped. The operation changes neither
+    /// cells nor modes and cancels any delayed right-margin wrap.
+    pub fn horizontal_tab(&mut self) {
+        let cursor = self.cursor();
+        let final_column = self.dimensions().columns() - 1;
+        let column = self
+            .horizontal_tab_stops
+            .next_after(cursor.column())
+            .unwrap_or(final_column);
+        self.screen
+            .set_cursor_position(cursor.row(), column)
+            .expect("tab target is always in bounds");
+        self.wrap_pending = false;
+    }
+
+    /// Returns whether an in-bounds zero-based column has a horizontal tab stop.
+    pub fn has_horizontal_tab_stop(&self, column: usize) -> bool {
+        self.horizontal_tab_stops.has(column)
+    }
+
+    /// Sets a horizontal tab stop at the current cursor column.
+    pub fn set_horizontal_tab_stop(&mut self) {
+        self.horizontal_tab_stops.set(self.cursor().column());
+    }
+
+    /// Clears the horizontal tab stop at the current cursor column.
+    pub fn clear_horizontal_tab_stop(&mut self) {
+        self.horizontal_tab_stops.clear(self.cursor().column());
+    }
+
+    /// Clears all horizontal tab stops.
+    pub fn clear_all_horizontal_tab_stops(&mut self) {
+        self.horizontal_tab_stops.clear_all();
+    }
+
     /// Clears every active-screen cell without moving the cursor.
     pub fn clear_screen(&mut self) {
         self.screen.clear();
@@ -270,9 +310,14 @@ impl TerminalState {
         self.wrap_pending = false;
     }
 
-    /// Resizes the active screen using `ScreenGrid` preservation semantics.
+    /// Resizes the active screen and horizontal tab-stop state.
+    ///
+    /// Existing stops in surviving columns are preserved. Stops beyond a
+    /// shrunken width are discarded, while newly exposed columns receive the
+    /// conventional default stops.
     pub fn resize(&mut self, dimensions: TerminalDimensions) {
         self.screen.resize(dimensions);
+        self.horizontal_tab_stops.resize(dimensions.columns());
         self.wrap_pending = false;
     }
 

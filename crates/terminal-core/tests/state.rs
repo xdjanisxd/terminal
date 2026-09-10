@@ -656,3 +656,140 @@ fn resize_then_reset_keeps_resized_dimensions_and_restores_invariants() {
     );
     assert_eq!(state.input_modes(), &terminal_core::InputModes::default());
 }
+
+#[test]
+fn default_horizontal_tab_stops_are_every_eight_columns() {
+    let state = TerminalState::new(TerminalDimensions::new(26, 1).unwrap());
+
+    for column in 0..26 {
+        assert_eq!(
+            state.has_horizontal_tab_stop(column),
+            matches!(column, 8 | 16 | 24),
+            "unexpected tab-stop state at column {column}"
+        );
+    }
+    assert!(!state.has_horizontal_tab_stop(usize::MAX));
+}
+
+#[test]
+fn horizontal_tab_moves_to_the_next_stop_from_multiple_columns() {
+    let cases = [(0, 8), (1, 8), (7, 8), (8, 16), (9, 16)];
+
+    for (start, expected) in cases {
+        let mut state = TerminalState::new(TerminalDimensions::new(20, 1).unwrap());
+        state.set_cursor_position(0, start).unwrap();
+
+        state.horizontal_tab();
+
+        assert_eq!(state.cursor().column(), expected, "start column {start}");
+    }
+}
+
+#[test]
+fn horizontal_tab_uses_the_final_column_when_no_later_stop_exists() {
+    let mut state = TerminalState::new(TerminalDimensions::new(10, 1).unwrap());
+
+    state.set_cursor_position(0, 8).unwrap();
+    state.horizontal_tab();
+    assert_eq!(state.cursor().column(), 9);
+
+    state.horizontal_tab();
+    assert_eq!(state.cursor().column(), 9);
+
+    state.clear_all_horizontal_tab_stops();
+    state.set_cursor_position(0, 2).unwrap();
+    state.horizontal_tab();
+    assert_eq!(state.cursor().column(), 9);
+}
+
+#[test]
+fn custom_horizontal_tab_stops_can_be_set_and_cleared() {
+    let mut state = TerminalState::new(TerminalDimensions::new(20, 1).unwrap());
+    state.set_cursor_position(0, 5).unwrap();
+
+    state.set_horizontal_tab_stop();
+    assert!(state.has_horizontal_tab_stop(5));
+
+    state.set_cursor_position(0, 0).unwrap();
+    state.horizontal_tab();
+    assert_eq!(state.cursor().column(), 5);
+
+    state.clear_horizontal_tab_stop();
+    assert!(!state.has_horizontal_tab_stop(5));
+
+    state.clear_all_horizontal_tab_stops();
+    assert!((0..20).all(|column| !state.has_horizontal_tab_stop(column)));
+}
+
+#[test]
+fn growing_preserves_existing_tab_stops_and_defaults_new_columns() {
+    let mut state = TerminalState::new(TerminalDimensions::new(18, 1).unwrap());
+    state.clear_all_horizontal_tab_stops();
+    state.set_cursor_position(0, 6).unwrap();
+    state.set_horizontal_tab_stop();
+
+    state.resize(TerminalDimensions::new(26, 1).unwrap());
+
+    assert!(state.has_horizontal_tab_stop(6));
+    assert!(!state.has_horizontal_tab_stop(8));
+    assert!(!state.has_horizontal_tab_stop(16));
+    assert!(state.has_horizontal_tab_stop(24));
+}
+
+#[test]
+fn shrinking_discards_out_of_bounds_stops_and_regrowth_uses_defaults() {
+    let mut state = TerminalState::new(TerminalDimensions::new(20, 1).unwrap());
+    state.clear_all_horizontal_tab_stops();
+    state.set_cursor_position(0, 6).unwrap();
+    state.set_horizontal_tab_stop();
+    state.set_cursor_position(0, 17).unwrap();
+    state.set_horizontal_tab_stop();
+
+    state.resize(TerminalDimensions::new(10, 1).unwrap());
+    assert!(state.has_horizontal_tab_stop(6));
+    assert!(!state.has_horizontal_tab_stop(17));
+
+    state.resize(TerminalDimensions::new(20, 1).unwrap());
+    assert!(state.has_horizontal_tab_stop(6));
+    assert!(state.has_horizontal_tab_stop(16));
+    assert!(!state.has_horizontal_tab_stop(17));
+}
+
+#[test]
+fn reset_restores_default_horizontal_tab_stops_at_current_dimensions() {
+    let mut state = TerminalState::new(TerminalDimensions::new(20, 1).unwrap());
+    state.clear_all_horizontal_tab_stops();
+    state.set_cursor_position(0, 5).unwrap();
+    state.set_horizontal_tab_stop();
+
+    state.reset();
+
+    assert!(!state.has_horizontal_tab_stop(5));
+    assert!(state.has_horizontal_tab_stop(8));
+    assert!(state.has_horizontal_tab_stop(16));
+}
+
+#[test]
+fn horizontal_tab_resolves_delayed_wrap_without_modifying_cells_or_modes() {
+    let mut state = TerminalState::new(TerminalDimensions::new(9, 2).unwrap());
+    state.set_cursor_visibility(CursorVisibility::Hidden);
+    state.set_character_insertion(CharacterInsertionMode::Insert);
+    state.set_cursor_key_mode(CursorKeyMode::Application);
+    for character in "abcdefghi".chars() {
+        state.print_character(character).unwrap();
+    }
+    let rows = [row_text(&state, 0), row_text(&state, 1)];
+    let terminal_modes = *state.terminal_modes();
+    let input_modes = *state.input_modes();
+
+    state.horizontal_tab();
+
+    assert_eq!((state.cursor().row(), state.cursor().column()), (0, 8));
+    assert_eq!([row_text(&state, 0), row_text(&state, 1)], rows);
+    assert_eq!(*state.terminal_modes(), terminal_modes);
+    assert_eq!(*state.input_modes(), input_modes);
+
+    state.print_character('x').unwrap();
+    assert_eq!(row_text(&state, 0), "abcdefghx");
+    assert_eq!(row_text(&state, 1), "         ");
+}

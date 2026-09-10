@@ -7,6 +7,7 @@ mod grid;
 mod modes;
 mod parser;
 mod state;
+mod tabs;
 
 pub use cell::{Cell, CellAttributes, CellColor};
 pub use cursor::{Cursor, CursorError};

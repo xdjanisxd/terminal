@@ -27,6 +27,7 @@ Completion marks require tested acceptance criteria, not code presence alone.
 
 - [x] Implement and test the first typed cursor-movement and erase compatibility slice
 - [x] Connect parser dispatch for the existing insert/replace, auto-wrap, and cursor-visibility modes
+- [x] Add terminal-owned horizontal tab stops with HT, HTS, TBC, resize, and reset semantics
 - [ ] Implement and test remaining commonly used scroll, SGR, mode, and reply behavior
 - [ ] Implement Unicode combining and wide-cell invariants
 - [ ] Implement primary/alternate screens, resize behavior, and bounded scrollback
