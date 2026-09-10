@@ -9,7 +9,9 @@ mod parser;
 mod state;
 mod tabs;
 
-pub use cell::{Cell, CellAttributes, CellColor};
+pub use cell::{
+    Cell, CellAttributes, CellColor, InverseVideo, ItalicStyle, TextIntensity, UnderlineStyle,
+};
 pub use cursor::{Cursor, CursorError};
 pub use dimensions::{DimensionsError, MAX_COLUMNS, MAX_GRID_CELLS, MAX_ROWS, TerminalDimensions};
 pub use grid::ScreenGrid;

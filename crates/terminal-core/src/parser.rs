@@ -1,8 +1,9 @@
 use std::{error::Error, fmt};
 
 use crate::{
-    AutoWrapMode, CharacterInsertionMode, CursorMovement, CursorVisibility, EraseDirection,
-    EraseRegion, PrintError, TerminalState,
+    AutoWrapMode, CellColor, CharacterInsertionMode, CursorMovement, CursorVisibility,
+    EraseDirection, EraseRegion, InverseVideo, ItalicStyle, PrintError, TerminalState,
+    TextIntensity, UnderlineStyle,
 };
 
 // Compile vte without its std feature so OSC buffering uses its fixed-capacity
@@ -160,6 +161,41 @@ impl<'a> SemanticPerformer<'a> {
             }
         }
     }
+
+    fn dispatch_sgr(&mut self, params: &vte::Params) {
+        for parameter in params {
+            let [attribute] = parameter else {
+                continue;
+            };
+
+            match *attribute {
+                0 => self.terminal.reset_rendition(),
+                1 => self.terminal.set_text_intensity(TextIntensity::Bold),
+                3 => self.terminal.set_italic_style(ItalicStyle::Italic),
+                4 => self.terminal.set_underline_style(UnderlineStyle::Enabled),
+                7 => self.terminal.set_inverse_video(InverseVideo::Enabled),
+                22 => self.terminal.set_text_intensity(TextIntensity::Normal),
+                23 => self.terminal.set_italic_style(ItalicStyle::Upright),
+                24 => self.terminal.set_underline_style(UnderlineStyle::Disabled),
+                27 => self.terminal.set_inverse_video(InverseVideo::Disabled),
+                code @ 30..=37 => self
+                    .terminal
+                    .set_foreground_color(CellColor::Indexed((code - 30) as u8)),
+                39 => self.terminal.set_foreground_color(CellColor::Default),
+                code @ 40..=47 => self
+                    .terminal
+                    .set_background_color(CellColor::Indexed((code - 40) as u8)),
+                49 => self.terminal.set_background_color(CellColor::Default),
+                code @ 90..=97 => self
+                    .terminal
+                    .set_foreground_color(CellColor::Indexed((code - 90 + 8) as u8)),
+                code @ 100..=107 => self
+                    .terminal
+                    .set_background_color(CellColor::Indexed((code - 100 + 8) as u8)),
+                _ => {}
+            }
+        }
+    }
 }
 
 impl vte::Perform for SemanticPerformer<'_> {
@@ -215,6 +251,11 @@ impl vte::Perform for SemanticPerformer<'_> {
         }
 
         if !intermediates.is_empty() {
+            return;
+        }
+
+        if action == 'm' {
+            self.dispatch_sgr(params);
             return;
         }
 

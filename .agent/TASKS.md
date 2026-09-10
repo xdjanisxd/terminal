@@ -2,13 +2,14 @@
 
 ## Next
 
-- [ ] Define a narrow SGR slice around project-owned current rendition state and the existing `CellColor` model; avoid adding unrelated style flags or a generic command framework.
+- [ ] Add bounded SGR indexed-color parsing for `38;5;n` and `48;5;n` using the existing `CellColor::Indexed` model; keep truecolor and unrelated styles deferred.
 
 ## Later
 
 - [x] Start M2 with a narrow typed cursor/erase semantic slice through `TerminalState`; keep protocol numeric identifiers inside the parser adapter.
 - [x] Connect standard IRM and private DECAWM/DECTCEM parser dispatch to existing `TerminalState` setters; keep unsupported modes as no-ops and protocol identifiers private.
 - [x] Add terminal-owned mutable horizontal tab stops with HT, HTS, current/all TBC, bounded movement, and explicit resize/reset behavior.
+- [x] Add project-owned current rendition with SGR reset, bold, italic, underline, inverse, ANSI standard/bright colors, and per-channel default restoration.
 - [ ] Add origin mode only with scrolling-region state, cursor homing, saved-state behavior, and primary/alternate-screen semantics coordinated atomically by `TerminalState`.
 - [ ] Defer line-feed/new-line mode and application keypad mode until their behavior is required by parser/input milestones; do not grow a speculative mode catalog.
 - [ ] Extend cell content for combining and wide-character invariants during the Unicode compatibility slice; do not assume the current single-`char` representation is final.
