@@ -1,28 +1,28 @@
-# Graph Report - terminal  (2026-09-09)
+# Graph Report - terminal  (2026-09-10)
 
 ## Corpus Check
-- 45 files · ~12,575 words
+- 45 files · ~13,162 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 309 nodes · 427 edges · 26 communities (10 shown, 8 thin omitted)
+- 319 nodes · 442 edges · 26 communities (10 shown, 8 thin omitted)
 - Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 7 edges (avg confidence: 0.88)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `bcf8d615`
+- Built from commit: `1d0a452c`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- Cursor and Grid Bounds
+- TerminalDimensions
 - Terminal State Integration Tests
 - Architecture and Compatibility
-- Parser Adapter Implementation
-- Parser Chunking Tests
+- SemanticPerformer
+- tests/parser.rs
 - Terminal and Input Modes
 - Terminal State Semantics
-- Cell and Attributes
+- ScreenGrid
 - CI and Engineering Process
 - Product Scope
 - Repository Source of Truth
@@ -68,9 +68,9 @@
 
 ## Communities (26 total, 8 thin omitted)
 
-### Community 0 - "Cursor and Grid Bounds"
-Cohesion: 0.06
-Nodes (21): Cursor, CursorError, offset_clamped(), Display, Error, Formatter, Result, Self (+13 more)
+### Community 0 - "TerminalDimensions"
+Cohesion: 0.07
+Nodes (18): Cursor, CursorError, offset_clamped(), Display, Error, Formatter, Result, Self (+10 more)
 
 ### Community 1 - "Terminal State Integration Tests"
 Cohesion: 0.05
@@ -80,13 +80,13 @@ Nodes (6): assert_default_cell(), erase_in_display_supports_all_directions_witho
 Cohesion: 0.08
 Nodes (33): Engineering Agent Contract, Non-negotiable Architecture Boundaries, Selective Graphify Usage, M1 Terminal Core Session Handoff, Engineering Backlog, M2 Typed Cursor and Erase Slice, Terminal Application Architecture, Centralized Command System (+25 more)
 
-### Community 3 - "Parser Adapter Implementation"
+### Community 3 - "SemanticPerformer"
 Cohesion: 0.08
 Nodes (20): default_one(), Default, Display, Error, Formatter, Option, Result, Self (+12 more)
 
-### Community 4 - "Parser Chunking Tests"
-Cohesion: 0.09
-Nodes (8): assert_observable_state_eq(), byte_at_a_time_matches_one_shot_input(), every_split_point_matches_one_shot_input(), many_chunk_sizes_match_one_shot_input(), parse_in_chunks(), row_text(), String, supported_csi_is_chunk_safe_at_every_byte_boundary()
+### Community 4 - "tests/parser.rs"
+Cohesion: 0.07
+Nodes (10): assert_observable_state_eq(), byte_at_a_time_matches_one_shot_input(), every_split_point_matches_one_shot_input(), many_chunk_sizes_match_one_shot_input(), parse_in_chunks(), parser_mode_dispatch_is_chunk_safe_at_every_byte_boundary(), row_text(), String (+2 more)
 
 ### Community 5 - "Terminal and Input Modes"
 Cohesion: 0.15
@@ -96,9 +96,9 @@ Nodes (6): AutoWrapMode, CharacterInsertionMode, CursorKeyMode, CursorVisibility
 Cohesion: 0.20
 Nodes (9): clear_screen_clears_owned_screen_content(), CursorMovement, EraseDirection, EraseRegion, reset_clears_existing_screen_content(), resize_preserves_overlap_and_blanks_new_cells_through_facade(), Result, Self (+1 more)
 
-### Community 8 - "Cell and Attributes"
-Cohesion: 0.20
-Nodes (6): Cell, CellAttributes, CellColor, Default, Self, Option
+### Community 8 - "ScreenGrid"
+Cohesion: 0.12
+Nodes (9): Cell, CellAttributes, CellColor, Default, Self, Option, ScreenGrid, Parser (+1 more)
 
 ### Community 10 - "CI and Engineering Process"
 Cohesion: 0.22
@@ -109,23 +109,23 @@ Cohesion: 0.40
 Nodes (5): ADR-0007: V1 Scope Boundaries, Keyboard-first Terminal and Workspace Product, V1 Non-goals, V1 Product Scope, Terminal Product Priorities
 
 ## Knowledge Gaps
-- **20 isolated node(s):** `terminal-app`, `terminal-config`, `terminal-platform`, `terminal-renderer`, `terminal-core` (+15 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 151 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **19 isolated node(s):** `terminal-app`, `terminal-config`, `terminal-platform`, `terminal-renderer`, `terminal-core` (+14 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 157 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **8 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `TerminalState` connect `Terminal State Semantics` to `Cursor and Grid Bounds`, `Terminal State Integration Tests`, `Parser Adapter Implementation`, `Parser Chunking Tests`, `Terminal and Input Modes`?**
-  _High betweenness centrality (0.368) - this node is a cross-community bridge._
-- **Why does `ScreenGrid` connect `Cursor and Grid Bounds` to `Cell and Attributes`, `Terminal State Semantics`?**
-  _High betweenness centrality (0.145) - this node is a cross-community bridge._
-- **Why does `TerminalDimensions` connect `Cursor and Grid Bounds` to `Terminal State Semantics`?**
-  _High betweenness centrality (0.068) - this node is a cross-community bridge._
+- **Why does `TerminalState` connect `Terminal State Semantics` to `Terminal State Integration Tests`, `SemanticPerformer`, `tests/parser.rs`, `Terminal and Input Modes`, `ScreenGrid`?**
+  _High betweenness centrality (0.382) - this node is a cross-community bridge._
+- **Why does `ScreenGrid` connect `ScreenGrid` to `TerminalDimensions`, `Terminal State Semantics`?**
+  _High betweenness centrality (0.144) - this node is a cross-community bridge._
+- **Why does `TerminalDimensions` connect `TerminalDimensions` to `ScreenGrid`, `Terminal State Semantics`?**
+  _High betweenness centrality (0.067) - this node is a cross-community bridge._
 - **What connects `terminal-app`, `terminal-config`, `terminal-platform` to the rest of the system?**
-  _20 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Cursor and Grid Bounds` be split into smaller, more focused modules?**
-  _Cohesion score 0.05735430157261795 - nodes in this community are weakly interconnected._
+  _19 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `TerminalDimensions` be split into smaller, more focused modules?**
+  _Cohesion score 0.06606606606606606 - nodes in this community are weakly interconnected._
 - **Should `Terminal State Integration Tests` be split into smaller, more focused modules?**
   _Cohesion score 0.05094130675526024 - nodes in this community are weakly interconnected._
 - **Should `Architecture and Compatibility` be split into smaller, more focused modules?**
