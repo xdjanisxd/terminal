@@ -1,1 +1,0 @@
-{"nodes": [{"id": "pkg_terminal_platform", "label": "terminal-platform", "file_type": "code", "type": "package", "ecosystem": "cargo", "source_file": "crates/platform/Cargo.toml", "source_location": "L1", "version": "0.0.0"}], "edges": []}
