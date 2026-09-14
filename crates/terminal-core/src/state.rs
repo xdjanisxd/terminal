@@ -235,8 +235,26 @@ impl TerminalState {
         if cursor.row() + 1 < self.dimensions().rows() {
             self.screen.move_cursor(1, 0);
         } else {
-            self.screen.scroll_up_one_row();
+            self.screen.scroll_up(1);
         }
+    }
+
+    /// Scrolls the entire visible grid upward without moving the cursor.
+    ///
+    /// The count is clamped to the screen height. Newly exposed rows use the
+    /// canonical default blank cell. Current rendition and delayed wrap are
+    /// preserved.
+    pub fn scroll_up(&mut self, rows: usize) {
+        self.screen.scroll_up(rows);
+    }
+
+    /// Scrolls the entire visible grid downward without moving the cursor.
+    ///
+    /// The count is clamped to the screen height. Newly exposed rows use the
+    /// canonical default blank cell. Current rendition and delayed wrap are
+    /// preserved.
+    pub fn scroll_down(&mut self, rows: usize) {
+        self.screen.scroll_down(rows);
     }
 
     /// Moves left one column without erasing and without reverse wrapping.
