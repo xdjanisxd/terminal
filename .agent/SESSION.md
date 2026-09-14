@@ -2,7 +2,7 @@
 
 ## Current state
 
-The SGR indexed-color M2 slice is complete.
+The full-screen SU/SD M2 slice is complete.
 
 Implemented:
 
@@ -29,6 +29,9 @@ Implemented:
 * ordered SGR parameter handling with bare/empty reset behavior and safe unsupported-parameter no-ops
 * semicolon-form `38;5;n` and `48;5;n` indexed colors across the full 0..=255 range
 * bounded logical extended-color groups that prevent malformed, truecolor, or unknown-selector payloads from leaking into unrelated SGR operations
+* bounded full-screen scroll up/down through `TerminalState`, with counts clamped to visible height
+* complete-cell movement with canonical default blank rows and preserved cursor, modes, rendition, and delayed wrap
+* private CSI translation for SU/SD with omitted and zero counts normalized to one
 
 `terminal-core` currently depends only on `vte`, with default features disabled.
 
@@ -36,9 +39,9 @@ Implemented:
 
 Local required Cargo gates pass on `x86_64-pc-windows-gnu`.
 
-Current terminal-core coverage includes 143 unit/integration tests plus ownership doctests.
+Current terminal-core coverage includes 153 unit/integration tests plus ownership doctests.
 
-Structural Graphify data refreshed locally to 484 nodes and 627 edges. Semantic enrichment was unavailable because no supported LLM API key is configured.
+Structural Graphify data refreshed locally to 500 nodes and 660 edges across 48 communities. Semantic enrichment was unavailable because no supported LLM API key is configured.
 
 Remote CI has not run for this unpushed slice and remains the merge gate.
 
@@ -48,7 +51,7 @@ Remote CI has not run for this unpushed slice and remains the merge gate.
 * CSI mode support is intentionally limited to standard IRM and DEC-private DECAWM/DECTCEM; all other mode identifiers remain no-ops.
 * Horizontal tabs are cursor-only: they do not write tab characters or spaces into cells. HT cancels delayed wrap and remains on the final column when no later stop exists.
 * SGR supports reset, bold, italic, underline, inverse, ANSI 16 colors, semicolon-form indexed foreground/background colors, and per-channel defaults. Truecolor, colon color forms, and additional styles remain deferred.
-* Additional scrolling behavior, terminal replies, and remaining modes are not implemented yet.
+* Full-screen SU/SD is implemented without scrolling margins or scrollback; IND, RI, NEL, DECSTBM, insert/delete lines, alternate-screen behavior, and history remain deferred.
 * Unicode combining/wide-cell behavior is deferred.
 * No PTY, renderer, scrollback, alternate screen, or terminal replies exist yet.
 * Resize still uses top-left preservation with no line reflow.
@@ -61,5 +64,5 @@ See:
 
 ## Next
 
-1. Add a narrow full-screen SU/SD scroll-control slice through `TerminalState`, with bounded counts and no scrolling regions or scrollback.
+1. Add a narrow full-screen IND/RI/NEL control slice through `TerminalState`, reusing existing line-feed and scroll primitives while keeping scrolling regions and scrollback deferred.
 

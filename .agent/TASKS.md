@@ -2,9 +2,11 @@
 
 ## Next
 
-- [ ] Add a narrow full-screen SU/SD scroll-control slice through `TerminalState`, with bounded counts, cursor stability, default-cell clearing, parser chunking tests, and no scrolling regions or scrollback.
+- [ ] Add a narrow full-screen IND/RI/NEL control slice through `TerminalState`, reusing existing line-feed and scroll primitives while deferring scrolling regions and scrollback.
 
 ## Later
+
+- [x] Add bounded full-screen SU/SD through `TerminalState`, with clamped counts, cursor and delayed-wrap preservation, complete-cell movement, and canonical default blank rows.
 
 - [x] Add bounded SGR indexed-color parsing for `38;5;n` and `48;5;n` using the existing `CellColor::Indexed` model; truecolor, colon color forms, and unrelated styles remain deferred.
 

@@ -1,6 +1,7 @@
 use terminal_core::{
-    AutoWrapMode, CharacterInsertionMode, CursorError, CursorKeyMode, CursorMovement,
-    CursorVisibility, EraseDirection, EraseRegion, PrintError, TerminalDimensions, TerminalState,
+    AutoWrapMode, CellColor, CharacterInsertionMode, CursorError, CursorKeyMode, CursorMovement,
+    CursorVisibility, EraseDirection, EraseRegion, InverseVideo, ItalicStyle, PrintError,
+    TerminalDimensions, TerminalState, TextIntensity, UnderlineStyle,
 };
 
 fn row_text(state: &TerminalState, row: usize) -> String {
@@ -792,4 +793,138 @@ fn horizontal_tab_resolves_delayed_wrap_without_modifying_cells_or_modes() {
     state.print_character('x').unwrap();
     assert_eq!(row_text(&state, 0), "abcdefghx");
     assert_eq!(row_text(&state, 1), "         ");
+}
+
+#[test]
+fn full_screen_scroll_up_normalizes_count_to_screen_height() {
+    let cases = [
+        (0, ["ab", "cd", "ef", "gh"]),
+        (1, ["cd", "ef", "gh", "  "]),
+        (2, ["ef", "gh", "  ", "  "]),
+        (4, ["  ", "  ", "  ", "  "]),
+        (5, ["  ", "  ", "  ", "  "]),
+        (usize::MAX, ["  ", "  ", "  ", "  "]),
+    ];
+
+    for (count, expected) in cases {
+        let mut state = filled_state(2, 4);
+        state.set_cursor_position(2, 1).unwrap();
+        let cursor = state.cursor();
+
+        state.scroll_up(count);
+
+        for (row, text) in expected.into_iter().enumerate() {
+            assert_eq!(row_text(&state, row), text, "count {count}, row {row}");
+        }
+        assert_eq!(state.cursor(), cursor);
+    }
+}
+
+#[test]
+fn full_screen_scroll_down_normalizes_count_to_screen_height() {
+    let cases = [
+        (0, ["ab", "cd", "ef", "gh"]),
+        (1, ["  ", "ab", "cd", "ef"]),
+        (2, ["  ", "  ", "ab", "cd"]),
+        (4, ["  ", "  ", "  ", "  "]),
+        (5, ["  ", "  ", "  ", "  "]),
+        (usize::MAX, ["  ", "  ", "  ", "  "]),
+    ];
+
+    for (count, expected) in cases {
+        let mut state = filled_state(2, 4);
+        state.set_cursor_position(2, 1).unwrap();
+        let cursor = state.cursor();
+
+        state.scroll_down(count);
+
+        for (row, text) in expected.into_iter().enumerate() {
+            assert_eq!(row_text(&state, row), text, "count {count}, row {row}");
+        }
+        assert_eq!(state.cursor(), cursor);
+    }
+}
+
+#[test]
+fn full_screen_scroll_moves_complete_cells_and_preserves_rendition_and_modes() {
+    let mut state = TerminalState::new(TerminalDimensions::new(3, 4).unwrap());
+    state.set_text_intensity(TextIntensity::Bold);
+    state.set_italic_style(ItalicStyle::Italic);
+    state.set_underline_style(UnderlineStyle::Enabled);
+    state.set_inverse_video(InverseVideo::Enabled);
+    state.set_foreground_color(CellColor::Indexed(196));
+    state.set_background_color(CellColor::Indexed(22));
+    state.set_cursor_visibility(CursorVisibility::Hidden);
+    state.set_cursor_key_mode(CursorKeyMode::Application);
+    state.set_cursor_position(2, 0).unwrap();
+    state.print_character('X').unwrap();
+    let styled = *state.screen().cell(2, 0).unwrap();
+    let rendition = *state.current_rendition();
+    let terminal_modes = *state.terminal_modes();
+    let input_modes = *state.input_modes();
+    state.set_cursor_position(3, 1).unwrap();
+    let cursor = state.cursor();
+
+    state.scroll_up(1);
+
+    assert_eq!(state.screen().cell(1, 0), Some(&styled));
+    for column in 0..3 {
+        assert_default_cell(&state, 3, column);
+    }
+    assert_eq!(state.cursor(), cursor);
+    assert_eq!(*state.current_rendition(), rendition);
+    assert_eq!(*state.terminal_modes(), terminal_modes);
+    assert_eq!(*state.input_modes(), input_modes);
+
+    state.print_character('Y').unwrap();
+    assert_eq!(state.screen().cell(3, 1).unwrap().attributes(), &rendition);
+}
+
+#[test]
+fn scroll_down_moves_attributes_and_clears_new_top_rows_with_default_cells() {
+    let mut state = TerminalState::new(TerminalDimensions::new(2, 3).unwrap());
+    state.set_text_intensity(TextIntensity::Bold);
+    state.set_italic_style(ItalicStyle::Italic);
+    state.set_underline_style(UnderlineStyle::Enabled);
+    state.set_inverse_video(InverseVideo::Enabled);
+    state.set_foreground_color(CellColor::Indexed(16));
+    state.set_background_color(CellColor::Indexed(255));
+    state.set_cursor_position(0, 0).unwrap();
+    state.print_character('X').unwrap();
+    let styled = *state.screen().cell(0, 0).unwrap();
+    let rendition = *state.current_rendition();
+    state.set_cursor_position(1, 1).unwrap();
+    let cursor = state.cursor();
+
+    state.scroll_down(2);
+
+    assert_eq!(state.screen().cell(2, 0), Some(&styled));
+    for row in 0..2 {
+        for column in 0..2 {
+            assert_default_cell(&state, row, column);
+        }
+    }
+    assert_eq!(state.cursor(), cursor);
+    assert_eq!(*state.current_rendition(), rendition);
+}
+
+#[test]
+fn full_screen_scrolling_preserves_delayed_wrap() {
+    for scroll_up in [true, false] {
+        let mut state = TerminalState::new(TerminalDimensions::new(2, 2).unwrap());
+        state.print_character('a').unwrap();
+        state.print_character('b').unwrap();
+        let cursor = state.cursor();
+
+        if scroll_up {
+            state.scroll_up(1);
+        } else {
+            state.scroll_down(1);
+        }
+
+        assert_eq!(state.cursor(), cursor);
+        state.print_character('X').unwrap();
+        assert_eq!(state.screen().cell(1, 0).unwrap().character(), 'X');
+        assert_eq!((state.cursor().row(), state.cursor().column()), (1, 1));
+    }
 }

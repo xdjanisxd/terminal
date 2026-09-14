@@ -30,6 +30,7 @@ Completion marks require tested acceptance criteria, not code presence alone.
 - [x] Add terminal-owned horizontal tab stops with HT, HTS, TBC, resize, and reset semantics
 - [x] Add project-owned current rendition with basic style and 16-color SGR parsing
 - [x] Add bounded semicolon-form SGR indexed foreground/background colors with grouped malformed-payload handling
+- [x] Add bounded full-screen SU/SD with cursor, rendition, attribute, and delayed-wrap preservation
 - [ ] Implement and test remaining commonly used scroll, SGR, mode, and reply behavior
 - [ ] Implement Unicode combining and wide-cell invariants
 - [ ] Implement primary/alternate screens, resize behavior, and bounded scrollback

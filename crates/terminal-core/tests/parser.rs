@@ -1191,3 +1191,106 @@ fn truncated_indexed_color_sequence_has_no_effect_until_completed() {
         CellColor::Indexed(196)
     );
 }
+
+fn labeled_scroll_state() -> TerminalState {
+    let mut state = TerminalState::new(TerminalDimensions::new(2, 4).unwrap());
+    for (row, text) in ["ab", "cd", "ef", "gh"].into_iter().enumerate() {
+        state.set_cursor_position(row, 0).unwrap();
+        for character in text.chars() {
+            state.print_character(character).unwrap();
+        }
+    }
+    state.set_cursor_position(1, 1).unwrap();
+    state
+}
+
+#[test]
+fn parser_su_uses_one_for_omitted_and_zero_counts() {
+    for sequence in [b"\x1b[S".as_slice(), b"\x1b[0S", b"\x1b[1S"] {
+        let mut parser = TerminalParser::new();
+        let mut state = labeled_scroll_state();
+        let cursor = state.cursor();
+
+        parser.advance(&mut state, sequence).unwrap();
+
+        assert_eq!([row_text(&state, 0), row_text(&state, 1)], ["cd", "ef"]);
+        assert_eq!([row_text(&state, 2), row_text(&state, 3)], ["gh", "  "]);
+        assert_eq!(state.cursor(), cursor);
+    }
+}
+
+#[test]
+fn parser_sd_uses_one_for_omitted_and_zero_counts() {
+    for sequence in [b"\x1b[T".as_slice(), b"\x1b[0T", b"\x1b[1T"] {
+        let mut parser = TerminalParser::new();
+        let mut state = labeled_scroll_state();
+        let cursor = state.cursor();
+
+        parser.advance(&mut state, sequence).unwrap();
+
+        assert_eq!([row_text(&state, 0), row_text(&state, 1)], ["  ", "ab"]);
+        assert_eq!([row_text(&state, 2), row_text(&state, 3)], ["cd", "ef"]);
+        assert_eq!(state.cursor(), cursor);
+    }
+}
+
+#[test]
+fn parser_su_and_sd_clamp_explicit_and_oversized_counts() {
+    let cases = [
+        (b"\x1b[2S".as_slice(), ["ef", "gh", "  ", "  "]),
+        (b"\x1b[4S", ["  ", "  ", "  ", "  "]),
+        (b"\x1b[5T", ["  ", "  ", "  ", "  "]),
+        (b"\x1b[999999999999999999999T", ["  ", "  ", "  ", "  "]),
+    ];
+
+    for (sequence, expected) in cases {
+        let mut parser = TerminalParser::new();
+        let mut state = labeled_scroll_state();
+        let cursor = state.cursor();
+        parser.advance(&mut state, sequence).unwrap();
+
+        for (row, text) in expected.into_iter().enumerate() {
+            assert_eq!(row_text(&state, row), text);
+        }
+        assert_eq!(state.cursor(), cursor);
+    }
+}
+
+#[test]
+fn malformed_or_extra_su_sd_parameters_are_safe_no_ops() {
+    for sequence in [
+        b"\x1b[1;2S".as_slice(),
+        b"\x1b[1:2S",
+        b"\x1b[2;T",
+        b"\x1b[2:3T",
+    ] {
+        let mut parser = TerminalParser::new();
+        let mut state = labeled_scroll_state();
+        let expected = labeled_scroll_state();
+
+        parser.advance(&mut state, sequence).unwrap();
+
+        assert_observable_state_eq(&state, &expected);
+    }
+}
+
+#[test]
+fn su_sd_sequences_are_chunk_safe_at_every_byte_boundary() {
+    for input in [
+        b"\x1b[S\x1b[2T\x1b[0S".as_slice(),
+        b"\x1b[999999999999999999999T",
+        b"\x1b[1:2S\x1b[2;T",
+    ] {
+        let mut expected_parser = TerminalParser::new();
+        let mut expected = labeled_scroll_state();
+        expected_parser.advance(&mut expected, input).unwrap();
+
+        for split in 0..=input.len() {
+            let mut parser = TerminalParser::new();
+            let mut state = labeled_scroll_state();
+            parser.advance(&mut state, &input[..split]).unwrap();
+            parser.advance(&mut state, &input[split..]).unwrap();
+            assert_observable_state_eq(&state, &expected);
+        }
+    }
+}

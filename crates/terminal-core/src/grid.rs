@@ -8,6 +8,12 @@ pub struct ScreenGrid {
     cursor: Cursor,
 }
 
+#[derive(Clone, Copy)]
+enum FullScreenScrollDirection {
+    Up,
+    Down,
+}
+
 impl ScreenGrid {
     pub fn new(dimensions: TerminalDimensions) -> Self {
         Self {
@@ -79,11 +85,38 @@ impl ScreenGrid {
         self.cells[start..end].fill(Cell::default());
     }
 
-    pub(crate) fn scroll_up_one_row(&mut self) {
-        let columns = self.dimensions.columns();
+    pub(crate) fn scroll_up(&mut self, rows: usize) {
+        self.scroll_full_screen(rows, FullScreenScrollDirection::Up);
+    }
+
+    pub(crate) fn scroll_down(&mut self, rows: usize) {
+        self.scroll_full_screen(rows, FullScreenScrollDirection::Down);
+    }
+
+    fn scroll_full_screen(&mut self, rows: usize, direction: FullScreenScrollDirection) {
+        let rows = rows.min(self.dimensions.rows());
+        if rows == 0 {
+            return;
+        }
+
+        let shifted_cells = rows * self.dimensions.columns();
         let cell_count = self.cells.len();
-        self.cells.copy_within(columns.., 0);
-        self.cells[cell_count - columns..].fill(Cell::default());
+        if shifted_cells == cell_count {
+            self.clear();
+            return;
+        }
+
+        match direction {
+            FullScreenScrollDirection::Up => {
+                self.cells.copy_within(shifted_cells.., 0);
+                self.cells[cell_count - shifted_cells..].fill(Cell::default());
+            }
+            FullScreenScrollDirection::Down => {
+                self.cells
+                    .copy_within(..cell_count - shifted_cells, shifted_cells);
+                self.cells[..shifted_cells].fill(Cell::default());
+            }
+        }
     }
 
     /// Resizes while preserving the top-left intersection of the old and new grids.
