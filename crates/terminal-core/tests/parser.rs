@@ -900,3 +900,294 @@ fn representative_sgr_stream_is_chunk_safe_at_every_byte_boundary() {
         assert_observable_state_eq(&state, &expected);
     }
 }
+
+#[test]
+fn sgr_indexed_foreground_and_background_accept_full_u8_range() {
+    for (sequence, foreground, background) in [
+        ("\x1b[38;5;0m", CellColor::Indexed(0), CellColor::Default),
+        ("\x1b[38;5;15m", CellColor::Indexed(15), CellColor::Default),
+        ("\x1b[38;5;16m", CellColor::Indexed(16), CellColor::Default),
+        (
+            "\x1b[38;5;255m",
+            CellColor::Indexed(255),
+            CellColor::Default,
+        ),
+        ("\x1b[48;5;0m", CellColor::Default, CellColor::Indexed(0)),
+        ("\x1b[48;5;15m", CellColor::Default, CellColor::Indexed(15)),
+        ("\x1b[48;5;16m", CellColor::Default, CellColor::Indexed(16)),
+        (
+            "\x1b[48;5;255m",
+            CellColor::Default,
+            CellColor::Indexed(255),
+        ),
+    ] {
+        let mut parser = TerminalParser::new();
+        let mut state = TerminalState::new(TerminalDimensions::new(4, 1).unwrap());
+
+        parser.advance(&mut state, sequence.as_bytes()).unwrap();
+
+        assert_eq!(state.current_rendition().foreground(), foreground);
+        assert_eq!(state.current_rendition().background(), background);
+    }
+}
+
+#[test]
+fn sgr_indexed_colors_preserve_styles_across_channel_defaults_and_reset_fully() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(4, 1).unwrap());
+
+    parser
+        .advance(&mut state, b"\x1b[1;3;38;5;196;48;5;22m")
+        .unwrap();
+    parser.advance(&mut state, b"\x1b[39m").unwrap();
+    assert_eq!(state.current_rendition().foreground(), CellColor::Default);
+    assert_eq!(
+        state.current_rendition().background(),
+        CellColor::Indexed(22)
+    );
+    assert_eq!(state.current_rendition().intensity(), TextIntensity::Bold);
+    assert_eq!(state.current_rendition().italic(), ItalicStyle::Italic);
+
+    parser.advance(&mut state, b"\x1b[49m").unwrap();
+    assert_eq!(state.current_rendition().background(), CellColor::Default);
+    assert_eq!(state.current_rendition().intensity(), TextIntensity::Bold);
+    assert_eq!(state.current_rendition().italic(), ItalicStyle::Italic);
+
+    parser
+        .advance(&mut state, b"\x1b[38;5;255;48;5;16;0m")
+        .unwrap();
+    assert_eq!(state.current_rendition(), &CellAttributes::default());
+}
+
+#[test]
+fn printed_cells_snapshot_indexed_colors_without_retroactive_changes() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(4, 1).unwrap());
+
+    parser
+        .advance(&mut state, b"a\x1b[38;5;196;48;5;22mb")
+        .unwrap();
+
+    assert_eq!(
+        state.screen().cell(0, 0).unwrap().attributes(),
+        &CellAttributes::default()
+    );
+    assert_eq!(
+        state.screen().cell(0, 1).unwrap().attributes().foreground(),
+        CellColor::Indexed(196)
+    );
+    assert_eq!(
+        state.screen().cell(0, 1).unwrap().attributes().background(),
+        CellColor::Indexed(22)
+    );
+}
+
+#[test]
+fn sgr_indexed_color_groups_preserve_parameter_order() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(4, 1).unwrap());
+
+    parser.advance(&mut state, b"\x1b[1;38;5;196m").unwrap();
+    assert_eq!(state.current_rendition().intensity(), TextIntensity::Bold);
+    assert_eq!(
+        state.current_rendition().foreground(),
+        CellColor::Indexed(196)
+    );
+
+    parser.advance(&mut state, b"\x1b[38;5;33;4m").unwrap();
+    assert_eq!(
+        state.current_rendition().underline(),
+        UnderlineStyle::Enabled
+    );
+    assert_eq!(
+        state.current_rendition().foreground(),
+        CellColor::Indexed(33)
+    );
+
+    parser
+        .advance(&mut state, b"\x1b[38;5;196;48;5;22;23m")
+        .unwrap();
+    assert_eq!(
+        state.current_rendition().foreground(),
+        CellColor::Indexed(196)
+    );
+    assert_eq!(
+        state.current_rendition().background(),
+        CellColor::Indexed(22)
+    );
+    assert_eq!(state.current_rendition().italic(), ItalicStyle::Upright);
+}
+
+#[test]
+fn malformed_known_extended_color_groups_do_not_leak_payload_parameters() {
+    for sequence in [
+        b"\x1b[38m".as_slice(),
+        b"\x1b[48m",
+        b"\x1b[38;5m",
+        b"\x1b[48;5m",
+    ] {
+        let mut parser = TerminalParser::new();
+        let mut state = TerminalState::new(TerminalDimensions::new(4, 1).unwrap());
+        parser.advance(&mut state, b"\x1b[32;44m").unwrap();
+        let initial = *state.current_rendition();
+
+        parser.advance(&mut state, sequence).unwrap();
+
+        assert_eq!(state.current_rendition(), &initial);
+    }
+
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(4, 1).unwrap());
+    parser.advance(&mut state, b"\x1b[32;44m").unwrap();
+
+    parser.advance(&mut state, b"\x1b[38;5;256;4m").unwrap();
+    assert_eq!(
+        state.current_rendition().foreground(),
+        CellColor::Indexed(2)
+    );
+    assert_eq!(
+        state.current_rendition().underline(),
+        UnderlineStyle::Enabled
+    );
+
+    parser
+        .advance(&mut state, b"\x1b[48;5;99999999999999999999;3m")
+        .unwrap();
+    assert_eq!(
+        state.current_rendition().background(),
+        CellColor::Indexed(4)
+    );
+    assert_eq!(state.current_rendition().italic(), ItalicStyle::Italic);
+
+    parser
+        .advance(&mut state, b"\x1b[22;24;38;2;255;0;0;1m")
+        .unwrap();
+    assert_eq!(
+        state.current_rendition().foreground(),
+        CellColor::Indexed(2)
+    );
+    assert_eq!(state.current_rendition().intensity(), TextIntensity::Bold);
+    assert_eq!(
+        state.current_rendition().underline(),
+        UnderlineStyle::Disabled
+    );
+
+    parser
+        .advance(&mut state, b"\x1b[23;48;2;1;3;4;7m")
+        .unwrap();
+    assert_eq!(
+        state.current_rendition().background(),
+        CellColor::Indexed(4)
+    );
+    assert_eq!(state.current_rendition().italic(), ItalicStyle::Upright);
+    assert_eq!(
+        state.current_rendition().underline(),
+        UnderlineStyle::Disabled
+    );
+    assert_eq!(state.current_rendition().inverse(), InverseVideo::Enabled);
+}
+
+#[test]
+fn unsupported_extended_color_selectors_consume_the_remaining_sequence() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(4, 1).unwrap());
+    parser.advance(&mut state, b"\x1b[32;44m").unwrap();
+
+    parser.advance(&mut state, b"\x1b[38;6;1;4m").unwrap();
+    assert_eq!(state.current_rendition().intensity(), TextIntensity::Normal);
+    assert_eq!(
+        state.current_rendition().underline(),
+        UnderlineStyle::Disabled
+    );
+    assert_eq!(
+        state.current_rendition().foreground(),
+        CellColor::Indexed(2)
+    );
+
+    parser.advance(&mut state, b"\x1b[3m").unwrap();
+    assert_eq!(state.current_rendition().italic(), ItalicStyle::Italic);
+}
+
+#[test]
+fn empty_and_colon_extended_color_parameters_are_handled_deterministically() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(4, 1).unwrap());
+
+    parser.advance(&mut state, b"\x1b[38;5;;4m").unwrap();
+    assert_eq!(
+        state.current_rendition().foreground(),
+        CellColor::Indexed(0)
+    );
+    assert_eq!(
+        state.current_rendition().underline(),
+        UnderlineStyle::Enabled
+    );
+
+    parser.advance(&mut state, b"\x1b[1;38;5;196;m").unwrap();
+    assert_eq!(state.current_rendition(), &CellAttributes::default());
+
+    parser.advance(&mut state, b"\x1b[;38;5;16m").unwrap();
+    assert_eq!(
+        state.current_rendition().foreground(),
+        CellColor::Indexed(16)
+    );
+
+    parser.advance(&mut state, b"\x1b[38;;1m").unwrap();
+    assert_eq!(state.current_rendition().intensity(), TextIntensity::Normal);
+    assert_eq!(
+        state.current_rendition().foreground(),
+        CellColor::Indexed(16)
+    );
+
+    parser
+        .advance(&mut state, b"\x1b[1;38:5:196;4;48:2:1:3:4;3m")
+        .unwrap();
+    assert_eq!(state.current_rendition().intensity(), TextIntensity::Bold);
+    assert_eq!(state.current_rendition().italic(), ItalicStyle::Italic);
+    assert_eq!(
+        state.current_rendition().underline(),
+        UnderlineStyle::Enabled
+    );
+    assert_eq!(
+        state.current_rendition().foreground(),
+        CellColor::Indexed(16)
+    );
+    assert_eq!(state.current_rendition().background(), CellColor::Default);
+}
+
+#[test]
+fn indexed_color_and_malformed_groups_are_chunk_safe_at_every_boundary() {
+    for input in [
+        b"a\x1b[1;38;5;196;48;5;22mb\x1b[39;4mc\x1b[49md".as_slice(),
+        b"\x1b[32;44m\x1b[38;2;255;0;0;1mX\x1b[48;5;256;3mY",
+    ] {
+        let expected = parse_in_chunks(input, input.len());
+
+        for split in 0..=input.len() {
+            let mut parser = TerminalParser::new();
+            let mut state = TerminalState::new(TerminalDimensions::new(12, 4).unwrap());
+            parser.advance(&mut state, &input[..split]).unwrap();
+            parser.advance(&mut state, &input[split..]).unwrap();
+            assert_observable_state_eq(&state, &expected);
+        }
+    }
+}
+
+#[test]
+fn truncated_indexed_color_sequence_has_no_effect_until_completed() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(4, 1).unwrap());
+    parser.advance(&mut state, b"\x1b[32m").unwrap();
+
+    parser.advance(&mut state, b"\x1b[38;5;196").unwrap();
+    assert_eq!(
+        state.current_rendition().foreground(),
+        CellColor::Indexed(2)
+    );
+
+    parser.advance(&mut state, b"m").unwrap();
+    assert_eq!(
+        state.current_rendition().foreground(),
+        CellColor::Indexed(196)
+    );
+}

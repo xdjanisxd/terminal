@@ -16,6 +16,12 @@ const CURSOR_VISIBILITY_MODE: u16 = 25;
 const CLEAR_CURRENT_TAB_STOP: u16 = 0;
 const CLEAR_ALL_TAB_STOPS: u16 = 3;
 
+#[derive(Clone, Copy)]
+enum ExtendedColorChannel {
+    Foreground,
+    Background,
+}
+
 /// Incremental raw-byte parser for the supported terminal-core semantics.
 ///
 /// Parser state is retained between calls to [`Self::advance`]. The underlying
@@ -163,7 +169,8 @@ impl<'a> SemanticPerformer<'a> {
     }
 
     fn dispatch_sgr(&mut self, params: &vte::Params) {
-        for parameter in params {
+        let mut parameters = params.iter();
+        while let Some(parameter) = parameters.next() {
             let [attribute] = parameter else {
                 continue;
             };
@@ -181,10 +188,16 @@ impl<'a> SemanticPerformer<'a> {
                 code @ 30..=37 => self
                     .terminal
                     .set_foreground_color(CellColor::Indexed((code - 30) as u8)),
+                38 => {
+                    self.dispatch_extended_color(&mut parameters, ExtendedColorChannel::Foreground)
+                }
                 39 => self.terminal.set_foreground_color(CellColor::Default),
                 code @ 40..=47 => self
                     .terminal
                     .set_background_color(CellColor::Indexed((code - 40) as u8)),
+                48 => {
+                    self.dispatch_extended_color(&mut parameters, ExtendedColorChannel::Background)
+                }
                 49 => self.terminal.set_background_color(CellColor::Default),
                 code @ 90..=97 => self
                     .terminal
@@ -194,6 +207,55 @@ impl<'a> SemanticPerformer<'a> {
                     .set_background_color(CellColor::Indexed((code - 100 + 8) as u8)),
                 _ => {}
             }
+        }
+    }
+
+    fn dispatch_extended_color(
+        &mut self,
+        parameters: &mut vte::ParamsIter<'_>,
+        channel: ExtendedColorChannel,
+    ) {
+        let Some(selector) = parameters.next() else {
+            return;
+        };
+        let [selector] = selector else {
+            parameters.for_each(drop);
+            return;
+        };
+
+        match *selector {
+            5 => {
+                let Some(index) = parameters.next() else {
+                    return;
+                };
+                let [index] = index else {
+                    return;
+                };
+                let Ok(index) = u8::try_from(*index) else {
+                    return;
+                };
+
+                match channel {
+                    ExtendedColorChannel::Foreground => self
+                        .terminal
+                        .set_foreground_color(CellColor::Indexed(index)),
+                    ExtendedColorChannel::Background => self
+                        .terminal
+                        .set_background_color(CellColor::Indexed(index)),
+                }
+            }
+            // Truecolor is unsupported, but its three payload parameters belong
+            // to this logical color group and must not become unrelated SGR.
+            2 => {
+                for _ in 0..3 {
+                    if parameters.next().is_none() {
+                        break;
+                    }
+                }
+            }
+            // An unknown selector has no defined payload length. Ignore the
+            // remainder of this CSI callback so payload cannot leak into SGR.
+            _ => parameters.for_each(drop),
         }
     }
 }
