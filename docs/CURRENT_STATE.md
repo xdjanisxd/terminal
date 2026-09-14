@@ -14,23 +14,24 @@
 - Parser-independent printable-character, carriage-return, line-feed, backspace, horizontal-tab, and typed rendition operations routed through `TerminalState`
 - Delayed right-margin wrapping, auto-wrap suppression, fixed-screen bottom scrolling, and fixed-width insert/replace output behavior
 - Incremental project-owned `TerminalParser` adapter encapsulating `vte` and preserving parser state across input chunks
-- Parser routing for printable input, CR, LF, BS, HT, HTS, TBC, CUU/CUD/CUF/CUB, CUP/HVP, CHA/VPA, ED, EL, IRM, DECAWM, DECTCEM, and the basic 16-color/style SGR subset; unsupported parser actions and parameters are ignored without approximation
+- Parser routing for printable input, CR, LF, BS, HT, HTS, TBC, CUU/CUD/CUF/CUB, CUP/HVP, CHA/VPA, ED, EL, IRM, DECAWM, DECTCEM, and SGR styles, defaults, ANSI 16 colors, and semicolon-form indexed foreground/background colors; unsupported parser actions and parameters are ignored without approximation
+- Bounded grouped handling for extended-color SGR: indexed selectors consume one index, unsupported truecolor consumes three payload parameters, and unknown selectors consume the remaining CSI parameters so payload cannot leak into unrelated SGR
 - Bounded, resumable semantic-error reporting with exact consumed-byte counts
 - Bounded 1,024-byte OSC parser storage by compiling `vte` without its default `std` feature
-- One hundred thirty-four `terminal-core` unit/integration tests plus three compile-fail ownership tests
+- One hundred forty-three `terminal-core` unit/integration tests plus three compile-fail ownership tests
 
 ## Partial
 
 - `TerminalState::reset` restores the current model to initial state at existing dimensions; it is explicitly not DECSTR or RIS
 - `Cell` stores one Unicode scalar plus foreground/background colors and the narrow bold, italic, underline, and inverse style set; combining characters, wide-cell continuations, additional styles, and grapheme behavior are not modeled yet
 - Printable output accepts only single-cell ASCII space through tilde and snapshots current rendition attributes; all other Unicode remains explicitly deferred
-- The parser recognizes broader VTE syntax incrementally, but only printable input, CR, LF, BS, horizontal-tab operations, the supported cursor/erase CSI subset, IRM/DECAWM/DECTCEM, and the documented basic SGR subset currently have terminal semantics
+- The parser recognizes broader VTE syntax incrementally, but only printable input, CR, LF, BS, horizontal-tab operations, the supported cursor/erase CSI subset, IRM/DECAWM/DECTCEM, and the documented style, default, ANSI 16-color, and semicolon-form indexed-color SGR subset currently have terminal semantics
 - Resize preserves the top-left rectangular intersection and does not reflow text; final terminal resize/reflow semantics remain future compatibility work
 - Public branding and minimum operating-system versions remain intentionally deferred as documented in ADR-0008
 
 ## Missing
 
-- Remaining CSI/SGR color and style semantics and modes, OSC/DCS semantics, terminal replies, scrolling margins, saved cursor state, origin mode, and alternate screens
+- Remaining CSI/SGR style semantics and modes, truecolor and colon-form color semantics, OSC/DCS semantics, terminal replies, scrolling margins, saved cursor state, origin mode, and alternate screens
 - PTY, renderer, input encoding, configuration, workspace, and platform implementations
 - Scrollback and compatibility/performance baselines
 

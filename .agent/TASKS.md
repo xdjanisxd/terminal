@@ -2,9 +2,11 @@
 
 ## Next
 
-- [ ] Add bounded SGR indexed-color parsing for `38;5;n` and `48;5;n` using the existing `CellColor::Indexed` model; keep truecolor and unrelated styles deferred.
+- [ ] Add a narrow full-screen SU/SD scroll-control slice through `TerminalState`, with bounded counts, cursor stability, default-cell clearing, parser chunking tests, and no scrolling regions or scrollback.
 
 ## Later
+
+- [x] Add bounded SGR indexed-color parsing for `38;5;n` and `48;5;n` using the existing `CellColor::Indexed` model; truecolor, colon color forms, and unrelated styles remain deferred.
 
 - [x] Start M2 with a narrow typed cursor/erase semantic slice through `TerminalState`; keep protocol numeric identifiers inside the parser adapter.
 - [x] Connect standard IRM and private DECAWM/DECTCEM parser dispatch to existing `TerminalState` setters; keep unsupported modes as no-ops and protocol identifiers private.
