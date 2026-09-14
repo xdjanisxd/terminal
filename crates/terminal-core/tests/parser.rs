@@ -1294,3 +1294,79 @@ fn su_sd_sequences_are_chunk_safe_at_every_byte_boundary() {
         }
     }
 }
+
+#[test]
+fn parser_dispatches_index_reverse_index_and_next_line() {
+    let cases = [
+        (b"\x1bD".as_slice(), (2, 1)),
+        (b"\x1bM", (0, 1)),
+        (b"\x1bE", (2, 0)),
+    ];
+
+    for (sequence, expected_cursor) in cases {
+        let mut parser = TerminalParser::new();
+        let mut state = labeled_scroll_state();
+        parser.advance(&mut state, sequence).unwrap();
+        assert_eq!(
+            (state.cursor().row(), state.cursor().column()),
+            expected_cursor
+        );
+    }
+}
+
+#[test]
+fn printable_text_neighbors_ind_ri_and_nel_controls() {
+    let cases = [
+        (b"a\x1bDb".as_slice(), (2, 2)),
+        (b"a\x1bMb", (0, 2)),
+        (b"a\x1bEb", (2, 0)),
+    ];
+
+    for (input, printed_at) in cases {
+        let mut parser = TerminalParser::new();
+        let mut state = TerminalState::new(TerminalDimensions::new(3, 4).unwrap());
+        state.set_cursor_position(1, 1).unwrap();
+        parser.advance(&mut state, input).unwrap();
+        assert_eq!(state.screen().cell(1, 1).unwrap().character(), 'a');
+        assert_eq!(
+            state
+                .screen()
+                .cell(printed_at.0, printed_at.1)
+                .unwrap()
+                .character(),
+            'b'
+        );
+    }
+}
+
+#[test]
+fn ind_ri_nel_are_chunk_safe_at_every_byte_boundary() {
+    let input = b"a\x1bDb\x1bMc\x1bEd";
+    let expected = parse_in_chunks(input, input.len());
+
+    for split in 0..=input.len() {
+        let mut parser = TerminalParser::new();
+        let mut state = TerminalState::new(TerminalDimensions::new(12, 4).unwrap());
+        parser.advance(&mut state, &input[..split]).unwrap();
+        parser.advance(&mut state, &input[split..]).unwrap();
+        assert_observable_state_eq(&state, &expected);
+    }
+    assert_observable_state_eq(&parse_in_chunks(input, 1), &expected);
+}
+
+#[test]
+fn incomplete_and_malformed_index_controls_do_not_mutate_unrelated_state() {
+    let mut parser = TerminalParser::new();
+    let mut state = labeled_scroll_state();
+    let expected = labeled_scroll_state();
+    parser.advance(&mut state, b"\x1b").unwrap();
+    assert_observable_state_eq(&state, &expected);
+
+    for input in [b"\x1b#DX".as_slice(), b"\x1b#MX", b"\x1b#EX"] {
+        let mut parser = TerminalParser::new();
+        let mut state = TerminalState::new(TerminalDimensions::new(3, 2).unwrap());
+        parser.advance(&mut state, input).unwrap();
+        assert_eq!(row_text(&state, 0), "X  ");
+        assert_eq!((state.cursor().row(), state.cursor().column()), (0, 1));
+    }
+}

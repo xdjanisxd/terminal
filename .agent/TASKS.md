@@ -2,9 +2,11 @@
 
 ## Next
 
-- [ ] Add a narrow full-screen IND/RI/NEL control slice through `TerminalState`, reusing existing line-feed and scroll primitives while deferring scrolling regions and scrollback.
+- [ ] Introduce a narrow scrolling-margin/DECSTBM foundation owned with screen state, including full-screen defaults and reset/resize invariants, while deferring origin mode, scrollback, and alternate screens.
 
 ## Later
+
+- [x] Add full-screen IND/RI/NEL through `TerminalState`, reusing bounded SU/SD edge scrolling and cancelling delayed wrap.
 
 - [x] Add bounded full-screen SU/SD through `TerminalState`, with clamped counts, cursor and delayed-wrap preservation, complete-cell movement, and canonical default blank rows.
 

@@ -928,3 +928,132 @@ fn full_screen_scrolling_preserves_delayed_wrap() {
         assert_eq!((state.cursor().row(), state.cursor().column()), (1, 1));
     }
 }
+
+#[test]
+fn index_moves_down_preserves_column_and_cancels_delayed_wrap() {
+    let mut state = TerminalState::new(TerminalDimensions::new(3, 4).unwrap());
+    state.set_cursor_position(1, 2).unwrap();
+    state.print_character('X').unwrap();
+
+    state.index();
+
+    assert_eq!((state.cursor().row(), state.cursor().column()), (2, 2));
+    state.print_character('Y').unwrap();
+    assert_eq!(state.screen().cell(2, 2).unwrap().character(), 'Y');
+}
+
+#[test]
+fn reverse_index_moves_up_preserves_column_and_cancels_delayed_wrap() {
+    let mut state = TerminalState::new(TerminalDimensions::new(3, 4).unwrap());
+    state.set_cursor_position(1, 2).unwrap();
+    state.print_character('X').unwrap();
+
+    state.reverse_index();
+
+    assert_eq!((state.cursor().row(), state.cursor().column()), (0, 2));
+    state.print_character('Y').unwrap();
+    assert_eq!(state.screen().cell(0, 2).unwrap().character(), 'Y');
+}
+
+fn styled_control_state() -> TerminalState {
+    let mut state = TerminalState::new(TerminalDimensions::new(3, 3).unwrap());
+    state.set_text_intensity(TextIntensity::Bold);
+    state.set_italic_style(ItalicStyle::Italic);
+    state.set_underline_style(UnderlineStyle::Enabled);
+    state.set_inverse_video(InverseVideo::Enabled);
+    state.set_foreground_color(CellColor::Indexed(196));
+    state.set_background_color(CellColor::Indexed(22));
+    state.set_cursor_visibility(CursorVisibility::Hidden);
+    state.set_character_insertion(CharacterInsertionMode::Insert);
+    state.set_cursor_key_mode(CursorKeyMode::Application);
+    state.set_cursor_position(0, 1).unwrap();
+    state.set_horizontal_tab_stop();
+    state.set_cursor_position(1, 0).unwrap();
+    state.print_character('X').unwrap();
+    state
+}
+
+#[test]
+fn bottom_index_scrolls_styled_cells_and_preserves_terminal_state() {
+    let mut state = styled_control_state();
+    let styled = *state.screen().cell(1, 0).unwrap();
+    let rendition = *state.current_rendition();
+    let modes = *state.terminal_modes();
+    let input_modes = *state.input_modes();
+    state.set_cursor_position(2, 1).unwrap();
+
+    state.index();
+
+    assert_eq!(state.screen().cell(0, 0), Some(&styled));
+    for column in 0..3 {
+        assert_default_cell(&state, 2, column);
+    }
+    assert_eq!((state.cursor().row(), state.cursor().column()), (2, 1));
+    assert_eq!(*state.current_rendition(), rendition);
+    assert_eq!(*state.terminal_modes(), modes);
+    assert_eq!(*state.input_modes(), input_modes);
+    assert!(state.has_horizontal_tab_stop(1));
+    state.print_character('Y').unwrap();
+    assert_eq!(state.screen().cell(2, 1).unwrap().attributes(), &rendition);
+}
+
+#[test]
+fn top_reverse_index_scrolls_styled_cells_and_clears_default_top_row() {
+    let mut state = styled_control_state();
+    let styled = *state.screen().cell(1, 0).unwrap();
+    let rendition = *state.current_rendition();
+    let modes = *state.terminal_modes();
+    let input_modes = *state.input_modes();
+    state.set_cursor_position(0, 2).unwrap();
+
+    state.reverse_index();
+
+    assert_eq!(state.screen().cell(2, 0), Some(&styled));
+    for column in 0..3 {
+        assert_default_cell(&state, 0, column);
+    }
+    assert_eq!((state.cursor().row(), state.cursor().column()), (0, 2));
+    assert_eq!(*state.current_rendition(), rendition);
+    assert_eq!(*state.terminal_modes(), modes);
+    assert_eq!(*state.input_modes(), input_modes);
+    assert!(state.has_horizontal_tab_stop(1));
+    state.print_character('Y').unwrap();
+    assert_eq!(state.screen().cell(0, 2).unwrap().attributes(), &rendition);
+}
+
+#[test]
+fn next_line_moves_down_resets_column_and_cancels_delayed_wrap() {
+    let mut state = TerminalState::new(TerminalDimensions::new(3, 4).unwrap());
+    state.set_cursor_position(1, 2).unwrap();
+    state.print_character('X').unwrap();
+
+    state.next_line();
+
+    assert_eq!((state.cursor().row(), state.cursor().column()), (2, 0));
+    state.print_character('Y').unwrap();
+    assert_eq!(state.screen().cell(2, 0).unwrap().character(), 'Y');
+}
+
+#[test]
+fn bottom_next_line_scrolls_up_and_preserves_rendition_and_modes() {
+    let mut state = styled_control_state();
+    let styled = *state.screen().cell(1, 0).unwrap();
+    let rendition = *state.current_rendition();
+    let modes = *state.terminal_modes();
+    let input_modes = *state.input_modes();
+    state.set_cursor_position(2, 2).unwrap();
+
+    state.next_line();
+
+    assert_eq!(state.screen().cell(0, 0), Some(&styled));
+    for column in 0..3 {
+        assert_default_cell(&state, 2, column);
+    }
+    assert_eq!((state.cursor().row(), state.cursor().column()), (2, 0));
+    assert_eq!(*state.current_rendition(), rendition);
+    assert_eq!(*state.terminal_modes(), modes);
+    assert_eq!(*state.input_modes(), input_modes);
+    assert!(state.has_horizontal_tab_stop(1));
+    state.print_character('Y').unwrap();
+    assert_eq!(state.screen().cell(2, 0).unwrap().attributes(), &rendition);
+}

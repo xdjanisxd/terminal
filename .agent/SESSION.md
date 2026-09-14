@@ -2,7 +2,7 @@
 
 ## Current state
 
-The full-screen SU/SD M2 slice is complete.
+The full-screen IND/RI/NEL M2 slice is complete.
 
 Implemented:
 
@@ -32,6 +32,9 @@ Implemented:
 * bounded full-screen scroll up/down through `TerminalState`, with counts clamped to visible height
 * complete-cell movement with canonical default blank rows and preserved cursor, modes, rendition, and delayed wrap
 * private CSI translation for SU/SD with omitted and zero counts normalized to one
+* project-owned IND, RI, and NEL semantics with full-screen edge scrolling through existing bounded primitives
+* direct ESC D/M/E parser translation through `TerminalState`
+* delayed-wrap cancellation for IND, RI, and NEL while preserving modes, tab stops, and current rendition
 
 `terminal-core` currently depends only on `vte`, with default features disabled.
 
@@ -39,9 +42,11 @@ Implemented:
 
 Local required Cargo gates pass on `x86_64-pc-windows-gnu`.
 
-Current terminal-core coverage includes 153 unit/integration tests plus ownership doctests.
+Current terminal-core coverage includes 163 unit/integration tests plus ownership doctests.
 
-Structural Graphify data refreshed locally to 500 nodes and 660 edges across 48 communities. Semantic enrichment was unavailable because no supported LLM API key is configured.
+Structural Graphify data refreshed locally to 514 nodes and 692 edges across 49 communities. Semantic enrichment was unavailable because no supported LLM API key is configured.
+
+The targeted Graphify, dependency-direction, static-security, and direct diff reviews found no issues. Independent review was unavailable: delegated review timed out and the Codex CLI is not installed.
 
 Remote CI has not run for this unpushed slice and remains the merge gate.
 
@@ -51,7 +56,7 @@ Remote CI has not run for this unpushed slice and remains the merge gate.
 * CSI mode support is intentionally limited to standard IRM and DEC-private DECAWM/DECTCEM; all other mode identifiers remain no-ops.
 * Horizontal tabs are cursor-only: they do not write tab characters or spaces into cells. HT cancels delayed wrap and remains on the final column when no later stop exists.
 * SGR supports reset, bold, italic, underline, inverse, ANSI 16 colors, semicolon-form indexed foreground/background colors, and per-channel defaults. Truecolor, colon color forms, and additional styles remain deferred.
-* Full-screen SU/SD is implemented without scrolling margins or scrollback; IND, RI, NEL, DECSTBM, insert/delete lines, alternate-screen behavior, and history remain deferred.
+* Full-screen SU/SD and IND/RI/NEL are implemented without scrolling margins or scrollback; DECSTBM, origin mode, insert/delete lines, alternate-screen behavior, and history remain deferred.
 * Unicode combining/wide-cell behavior is deferred.
 * No PTY, renderer, scrollback, alternate screen, or terminal replies exist yet.
 * Resize still uses top-left preservation with no line reflow.
@@ -64,5 +69,5 @@ See:
 
 ## Next
 
-1. Add a narrow full-screen IND/RI/NEL control slice through `TerminalState`, reusing existing line-feed and scroll primitives while keeping scrolling regions and scrollback deferred.
+1. Introduce a narrow scrolling-margin/DECSTBM foundation owned with screen state, including full-screen defaults and reset/resize invariants, while deferring origin mode, scrollback, and alternate screens.
 
