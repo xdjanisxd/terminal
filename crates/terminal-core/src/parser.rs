@@ -282,12 +282,16 @@ impl vte::Perform for SemanticPerformer<'_> {
     }
 
     fn esc_dispatch(&mut self, intermediates: &[u8], has_ignored_intermediates: bool, byte: u8) {
-        if self.semantic_error.is_none()
-            && !has_ignored_intermediates
-            && intermediates.is_empty()
-            && byte == b'H'
-        {
-            self.terminal.set_horizontal_tab_stop();
+        if self.semantic_error.is_some() || has_ignored_intermediates || !intermediates.is_empty() {
+            return;
+        }
+
+        match byte {
+            b'D' => self.terminal.index(),
+            b'E' => self.terminal.next_line(),
+            b'H' => self.terminal.set_horizontal_tab_stop(),
+            b'M' => self.terminal.reverse_index(),
+            _ => {}
         }
     }
 

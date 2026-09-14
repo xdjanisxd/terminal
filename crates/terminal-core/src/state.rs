@@ -239,6 +239,32 @@ impl TerminalState {
         }
     }
 
+    /// Advances one row, scrolling upward at the bottom edge.
+    ///
+    /// The cursor column is preserved and delayed wrap is cancelled.
+    pub fn index(&mut self) {
+        self.line_feed();
+        self.wrap_pending = false;
+    }
+
+    /// Moves up one row, scrolling downward at the top edge.
+    ///
+    /// The cursor column is preserved and delayed wrap is cancelled.
+    pub fn reverse_index(&mut self) {
+        if self.cursor().row() > 0 {
+            self.screen.move_cursor(-1, 0);
+        } else {
+            self.scroll_down(1);
+        }
+        self.wrap_pending = false;
+    }
+
+    /// Advances one row and returns to the first column.
+    pub fn next_line(&mut self) {
+        self.index();
+        self.carriage_return();
+    }
+
     /// Scrolls the entire visible grid upward without moving the cursor.
     ///
     /// The count is clamped to the screen height. Newly exposed rows use the
