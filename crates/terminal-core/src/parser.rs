@@ -360,6 +360,13 @@ impl vte::Perform for SemanticPerformer<'_> {
             return;
         };
 
+        if action == 'c' {
+            if count == 0 || (count == 1 && values[0] == 0) {
+                let _ = self.terminal.request_primary_device_attributes();
+            }
+            return;
+        }
+
         if action == 'r' {
             self.dispatch_decstbm(values, count);
             return;

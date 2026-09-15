@@ -2,9 +2,11 @@
 
 ## Next
 
-- [ ] Introduce a narrow primary DA reply path with a bounded project-owned response interface; keep DSR/CPR, origin mode, IL/DL, scrollback, and alternate screens separate.
+- [ ] Add a narrow DSR/CPR slice that reuses the bounded `TerminalReply` FIFO for a cursor-position response without origin mode.
 
 ## Later
+
+- [x] Add primary DA1 queries through `TerminalState` with a conservative fixed response, bounded FIFO storage, explicit caller consumption, and no PTY integration.
 
 - [x] Make NEL respect active vertical scrolling margins by composing existing region-aware index and carriage-return semantics.
 

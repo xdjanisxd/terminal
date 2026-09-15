@@ -36,6 +36,7 @@ Completion marks require tested acceptance criteria, not code presence alone.
 - [x] Make IND and RI region-aware through a bounded inclusive grid region-scroll primitive
 - [x] Make explicit SU and SD use the active vertical scrolling margins through the bounded inclusive grid region-scroll primitive
 - [x] Make NEL compose region-aware index semantics with carriage return while preserving full-screen compatibility
+- [x] Add bounded primary DA1 query/reply semantics through `TerminalState` without PTY integration
 - [ ] Implement and test remaining commonly used scroll, SGR, mode, and reply behavior
 - [ ] Implement Unicode combining and wide-cell invariants
 - [ ] Implement primary/alternate screens, resize behavior, and bounded scrollback

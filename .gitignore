@@ -22,4 +22,4 @@ Desktop.ini
 *.log
 
 # etc
-graphify-out/
+#graphify-out/
