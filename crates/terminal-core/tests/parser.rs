@@ -16,6 +16,10 @@ fn assert_observable_state_eq(actual: &TerminalState, expected: &TerminalState) 
     assert_eq!(actual.terminal_modes(), expected.terminal_modes());
     assert_eq!(actual.input_modes(), expected.input_modes());
     assert_eq!(actual.current_rendition(), expected.current_rendition());
+    assert_eq!(
+        actual.vertical_scrolling_margins(),
+        expected.vertical_scrolling_margins()
+    );
     for column in 0..actual.dimensions().columns() {
         assert_eq!(
             actual.has_horizontal_tab_stop(column),
