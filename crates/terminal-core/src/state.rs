@@ -1,10 +1,11 @@
 use std::{error::Error, fmt};
 
+use crate::reply::PendingReplies;
 use crate::tabs::HorizontalTabStops;
 use crate::{
     AutoWrapMode, Cell, CellAttributes, CellColor, CharacterInsertionMode, Cursor, CursorKeyMode,
     CursorVisibility, InputModes, InverseVideo, ItalicStyle, ScreenGrid, TerminalDimensions,
-    TerminalModes, TextIntensity, UnderlineStyle, VerticalScrollingMargins,
+    TerminalModes, TerminalReply, TextIntensity, UnderlineStyle, VerticalScrollingMargins,
 };
 
 /// Failure to print a character through the terminal semantic boundary.
@@ -105,6 +106,7 @@ pub struct TerminalState {
     current_rendition: CellAttributes,
     horizontal_tab_stops: HorizontalTabStops,
     vertical_scrolling_margins: VerticalScrollingMargins,
+    pending_replies: PendingReplies,
     wrap_pending: bool,
 }
 
@@ -118,6 +120,7 @@ impl TerminalState {
             current_rendition: CellAttributes::default(),
             horizontal_tab_stops: HorizontalTabStops::new(dimensions.columns()),
             vertical_scrolling_margins: VerticalScrollingMargins::full_screen(dimensions.rows()),
+            pending_replies: PendingReplies::default(),
             wrap_pending: false,
         }
     }
@@ -140,6 +143,26 @@ impl TerminalState {
     /// Returns the inclusive zero-based vertical scrolling margins.
     pub const fn vertical_scrolling_margins(&self) -> VerticalScrollingMargins {
         self.vertical_scrolling_margins
+    }
+
+    /// Returns the number of replies waiting for caller consumption.
+    pub const fn pending_reply_count(&self) -> usize {
+        self.pending_replies.len()
+    }
+
+    /// Removes and returns the oldest pending terminal reply.
+    pub fn take_reply(&mut self) -> Option<TerminalReply> {
+        self.pending_replies.pop()
+    }
+
+    /// Queues the conservative primary Device Attributes response.
+    ///
+    /// Returns `false` without replacing an older reply when the fixed-capacity
+    /// reply queue is full.
+    #[must_use]
+    pub fn request_primary_device_attributes(&mut self) -> bool {
+        self.pending_replies
+            .push(TerminalReply::PrimaryDeviceAttributes)
     }
 
     /// Replaces the vertical scrolling margins when they are valid for the screen.
@@ -489,10 +512,13 @@ impl TerminalState {
     /// Restores this project-owned model to its initial state at the current dimensions.
     ///
     /// This clears the active screen, moves the cursor to `(0, 0)`, and restores all
-    /// supported terminal and input modes to their documented defaults. Dimensions are
-    /// preserved. This is not an implementation of DECSTR or RIS.
+    /// supported terminal and input modes to their documented defaults. Dimensions and
+    /// already-generated pending replies are preserved. This is not an implementation
+    /// of DECSTR or RIS.
     pub fn reset(&mut self) {
+        let pending_replies = std::mem::take(&mut self.pending_replies);
         *self = Self::new(self.dimensions());
+        self.pending_replies = pending_replies;
     }
 
     fn wrap_before_print(&mut self) {

@@ -6,6 +6,7 @@ mod dimensions;
 mod grid;
 mod modes;
 mod parser;
+mod reply;
 mod scrolling;
 mod state;
 mod tabs;
@@ -21,5 +22,6 @@ pub use modes::{
     TerminalModes,
 };
 pub use parser::{TerminalParser, TerminalParserError};
+pub use reply::{MAX_PENDING_REPLIES, TerminalReply};
 pub use scrolling::VerticalScrollingMargins;
 pub use state::{CursorMovement, EraseDirection, EraseRegion, PrintError, TerminalState};
