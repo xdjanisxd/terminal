@@ -2,7 +2,7 @@
 
 ## Current state
 
-The region-aware explicit SU/SD M2 slice is complete.
+The region-aware NEL M2 slice is complete.
 
 Implemented:
 
@@ -44,7 +44,10 @@ Implemented:
 * active-margin-aware explicit SU and SD through `TerminalState`, delegating to the existing bounded inclusive `ScreenGrid` region-scroll primitives
 * SU/SD preservation of cursor, delayed wrap, modes, tab stops, active margins, current rendition, and complete moved-cell attributes, with `Cell::default()` exposed rows
 * bounded SU/SD behavior for zero direct counts, omitted/zero parser counts, one-row and edge-touching regions, region-height and larger counts, and extreme parsed counts
-* full-screen SU/SD compatibility plus unchanged full-screen NEL semantics
+* full-screen SU/SD compatibility
+* region-aware NEL by composing existing `TerminalState::index()` and carriage-return semantics without parser or grid changes
+* NEL preservation of cursor visibility, modes, tab stops, active margins, and current rendition, with complete-cell movement and `Cell::default()` exposure when region scrolling occurs
+* bounded NEL movement inside and outside custom regions, bottom-margin scrolling, one-row regions, physical-bottom behavior, delayed-wrap cancellation, and full-screen compatibility
 
 `terminal-core` currently depends only on `vte`, with default features disabled.
 
@@ -52,9 +55,9 @@ Implemented:
 
 Local required Cargo gates pass on `x86_64-pc-windows-gnu`.
 
-Current terminal-core coverage includes 207 unit/integration tests plus four ownership doctests.
+Current terminal-core coverage includes 216 unit/integration tests plus four ownership doctests.
 
-Structural Graphify data refreshed locally in code-only mode to 627 nodes and 858 edges across 60 communities. Semantic enrichment was unavailable because no supported LLM API key is configured.
+Structural Graphify data refreshed locally in code-only mode to 657 nodes and 903 edges across 69 communities. Semantic enrichment was unavailable because no supported LLM API key is configured.
 
 The targeted Graphify, architecture, dependency-direction, static-security, direct diff, regression-sabotage, and independent delegated reviews found no blocking issues.
 
@@ -66,7 +69,7 @@ Remote CI has not run for this unpushed slice and remains the merge gate.
 * CSI mode support is intentionally limited to standard IRM and DEC-private DECAWM/DECTCEM; all other mode identifiers remain no-ops.
 * Horizontal tabs are cursor-only: they do not write tab characters or spaces into cells. HT cancels delayed wrap and remains on the final column when no later stop exists.
 * SGR supports reset, bold, italic, underline, inverse, ANSI 16 colors, semicolon-form indexed foreground/background colors, and per-channel defaults. Truecolor, colon color forms, and additional styles remain deferred.
-* IND, RI, SU, and SD consult the active vertical scrolling margins; NEL remains intentionally full-screen. Region-aware NEL, origin mode, insert/delete lines, alternate-screen behavior, and history remain deferred.
+* IND, RI, SU, SD, and NEL consult the active vertical scrolling margins. Origin mode, insert/delete lines, alternate-screen behavior, and history remain deferred.
 * Unicode combining/wide-cell behavior is deferred.
 * No PTY, renderer, scrollback, alternate screen, or terminal replies exist yet.
 * Resize still uses top-left preservation with no line reflow.
@@ -79,5 +82,5 @@ See:
 
 ## Next
 
-1. Make NEL respect active vertical scrolling margins through existing `TerminalState` index semantics if the control's terminal behavior can remain narrow and explicit.
+1. Introduce a narrow primary DA reply path with a bounded project-owned response interface; keep DSR/CPR, origin mode, IL/DL, scrollback, and alternate screens separate.
 

@@ -140,7 +140,7 @@ fn reset_and_resize_restore_full_screen_margins() {
 }
 
 #[test]
-fn custom_margins_bound_su_and_sd_but_do_not_change_nel() {
+fn custom_margins_bound_su_sd_and_nel() {
     let cases: &[ScrollCase] = &[
         (
             "SU",
@@ -157,18 +157,15 @@ fn custom_margins_bound_su_and_sd_but_do_not_change_nel() {
         (
             "NEL",
             |state| state.next_line(),
-            ["cd", "ef", "gh", "  "],
-            (3, 0),
+            ["ab", "ef", "  ", "gh"],
+            (2, 0),
         ),
     ];
 
     for (name, operation, expected, expected_cursor) in cases {
         let mut state = labeled_state();
         assert!(state.set_vertical_scrolling_margins(1, 2));
-        let start = match *name {
-            "NEL" => (3, 1),
-            _ => (2, 1),
-        };
+        let start = (2, 1);
         state.set_cursor_position(start.0, start.1).unwrap();
 
         operation(&mut state);
