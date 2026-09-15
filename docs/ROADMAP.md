@@ -34,6 +34,7 @@ Completion marks require tested acceptance criteria, not code presence alone.
 - [x] Add full-screen IND/RI/NEL through `TerminalState` with bounded edge scrolling and delayed-wrap cancellation
 - [x] Add typed bounded vertical scrolling margins and DECSTBM parser/state semantics with full-screen reset/resize behavior
 - [x] Make IND and RI region-aware through a bounded inclusive grid region-scroll primitive
+- [x] Make explicit SU and SD use the active vertical scrolling margins through the bounded inclusive grid region-scroll primitive
 - [ ] Implement and test remaining commonly used scroll, SGR, mode, and reply behavior
 - [ ] Implement Unicode combining and wide-cell invariants
 - [ ] Implement primary/alternate screens, resize behavior, and bounded scrollback

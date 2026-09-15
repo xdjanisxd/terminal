@@ -307,22 +307,24 @@ impl TerminalState {
         self.carriage_return();
     }
 
-    /// Scrolls the entire visible grid upward without moving the cursor.
+    /// Scrolls the active vertical scrolling region upward without moving the cursor.
     ///
-    /// The count is clamped to the screen height. Newly exposed rows use the
+    /// The count is clamped to the region height. Newly exposed rows use the
     /// canonical default blank cell. Current rendition and delayed wrap are
     /// preserved.
     pub fn scroll_up(&mut self, rows: usize) {
-        self.screen.scroll_up(rows);
+        self.screen
+            .scroll_region_up(self.vertical_scrolling_margins, rows);
     }
 
-    /// Scrolls the entire visible grid downward without moving the cursor.
+    /// Scrolls the active vertical scrolling region downward without moving the cursor.
     ///
-    /// The count is clamped to the screen height. Newly exposed rows use the
+    /// The count is clamped to the region height. Newly exposed rows use the
     /// canonical default blank cell. Current rendition and delayed wrap are
     /// preserved.
     pub fn scroll_down(&mut self, rows: usize) {
-        self.screen.scroll_down(rows);
+        self.screen
+            .scroll_region_down(self.vertical_scrolling_margins, rows);
     }
 
     /// Moves left one column without erasing and without reverse wrapping.
