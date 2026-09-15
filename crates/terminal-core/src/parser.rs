@@ -30,8 +30,9 @@ enum ExtendedColorChannel {
 ///
 /// This compatibility stage handles printable characters, carriage return,
 /// line feed, backspace, horizontal tabs and tab stops, the supported
-/// cursor/erase CSI subset, and narrow mode dispatch for existing terminal-core
-/// mode state. All other parser actions are safely ignored.
+/// cursor/erase/scrolling-margin CSI subset, and narrow mode dispatch for
+/// existing terminal-core mode state. All other parser actions are safely
+/// ignored.
 pub struct TerminalParser {
     parser: vte::Parser<MAX_OSC_BYTES>,
 }
@@ -166,6 +167,36 @@ impl<'a> SemanticPerformer<'a> {
                 _ => {}
             }
         }
+    }
+
+    fn dispatch_decstbm(&mut self, values: [u16; 2], count: usize) {
+        if count > 2 {
+            return;
+        }
+
+        let screen_rows = self.terminal.dimensions().rows();
+        let top = usize::from(values[0].max(1));
+        let bottom = if count < 2 || values[1] == 0 {
+            screen_rows
+        } else {
+            usize::from(values[1])
+        };
+
+        // DECSTBM requires a multi-row region. A one-row screen is the sole
+        // exception so its full-screen region remains representable and CSI r
+        // can retain its required reset behavior.
+        if top > screen_rows
+            || bottom > screen_rows
+            || top > bottom
+            || (top == bottom && screen_rows > 1)
+        {
+            return;
+        }
+
+        let updated = self
+            .terminal
+            .set_vertical_scrolling_margins(top - 1, bottom - 1);
+        debug_assert!(updated, "validated DECSTBM margins must be accepted");
     }
 
     fn dispatch_sgr(&mut self, params: &vte::Params) {
@@ -328,6 +359,11 @@ impl vte::Perform for SemanticPerformer<'_> {
         let Some((values, count)) = simple_csi_parameters(params) else {
             return;
         };
+
+        if action == 'r' {
+            self.dispatch_decstbm(values, count);
+            return;
+        }
 
         if action == 'g' {
             match (count, values[0]) {

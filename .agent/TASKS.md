@@ -2,9 +2,11 @@
 
 ## Next
 
-- [ ] Introduce a narrow scrolling-margin/DECSTBM foundation owned with screen state, including full-screen defaults and reset/resize invariants, while deferring origin mode, scrollback, and alternate screens.
+- [ ] Make IND and RI consult the active vertical scrolling margins, preserving current full-screen behavior when the region spans the screen and keeping SU/SD, NEL, origin mode, IL/DL, scrollback, and alternate screens separate.
 
 ## Later
+
+- [x] Introduce typed bounded vertical scrolling margins and DECSTBM parser/state semantics with full-screen defaults, cursor homing, atomic invalid-input handling, and reset/resize invariants.
 
 - [x] Add full-screen IND/RI/NEL through `TerminalState`, reusing bounded SU/SD edge scrolling and cancelling delayed wrap.
 

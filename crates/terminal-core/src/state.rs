@@ -4,7 +4,7 @@ use crate::tabs::HorizontalTabStops;
 use crate::{
     AutoWrapMode, Cell, CellAttributes, CellColor, CharacterInsertionMode, Cursor, CursorKeyMode,
     CursorVisibility, InputModes, InverseVideo, ItalicStyle, ScreenGrid, TerminalDimensions,
-    TerminalModes, TextIntensity, UnderlineStyle,
+    TerminalModes, TextIntensity, UnderlineStyle, VerticalScrollingMargins,
 };
 
 /// Failure to print a character through the terminal semantic boundary.
@@ -91,6 +91,12 @@ pub enum EraseDirection {
 ///     .input_modes()
 ///     .set_cursor_keys(CursorKeyMode::Application);
 /// ```
+/// ```compile_fail
+/// use terminal_core::{TerminalDimensions, TerminalState, VerticalScrollingMargins};
+///
+/// let mut state = TerminalState::new(TerminalDimensions::new(80, 24).unwrap());
+/// state.vertical_scrolling_margins = VerticalScrollingMargins::full_screen(24);
+/// ```
 #[derive(Debug)]
 pub struct TerminalState {
     screen: ScreenGrid,
@@ -98,6 +104,7 @@ pub struct TerminalState {
     input_modes: InputModes,
     current_rendition: CellAttributes,
     horizontal_tab_stops: HorizontalTabStops,
+    vertical_scrolling_margins: VerticalScrollingMargins,
     wrap_pending: bool,
 }
 
@@ -110,6 +117,7 @@ impl TerminalState {
             input_modes: InputModes::default(),
             current_rendition: CellAttributes::default(),
             horizontal_tab_stops: HorizontalTabStops::new(dimensions.columns()),
+            vertical_scrolling_margins: VerticalScrollingMargins::full_screen(dimensions.rows()),
             wrap_pending: false,
         }
     }
@@ -127,6 +135,30 @@ impl TerminalState {
     /// Returns the active screen's bounded cursor.
     pub const fn cursor(&self) -> Cursor {
         self.screen.cursor()
+    }
+
+    /// Returns the inclusive zero-based vertical scrolling margins.
+    pub const fn vertical_scrolling_margins(&self) -> VerticalScrollingMargins {
+        self.vertical_scrolling_margins
+    }
+
+    /// Replaces the vertical scrolling margins when they are valid for the screen.
+    ///
+    /// A successful update homes the cursor at the screen origin and cancels
+    /// delayed wrap. Invalid input leaves all terminal state unchanged. The
+    /// representation permits a one-row region so one-row screens remain valid.
+    pub fn set_vertical_scrolling_margins(&mut self, top: usize, bottom: usize) -> bool {
+        let Some(margins) = VerticalScrollingMargins::new(top, bottom, self.dimensions().rows())
+        else {
+            return false;
+        };
+
+        self.vertical_scrolling_margins = margins;
+        self.screen
+            .set_cursor_position(0, 0)
+            .expect("screen origin is always in bounds");
+        self.wrap_pending = false;
+        true
     }
 
     /// Moves the cursor to an in-bounds zero-based coordinate.
@@ -356,14 +388,16 @@ impl TerminalState {
         self.wrap_pending = false;
     }
 
-    /// Resizes the active screen and horizontal tab-stop state.
+    /// Resizes the active screen, horizontal tab stops, and scrolling margins.
     ///
     /// Existing stops in surviving columns are preserved. Stops beyond a
     /// shrunken width are discarded, while newly exposed columns receive the
-    /// conventional default stops.
+    /// conventional default stops. Vertical scrolling margins reset to the
+    /// full height of the resized screen.
     pub fn resize(&mut self, dimensions: TerminalDimensions) {
         self.screen.resize(dimensions);
         self.horizontal_tab_stops.resize(dimensions.columns());
+        self.vertical_scrolling_margins = VerticalScrollingMargins::full_screen(dimensions.rows());
         self.wrap_pending = false;
     }
 
