@@ -2,9 +2,11 @@
 
 ## Next
 
-- [ ] Make explicit SU and SD consult the active vertical scrolling margins through the bounded region-scroll primitive, while keeping NEL, origin mode, IL/DL, scrollback, and alternate screens separate.
+- [ ] Make NEL respect active vertical scrolling margins through existing `TerminalState` index semantics if the control's terminal behavior can remain narrow and explicit.
 
 ## Later
+
+- [x] Make explicit SU and SD consult the active vertical scrolling margins through the bounded region-scroll primitive, while keeping NEL, origin mode, IL/DL, scrollback, and alternate screens separate.
 
 - [x] Make IND and RI region-aware at active vertical margins through a bounded grid region-scroll primitive while preserving outside-region movement, full-screen defaults, and NEL/SU/SD behavior.
 

@@ -92,13 +92,6 @@ impl ScreenGrid {
         );
     }
 
-    pub(crate) fn scroll_down(&mut self, rows: usize) {
-        self.scroll_region_down(
-            VerticalScrollingMargins::full_screen(self.dimensions.rows()),
-            rows,
-        );
-    }
-
     pub(crate) fn scroll_region_up(&mut self, margins: VerticalScrollingMargins, rows: usize) {
         self.scroll_region(margins, rows, ScrollDirection::Up);
     }

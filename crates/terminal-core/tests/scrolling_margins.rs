@@ -140,18 +140,18 @@ fn reset_and_resize_restore_full_screen_margins() {
 }
 
 #[test]
-fn custom_margins_do_not_change_full_screen_su_sd_or_nel() {
+fn custom_margins_bound_su_and_sd_but_do_not_change_nel() {
     let cases: &[ScrollCase] = &[
         (
             "SU",
             |state| state.scroll_up(1),
-            ["cd", "ef", "gh", "  "],
+            ["ab", "ef", "  ", "gh"],
             (2, 1),
         ),
         (
             "SD",
             |state| state.scroll_down(1),
-            ["  ", "ab", "cd", "ef"],
+            ["ab", "  ", "cd", "gh"],
             (2, 1),
         ),
         (
