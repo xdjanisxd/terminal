@@ -301,9 +301,9 @@ impl TerminalState {
         self.wrap_pending = false;
     }
 
-    /// Advances one row and returns to the first column.
+    /// Advances one row using index semantics and returns to the first column.
     pub fn next_line(&mut self) {
-        self.line_feed();
+        self.index();
         self.carriage_return();
     }
 

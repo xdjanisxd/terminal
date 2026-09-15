@@ -2,9 +2,11 @@
 
 ## Next
 
-- [ ] Make NEL respect active vertical scrolling margins through existing `TerminalState` index semantics if the control's terminal behavior can remain narrow and explicit.
+- [ ] Introduce a narrow primary DA reply path with a bounded project-owned response interface; keep DSR/CPR, origin mode, IL/DL, scrollback, and alternate screens separate.
 
 ## Later
+
+- [x] Make NEL respect active vertical scrolling margins by composing existing region-aware index and carriage-return semantics.
 
 - [x] Make explicit SU and SD consult the active vertical scrolling margins through the bounded region-scroll primitive, while keeping NEL, origin mode, IL/DL, scrollback, and alternate screens separate.
 
