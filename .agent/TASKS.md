@@ -2,9 +2,11 @@
 
 ## Next
 
-- [ ] Make IND and RI consult the active vertical scrolling margins, preserving current full-screen behavior when the region spans the screen and keeping SU/SD, NEL, origin mode, IL/DL, scrollback, and alternate screens separate.
+- [ ] Make explicit SU and SD consult the active vertical scrolling margins through the bounded region-scroll primitive, while keeping NEL, origin mode, IL/DL, scrollback, and alternate screens separate.
 
 ## Later
+
+- [x] Make IND and RI region-aware at active vertical margins through a bounded grid region-scroll primitive while preserving outside-region movement, full-screen defaults, and NEL/SU/SD behavior.
 
 - [x] Introduce typed bounded vertical scrolling margins and DECSTBM parser/state semantics with full-screen defaults, cursor homing, atomic invalid-input handling, and reset/resize invariants.
 

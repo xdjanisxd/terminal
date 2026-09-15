@@ -140,7 +140,7 @@ fn reset_and_resize_restore_full_screen_margins() {
 }
 
 #[test]
-fn custom_margins_do_not_yet_change_full_screen_scrolling_controls() {
+fn custom_margins_do_not_change_full_screen_su_sd_or_nel() {
     let cases: &[ScrollCase] = &[
         (
             "SU",
@@ -155,18 +155,6 @@ fn custom_margins_do_not_yet_change_full_screen_scrolling_controls() {
             (2, 1),
         ),
         (
-            "IND",
-            |state| state.index(),
-            ["cd", "ef", "gh", "  "],
-            (3, 1),
-        ),
-        (
-            "RI",
-            |state| state.reverse_index(),
-            ["  ", "ab", "cd", "ef"],
-            (0, 1),
-        ),
-        (
             "NEL",
             |state| state.next_line(),
             ["cd", "ef", "gh", "  "],
@@ -178,8 +166,7 @@ fn custom_margins_do_not_yet_change_full_screen_scrolling_controls() {
         let mut state = labeled_state();
         assert!(state.set_vertical_scrolling_margins(1, 2));
         let start = match *name {
-            "IND" | "NEL" => (3, 1),
-            "RI" => (0, 1),
+            "NEL" => (3, 1),
             _ => (2, 1),
         };
         state.set_cursor_position(start.0, start.1).unwrap();

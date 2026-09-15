@@ -1,4 +1,4 @@
-use crate::{Cell, Cursor, CursorError, TerminalDimensions};
+use crate::{Cell, Cursor, CursorError, TerminalDimensions, VerticalScrollingMargins};
 
 /// A bounded, row-major terminal screen grid.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -9,7 +9,7 @@ pub struct ScreenGrid {
 }
 
 #[derive(Clone, Copy)]
-enum FullScreenScrollDirection {
+enum ScrollDirection {
     Up,
     Down,
 }
@@ -86,35 +86,64 @@ impl ScreenGrid {
     }
 
     pub(crate) fn scroll_up(&mut self, rows: usize) {
-        self.scroll_full_screen(rows, FullScreenScrollDirection::Up);
+        self.scroll_region_up(
+            VerticalScrollingMargins::full_screen(self.dimensions.rows()),
+            rows,
+        );
     }
 
     pub(crate) fn scroll_down(&mut self, rows: usize) {
-        self.scroll_full_screen(rows, FullScreenScrollDirection::Down);
+        self.scroll_region_down(
+            VerticalScrollingMargins::full_screen(self.dimensions.rows()),
+            rows,
+        );
     }
 
-    fn scroll_full_screen(&mut self, rows: usize, direction: FullScreenScrollDirection) {
-        let rows = rows.min(self.dimensions.rows());
+    pub(crate) fn scroll_region_up(&mut self, margins: VerticalScrollingMargins, rows: usize) {
+        self.scroll_region(margins, rows, ScrollDirection::Up);
+    }
+
+    pub(crate) fn scroll_region_down(&mut self, margins: VerticalScrollingMargins, rows: usize) {
+        self.scroll_region(margins, rows, ScrollDirection::Down);
+    }
+
+    fn scroll_region(
+        &mut self,
+        margins: VerticalScrollingMargins,
+        rows: usize,
+        direction: ScrollDirection,
+    ) {
+        if margins.bottom() >= self.dimensions.rows() {
+            return;
+        }
+
+        let region_height = margins.bottom() - margins.top() + 1;
+        let rows = rows.min(region_height);
         if rows == 0 {
             return;
         }
 
-        let shifted_cells = rows * self.dimensions.columns();
-        let cell_count = self.cells.len();
-        if shifted_cells == cell_count {
-            self.clear();
+        let columns = self.dimensions.columns();
+        let region_start = margins.top() * columns;
+        let region_end = (margins.bottom() + 1) * columns;
+        let shifted_cells = rows * columns;
+        if rows == region_height {
+            self.cells[region_start..region_end].fill(Cell::default());
             return;
         }
 
         match direction {
-            FullScreenScrollDirection::Up => {
-                self.cells.copy_within(shifted_cells.., 0);
-                self.cells[cell_count - shifted_cells..].fill(Cell::default());
-            }
-            FullScreenScrollDirection::Down => {
+            ScrollDirection::Up => {
                 self.cells
-                    .copy_within(..cell_count - shifted_cells, shifted_cells);
-                self.cells[..shifted_cells].fill(Cell::default());
+                    .copy_within(region_start + shifted_cells..region_end, region_start);
+                self.cells[region_end - shifted_cells..region_end].fill(Cell::default());
+            }
+            ScrollDirection::Down => {
+                self.cells.copy_within(
+                    region_start..region_end - shifted_cells,
+                    region_start + shifted_cells,
+                );
+                self.cells[region_start..region_start + shifted_cells].fill(Cell::default());
             }
         }
     }
@@ -143,5 +172,121 @@ impl ScreenGrid {
         self.dimensions = dimensions;
         self.cells = cells;
         self.cursor.clamp_to(dimensions);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        CellAttributes, CellColor, InverseVideo, ItalicStyle, TextIntensity, UnderlineStyle,
+    };
+
+    fn labeled_grid() -> ScreenGrid {
+        let mut grid = ScreenGrid::new(TerminalDimensions::new(2, 6).unwrap());
+        for (row, text) in ["ab", "cd", "ef", "gh", "ij", "kl"].into_iter().enumerate() {
+            for (column, character) in text.chars().enumerate() {
+                *grid.cell_mut(row, column).unwrap() =
+                    Cell::new(character, CellAttributes::default());
+            }
+        }
+        grid
+    }
+
+    fn row_text(grid: &ScreenGrid, row: usize) -> String {
+        (0..grid.dimensions().columns())
+            .map(|column| grid.cell(row, column).unwrap().character())
+            .collect()
+    }
+
+    #[test]
+    fn scrolls_middle_region_up_and_down_without_touching_outside_rows() {
+        let margins = VerticalScrollingMargins::new(1, 4, 6).unwrap();
+        let mut up = labeled_grid();
+        let up_above = [*up.cell(0, 0).unwrap(), *up.cell(0, 1).unwrap()];
+        let up_below = [*up.cell(5, 0).unwrap(), *up.cell(5, 1).unwrap()];
+        up.scroll_region_up(margins, 1);
+        assert_eq!(
+            (0..6).map(|row| row_text(&up, row)).collect::<Vec<_>>(),
+            ["ab", "ef", "gh", "ij", "  ", "kl"]
+        );
+        assert_eq!([*up.cell(0, 0).unwrap(), *up.cell(0, 1).unwrap()], up_above);
+        assert_eq!([*up.cell(5, 0).unwrap(), *up.cell(5, 1).unwrap()], up_below);
+
+        let mut down = labeled_grid();
+        down.scroll_region_down(margins, 1);
+        assert_eq!(
+            (0..6).map(|row| row_text(&down, row)).collect::<Vec<_>>(),
+            ["ab", "  ", "cd", "ef", "gh", "kl"]
+        );
+    }
+
+    #[test]
+    fn region_scroll_preserves_complete_cells_and_uses_default_exposed_rows() {
+        let mut grid = labeled_grid();
+        let mut attributes = CellAttributes::new(CellColor::Indexed(196), CellColor::Indexed(22));
+        attributes.set_intensity(TextIntensity::Bold);
+        attributes.set_italic(ItalicStyle::Italic);
+        attributes.set_underline(UnderlineStyle::Enabled);
+        attributes.set_inverse(InverseVideo::Enabled);
+        *grid.cell_mut(3, 0).unwrap() = Cell::new('X', attributes);
+        let styled = *grid.cell(3, 0).unwrap();
+
+        grid.scroll_region_up(VerticalScrollingMargins::new(1, 4, 6).unwrap(), 1);
+
+        assert_eq!(grid.cell(2, 0), Some(&styled));
+        for column in 0..2 {
+            assert_eq!(grid.cell(4, column), Some(&Cell::default()));
+        }
+    }
+
+    #[test]
+    fn region_scroll_clamps_counts_and_handles_one_row_regions() {
+        for scroll_up in [true, false] {
+            for count in [4, 5, usize::MAX] {
+                let mut grid = labeled_grid();
+                let margins = VerticalScrollingMargins::new(1, 4, 6).unwrap();
+                if scroll_up {
+                    grid.scroll_region_up(margins, count);
+                } else {
+                    grid.scroll_region_down(margins, count);
+                }
+                assert_eq!(row_text(&grid, 0), "ab");
+                assert_eq!(row_text(&grid, 5), "kl");
+                for row in 1..=4 {
+                    assert_eq!(row_text(&grid, row), "  ");
+                }
+            }
+        }
+
+        for scroll_up in [true, false] {
+            let mut grid = labeled_grid();
+            let margins = VerticalScrollingMargins::new(2, 2, 6).unwrap();
+            if scroll_up {
+                grid.scroll_region_up(margins, usize::MAX);
+            } else {
+                grid.scroll_region_down(margins, usize::MAX);
+            }
+            assert_eq!(row_text(&grid, 1), "cd");
+            assert_eq!(row_text(&grid, 2), "  ");
+            assert_eq!(row_text(&grid, 3), "gh");
+        }
+    }
+
+    #[test]
+    fn region_scroll_supports_ranges_touching_either_screen_edge() {
+        let mut top = labeled_grid();
+        top.scroll_region_up(VerticalScrollingMargins::new(0, 2, 6).unwrap(), 1);
+        assert_eq!(
+            (0..6).map(|row| row_text(&top, row)).collect::<Vec<_>>(),
+            ["cd", "ef", "  ", "gh", "ij", "kl"]
+        );
+
+        let mut bottom = labeled_grid();
+        bottom.scroll_region_down(VerticalScrollingMargins::new(3, 5, 6).unwrap(), 1);
+        assert_eq!(
+            (0..6).map(|row| row_text(&bottom, row)).collect::<Vec<_>>(),
+            ["ab", "cd", "ef", "  ", "gh", "ij"]
+        );
     }
 }
