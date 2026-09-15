@@ -271,29 +271,39 @@ impl TerminalState {
         }
     }
 
-    /// Advances one row, scrolling upward at the bottom edge.
+    /// Advances one row, scrolling the active region at its bottom margin.
     ///
-    /// The cursor column is preserved and delayed wrap is cancelled.
+    /// Outside the scrolling region, movement remains bounded by the screen and
+    /// never scrolls. The cursor column is preserved and delayed wrap is cancelled.
     pub fn index(&mut self) {
-        self.line_feed();
+        let cursor_row = self.cursor().row();
+        if cursor_row == self.vertical_scrolling_margins.bottom() {
+            self.screen
+                .scroll_region_up(self.vertical_scrolling_margins, 1);
+        } else if cursor_row + 1 < self.dimensions().rows() {
+            self.screen.move_cursor(1, 0);
+        }
         self.wrap_pending = false;
     }
 
-    /// Moves up one row, scrolling downward at the top edge.
+    /// Moves up one row, scrolling the active region at its top margin.
     ///
-    /// The cursor column is preserved and delayed wrap is cancelled.
+    /// Outside the scrolling region, movement remains bounded by the screen and
+    /// never scrolls. The cursor column is preserved and delayed wrap is cancelled.
     pub fn reverse_index(&mut self) {
-        if self.cursor().row() > 0 {
+        let cursor_row = self.cursor().row();
+        if cursor_row == self.vertical_scrolling_margins.top() {
+            self.screen
+                .scroll_region_down(self.vertical_scrolling_margins, 1);
+        } else if cursor_row > 0 {
             self.screen.move_cursor(-1, 0);
-        } else {
-            self.scroll_down(1);
         }
         self.wrap_pending = false;
     }
 
     /// Advances one row and returns to the first column.
     pub fn next_line(&mut self) {
-        self.index();
+        self.line_feed();
         self.carriage_return();
     }
 

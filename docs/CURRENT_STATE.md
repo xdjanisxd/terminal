@@ -5,21 +5,21 @@
 - Valid Rust workspace, MIT metadata, and required repository knowledge system
 - Cross-platform GitHub Actions gates verified on Windows, Linux, and macOS for x86_64 and ARM64
 - Project-owned `terminal-core` models for bounded dimensions, cells, typed colors and rendition attributes, row-major screen storage, and a grid-owned bounded cursor
-- Zero-based checked cell access, default-cell clearing, and top-left-preserving resize with cursor clamping
+- Zero-based checked cell access, default-cell clearing, bounded inclusive region-scroll primitives, and top-left-preserving resize with cursor clamping
 - Typed terminal-global modes for cursor visibility, auto-wrap, and insert/replace behavior
 - Separate typed input-related state for normal/application cursor keys
 - Parser-independent `TerminalState` owning one active `ScreenGrid`, current rendition, `TerminalModes`, `InputModes`, bounded mutable horizontal tab stops, and bounded typed vertical scrolling margins
-- Controlled state operations for cursor movement, full-screen scroll up/down, horizontal tabs and tab-stop mutation, vertical scrolling-margin updates, current rendition, clearing, resizing, supported mode changes, and a project-owned reset
+- Controlled state operations for cursor movement, full-screen scroll up/down, margin-aware IND/RI, horizontal tabs and tab-stop mutation, vertical scrolling-margin updates, current rendition, clearing, resizing, supported mode changes, and a project-owned reset
 - Project-owned typed cursor movement and inclusive erase-region operations, with all absolute and relative movement clamped to the active screen
 - Parser-independent printable-character, carriage-return, line-feed, index, reverse-index, next-line, backspace, horizontal-tab, full-screen-scroll, typed scrolling-margin, and typed rendition operations routed through `TerminalState`
-- Delayed right-margin wrapping, auto-wrap suppression, bounded full-screen SU/SD and IND/RI/NEL edge scrolling, fixed-screen bottom scrolling, and fixed-width insert/replace output behavior
+- Delayed right-margin wrapping, auto-wrap suppression, bounded full-screen SU/SD and NEL edge scrolling, margin-aware IND/RI region scrolling, fixed-screen bottom scrolling, and fixed-width insert/replace output behavior
 - Incremental project-owned `TerminalParser` adapter encapsulating `vte` and preserving parser state across input chunks
 - Parser routing for printable input, CR, LF, BS, HT, HTS, IND, RI, NEL, TBC, CUU/CUD/CUF/CUB, CUP/HVP, CHA/VPA, ED, EL, full-screen SU/SD, DECSTBM, IRM, DECAWM, DECTCEM, and SGR styles, defaults, ANSI 16 colors, and semicolon-form indexed foreground/background colors; unsupported parser actions and parameters are ignored without approximation
 - DECSTBM omitted/zero defaults, one-based validation before zero-based conversion, cursor homing and delayed-wrap cancellation on success, and atomic no-op behavior for invalid ranges, extra parameters, and subparameter forms
 - Bounded grouped handling for extended-color SGR: indexed selectors consume one index, unsupported truecolor consumes three payload parameters, and unknown selectors consume the remaining CSI parameters so payload cannot leak into unrelated SGR
 - Bounded, resumable semantic-error reporting with exact consumed-byte counts
 - Bounded 1,024-byte OSC parser storage by compiling `vte` without its default `std` feature
-- One hundred seventy-eight `terminal-core` unit/integration tests plus four compile-fail ownership tests
+- One hundred ninety-four `terminal-core` unit/integration tests plus four compile-fail ownership tests
 
 ## Partial
 
@@ -32,7 +32,7 @@
 
 ## Missing
 
-- Remaining CSI/SGR style semantics and modes, truecolor and colon-form color semantics, OSC/DCS semantics, terminal replies, region-aware scrolling operations, saved cursor state, origin mode, and alternate screens
+- Remaining CSI/SGR style semantics and modes, truecolor and colon-form color semantics, OSC/DCS semantics, terminal replies, region-aware SU/SD and NEL behavior, saved cursor state, origin mode, and alternate screens
 - PTY, renderer, input encoding, configuration, workspace, and platform implementations
 - Scrollback and compatibility/performance baselines
 

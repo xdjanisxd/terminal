@@ -2,7 +2,7 @@
 
 ## Current state
 
-The typed scrolling-margin/DECSTBM M2 foundation slice is complete.
+The margin-aware IND/RI M2 slice is complete.
 
 Implemented:
 
@@ -39,7 +39,9 @@ Implemented:
 * full-screen margin defaults on creation and reset, with full-new-height margins after grow or shrink resize
 * atomic parser-independent margin replacement through `TerminalState`, including screen-origin cursor homing and delayed-wrap cancellation on success
 * private DECSTBM translation with omitted/zero defaults, one-based validation before conversion, and safe no-ops for equal/reversed/out-of-bounds ranges, extra scalar parameters, and colon/subparameter groups
-* unchanged full-screen SU/SD/IND/RI/NEL behavior after custom margins are set
+* bounded inclusive `ScreenGrid` region-scroll up/down primitives with count clamping, complete-cell movement, default exposed rows, and untouched outside rows
+* margin-aware IND and RI movement and boundary scrolling through `TerminalState`, including one-row regions and bounded movement outside custom margins
+* full-screen IND/RI compatibility plus unchanged full-screen SU/SD and NEL semantics
 
 `terminal-core` currently depends only on `vte`, with default features disabled.
 
@@ -47,11 +49,11 @@ Implemented:
 
 Local required Cargo gates pass on `x86_64-pc-windows-gnu`.
 
-Current terminal-core coverage includes 178 unit/integration tests plus four ownership doctests.
+Current terminal-core coverage includes 194 unit/integration tests plus four ownership doctests.
 
-Structural Graphify data refreshed locally in code-only mode to 546 nodes and 737 edges across 52 communities. Semantic enrichment was unavailable because no supported LLM API key is configured.
+Structural Graphify data refreshed locally in code-only mode to 603 nodes and 815 edges across 58 communities. Semantic enrichment was unavailable because no supported LLM API key is configured.
 
-The targeted Graphify, dependency-direction, static-security, direct diff, and independent delegated reviews found no blocking issues. The delegated review's minor documentation observations were already covered by the explicit architecture and limitation text.
+The targeted Graphify, architecture, dependency-direction, static-security, direct diff, and independent delegated reviews found no issues.
 
 Remote CI has not run for this unpushed slice and remains the merge gate.
 
@@ -61,7 +63,7 @@ Remote CI has not run for this unpushed slice and remains the merge gate.
 * CSI mode support is intentionally limited to standard IRM and DEC-private DECAWM/DECTCEM; all other mode identifiers remain no-ops.
 * Horizontal tabs are cursor-only: they do not write tab characters or spaces into cells. HT cancels delayed wrap and remains on the final column when no later stop exists.
 * SGR supports reset, bold, italic, underline, inverse, ANSI 16 colors, semicolon-form indexed foreground/background colors, and per-channel defaults. Truecolor, colon color forms, and additional styles remain deferred.
-* Full-screen SU/SD and IND/RI/NEL remain intentionally independent of the stored vertical scrolling margins; region-aware behavior, origin mode, insert/delete lines, alternate-screen behavior, and history remain deferred.
+* IND and RI consult the active vertical scrolling margins; SU, SD, and NEL remain intentionally full-screen. Region-aware SU/SD and NEL, origin mode, insert/delete lines, alternate-screen behavior, and history remain deferred.
 * Unicode combining/wide-cell behavior is deferred.
 * No PTY, renderer, scrollback, alternate screen, or terminal replies exist yet.
 * Resize still uses top-left preservation with no line reflow.
@@ -74,5 +76,5 @@ See:
 
 ## Next
 
-1. Make IND and RI region-aware at the active top and bottom margins while preserving current full-screen behavior; keep SU/SD, NEL, origin mode, IL/DL, scrollback, and alternate screens separate.
+1. Make explicit SU and SD region-aware through the bounded inclusive grid region-scroll primitive; keep NEL, origin mode, IL/DL, scrollback, and alternate screens separate.
 
