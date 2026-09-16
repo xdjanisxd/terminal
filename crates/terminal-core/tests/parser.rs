@@ -1023,7 +1023,7 @@ fn sgr_indexed_color_groups_preserve_parameter_order() {
 }
 
 #[test]
-fn malformed_known_extended_color_groups_do_not_leak_payload_parameters() {
+fn malformed_indexed_color_groups_do_not_leak_payload_parameters() {
     for sequence in [
         b"\x1b[38m".as_slice(),
         b"\x1b[48m",
@@ -1068,7 +1068,11 @@ fn malformed_known_extended_color_groups_do_not_leak_payload_parameters() {
         .unwrap();
     assert_eq!(
         state.current_rendition().foreground(),
-        CellColor::Indexed(2)
+        CellColor::Rgb {
+            red: 255,
+            green: 0,
+            blue: 0,
+        }
     );
     assert_eq!(state.current_rendition().intensity(), TextIntensity::Bold);
     assert_eq!(
@@ -1081,7 +1085,11 @@ fn malformed_known_extended_color_groups_do_not_leak_payload_parameters() {
         .unwrap();
     assert_eq!(
         state.current_rendition().background(),
-        CellColor::Indexed(4)
+        CellColor::Rgb {
+            red: 1,
+            green: 3,
+            blue: 4,
+        }
     );
     assert_eq!(state.current_rendition().italic(), ItalicStyle::Upright);
     assert_eq!(

@@ -20,7 +20,7 @@
 
 - [x] Add bounded full-screen SU/SD through `TerminalState`, with clamped counts, cursor and delayed-wrap preservation, complete-cell movement, and canonical default blank rows.
 
-- [x] Add bounded SGR indexed-color parsing for `38;5;n` and `48;5;n` using the existing `CellColor::Indexed` model; truecolor, colon color forms, and unrelated styles remain deferred.
+- [x] Add semicolon-form SGR truecolor foreground/background support through the existing `CellColor::Rgb` rendition model, with bounded grouped malformed-payload handling.
 
 - [x] Start M2 with a narrow typed cursor/erase semantic slice through `TerminalState`; keep protocol numeric identifiers inside the parser adapter.
 - [x] Connect standard IRM and private DECAWM/DECTCEM parser dispatch to existing `TerminalState` setters; keep unsupported modes as no-ops and protocol identifiers private.

@@ -275,13 +275,36 @@ impl<'a> SemanticPerformer<'a> {
                         .set_background_color(CellColor::Indexed(index)),
                 }
             }
-            // Truecolor is unsupported, but its three payload parameters belong
-            // to this logical color group and must not become unrelated SGR.
             2 => {
-                for _ in 0..3 {
-                    if parameters.next().is_none() {
-                        break;
-                    }
+                let mut components = [0; 3];
+                let mut complete = true;
+                for component in &mut components {
+                    let Some(parameter) = parameters.next() else {
+                        complete = false;
+                        continue;
+                    };
+                    let [value] = parameter else {
+                        complete = false;
+                        continue;
+                    };
+                    *component = *value;
+                }
+                if !complete {
+                    return;
+                }
+                let Ok(red) = u8::try_from(components[0]) else {
+                    return;
+                };
+                let Ok(green) = u8::try_from(components[1]) else {
+                    return;
+                };
+                let Ok(blue) = u8::try_from(components[2]) else {
+                    return;
+                };
+                let color = CellColor::Rgb { red, green, blue };
+                match channel {
+                    ExtendedColorChannel::Foreground => self.terminal.set_foreground_color(color),
+                    ExtendedColorChannel::Background => self.terminal.set_background_color(color),
                 }
             }
             // An unknown selector has no defined payload length. Ignore the

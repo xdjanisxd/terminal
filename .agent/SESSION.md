@@ -2,32 +2,31 @@
 
 ## Current state
 
-The narrow M2 ANSI DSR/CPR slice is complete.
+The narrow M2 semicolon-form truecolor SGR slice is complete on `feat/m2-terminal-compatibility`.
 
-`TerminalParser` recognizes only standard `CSI 6 n` and delegates to `TerminalState::request_cursor_position_report()`. `TerminalState` captures its current absolute zero-based cursor coordinates as one-based `u16` values at query time and queues `TerminalReply::CursorPosition` through the existing fixed-capacity `PendingReplies` FIFO. `TerminalReply` now provides fixed 12-byte-capacity wire encoding for DA1 and dynamic CPR values; no heap allocation, extra queue, output abstraction, or PTY/session dependency was added.
+`TerminalParser` supports exact RGB foreground `CSI 38;2;r;g;b m` and background `CSI 48;2;r;g;b m` through the existing project-owned `CellColor::Rgb` and `TerminalState` rendition setters. `CellAttributes` remains the current-rendition value and per-cell immutable snapshot; parser code never mutates existing cells or `ScreenGrid` directly.
 
-CPR is `ESC [ <row> ; <column> R`, remains absolute with DECSTBM margins active, preserves terminal state and delayed wrap, retains captured coordinates across reset/resize, and is FIFO-interleaved with DA1. Unsupported DSR parameters and private DSR forms do not reply.
+The truecolor group consumes exactly three scalar components, validates all as `u8` before a color mutation, and keeps incomplete, subparameter, out-of-range, and colon-form input safely unsupported. Existing SGR 0, 39, and 49 reset behavior applies to RGB. No new dependency, color representation, renderer behavior, reply behavior, mode, PTY/session work, or queue was added.
 
 ## Validation
 
 Local Windows GNU validation passed:
 
 * `cargo fmt --all -- --check`
-* `cargo test --workspace --all-targets` (234 unit/integration tests)
+* `cargo test --workspace --all-targets` (239 unit/integration tests)
 * `cargo test --workspace --doc` (four compile-fail ownership doctests)
 * `cargo check --workspace --all-targets`
 * `cargo clippy --workspace --all-targets -- -D warnings`
 * `git diff --check`
-* source-only dependency/static scans (no PTY, async runtime, event bus, or unsafe Rust)
+* dependency/static scans (no PTY, async runtime, event bus, renderer dependency, or unsafe Rust)
 
-Structural Graphify was refreshed code-only to 712 nodes, 987 edges, and 75 communities. Targeted paths confirm `SemanticPerformer::csi_dispatch` reaches `TerminalState::request_cursor_position_report`, which reaches the existing `PendingReplies`. Semantic enrichment remains unavailable because no supported LLM API key is configured.
+Structural Graphify was refreshed code-only to 725 nodes, 1,001 edges, and 80 communities. Targeted architecture checks confirm parser-to-`TerminalState` rendition ownership, project-owned RGB cells, and no renderer dependency. Semantic enrichment remains unavailable because no supported LLM API key is configured. An independent read-only review found no blocking or high-severity issue; its suggested combined foreground/background CSI coverage was added and validated.
 
 ## Important limitations
 
-* Only ANSI `CSI 6 n` is implemented; operating-status DSR, private DSR/CPR, and origin mode remain deferred.
-* CPR reports absolute screen coordinates; DECSTBM does not change the coordinate origin.
-* Unicode combining/wide cells, alternate screens, scrollback, PTY/session integration, renderer behavior, IL/DL, truecolor, and further compatibility behavior remain deferred.
+* Only semicolon-form RGB foreground/background are supported; colon forms, underline color, and remaining SGR semantics are deferred.
+* Unicode combining/wide cells, origin mode, IL/DL, alternate screens, scrollback, PTY/session integration, and renderer behavior remain deferred.
 
 ## Next
 
-Reassess the still-open M2 item “Implement and test remaining commonly used scroll, SGR, mode, and reply behavior” and select one high-value narrow compatibility slice. Do not advance to Unicode/wide cells, alternate screens/scrollback, or M3 PTY work.
+Reassess the still-open M2 item “Implement and test remaining commonly used scroll, SGR, mode, and reply behavior” and select a high-value narrow mode or compatibility gap. Do not advance to Unicode/wide cells, alternate screens/scrollback, or M3 PTY work.
