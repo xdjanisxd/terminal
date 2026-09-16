@@ -60,6 +60,8 @@
   "58": "config/src/lib.rs",
   "59": "platform/src/lib.rs",
   "60": "renderer/src/lib.rs",
+  "61": "erase_characters.rs",
+  "62": "erase_characters_parser.rs",
   "65": "region_nel.rs",
   "66": "terminal-pty/src/lib.rs",
   "67": "workspace/src/lib.rs",

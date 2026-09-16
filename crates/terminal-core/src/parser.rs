@@ -432,6 +432,11 @@ impl vte::Perform for SemanticPerformer<'_> {
             return;
         }
 
+        if action == 'X' && count <= 1 {
+            self.terminal.erase_characters(default_one(values[0]));
+            return;
+        }
+
         if matches!(action, 'L' | 'M') && count <= 1 {
             let rows = default_one(values[0]);
             if action == 'L' {
