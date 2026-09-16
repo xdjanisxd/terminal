@@ -2,7 +2,7 @@
 
 ## Next
 
-- [ ] Evaluate a narrow DA2/secondary-device-attributes reply slice against the existing conservative DA1 identity policy before selecting any additional M2 work.
+- [ ] Implement Unicode combining and wide-cell invariants as the next roadmap item; retain fixed-cell ASCII semantics until its explicit design and tests are ready.
 
 ## Later
 

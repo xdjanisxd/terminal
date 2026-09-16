@@ -37,7 +37,7 @@ Completion marks require tested acceptance criteria, not code presence alone.
 - [x] Make explicit SU and SD use the active vertical scrolling margins through the bounded inclusive grid region-scroll primitive
 - [x] Make NEL compose region-aware index semantics with carriage return while preserving full-screen compatibility
 - [x] Add bounded primary DA1 query/reply semantics through `TerminalState` without PTY integration
-- [ ] Implement and test remaining commonly used scroll, SGR, mode, and reply behavior
+- [x] Implement and test remaining commonly used scroll, SGR, mode, and reply behavior
   - [x] Add ANSI cursor-position DSR (`CSI 6 n`) and bounded absolute CPR replies through `TerminalState`
   - [x] Add ANSI DSR terminal-status query (`CSI 5 n`) and bounded `CSI 0 n` reply
   - [x] Add semicolon-form truecolor foreground/background SGR through the existing project-owned rendition model
@@ -48,6 +48,7 @@ Completion marks require tested acceptance criteria, not code presence alone.
   - [x] Add bounded ECH current-row cell erasure without shifting neighboring cells
   - [x] Add bounded CNL/CPL cursor-next/previous-line movement with column reset and no scrolling
   - [x] Add typed SGR faint intensity with ordered `1`/`2`/`22` semantics through the existing rendition model
+  - [x] Add conservative fixed DA2 secondary-device-attributes replies through the existing bounded reply FIFO
 - [ ] Implement Unicode combining and wide-cell invariants
 - [ ] Implement primary/alternate screens, resize behavior, and bounded scrollback
 - [ ] Validate against representative modern shells and TUIs

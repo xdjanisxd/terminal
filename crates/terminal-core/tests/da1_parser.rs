@@ -110,8 +110,6 @@ fn incomplete_malformed_private_and_non_primary_da_forms_do_not_reply() {
         b"\x1b[0:1c",
         b"\x1b[?c",
         b"\x1b[?0c",
-        b"\x1b[>c",
-        b"\x1b[>0c",
         b"\x1b[=c",
         b"\x1b[=0c",
     ] {

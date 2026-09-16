@@ -165,6 +165,16 @@ impl TerminalState {
             .push(TerminalReply::PrimaryDeviceAttributes)
     }
 
+    /// Queues the conservative fixed secondary Device Attributes response.
+    ///
+    /// Returns `false` without replacing an older reply when the fixed-capacity
+    /// reply queue is full.
+    #[must_use]
+    pub fn request_secondary_device_attributes(&mut self) -> bool {
+        self.pending_replies
+            .push(TerminalReply::SecondaryDeviceAttributes)
+    }
+
     /// Queues the fixed ANSI terminal-status response.
     ///
     /// Returns `false` without replacing an older reply when the fixed-capacity

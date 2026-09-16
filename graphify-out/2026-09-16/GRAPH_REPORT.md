@@ -1,16 +1,16 @@
 # Graph Report - terminal  (2026-09-16)
 
 ## Corpus Check
-- 73 files · ~30,319 words
+- 73 files · ~30,583 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 801 nodes · 1202 edges · 73 communities (56 shown, 7 thin omitted)
+- 804 nodes · 1208 edges · 73 communities (56 shown, 7 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `7cb866b3`
+- Built from commit: `f39f7a7a`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -29,7 +29,7 @@
 - HorizontalTabStops
 - region_su_sd_parser.rs
 - Architecture
-- dsr_status_parser.rs
+- cpr_parser.rs
 - insert_delete_lines.rs
 - assert_observable_state_eq
 - region_su_sd.rs
@@ -84,12 +84,12 @@
 2. `ScreenGrid` - 28 edges
 3. `CellAttributes` - 24 edges
 4. `TerminalDimensions` - 17 edges
-5. `assert_observable_state_eq()` - 15 edges
+5. `assert_observable_state_eq()` - 16 edges
 6. `Cell` - 13 edges
-7. `TerminalModes` - 12 edges
-8. `TerminalReply` - 12 edges
-9. `HorizontalTabStops` - 12 edges
-10. `parse_in_chunks()` - 12 edges
+7. `parse_in_chunks()` - 13 edges
+8. `TerminalModes` - 12 edges
+9. `TerminalReply` - 12 edges
+10. `HorizontalTabStops` - 12 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `rgb()` --references--> `CellColor`  [EXTRACTED]
@@ -114,7 +114,7 @@ Nodes (21): default_one(), ExtendedColorChannel, Default, Display, Error, Format
 
 ### Community 3 - "TerminalReply"
 Cohesion: 0.06
-Nodes (19): PendingReplies, Default, Option, Self, TerminalReply, TerminalReplyBytes, Option, cpr_is_chunk_safe_at_every_input_boundary_and_across_calls() (+11 more)
+Nodes (19): PendingReplies, Default, Option, Self, TerminalReply, TerminalReplyBytes, Option, reply_bytes() (+11 more)
 
 ### Community 4 - "ScreenGrid"
 Cohesion: 0.18
@@ -164,17 +164,17 @@ Nodes (11): decstbm_followed_by_su_or_sd_uses_active_region_and_default_count(),
 Cohesion: 0.15
 Nodes (12): Architecture, Commands and workspaces, Conceptual components, Dependency direction, Initial terminal-core model invariants, Mode ownership, Parser boundary, Resource and trust boundaries (+4 more)
 
-### Community 17 - "dsr_status_parser.rs"
+### Community 17 - "cpr_parser.rs"
 Cohesion: 0.43
-Nodes (6): bytes(), parser_dispatches_status_at_every_chunk_boundary(), Vec, state(), status_preserves_order_with_cpr_and_da1(), unsupported_dsr_forms_remain_noops()
+Nodes (6): cpr_is_chunk_safe_at_every_input_boundary_and_across_calls(), incomplete_or_malformed_dsr_does_not_reply_before_a_complete_valid_query(), multiple_and_interleaved_da1_and_cpr_queries_keep_exact_fifo_order(), reply_bytes(), Vec, state()
 
 ### Community 18 - "insert_delete_lines.rs"
 Cohesion: 0.29
 Nodes (10): delete_lines_is_cursor_relative_within_the_active_region(), insert_lines_is_cursor_relative_within_the_active_region(), labeled_state(), line_operations_are_no_ops_outside_margins_and_use_full_screen_defaults(), line_operations_clamp_to_the_cursor_to_bottom_subregion(), line_operations_leave_margins_intact(), line_operations_preserve_complete_cells_canonical_blanks_and_unrelated_state(), rows() (+2 more)
 
 ### Community 19 - "assert_observable_state_eq"
-Cohesion: 0.30
-Nodes (12): assert_observable_state_eq(), byte_at_a_time_matches_one_shot_input(), cnl_and_cpl_are_chunk_safe_and_preserve_printable_input(), every_split_point_matches_one_shot_input(), ind_ri_nel_are_chunk_safe_at_every_byte_boundary(), indexed_color_and_malformed_groups_are_chunk_safe_at_every_boundary(), many_chunk_sizes_match_one_shot_input(), parse_in_chunks() (+4 more)
+Cohesion: 0.28
+Nodes (13): assert_observable_state_eq(), byte_at_a_time_matches_one_shot_input(), cnl_and_cpl_are_chunk_safe_and_preserve_printable_input(), every_split_point_matches_one_shot_input(), ind_ri_nel_are_chunk_safe_at_every_byte_boundary(), indexed_color_and_malformed_groups_are_chunk_safe_at_every_boundary(), many_chunk_sizes_match_one_shot_input(), parse_in_chunks() (+5 more)
 
 ### Community 20 - "region_su_sd.rs"
 Cohesion: 0.27
@@ -189,8 +189,8 @@ Cohesion: 0.29
 Nodes (9): labeled_state(), parse(), parser_il_dl_are_chunk_invariant_and_incomplete_or_malformed_input_is_safe(), parser_il_dl_clamp_counts_and_preserve_printable_neighbors(), parser_il_dl_preserve_cursor_and_existing_cell_model(), parser_il_dl_respect_cursor_relative_decstbm_subregions(), rows(), String (+1 more)
 
 ### Community 24 - "rendition.rs"
-Cohesion: 0.33
-Nodes (9): current_rendition_uses_documented_defaults(), foreground_and_background_channels_change_independently(), inverse_video_can_be_set_and_cleared_independently(), italic_can_be_set_and_cleared_independently(), printed_cells_snapshot_the_current_rendition_without_retroactive_changes(), state(), terminal_reset_restores_rendition_defaults(), text_intensity_can_be_set_and_cleared_independently() (+1 more)
+Cohesion: 0.30
+Nodes (10): current_rendition_uses_documented_defaults(), faint_intensity_is_typed_idempotent_and_preserved_by_resize(), foreground_and_background_channels_change_independently(), inverse_video_can_be_set_and_cleared_independently(), italic_can_be_set_and_cleared_independently(), printed_cells_snapshot_the_current_rendition_without_retroactive_changes(), state(), terminal_reset_restores_rendition_defaults() (+2 more)
 
 ### Community 25 - "CursorError"
 Cohesion: 0.25
@@ -334,22 +334,22 @@ Nodes (10): cells(), full_screen_nel_keeps_established_bottom_scroll_behavior(),
 
 ## Knowledge Gaps
 - **96 isolated node(s):** `terminal-app`, `terminal-config`, `terminal-platform`, `terminal-renderer`, `terminal-core` (+91 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 375 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 376 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **7 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `TerminalState` connect `TerminalState` to `SemanticPerformer`, `TerminalReply`, `ScreenGrid`, `CellAttributes`, `da1_parser.rs`, `assert_default_cell`, `TerminalModes`, `region_ind_ri.rs`, `HorizontalTabStops`, `region_su_sd_parser.rs`, `dsr_status_parser.rs`, `insert_delete_lines.rs`, `assert_observable_state_eq`, `region_su_sd.rs`, `scrolling_margins.rs`, `insert_delete_lines_parser.rs`, `rendition.rs`, `region_nel_parser.rs`, `delete_characters.rs`, `decckm_parser.rs`, `decstbm.rs`, `insert_characters.rs`, `VerticalScrollingMargins`, `insert_characters_parser.rs`, `labeled_scroll_state`, `region_ind_ri_parser.rs`, `delete_characters_parser.rs`, `filled_state`, `row_text`, `erase_characters.rs`, `erase_characters_parser.rs`, `region_nel.rs`?**
-  _High betweenness centrality (0.560) - this node is a cross-community bridge._
+- **Why does `TerminalState` connect `TerminalState` to `SemanticPerformer`, `TerminalReply`, `ScreenGrid`, `CellAttributes`, `da1_parser.rs`, `assert_default_cell`, `TerminalModes`, `region_ind_ri.rs`, `HorizontalTabStops`, `region_su_sd_parser.rs`, `cpr_parser.rs`, `insert_delete_lines.rs`, `assert_observable_state_eq`, `region_su_sd.rs`, `scrolling_margins.rs`, `insert_delete_lines_parser.rs`, `rendition.rs`, `region_nel_parser.rs`, `delete_characters.rs`, `decckm_parser.rs`, `decstbm.rs`, `insert_characters.rs`, `VerticalScrollingMargins`, `insert_characters_parser.rs`, `labeled_scroll_state`, `region_ind_ri_parser.rs`, `delete_characters_parser.rs`, `filled_state`, `row_text`, `erase_characters.rs`, `erase_characters_parser.rs`, `region_nel.rs`?**
+  _High betweenness centrality (0.561) - this node is a cross-community bridge._
 - **Why does `ScreenGrid` connect `ScreenGrid` to `CursorError`, `TerminalState`, `TerminalDimensions`, `grid.rs`?**
   _High betweenness centrality (0.072) - this node is a cross-community bridge._
-- **Why does `TerminalReply` connect `TerminalReply` to `da1_parser.rs`, `dsr_status_parser.rs`?**
+- **Why does `TerminalReply` connect `TerminalReply` to `da1_parser.rs`, `cpr_parser.rs`?**
   _High betweenness centrality (0.051) - this node is a cross-community bridge._
 - **What connects `terminal-app`, `terminal-config`, `terminal-platform` to the rest of the system?**
   _96 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `tests/parser.rs` be split into smaller, more focused modules?**
-  _Cohesion score 0.0392156862745098 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.038461538461538464 - nodes in this community are weakly interconnected._
 - **Should `tests/state.rs` be split into smaller, more focused modules?**
   _Cohesion score 0.0392156862745098 - nodes in this community are weakly interconnected._
 - **Should `SemanticPerformer` be split into smaller, more focused modules?**
