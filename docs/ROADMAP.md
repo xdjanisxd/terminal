@@ -40,6 +40,7 @@ Completion marks require tested acceptance criteria, not code presence alone.
 - [ ] Implement and test remaining commonly used scroll, SGR, mode, and reply behavior
   - [x] Add ANSI cursor-position DSR (`CSI 6 n`) and bounded absolute CPR replies through `TerminalState`
   - [x] Add semicolon-form truecolor foreground/background SGR through the existing project-owned rendition model
+  - [x] Add DECCKM parser dispatch to the existing typed application/normal cursor-key mode without input encoding
 - [ ] Implement Unicode combining and wide-cell invariants
 - [ ] Implement primary/alternate screens, resize behavior, and bounded scrollback
 - [ ] Validate against representative modern shells and TUIs

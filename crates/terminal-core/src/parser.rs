@@ -1,15 +1,16 @@
 use std::{error::Error, fmt};
 
 use crate::{
-    AutoWrapMode, CellColor, CharacterInsertionMode, CursorMovement, CursorVisibility,
-    EraseDirection, EraseRegion, InverseVideo, ItalicStyle, PrintError, TerminalState,
-    TextIntensity, UnderlineStyle,
+    AutoWrapMode, CellColor, CharacterInsertionMode, CursorKeyMode, CursorMovement,
+    CursorVisibility, EraseDirection, EraseRegion, InverseVideo, ItalicStyle, PrintError,
+    TerminalState, TextIntensity, UnderlineStyle,
 };
 
 // Compile vte without its std feature so OSC buffering uses its fixed-capacity
 // ArrayVec instead of an unbounded Vec. Unsupported OSC data beyond this limit
 // is discarded by vte and never reaches terminal semantics.
 const MAX_OSC_BYTES: usize = 1024;
+const APPLICATION_CURSOR_KEYS_MODE: u16 = 1;
 const INSERT_REPLACE_MODE: u16 = 4;
 const AUTO_WRAP_MODE: u16 = 7;
 const CURSOR_VISIBILITY_MODE: u16 = 25;
@@ -140,6 +141,14 @@ impl<'a> SemanticPerformer<'a> {
             };
 
             match (private, *mode) {
+                (true, APPLICATION_CURSOR_KEYS_MODE) => {
+                    let cursor_keys = if enabled {
+                        CursorKeyMode::Application
+                    } else {
+                        CursorKeyMode::Normal
+                    };
+                    self.terminal.set_cursor_key_mode(cursor_keys);
+                }
                 (false, INSERT_REPLACE_MODE) => {
                     let insertion = if enabled {
                         CharacterInsertionMode::Insert

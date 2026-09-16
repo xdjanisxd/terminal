@@ -2,31 +2,35 @@
 
 ## Current state
 
-The narrow M2 semicolon-form truecolor SGR slice is complete on `feat/m2-terminal-compatibility`.
+The narrow M2 DEC private application cursor-key mode (DECCKM) slice is complete on `feat/m2-terminal-compatibility`.
 
-`TerminalParser` supports exact RGB foreground `CSI 38;2;r;g;b m` and background `CSI 48;2;r;g;b m` through the existing project-owned `CellColor::Rgb` and `TerminalState` rendition setters. `CellAttributes` remains the current-rendition value and per-cell immutable snapshot; parser code never mutates existing cells or `ScreenGrid` directly.
+`TerminalParser` routes `CSI ? 1 h` and `CSI ? 1 l` through `TerminalState::set_cursor_key_mode` to the existing project-owned `InputModes`/`CursorKeyMode` state. Default and reset remain `Normal`; resize preserves the mode. Private parameters retain the existing ordered independent dispatch, so unsupported neighbors do not block parameter 1. Standard CSI mode 1, unknown private modes, malformed subparameters, and incomplete private CSI remain safe no-ops.
 
-The truecolor group consumes exactly three scalar components, validates all as `u8` before a color mutation, and keeps incomplete, subparameter, out-of-range, and colon-form input safely unsupported. Existing SGR 0, 39, and 49 reset behavior applies to RGB. No new dependency, color representation, renderer behavior, reply behavior, mode, PTY/session work, or queue was added.
+The change is terminal mode state only. No keyboard/input byte encoder, SS3/CSI arrow-key generation, PTY, renderer, workspace, public API, or dependency was added; use by input encoding remains deferred to M5.
 
 ## Validation
 
 Local Windows GNU validation passed:
 
 * `cargo fmt --all -- --check`
-* `cargo test --workspace --all-targets` (239 unit/integration tests)
+* `cargo test --workspace --all-targets` (245 unit/integration tests)
 * `cargo test --workspace --doc` (four compile-fail ownership doctests)
 * `cargo check --workspace --all-targets`
 * `cargo clippy --workspace --all-targets -- -D warnings`
 * `git diff --check`
 * dependency/static scans (no PTY, async runtime, event bus, renderer dependency, or unsafe Rust)
 
-Structural Graphify was refreshed code-only to 725 nodes, 1,001 edges, and 80 communities. Targeted architecture checks confirm parser-to-`TerminalState` rendition ownership, project-owned RGB cells, and no renderer dependency. Semantic enrichment remains unavailable because no supported LLM API key is configured. An independent read-only review found no blocking or high-severity issue; its suggested combined foreground/background CSI coverage was added and validated.
+Structural Graphify was refreshed code-only to 736 nodes, 1,011 edges, and 79 communities. Targeted architecture checks confirm `TerminalParser` reaches `CursorKeyMode` only through `TerminalState::set_cursor_key_mode`, with no input, PTY, renderer, or dependency coupling. Semantic enrichment remains unavailable because no supported LLM API key is configured. An independent read-only review found no blocking or high-severity issue; its suggested combined foreground/background CSI coverage was added and validated.
 
 ## Important limitations
 
-* Only semicolon-form RGB foreground/background are supported; colon forms, underline color, and remaining SGR semantics are deferred.
+* DECCKM is parser-selectable mode state only; actual cursor-key byte encoding remains deferred to M5.
 * Unicode combining/wide cells, origin mode, IL/DL, alternate screens, scrollback, PTY/session integration, and renderer behavior remain deferred.
+
+## Roadmap audit
+
+A complete M0–M2 roadmap consistency audit found all recorded completed milestone claims supported by current implementation, tests, architecture boundaries, and retained CI evidence. The earliest retained authenticated GitHub Actions CI run (`34327139362`) completed successfully on all six configured native OS/architecture jobs. The M2 parent compatibility item remains intentionally open; combining/wide-cell behavior, alternate screens/scrollback, and representative shell/TUI validation remain absent/deferred.
 
 ## Next
 
-Reassess the still-open M2 item “Implement and test remaining commonly used scroll, SGR, mode, and reply behavior” and select a high-value narrow mode or compatibility gap. Do not advance to Unicode/wide cells, alternate screens/scrollback, or M3 PTY work.
+Select one narrow M2 child within “Implement and test remaining commonly used scroll, SGR, mode, and reply behavior”: add IL/DL as bounded active scrolling-region operations. Do not advance to Unicode/wide cells, alternate screens/scrollback, or M3 PTY work.
