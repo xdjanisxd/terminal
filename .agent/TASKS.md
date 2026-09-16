@@ -2,9 +2,11 @@
 
 ## Next
 
-- [ ] Add IL/DL as bounded active scrolling-region operations through `TerminalState`, preserving complete cells and unrelated terminal state.
+- [ ] Add bounded ICH (`CSI Ps @`) through the existing row-local `ScreenGrid::insert_cell` primitive, preserving current M2 state boundaries.
 
 ## Later
+
+- [x] Add bounded IL/DL line insertion/deletion within the cursor-to-bottom portion of the active scrolling region, preserving complete cells, canonical blank cells, delayed wrap, and unrelated terminal state.
 
 - [x] Add DECCKM (`CSI ? 1 h`/`CSI ? 1 l`) parser dispatch through the existing typed `CursorKeyMode`, without keyboard/input encoding.
 

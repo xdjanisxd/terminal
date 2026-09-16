@@ -422,6 +422,16 @@ impl vte::Perform for SemanticPerformer<'_> {
             return;
         }
 
+        if matches!(action, 'L' | 'M') && count <= 1 {
+            let rows = default_one(values[0]);
+            if action == 'L' {
+                self.terminal.insert_lines(rows);
+            } else {
+                self.terminal.delete_lines(rows);
+            }
+            return;
+        }
+
         if matches!(action, 'S' | 'T') && count <= 1 {
             let rows = default_one(values[0]);
             if action == 'S' {
