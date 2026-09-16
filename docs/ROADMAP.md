@@ -44,6 +44,7 @@ Completion marks require tested acceptance criteria, not code presence alone.
   - [x] Add bounded IL/DL line insertion/deletion within the cursor-to-bottom portion of the active scrolling region
   - [x] Add bounded ICH cell insertion on the current row through project-owned grid/state operations
   - [x] Add bounded DCH cell deletion on the current row through project-owned grid/state operations
+  - [x] Add bounded ECH current-row cell erasure without shifting neighboring cells
 - [ ] Implement Unicode combining and wide-cell invariants
 - [ ] Implement primary/alternate screens, resize behavior, and bounded scrollback
 - [ ] Validate against representative modern shells and TUIs

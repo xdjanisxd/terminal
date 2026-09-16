@@ -311,6 +311,21 @@ impl TerminalState {
         self.wrap_pending = false;
     }
 
+    /// Erases canonical blank cells beginning at the cursor without shifting cells.
+    ///
+    /// The count is normalized so zero erases one cell, then clamped by the
+    /// bounded current-row suffix. This explicit current-row editing operation
+    /// preserves the cursor but cancels delayed wrap, matching existing erase,
+    /// ICH, and DCH behavior.
+    pub fn erase_characters(&mut self, count: usize) {
+        let cursor = self.cursor();
+        let columns = self.dimensions().columns();
+        let start = cursor.row() * columns + cursor.column();
+        let width = count.max(1).min(columns - cursor.column());
+        self.screen.erase_cells(start, start + width);
+        self.wrap_pending = false;
+    }
+
     /// Moves the cursor to the first column of its current row.
     pub fn carriage_return(&mut self) {
         let row = self.cursor().row();

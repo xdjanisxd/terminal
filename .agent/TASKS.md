@@ -2,10 +2,11 @@
 
 ## Next
 
-- [ ] Inspect the remaining M2 compatibility surface and select one narrow slice; ECH (`CSI Ps X`) is a likely candidate if the existing current-row erase behavior supports it without broader character-editing work.
+- [ ] Inspect the remaining M2 compatibility surface and select exactly one narrow, high-value slice; do not continue character-editing commands by default.
 
 ## Later
 
+- [x] Add bounded ECH (`CSI Ps X`) current-row cell erasure without shifting neighboring cells.
 - [x] Add bounded DCH (`CSI Ps P`) cell deletion on the current row through project-owned grid/state operations.
 - [x] Add bounded ICH (`CSI Ps @`) cell insertion on the current row through project-owned grid/state operations.
 
