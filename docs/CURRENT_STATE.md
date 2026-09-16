@@ -14,14 +14,15 @@
 - Parser-independent printable-character, carriage-return, line-feed, index, reverse-index, next-line, backspace, horizontal-tab, region-aware-scroll, typed scrolling-margin, and typed rendition operations routed through `TerminalState`
 - Delayed right-margin wrapping, auto-wrap suppression, bounded region-aware SU/SD, IND/RI, and NEL scrolling, fixed-screen bottom scrolling, and fixed-width insert/replace output behavior
 - Incremental project-owned `TerminalParser` adapter encapsulating `vte` and preserving parser state across input chunks
-- Parser routing for printable input, CR, LF, BS, HT, HTS, IND, RI, NEL, primary DA1 queries `CSI c`/`CSI 0 c`, ANSI cursor-position DSR `CSI 6 n`, TBC, CUU/CUD/CUF/CUB, CUP/HVP, CHA/VPA, ED, EL, cursor-relative IL/DL, region-aware SU/SD, DECSTBM, IRM, private DECCKM/DECAWM/DECTCEM, and SGR styles, defaults, ANSI 16 colors, semicolon-form indexed foreground/background colors, and semicolon-form exact RGB foreground/background colors; unsupported parser actions and parameters are ignored without approximation
+- Parser routing for printable input, CR, LF, BS, HT, HTS, IND, RI, NEL, primary DA1 queries `CSI c`/`CSI 0 c`, ANSI cursor-position DSR `CSI 6 n`, TBC, CUU/CUD/CUF/CUB, CUP/HVP, CHA/VPA, bounded current-row ICH, ED, EL, cursor-relative IL/DL, region-aware SU/SD, DECSTBM, IRM, private DECCKM/DECAWM/DECTCEM, and SGR styles, defaults, ANSI 16 colors, semicolon-form indexed foreground/background colors, and semicolon-form exact RGB foreground/background colors; unsupported parser actions and parameters are ignored without approximation
 - IL/DL `CSI Ps L`/`CSI Ps M` use the cursor-to-bottom portion of the active scrolling region, leaving rows above the cursor and outside margins unchanged; blank lines use canonical default cells and delayed wrap is preserved
+- Bounded current-row ICH `CSI Ps @` uses a generic grid cell-insertion primitive, shifts complete cells right with final-column clipping, fills canonical default blank cells, and cancels delayed wrap without moving the cursor
 - DECCKM `CSI ? 1 h`/`CSI ? 1 l` selects the project-owned application/normal cursor-key mode through `TerminalState`; byte encoding for cursor-key input remains deferred to M5
 - DECSTBM omitted/zero defaults, one-based validation before zero-based conversion, cursor homing and delayed-wrap cancellation on success, and atomic no-op behavior for invalid ranges, extra parameters, and subparameter forms
 - Bounded grouped handling for extended-color SGR: indexed selectors consume one index, semicolon-form truecolor consumes exactly three scalar components and validates all before mutation, and unknown selectors consume the remaining CSI parameters so payload cannot leak into unrelated SGR
 - Bounded, resumable semantic-error reporting with exact consumed-byte counts
 - Bounded 1,024-byte OSC parser storage by compiling `vte` without its default `std` feature
-- Two hundred fifty-seven `terminal-core` unit/integration tests plus four compile-fail ownership tests
+- Two hundred sixty-five `terminal-core` unit/integration tests plus four compile-fail ownership tests
 
 ## Partial
 

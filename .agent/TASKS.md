@@ -2,9 +2,11 @@
 
 ## Next
 
-- [ ] Add bounded ICH (`CSI Ps @`) through the existing row-local `ScreenGrid::insert_cell` primitive, preserving current M2 state boundaries.
+- [ ] Inspect the remaining M2 compatibility surface and select one narrow slice; DCH (`CSI Ps P`) is a likely candidate if the existing row-local grid primitive supports it without broader character-editing work.
 
 ## Later
+
+- [x] Add bounded ICH (`CSI Ps @`) cell insertion on the current row through project-owned grid/state operations.
 
 - [x] Add bounded IL/DL line insertion/deletion within the cursor-to-bottom portion of the active scrolling region, preserving complete cells, canonical blank cells, delayed wrap, and unrelated terminal state.
 
