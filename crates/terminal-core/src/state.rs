@@ -366,6 +366,44 @@ impl TerminalState {
             .scroll_region_down(self.vertical_scrolling_margins, rows);
     }
 
+    /// Inserts blank lines from the cursor through the bottom active margin.
+    ///
+    /// This is a no-op when the cursor is outside the active scrolling region.
+    /// The bounded subregion keeps rows above the cursor unchanged; its count
+    /// is clamped and exposed rows use canonical default blank cells. Delayed
+    /// wrap is preserved because this operation does not move the cursor.
+    pub fn insert_lines(&mut self, rows: usize) {
+        let cursor_row = self.cursor().row();
+        let margins = self.vertical_scrolling_margins;
+        if cursor_row < margins.top() || cursor_row > margins.bottom() {
+            return;
+        }
+
+        let affected =
+            VerticalScrollingMargins::new(cursor_row, margins.bottom(), self.dimensions().rows())
+                .expect("cursor and active bottom margin define an in-bounds subregion");
+        self.screen.scroll_region_down(affected, rows);
+    }
+
+    /// Deletes lines from the cursor through the bottom active margin.
+    ///
+    /// This is a no-op when the cursor is outside the active scrolling region.
+    /// The bounded subregion keeps rows above the cursor unchanged; its count
+    /// is clamped and exposed rows use canonical default blank cells. Delayed
+    /// wrap is preserved because this operation does not move the cursor.
+    pub fn delete_lines(&mut self, rows: usize) {
+        let cursor_row = self.cursor().row();
+        let margins = self.vertical_scrolling_margins;
+        if cursor_row < margins.top() || cursor_row > margins.bottom() {
+            return;
+        }
+
+        let affected =
+            VerticalScrollingMargins::new(cursor_row, margins.bottom(), self.dimensions().rows())
+                .expect("cursor and active bottom margin define an in-bounds subregion");
+        self.screen.scroll_region_up(affected, rows);
+    }
+
     /// Moves left one column without erasing and without reverse wrapping.
     pub fn backspace(&mut self) {
         if self.cursor().column() > 0 {
