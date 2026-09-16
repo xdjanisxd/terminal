@@ -256,6 +256,26 @@ impl TerminalState {
         self.wrap_pending = false;
     }
 
+    /// Moves down by a bounded count and returns to the first column without scrolling.
+    ///
+    /// This is CNL-style explicit cursor positioning, not NEL: it uses the
+    /// ordinary screen bounds even when scrolling margins are active. Zero is
+    /// normalized to one for callers using terminal control-function counts.
+    pub fn cursor_next_line(&mut self, rows: usize) {
+        self.move_cursor(CursorMovement::Down(rows.max(1)));
+        self.carriage_return();
+    }
+
+    /// Moves up by a bounded count and returns to the first column without scrolling.
+    ///
+    /// This is CPL-style explicit cursor positioning, not RI: it uses the
+    /// ordinary screen bounds even when scrolling margins are active. Zero is
+    /// normalized to one for callers using terminal control-function counts.
+    pub fn cursor_previous_line(&mut self, rows: usize) {
+        self.move_cursor(CursorMovement::Up(rows.max(1)));
+        self.carriage_return();
+    }
+
     /// Prints one supported single-cell ASCII character at the cursor.
     ///
     /// The current fixed-width model accepts ASCII space through tilde and

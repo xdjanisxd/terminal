@@ -2,10 +2,11 @@
 
 ## Next
 
-- [ ] Inspect the remaining M2 compatibility surface and select exactly one narrow, high-value slice; do not continue character-editing commands by default.
+- [ ] Inspect the remaining M2 compatibility surface and select exactly one narrow, high-value slice; do not continue cursor-positioning commands by default.
 
 ## Later
 
+- [x] Add bounded CNL/CPL cursor-next/previous-line movement with column reset and no scrolling.
 - [x] Add ANSI DSR terminal-status query (`CSI 5 n`) and bounded `CSI 0 n` reply through the existing `TerminalReply` FIFO.
 - [x] Add bounded ECH (`CSI Ps X`) current-row cell erasure without shifting neighboring cells.
 - [x] Add bounded DCH (`CSI Ps P`) cell deletion on the current row through project-owned grid/state operations.

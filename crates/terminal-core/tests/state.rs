@@ -76,6 +76,190 @@ fn typed_cursor_movements_clamp_zero_and_extreme_amounts_to_screen_bounds() {
 }
 
 #[test]
+fn cursor_next_and_previous_line_are_bounded_column_reset_movements() {
+    let cases = [
+        ("CNL default", 2, 7, 1, (3, 0)),
+        ("CNL explicit one", 2, 7, 1, (3, 0)),
+        ("CNL zero", 2, 7, 0, (3, 0)),
+        ("CNL multiple", 2, 7, 2, (4, 0)),
+        ("CNL preserves zero column", 2, 0, 1, (3, 0)),
+        ("CNL oversized", 2, 7, usize::MAX, (5, 0)),
+        ("CNL at bottom", 5, 7, 4, (5, 0)),
+    ];
+
+    for (name, row, column, count, expected) in cases {
+        let mut state = TerminalState::new(TerminalDimensions::new(8, 6).unwrap());
+        state.set_cursor_position(row, column).unwrap();
+        state.cursor_next_line(count);
+        assert_eq!(
+            (state.cursor().row(), state.cursor().column()),
+            expected,
+            "{name}"
+        );
+    }
+
+    let cases = [
+        ("CPL default", 3, 7, 1, (2, 0)),
+        ("CPL explicit one", 3, 7, 1, (2, 0)),
+        ("CPL zero", 3, 7, 0, (2, 0)),
+        ("CPL multiple", 3, 7, 2, (1, 0)),
+        ("CPL preserves zero column", 3, 0, 1, (2, 0)),
+        ("CPL oversized", 3, 7, usize::MAX, (0, 0)),
+        ("CPL at top", 0, 7, 4, (0, 0)),
+    ];
+
+    for (name, row, column, count, expected) in cases {
+        let mut state = TerminalState::new(TerminalDimensions::new(8, 6).unwrap());
+        state.set_cursor_position(row, column).unwrap();
+        state.cursor_previous_line(count);
+        assert_eq!(
+            (state.cursor().row(), state.cursor().column()),
+            expected,
+            "{name}"
+        );
+    }
+}
+
+#[test]
+fn cursor_next_and_previous_line_preserve_cells_state_and_screen_bounds() {
+    let mut state = filled_state(4, 6);
+    assert!(state.set_vertical_scrolling_margins(2, 3));
+    state.set_cursor_visibility(CursorVisibility::Hidden);
+    state.set_auto_wrap(AutoWrapMode::Disabled);
+    state.set_character_insertion(CharacterInsertionMode::Insert);
+    state.set_cursor_key_mode(CursorKeyMode::Application);
+    state.set_foreground_color(CellColor::Indexed(196));
+    state.set_horizontal_tab_stop();
+    assert!(state.request_terminal_status());
+    let cells_before = (0..state.dimensions().rows())
+        .map(|row| row_text(&state, row))
+        .collect::<Vec<_>>();
+    let margins = state.vertical_scrolling_margins();
+    let rendition = *state.current_rendition();
+    let terminal_modes = *state.terminal_modes();
+    let input_modes = *state.input_modes();
+
+    state.set_cursor_position(1, 3).unwrap();
+    state.cursor_next_line(usize::MAX);
+    assert_eq!((state.cursor().row(), state.cursor().column()), (5, 0));
+    state.set_cursor_position(4, 3).unwrap();
+    state.cursor_previous_line(usize::MAX);
+    assert_eq!((state.cursor().row(), state.cursor().column()), (0, 0));
+
+    assert_eq!(
+        (0..state.dimensions().rows())
+            .map(|row| row_text(&state, row))
+            .collect::<Vec<_>>(),
+        cells_before
+    );
+    assert_eq!(state.vertical_scrolling_margins(), margins);
+    assert_eq!(state.current_rendition(), &rendition);
+    assert_eq!(state.terminal_modes(), &terminal_modes);
+    assert_eq!(state.input_modes(), &input_modes);
+    assert!(state.has_horizontal_tab_stop(0));
+    assert_eq!(state.pending_reply_count(), 1);
+}
+
+#[test]
+fn cursor_next_and_previous_line_do_not_use_scrolling_control_semantics() {
+    let mut cnl = filled_state(2, 4);
+    assert!(cnl.set_vertical_scrolling_margins(1, 2));
+    cnl.set_cursor_position(2, 1).unwrap();
+    cnl.cursor_next_line(1);
+    assert_eq!((cnl.cursor().row(), cnl.cursor().column()), (3, 0));
+    assert_eq!(
+        (0..4).map(|row| row_text(&cnl, row)).collect::<Vec<_>>(),
+        vec!["ab", "cd", "ef", "gh"]
+    );
+
+    let mut cnl_at_bottom = filled_state(2, 4);
+    cnl_at_bottom.set_cursor_position(3, 1).unwrap();
+    cnl_at_bottom.cursor_next_line(1);
+    assert_eq!(
+        (
+            cnl_at_bottom.cursor().row(),
+            cnl_at_bottom.cursor().column()
+        ),
+        (3, 0)
+    );
+    assert_eq!(
+        (0..4)
+            .map(|row| row_text(&cnl_at_bottom, row))
+            .collect::<Vec<_>>(),
+        vec!["ab", "cd", "ef", "gh"]
+    );
+
+    let mut cpl_at_top = filled_state(2, 4);
+    cpl_at_top.set_cursor_position(0, 1).unwrap();
+    cpl_at_top.cursor_previous_line(1);
+    assert_eq!(
+        (cpl_at_top.cursor().row(), cpl_at_top.cursor().column()),
+        (0, 0)
+    );
+    assert_eq!(
+        (0..4)
+            .map(|row| row_text(&cpl_at_top, row))
+            .collect::<Vec<_>>(),
+        vec!["ab", "cd", "ef", "gh"]
+    );
+
+    let mut nel = filled_state(2, 4);
+    assert!(nel.set_vertical_scrolling_margins(1, 2));
+    nel.set_cursor_position(2, 1).unwrap();
+    nel.next_line();
+    assert_eq!((nel.cursor().row(), nel.cursor().column()), (2, 0));
+    assert_eq!(
+        (0..4).map(|row| row_text(&nel, row)).collect::<Vec<_>>(),
+        vec!["ab", "ef", "  ", "gh"]
+    );
+
+    let mut cpl = filled_state(2, 4);
+    assert!(cpl.set_vertical_scrolling_margins(1, 2));
+    cpl.set_cursor_position(1, 1).unwrap();
+    cpl.cursor_previous_line(1);
+    assert_eq!((cpl.cursor().row(), cpl.cursor().column()), (0, 0));
+    assert_eq!(
+        (0..4).map(|row| row_text(&cpl, row)).collect::<Vec<_>>(),
+        vec!["ab", "cd", "ef", "gh"]
+    );
+
+    let mut ri = filled_state(2, 4);
+    assert!(ri.set_vertical_scrolling_margins(1, 2));
+    ri.set_cursor_position(1, 1).unwrap();
+    ri.reverse_index();
+    assert_eq!((ri.cursor().row(), ri.cursor().column()), (1, 1));
+    assert_eq!(
+        (0..4).map(|row| row_text(&ri, row)).collect::<Vec<_>>(),
+        vec!["ab", "  ", "cd", "gh"]
+    );
+}
+
+#[test]
+fn cursor_next_and_previous_line_cancel_delayed_wrap() {
+    for operation in [
+        TerminalState::cursor_next_line as fn(&mut TerminalState, usize),
+        TerminalState::cursor_previous_line as fn(&mut TerminalState, usize),
+    ] {
+        let mut state = TerminalState::new(TerminalDimensions::new(2, 2).unwrap());
+        state.print_character('a').unwrap();
+        state.print_character('b').unwrap();
+
+        operation(&mut state, 1);
+        let cursor_before_print = state.cursor();
+        state.print_character('x').unwrap();
+
+        assert_eq!(
+            state
+                .screen()
+                .cell(cursor_before_print.row(), cursor_before_print.column())
+                .unwrap()
+                .character(),
+            'x'
+        );
+    }
+}
+
+#[test]
 fn every_typed_cursor_operation_cancels_delayed_wrap() {
     let movements = [
         CursorMovement::Up(1),
