@@ -38,6 +38,7 @@ Completion marks require tested acceptance criteria, not code presence alone.
 - [x] Make NEL compose region-aware index semantics with carriage return while preserving full-screen compatibility
 - [x] Add bounded primary DA1 query/reply semantics through `TerminalState` without PTY integration
 - [ ] Implement and test remaining commonly used scroll, SGR, mode, and reply behavior
+  - [x] Add ANSI cursor-position DSR (`CSI 6 n`) and bounded absolute CPR replies through `TerminalState`
 - [ ] Implement Unicode combining and wide-cell invariants
 - [ ] Implement primary/alternate screens, resize behavior, and bounded scrollback
 - [ ] Validate against representative modern shells and TUIs
