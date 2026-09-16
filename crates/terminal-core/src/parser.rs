@@ -380,12 +380,10 @@ impl vte::Perform for SemanticPerformer<'_> {
             return;
         }
 
-        if !intermediates.is_empty() {
-            return;
-        }
-
         if action == 'm' {
-            self.dispatch_sgr(params);
+            if intermediates.is_empty() {
+                self.dispatch_sgr(params);
+            }
             return;
         }
 
@@ -395,8 +393,20 @@ impl vte::Perform for SemanticPerformer<'_> {
 
         if action == 'c' {
             if count == 0 || (count == 1 && values[0] == 0) {
-                let _ = self.terminal.request_primary_device_attributes();
+                match intermediates {
+                    [] => {
+                        let _ = self.terminal.request_primary_device_attributes();
+                    }
+                    [b'>'] => {
+                        let _ = self.terminal.request_secondary_device_attributes();
+                    }
+                    _ => {}
+                }
             }
+            return;
+        }
+
+        if !intermediates.is_empty() {
             return;
         }
 
