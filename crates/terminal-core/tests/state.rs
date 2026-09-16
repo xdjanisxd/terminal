@@ -587,10 +587,29 @@ fn changes_supported_terminal_modes_through_the_facade() {
 }
 
 #[test]
-fn changes_cursor_key_mode_through_the_facade() {
+fn cursor_key_mode_transitions_through_the_facade_are_idempotent() {
     let mut state = TerminalState::new(TerminalDimensions::new(2, 2).unwrap());
 
+    assert_eq!(state.input_modes().cursor_keys(), CursorKeyMode::Normal);
+
     state.set_cursor_key_mode(CursorKeyMode::Application);
+    state.set_cursor_key_mode(CursorKeyMode::Application);
+    assert_eq!(
+        state.input_modes().cursor_keys(),
+        CursorKeyMode::Application
+    );
+
+    state.set_cursor_key_mode(CursorKeyMode::Normal);
+    state.set_cursor_key_mode(CursorKeyMode::Normal);
+    assert_eq!(state.input_modes().cursor_keys(), CursorKeyMode::Normal);
+}
+
+#[test]
+fn resize_preserves_cursor_key_mode() {
+    let mut state = TerminalState::new(TerminalDimensions::new(2, 2).unwrap());
+    state.set_cursor_key_mode(CursorKeyMode::Application);
+
+    state.resize(TerminalDimensions::new(4, 3).unwrap());
 
     assert_eq!(
         state.input_modes().cursor_keys(),

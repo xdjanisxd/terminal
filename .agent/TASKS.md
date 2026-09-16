@@ -2,6 +2,12 @@
 
 ## Next
 
+- [ ] Add IL/DL as bounded active scrolling-region operations through `TerminalState`, preserving complete cells and unrelated terminal state.
+
+## Later
+
+- [x] Add DECCKM (`CSI ? 1 h`/`CSI ? 1 l`) parser dispatch through the existing typed `CursorKeyMode`, without keyboard/input encoding.
+
 - [x] Add a narrow DSR/CPR slice that reuses the bounded `TerminalReply` FIFO for a cursor-position response without origin mode.
 
 ## Later
