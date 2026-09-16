@@ -2,7 +2,11 @@
 
 ## Next
 
-- [ ] Implement Unicode combining and wide-cell invariants as the next roadmap item; retain fixed-cell ASCII semantics until its explicit design and tests are ready.
+- [ ] Implement combining-mark / width-zero behavior on the established wide-cell model; retain the no-orphan invariants and do not begin grapheme clusters, shaping, normalization, alternate screens, scrollback, PTY, renderer, or input work.
+
+## Completed in this slice
+
+- [x] Add typed wide-cell lead/continuation representation, bounded grid repair, width-two output, and no-orphan resize/edit invariants; defer width-zero combining behavior.
 
 ## Later
 

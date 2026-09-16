@@ -1,4 +1,7 @@
-use crate::{Cell, Cursor, CursorError, TerminalDimensions, VerticalScrollingMargins};
+use crate::{
+    Cell, CellAttributes, CellOccupancy, Cursor, CursorError, TerminalDimensions,
+    VerticalScrollingMargins,
+};
 
 /// A bounded, row-major terminal screen grid.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -42,8 +45,20 @@ impl ScreenGrid {
             .and_then(|index| self.cells.get(index))
     }
 
-    /// Returns a mutable cell for a zero-based `(row, column)` coordinate.
-    pub fn cell_mut(&mut self, row: usize, column: usize) -> Option<&mut Cell> {
+    /// Replaces a cell through the bounded grid API, clearing any intersected wide pair.
+    ///
+    /// The supplied cell is normalized to single-cell occupancy so continuation
+    /// metadata cannot be copied into an unrelated coordinate.
+    pub fn set_cell(&mut self, row: usize, column: usize, cell: Cell) -> bool {
+        if self.index_of(row, column).is_none() {
+            return false;
+        }
+        self.write_single(row, column, cell.character(), *cell.attributes());
+        true
+    }
+
+    #[cfg(test)]
+    pub(crate) fn cell_mut(&mut self, row: usize, column: usize) -> Option<&mut Cell> {
         let index = self.index_of(row, column)?;
         self.cells.get_mut(index)
     }
@@ -69,25 +84,61 @@ impl ScreenGrid {
         self.cells.fill(Cell::default());
     }
 
-    pub(crate) fn insert_cell(&mut self, row: usize, column: usize, cell: Cell) {
-        self.insert_cells(row, column, 1, cell);
-    }
-
-    pub(crate) fn insert_cells(&mut self, row: usize, column: usize, count: usize, cell: Cell) {
+    /// Writes a single-column printable cell, clearing any intersected wide pair.
+    pub(crate) fn write_single(
+        &mut self,
+        row: usize,
+        column: usize,
+        character: char,
+        attributes: CellAttributes,
+    ) {
+        self.clear_wide_at(row, column);
         let index = self
             .index_of(row, column)
             .expect("terminal state keeps cell writes in bounds");
-        let row_end = (row + 1) * self.dimensions.columns();
-        let count = count.min(row_end - index);
-        if count == 0 {
-            return;
-        }
+        self.cells[index] = Cell::new(character, attributes);
+        self.normalize_row(row);
+    }
 
-        if count < row_end - index {
-            self.cells
-                .copy_within(index..row_end - count, index + count);
+    /// Writes one complete two-column character at an in-bounds leading column.
+    pub(crate) fn write_wide(
+        &mut self,
+        row: usize,
+        column: usize,
+        character: char,
+        attributes: CellAttributes,
+    ) {
+        debug_assert!(column + 1 < self.dimensions.columns());
+        self.clear_wide_at(row, column);
+        self.clear_wide_at(row, column + 1);
+        let index = self
+            .index_of(row, column)
+            .expect("terminal state keeps cell writes in bounds");
+        self.cells[index] = Cell::wide_lead(character, attributes);
+        self.cells[index + 1] = Cell::wide_continuation();
+        self.normalize_row(row);
+    }
+
+    pub(crate) fn insert_cells(&mut self, row: usize, column: usize, count: usize, cell: Cell) {
+        self.clear_wide_at(row, column);
+        self.shift_right(row, column, count, cell);
+    }
+
+    pub(crate) fn insert_wide(
+        &mut self,
+        row: usize,
+        column: usize,
+        character: char,
+        attributes: CellAttributes,
+    ) {
+        self.clear_wide_at(row, column);
+        if column + 1 < self.dimensions.columns() {
+            self.clear_wide_at(row, column + 1);
         }
-        self.cells[index..index + count].fill(cell);
+        self.shift_right(row, column, 2, Cell::default());
+        if column + 1 < self.dimensions.columns() {
+            self.write_wide(row, column, character, attributes);
+        }
     }
 
     pub(crate) fn delete_cells(&mut self, row: usize, column: usize, count: usize) {
@@ -104,10 +155,107 @@ impl ScreenGrid {
             self.cells.copy_within(index + count..row_end, index);
         }
         self.cells[row_end - count..row_end].fill(Cell::default());
+        self.normalize_row(row);
     }
 
     pub(crate) fn erase_cells(&mut self, start: usize, end: usize) {
         self.cells[start..end].fill(Cell::default());
+        let columns = self.dimensions.columns();
+        let first_row = start / columns;
+        let last_row = (end - 1) / columns;
+        for row in first_row..=last_row {
+            self.normalize_row(row);
+        }
+    }
+
+    fn shift_right(&mut self, row: usize, column: usize, count: usize, cell: Cell) {
+        let index = self
+            .index_of(row, column)
+            .expect("terminal state keeps cell writes in bounds");
+        let row_end = (row + 1) * self.dimensions.columns();
+        let count = count.min(row_end - index);
+        if count == 0 {
+            return;
+        }
+
+        if count < row_end - index {
+            self.cells
+                .copy_within(index..row_end - count, index + count);
+        }
+        self.cells[index..index + count].fill(cell);
+        self.normalize_row(row);
+    }
+
+    fn clear_wide_at(&mut self, row: usize, column: usize) {
+        let index = self
+            .index_of(row, column)
+            .expect("terminal state keeps cell writes in bounds");
+        match self.cells[index].occupancy() {
+            CellOccupancy::Single => {}
+            CellOccupancy::WideLead => {
+                self.cells[index] = Cell::default();
+                if column + 1 < self.dimensions.columns() {
+                    self.cells[index + 1] = Cell::default();
+                }
+            }
+            CellOccupancy::WideContinuation => {
+                self.cells[index] = Cell::default();
+                if column > 0 {
+                    self.cells[index - 1] = Cell::default();
+                }
+            }
+        }
+    }
+
+    fn normalize_row(&mut self, row: usize) {
+        let columns = self.dimensions.columns();
+        let start = row * columns;
+        let end = start + columns;
+        let mut column = 0;
+        while column < columns {
+            match self.cells[start + column].occupancy() {
+                CellOccupancy::Single => column += 1,
+                CellOccupancy::WideLead => {
+                    if column + 1 >= columns
+                        || self.cells[start + column + 1].occupancy()
+                            != CellOccupancy::WideContinuation
+                    {
+                        self.cells[start + column] = Cell::default();
+                    }
+                    column += 1;
+                }
+                CellOccupancy::WideContinuation => {
+                    if column == 0
+                        || self.cells[start + column - 1].occupancy() != CellOccupancy::WideLead
+                    {
+                        self.cells[start + column] = Cell::default();
+                    }
+                    column += 1;
+                }
+            }
+        }
+        debug_assert!(self.wide_cells_are_valid());
+        debug_assert_eq!(end, start + columns);
+    }
+
+    fn wide_cells_are_valid(&self) -> bool {
+        (0..self.dimensions.rows()).all(|row| {
+            (0..self.dimensions.columns()).all(|column| {
+                match self.cell(row, column).unwrap().occupancy() {
+                    CellOccupancy::Single => true,
+                    CellOccupancy::WideLead => {
+                        column + 1 < self.dimensions.columns()
+                            && self.cell(row, column + 1).unwrap().occupancy()
+                                == CellOccupancy::WideContinuation
+                    }
+                    CellOccupancy::WideContinuation => {
+                        column > 0
+                            && self.cell(row, column - 1).unwrap().occupancy()
+                                == CellOccupancy::WideLead
+                    }
+                }
+            })
+        })
     }
 
     pub(crate) fn scroll_up(&mut self, rows: usize) {
@@ -189,6 +337,9 @@ impl ScreenGrid {
 
         self.dimensions = dimensions;
         self.cells = cells;
+        for row in 0..dimensions.rows() {
+            self.normalize_row(row);
+        }
         self.cursor.clamp_to(dimensions);
     }
 }

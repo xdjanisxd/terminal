@@ -398,20 +398,17 @@ fn rejects_control_characters_without_mutating_state() {
 }
 
 #[test]
-fn rejects_unicode_whose_cell_width_is_not_modeled() {
+fn accepts_modeled_wide_unicode_and_defers_zero_width_unicode() {
     let mut state = TerminalState::new(TerminalDimensions::new(2, 1).unwrap());
 
-    assert_eq!(
-        state.print_character('界'),
-        Err(PrintError::UnsupportedCharacter('界'))
-    );
+    state.print_character('界').unwrap();
     assert_eq!(
         state.print_character('\u{0301}'),
-        Err(PrintError::UnsupportedCharacter('\u{0301}'))
+        Err(PrintError::UnsupportedZeroWidthCharacter('\u{0301}'))
     );
 
-    assert_eq!(row_text(&state, 0), "  ");
-    assert_eq!((state.cursor().row(), state.cursor().column()), (0, 0));
+    assert_eq!(row_text(&state, 0), "界 ");
+    assert_eq!((state.cursor().row(), state.cursor().column()), (0, 1));
 }
 
 #[test]

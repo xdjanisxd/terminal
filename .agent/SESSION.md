@@ -2,22 +2,20 @@
 
 ## Current state
 
-The final narrow M2 DA2 slice is complete on `feat/m2-secondary-device-attributes`.
+The M2 wide-cell foundation slice is complete on `feat/m2-wide-cell-foundation`, based on the completed DA2 commit `9fa69ae` rather than continuing the DA2 branch.
 
-`TerminalParser` accepts only `CSI > c` and `CSI > 0 c`, then invokes `TerminalState::request_secondary_device_attributes`. That facade appends the capture-free `TerminalReply::SecondaryDeviceAttributes` through the existing 16-entry `PendingReplies` FIFO. Encoding remains in `TerminalReply` as fixed `ESC [ > 0 ; 0 ; 0 c`.
+`Cell` now has project-owned `CellOccupancy::{Single, WideLead, WideContinuation}`. A width-two character and its rendition live only in the lead; the continuation has no duplicated character/rendition. `ScreenGrid` owns writing, pair clearing, range repair, bounded row normalization, and resize repair, so stable grids have no orphaned wide halves.
 
-Pp=0 retains DA1's conservative VT100-class policy; Pv=0 is stable and does not expose package/release versions; Pc=0 claims no optional hardware features. DA2 does not claim xterm or modern VT capabilities. Nonzero, extra, subparameter, `?`, `=`, malformed, and incomplete forms remain no-ops. DA1, DSR status, and CPR keep their existing bytes and FIFO semantics.
+`TerminalState` classifies widths through `unicode-width` 0.2.2, selected after confirming no existing width abstraction and applying the dependency policy. Width-one and width-two scalars are accepted. Width-zero scalars return `PrintError::UnsupportedZeroWidthCharacter` until the next combining-mark slice; malformed UTF-8 replacement remains an error.
+
+At the final column, a width-two write wraps before writing only with auto-wrap enabled; with auto-wrap disabled it is ignored. A width-two write ending in the final column leaves the cursor at that column and creates existing delayed-wrap state. Pending delayed wrap resolves before the next printable write.
+
+ICH/DCH retain their existing cell-count semantics but normalize rows after bounded shifts. This intentionally guarantees structural validity (split/clipped pairs become blanks) rather than claiming fully wide-aware editing semantics. Vertical operations move whole rows and preserve pairs. Resize normalizes copied rows, and reset produces only ordinary blank cells.
 
 ## Validation
 
-Passed: `cargo fmt --all -- --check`; default workspace tests (302 unit/integration tests); workspace doctests (four compile-fail ownership doctests); workspace check; workspace clippy with warnings denied; linked GNU and MSVC workspace suites; and `git diff --check`. No manifests/dependencies or unsafe Rust changed.
-
-Structural Graphify refreshed to 813 nodes, 1,221 edges, and 80 communities. The path remains `TerminalParser -> TerminalState -> TerminalReply -> PendingReplies`; parser-owned encoding and a second queue were not introduced. Semantic enrichment remains unavailable without a supported LLM API key.
-
-## M2 assessment
-
-The completed M2 parent now has focused tested coverage for commonly used scrolling/editing, SGR/rendition, foundational modes, and basic DA1/DA2/DSR reply behavior. It is marked complete. Origin mode, additional rare or renderer-dependent SGR attributes, colon-form colors, wider DA forms, OSC/DCS, alternate screens, and scrollback remain explicitly separate future compatibility extensions.
+Focused wide-cell tests and the full default terminal-core all-target suite passed before final gates. The final validation must run workspace formatting, tests, doctests, check, clippy, both Windows targets, dependency/security checks, `git diff --check`, and Graphify refresh/check.
 
 ## Next
 
-Proceed to the next roadmap item: define and implement Unicode combining and wide-cell invariants. Do not start PTY, renderer, alternate-screen, scrollback, or input work as part of that slice.
+Implement only combining-mark / width-zero behavior on this established model. Do not add grapheme clusters, normalization, renderer shaping, alternate screens, scrollback, PTY, renderer, or input behavior.

@@ -397,17 +397,17 @@ fn oversized_unsupported_osc_is_bounded_and_does_not_corrupt_state() {
 }
 
 #[test]
-fn unsupported_unicode_returns_a_bounded_error_with_consumed_bytes() {
+fn zero_width_unicode_returns_a_bounded_error_with_consumed_bytes() {
     let mut parser = TerminalParser::new();
     let mut state = TerminalState::new(TerminalDimensions::new(5, 1).unwrap());
-    let input = "A界B".as_bytes();
+    let input = "A\u{0301}B".as_bytes();
 
     let error = parser.advance(&mut state, input).unwrap_err();
 
-    assert_eq!(error.bytes_consumed(), 4);
+    assert_eq!(error.bytes_consumed(), 3);
     assert_eq!(
         error.semantic_error(),
-        PrintError::UnsupportedCharacter('界')
+        PrintError::UnsupportedZeroWidthCharacter('\u{0301}')
     );
     assert_eq!(row_text(&state, 0), "A    ");
 
@@ -418,18 +418,18 @@ fn unsupported_unicode_returns_a_bounded_error_with_consumed_bytes() {
 }
 
 #[test]
-fn unsupported_unicode_error_is_reported_when_split_codepoint_completes() {
+fn zero_width_unicode_error_is_reported_when_split_codepoint_completes() {
     let mut parser = TerminalParser::new();
     let mut state = TerminalState::new(TerminalDimensions::new(4, 1).unwrap());
-    let bytes = "界".as_bytes();
+    let bytes = "\u{0301}".as_bytes();
 
-    parser.advance(&mut state, &bytes[..2]).unwrap();
-    let error = parser.advance(&mut state, &bytes[2..]).unwrap_err();
+    parser.advance(&mut state, &bytes[..1]).unwrap();
+    let error = parser.advance(&mut state, &bytes[1..]).unwrap_err();
 
     assert_eq!(error.bytes_consumed(), 1);
     assert_eq!(
         error.semantic_error(),
-        PrintError::UnsupportedCharacter('界')
+        PrintError::UnsupportedZeroWidthCharacter('\u{0301}')
     );
     assert_eq!(row_text(&state, 0), "    ");
 }
@@ -477,13 +477,15 @@ fn parser_error_is_project_owned_and_exposes_standard_error_source() {
 
     let mut parser = TerminalParser::new();
     let mut state = TerminalState::new(TerminalDimensions::new(2, 1).unwrap());
-    let error: TerminalParserError = parser.advance(&mut state, "é".as_bytes()).unwrap_err();
+    let error: TerminalParserError = parser
+        .advance(&mut state, "\u{0301}".as_bytes())
+        .unwrap_err();
 
     assert_error(&error);
     assert_eq!(error.bytes_consumed(), 2);
     assert_eq!(
         error.semantic_error(),
-        PrintError::UnsupportedCharacter('é')
+        PrintError::UnsupportedZeroWidthCharacter('\u{0301}')
     );
 }
 
