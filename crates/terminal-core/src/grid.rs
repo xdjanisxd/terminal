@@ -90,6 +90,22 @@ impl ScreenGrid {
         self.cells[index..index + count].fill(cell);
     }
 
+    pub(crate) fn delete_cells(&mut self, row: usize, column: usize, count: usize) {
+        let index = self
+            .index_of(row, column)
+            .expect("terminal state keeps cell writes in bounds");
+        let row_end = (row + 1) * self.dimensions.columns();
+        let count = count.min(row_end - index);
+        if count == 0 {
+            return;
+        }
+
+        if count < row_end - index {
+            self.cells.copy_within(index + count..row_end, index);
+        }
+        self.cells[row_end - count..row_end].fill(Cell::default());
+    }
+
     pub(crate) fn erase_cells(&mut self, start: usize, end: usize) {
         self.cells[start..end].fill(Cell::default());
     }
@@ -199,6 +215,33 @@ mod tests {
         (0..grid.dimensions().columns())
             .map(|column| grid.cell(row, column).unwrap().character())
             .collect()
+    }
+
+    #[test]
+    fn delete_cells_shifts_complete_row_cells_left_and_clamps() {
+        let mut grid = ScreenGrid::new(TerminalDimensions::new(5, 3).unwrap());
+        for (row, text) in ["abcde", "fghij", "klmno"].into_iter().enumerate() {
+            for (column, character) in text.chars().enumerate() {
+                *grid.cell_mut(row, column).unwrap() =
+                    Cell::new(character, CellAttributes::default());
+            }
+        }
+        let mut attributes = CellAttributes::new(CellColor::Indexed(196), CellColor::Indexed(22));
+        attributes.set_intensity(TextIntensity::Bold);
+        *grid.cell_mut(1, 4).unwrap() = Cell::new('X', attributes);
+        let styled = *grid.cell(1, 4).unwrap();
+
+        grid.delete_cells(1, 2, 2);
+
+        assert_eq!(row_text(&grid, 1), "fgX  ");
+        assert_eq!(grid.cell(1, 2), Some(&styled));
+        assert_eq!(grid.cell(1, 3), Some(&Cell::default()));
+        assert_eq!(grid.cell(1, 4), Some(&Cell::default()));
+        assert_eq!(row_text(&grid, 0), "abcde");
+        assert_eq!(row_text(&grid, 2), "klmno");
+
+        grid.delete_cells(1, 0, usize::MAX);
+        assert_eq!(row_text(&grid, 1), "     ");
     }
 
     #[test]
