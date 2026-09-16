@@ -400,8 +400,16 @@ impl vte::Perform for SemanticPerformer<'_> {
         }
 
         if action == 'n' {
-            if count == 1 && values[0] == 6 {
-                let _ = self.terminal.request_cursor_position_report();
+            if count == 1 {
+                match values[0] {
+                    5 => {
+                        let _ = self.terminal.request_terminal_status();
+                    }
+                    6 => {
+                        let _ = self.terminal.request_cursor_position_report();
+                    }
+                    _ => {}
+                }
             }
             return;
         }

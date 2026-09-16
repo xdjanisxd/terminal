@@ -165,6 +165,15 @@ impl TerminalState {
             .push(TerminalReply::PrimaryDeviceAttributes)
     }
 
+    /// Queues the fixed ANSI terminal-status response.
+    ///
+    /// Returns `false` without replacing an older reply when the fixed-capacity
+    /// reply queue is full.
+    #[must_use]
+    pub fn request_terminal_status(&mut self) -> bool {
+        self.pending_replies.push(TerminalReply::TerminalStatus)
+    }
+
     /// Queues a cursor-position report using the current absolute screen coordinates.
     ///
     /// The reply captures one-based coordinates at request time. It returns

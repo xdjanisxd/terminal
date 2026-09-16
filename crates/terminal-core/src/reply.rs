@@ -2,6 +2,7 @@
 pub const MAX_PENDING_REPLIES: usize = 16;
 
 const PRIMARY_DEVICE_ATTRIBUTES_BYTES: &[u8] = b"\x1b[?1;0c";
+const TERMINAL_STATUS_BYTES: &[u8] = b"\x1b[0n";
 const MAX_ENCODED_REPLY_BYTES: usize = 12;
 
 /// A bounded wire encoding of a project-owned terminal reply.
@@ -68,6 +69,8 @@ impl TerminalReplyBytes {
 pub enum TerminalReply {
     /// Primary Device Attributes: VT100-class identity with no optional capabilities.
     PrimaryDeviceAttributes,
+    /// ANSI Device Status Report: terminal status is normal/OK.
+    TerminalStatus,
     /// ANSI cursor-position report with captured one-based screen coordinates.
     CursorPosition { row: u16, column: u16 },
 }
@@ -79,6 +82,7 @@ impl TerminalReply {
             Self::PrimaryDeviceAttributes => {
                 TerminalReplyBytes::from_static(PRIMARY_DEVICE_ATTRIBUTES_BYTES)
             }
+            Self::TerminalStatus => TerminalReplyBytes::from_static(TERMINAL_STATUS_BYTES),
             Self::CursorPosition { row, column } => {
                 TerminalReplyBytes::cursor_position(*row, *column)
             }

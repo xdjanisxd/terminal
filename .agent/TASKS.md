@@ -6,6 +6,7 @@
 
 ## Later
 
+- [x] Add ANSI DSR terminal-status query (`CSI 5 n`) and bounded `CSI 0 n` reply through the existing `TerminalReply` FIFO.
 - [x] Add bounded ECH (`CSI Ps X`) current-row cell erasure without shifting neighboring cells.
 - [x] Add bounded DCH (`CSI Ps P`) cell deletion on the current row through project-owned grid/state operations.
 - [x] Add bounded ICH (`CSI Ps @`) cell insertion on the current row through project-owned grid/state operations.

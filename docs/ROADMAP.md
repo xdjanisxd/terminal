@@ -39,6 +39,7 @@ Completion marks require tested acceptance criteria, not code presence alone.
 - [x] Add bounded primary DA1 query/reply semantics through `TerminalState` without PTY integration
 - [ ] Implement and test remaining commonly used scroll, SGR, mode, and reply behavior
   - [x] Add ANSI cursor-position DSR (`CSI 6 n`) and bounded absolute CPR replies through `TerminalState`
+  - [x] Add ANSI DSR terminal-status query (`CSI 5 n`) and bounded `CSI 0 n` reply
   - [x] Add semicolon-form truecolor foreground/background SGR through the existing project-owned rendition model
   - [x] Add DECCKM parser dispatch to the existing typed application/normal cursor-key mode without input encoding
   - [x] Add bounded IL/DL line insertion/deletion within the cursor-to-bottom portion of the active scrolling region
