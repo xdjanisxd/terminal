@@ -299,6 +299,18 @@ impl TerminalState {
         self.wrap_pending = false;
     }
 
+    /// Deletes cells from the cursor through the final column.
+    ///
+    /// The count is normalized so zero deletes one cell, then clamped by the
+    /// bounded grid width. This explicit current-row editing operation preserves
+    /// the cursor but cancels delayed wrap, matching ICH and erase.
+    pub fn delete_characters(&mut self, count: usize) {
+        let cursor = self.cursor();
+        self.screen
+            .delete_cells(cursor.row(), cursor.column(), count.max(1));
+        self.wrap_pending = false;
+    }
+
     /// Moves the cursor to the first column of its current row.
     pub fn carriage_return(&mut self) {
         let row = self.cursor().row();

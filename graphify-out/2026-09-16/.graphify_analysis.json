@@ -1079,13 +1079,13 @@
       "degree": 10
     },
     {
-      "id": "crates_terminal_core_tests_rendition_state",
-      "label": "state()",
+      "id": "crates_terminal_core_src_parser_semanticperformer",
+      "label": "SemanticPerformer",
       "degree": 10
     },
     {
-      "id": "crates_terminal_core_src_dimensions_terminaldimensions",
-      "label": "TerminalDimensions",
+      "id": "crates_terminal_core_tests_rendition_state",
+      "label": "state()",
       "degree": 10
     }
   ],
@@ -1146,8 +1146,41 @@
       "why": "bridges separate communities"
     }
   ],
-  "tokens": {
-    "input": 0,
-    "output": 0
-  }
+  "questions": [
+    {
+      "type": "bridge_node",
+      "question": "Why does `TerminalState` connect `TerminalState` to `SemanticPerformer`, `TerminalReply`, `ScreenGrid`, `da1_parser.rs`, `.cursor`, `region_ind_ri.rs`, `region_su_sd_parser.rs`, `truecolor.rs`, `insert_delete_lines.rs`, `region_su_sd.rs`, `scrolling_margins.rs`, `insert_delete_lines_parser.rs`, `rendition.rs`, `.dimensions`, `region_nel_parser.rs`, `src/state.rs`, `decstbm.rs`, `insert_characters.rs`, `insert_characters_parser.rs`, `region_ind_ri_parser.rs`, `.set_cursor_position`, `.take_reply`, `.set_cursor_visibility`?",
+      "why": "High betweenness centrality (0.273) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `row_text()` connect `row_text` to `tests/parser.rs`, `da1_parser.rs`, `assert_observable_state_eq`?",
+      "why": "High betweenness centrality (0.089) - this node is a cross-community bridge."
+    },
+    {
+      "type": "bridge_node",
+      "question": "Why does `row_text()` connect `da1_parser.rs` to `TerminalState`?",
+      "why": "High betweenness centrality (0.086) - this node is a cross-community bridge."
+    },
+    {
+      "type": "isolated_nodes",
+      "question": "What connects `Commands and workspaces`, `Conceptual components`, `Dependency direction` to the rest of the system?",
+      "why": "95 weakly-connected nodes found - possible documentation gaps or missing edges."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `tests/parser.rs` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.04081632653061224 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `tests/state.rs` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.04081632653061224 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `SemanticPerformer` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.07827260458839407 - nodes in this community are weakly interconnected."
+    }
+  ]
 }
