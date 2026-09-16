@@ -90,15 +90,15 @@
     "semantic_hash": "eca9dc164b5745a93c313727afef22fe"
   },
   "crates/terminal-core/src/parser.rs": {
-    "mtime": 1789561479.677886,
-    "seen": 1789561591.2000825,
-    "ast_hash": "8a279a5a1156fd8dcdf3de81c39faf21",
+    "mtime": 1789562496.1348822,
+    "seen": 1789562573.5913768,
+    "ast_hash": "3cc2804878494ced948ef2daeed33929",
     "semantic_hash": ""
   },
   "crates/terminal-core/src/state.rs": {
-    "mtime": 1789561468.4256997,
-    "seen": 1789561591.2000825,
-    "ast_hash": "aab7511bce4a51a5752a539295703338",
+    "mtime": 1789562488.546314,
+    "seen": 1789562573.5913768,
+    "ast_hash": "727f5db5f80a68703eccc3f911093bff",
     "semantic_hash": ""
   },
   "crates/terminal-core/src/tabs.rs": {
@@ -168,15 +168,15 @@
     "semantic_hash": ""
   },
   ".agent/SESSION.md": {
-    "mtime": 1789560784.1836054,
-    "seen": 1789561591.2031417,
-    "ast_hash": "b55494d6de13dae2312e6abb23b60a68",
+    "mtime": 1789561616.3470318,
+    "seen": 1789562573.595375,
+    "ast_hash": "6cf0beeda37a78c4c35aba8944a10116",
     "semantic_hash": ""
   },
   ".agent/TASKS.md": {
-    "mtime": 1789561570.1800718,
-    "seen": 1789561591.2031417,
-    "ast_hash": "a5d00d29925af8aa1e2d2d23af126ea2",
+    "mtime": 1789562556.2167745,
+    "seen": 1789562573.595375,
+    "ast_hash": "d7d8b454abe863aadda02f8aa5b5ba72",
     "semantic_hash": ""
   },
   ".agent/WORKFLOW.md": {
@@ -198,9 +198,9 @@
     "semantic_hash": ""
   },
   "docs/ARCHITECTURE.md": {
-    "mtime": 1789561570.08806,
-    "seen": 1789561591.2031417,
-    "ast_hash": "cf4471b9219d5d67baf8c72f8c3702c3",
+    "mtime": 1789562557.4711857,
+    "seen": 1789562573.595375,
+    "ast_hash": "5bcc25fc6d4a832cabc9c6d8a104931d",
     "semantic_hash": ""
   },
   "docs/CONVENTIONS.md": {
@@ -210,9 +210,9 @@
     "semantic_hash": ""
   },
   "docs/CURRENT_STATE.md": {
-    "mtime": 1789561546.8167548,
-    "seen": 1789561591.2031417,
-    "ast_hash": "64fdef957c53424e5d55f2ad8e0e2cfe",
+    "mtime": 1789562544.436831,
+    "seen": 1789562573.595375,
+    "ast_hash": "19b85938017d171bc972bfd0830b1b66",
     "semantic_hash": ""
   },
   "docs/PERFORMANCE.md": {
@@ -228,9 +228,9 @@
     "semantic_hash": ""
   },
   "docs/ROADMAP.md": {
-    "mtime": 1789561523.7118287,
-    "seen": 1789561591.2031417,
-    "ast_hash": "55e0d1fac297e34c6de075ac67925418",
+    "mtime": 1789562544.4575245,
+    "seen": 1789562573.595375,
+    "ast_hash": "62e85841e3047be2f64580a24b5c1fe3",
     "semantic_hash": ""
   },
   "docs/decisions/ADR-0001-rust-cargo-workspace.md": {
@@ -336,10 +336,10 @@
     "semantic_hash": "399939e6e65f7081d950d45e29a145df"
   },
   "crates/terminal-core/src/reply.rs": {
-    "mtime": 1789541236.3228195,
-    "seen": 1789541329.738848,
-    "ast_hash": "ecc6937364c824c393941bf735f6c4d6",
-    "semantic_hash": "ecc6937364c824c393941bf735f6c4d6"
+    "mtime": 1789562479.576857,
+    "seen": 1789562573.5913768,
+    "ast_hash": "3889f375e49749f1ae8dafb5823e46d6",
+    "semantic_hash": ""
   },
   "crates/terminal-core/tests/da1.rs": {
     "mtime": 1789541236.3447692,
@@ -423,6 +423,18 @@
     "mtime": 1789561494.2391253,
     "seen": 1789561591.201083,
     "ast_hash": "6d16bbf219c2bcdfd169dd16404b0ea6",
+    "semantic_hash": ""
+  },
+  "crates/terminal-core/tests/dsr_status.rs": {
+    "mtime": 1789562429.5135925,
+    "seen": 1789562573.5923755,
+    "ast_hash": "33e07b4a8b7493ed8086cf69ab433834",
+    "semantic_hash": ""
+  },
+  "crates/terminal-core/tests/dsr_status_parser.rs": {
+    "mtime": 1789562511.9942534,
+    "seen": 1789562573.5923755,
+    "ast_hash": "e05585de8a4dd145f2d69b93bfba8877",
     "semantic_hash": ""
   }
 }

@@ -2,11 +2,11 @@
 
 ## Current state
 
-The narrow M2 erase-character (ECH) slice is complete on `feat/m2-erase-characters`.
+The narrow M2 ANSI Device Status Report status-query slice is complete on `feat/m2-dsr-status`.
 
-`TerminalParser` routes `CSI Ps X` through `TerminalState::erase_characters`. The state facade reuses the existing `ScreenGrid::erase_cells` bounded range-clear primitive: it replaces the current-row range beginning at the cursor with `Cell::default()` and does not shift neighboring cells.
+`TerminalParser` routes standard `CSI 5 n` through `TerminalState::request_terminal_status`, which appends the fixed `TerminalReply::TerminalStatus` variant to the existing 16-entry `PendingReplies` FIFO. `TerminalReply` owns the bounded four-byte `ESC [ 0 n` encoding. Private, malformed, subparameter, extra-parameter, and unsupported DSR forms remain no-ops; existing `CSI 6 n` CPR behavior is preserved.
 
-ECH preserves cursor coordinates and unrelated terminal state, including typing insert/replace mode and active vertical scrolling margins; it cancels delayed wrap as an explicit current-row erase operation. Omitted and zero counts normalize to one, oversized counts clamp to the remaining row width, and malformed, private, subparameter, or extra-parameter forms are safe no-ops. Tests explicitly distinguish ECH from DCH: ECH blanks only its range while DCH shifts the suffix left. No Unicode, PTY, renderer, input, workspace, alternate-screen, scrollback, public API, or dependency work was added.
+The query does not inspect or mutate the screen, cursor, delayed-wrap state, rendition, tabs, margins, terminal modes, or input modes. Repeated and interleaved DA1/status/CPR queries preserve FIFO order and existing full-queue refusal behavior. No private DSR, PTY transmission, runtime I/O, Unicode, renderer, input, workspace, public API, or dependency work was added.
 
 ## Validation
 
@@ -18,17 +18,17 @@ Local Windows GNU validation passed:
 * `cargo check --target x86_64-pc-windows-gnu --workspace --all-targets`
 * `cargo clippy --target x86_64-pc-windows-gnu --workspace --all-targets -- -D warnings`
 * `git diff --check`
-* dependency/static scans (no dependency changes, no parser-to-grid mutation path, no PTY/input/renderer/workspace coupling, and no unsafe Rust)
+* dependency/static scans (no dependency changes, no parser-owned reply encoding or queue, no PTY/input/renderer/workspace coupling, and no unsafe Rust)
 
 The default MSVC target remains unavailable locally because Git Bash lacks the required MSVC linker tools; the installed Windows GNU target was used for linked validation.
 
-Structural Graphify was refreshed code-only to 778 nodes, 1,166 edges, and 73 communities. The ownership path remains `TerminalParser -> TerminalState -> ScreenGrid`; no parser-to-grid mutation or dependency-direction coupling was introduced. Semantic enrichment remains unavailable because no supported LLM API key is configured.
+Structural Graphify was refreshed code-only to 792 nodes, 1,184 edges, and 73 communities. The ownership path remains `TerminalParser -> TerminalState -> PendingReplies`; reply encoding stays in `TerminalReply`. Semantic enrichment remains unavailable because no supported LLM API key is configured.
 
 ## Important limitations
 
 * DECCKM is parser-selectable mode state only; actual cursor-key byte encoding remains deferred to M5.
-* Unicode combining/wide cells, origin mode, alternate screens, scrollback, PTY/session integration, and renderer behavior remain deferred.
+* DEC-private DSR, Unicode combining/wide cells, origin mode, alternate screens, scrollback, PTY/session integration, and renderer behavior remain deferred.
 
 ## Next
 
-Inspect the remaining open M2 compatibility surface and select exactly one narrow, high-value slice; do not continue character-editing commands by default.
+Perform a narrow audit of the remaining M2 compatibility surface before selecting exactly one high-value slice; do not continue adding arbitrary CSI commands.

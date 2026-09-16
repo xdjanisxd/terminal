@@ -186,13 +186,7 @@ fn parser_cpr_preserves_absolute_position_and_does_not_reply_to_other_dsr_forms(
     );
     assert_eq!(state.take_reply(), None);
 
-    for sequence in [
-        b"\x1b[5n".as_slice(),
-        b"\x1b[0n",
-        b"\x1b[7n",
-        b"\x1b[?6n",
-        b"\x1b[>6n",
-    ] {
+    for sequence in [b"\x1b[0n".as_slice(), b"\x1b[7n", b"\x1b[?6n", b"\x1b[>6n"] {
         parser.advance(&mut state, sequence).unwrap();
         assert_eq!(state.take_reply(), None, "sequence {sequence:?}");
     }
