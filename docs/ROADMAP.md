@@ -47,6 +47,7 @@ Completion marks require tested acceptance criteria, not code presence alone.
   - [x] Add bounded DCH cell deletion on the current row through project-owned grid/state operations
   - [x] Add bounded ECH current-row cell erasure without shifting neighboring cells
   - [x] Add bounded CNL/CPL cursor-next/previous-line movement with column reset and no scrolling
+  - [x] Add typed SGR faint intensity with ordered `1`/`2`/`22` semantics through the existing rendition model
 - [ ] Implement Unicode combining and wide-cell invariants
 - [ ] Implement primary/alternate screens, resize behavior, and bounded scrollback
 - [ ] Validate against representative modern shells and TUIs

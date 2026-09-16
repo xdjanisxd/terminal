@@ -11,12 +11,13 @@ pub enum CellColor {
     },
 }
 
-/// Selects normal or bold/intense text rendering.
+/// Selects normal, bold, or faint text rendering.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum TextIntensity {
     #[default]
     Normal,
     Bold,
+    Faint,
 }
 
 /// Selects upright or italic text rendering.

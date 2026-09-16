@@ -16,7 +16,7 @@
   "14": "HorizontalTabStops",
   "15": "region_su_sd_parser.rs",
   "16": "Architecture",
-  "17": "dsr_status_parser.rs",
+  "17": "cpr_parser.rs",
   "18": "insert_delete_lines.rs",
   "19": "assert_observable_state_eq",
   "20": "region_su_sd.rs",

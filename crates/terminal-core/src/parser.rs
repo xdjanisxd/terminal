@@ -218,6 +218,7 @@ impl<'a> SemanticPerformer<'a> {
             match *attribute {
                 0 => self.terminal.reset_rendition(),
                 1 => self.terminal.set_text_intensity(TextIntensity::Bold),
+                2 => self.terminal.set_text_intensity(TextIntensity::Faint),
                 3 => self.terminal.set_italic_style(ItalicStyle::Italic),
                 4 => self.terminal.set_underline_style(UnderlineStyle::Enabled),
                 7 => self.terminal.set_inverse_video(InverseVideo::Enabled),

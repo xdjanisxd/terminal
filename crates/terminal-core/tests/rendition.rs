@@ -39,6 +39,22 @@ fn text_intensity_can_be_set_and_cleared_independently() {
 }
 
 #[test]
+fn faint_intensity_is_typed_idempotent_and_preserved_by_resize() {
+    let mut state = state();
+    state.set_text_intensity(TextIntensity::Faint);
+    assert_eq!(state.current_rendition().intensity(), TextIntensity::Faint);
+    state.set_text_intensity(TextIntensity::Faint);
+    state.resize(TerminalDimensions::new(4, 3).unwrap());
+    assert_eq!(state.current_rendition().intensity(), TextIntensity::Faint);
+    state.set_text_intensity(TextIntensity::Normal);
+    state.set_text_intensity(TextIntensity::Normal);
+    assert_eq!(state.current_rendition().intensity(), TextIntensity::Normal);
+    state.set_text_intensity(TextIntensity::Faint);
+    state.reset();
+    assert_eq!(state.current_rendition().intensity(), TextIntensity::Normal);
+}
+
+#[test]
 fn italic_can_be_set_and_cleared_independently() {
     let mut state = state();
     state.set_text_intensity(TextIntensity::Bold);
