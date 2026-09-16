@@ -6,8 +6,8 @@ use terminal_core::{
 
 const EXPECTED_DA1: &[u8] = b"\x1b[?1;0c";
 
-fn reply_bytes(reply: TerminalReply) -> &'static [u8] {
-    reply.as_bytes()
+fn reply_bytes(reply: TerminalReply) -> Vec<u8> {
+    reply.as_bytes().as_slice().to_vec()
 }
 
 #[test]
@@ -17,7 +17,10 @@ fn primary_device_attributes_queues_exact_conservative_reply() {
     assert!(state.request_primary_device_attributes());
 
     assert_eq!(state.pending_reply_count(), 1);
-    assert_eq!(state.take_reply().map(reply_bytes), Some(EXPECTED_DA1));
+    assert_eq!(
+        state.take_reply().map(reply_bytes),
+        Some(EXPECTED_DA1.to_vec())
+    );
     assert_eq!(state.pending_reply_count(), 0);
     assert_eq!(state.take_reply(), None);
 }
@@ -34,12 +37,18 @@ fn pending_replies_are_fifo_bounded_and_never_overwritten() {
     assert!(!state.request_primary_device_attributes());
     assert_eq!(state.pending_reply_count(), MAX_PENDING_REPLIES);
 
-    assert_eq!(state.take_reply().map(reply_bytes), Some(EXPECTED_DA1));
+    assert_eq!(
+        state.take_reply().map(reply_bytes),
+        Some(EXPECTED_DA1.to_vec())
+    );
     assert!(state.request_primary_device_attributes());
     assert_eq!(state.pending_reply_count(), MAX_PENDING_REPLIES);
 
     for _ in 0..MAX_PENDING_REPLIES {
-        assert_eq!(state.take_reply().map(reply_bytes), Some(EXPECTED_DA1));
+        assert_eq!(
+            state.take_reply().map(reply_bytes),
+            Some(EXPECTED_DA1.to_vec())
+        );
     }
     assert_eq!(state.take_reply(), None);
 }
@@ -80,7 +89,10 @@ fn da1_generation_and_consumption_preserve_terminal_state_and_delayed_wrap() {
     assert_eq!(state.vertical_scrolling_margins(), margins);
     assert!(state.has_horizontal_tab_stop(1));
 
-    assert_eq!(state.take_reply().map(reply_bytes), Some(EXPECTED_DA1));
+    assert_eq!(
+        state.take_reply().map(reply_bytes),
+        Some(EXPECTED_DA1.to_vec())
+    );
     assert_eq!(state.screen(), &screen);
     assert_eq!(state.cursor(), cursor);
     assert_eq!(*state.current_rendition(), rendition);
@@ -104,12 +116,18 @@ fn reset_and_resize_preserve_already_generated_replies() {
     state.reset();
 
     assert_eq!(state.pending_reply_count(), 2);
-    assert_eq!(state.take_reply().map(reply_bytes), Some(EXPECTED_DA1));
+    assert_eq!(
+        state.take_reply().map(reply_bytes),
+        Some(EXPECTED_DA1.to_vec())
+    );
 
     state.resize(TerminalDimensions::new(5, 2).unwrap());
 
     assert_eq!(state.pending_reply_count(), 1);
-    assert_eq!(state.take_reply().map(reply_bytes), Some(EXPECTED_DA1));
+    assert_eq!(
+        state.take_reply().map(reply_bytes),
+        Some(EXPECTED_DA1.to_vec())
+    );
     assert_eq!(state.take_reply(), None);
     assert_eq!(
         state.vertical_scrolling_margins(),

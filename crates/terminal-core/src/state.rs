@@ -165,6 +165,22 @@ impl TerminalState {
             .push(TerminalReply::PrimaryDeviceAttributes)
     }
 
+    /// Queues a cursor-position report using the current absolute screen coordinates.
+    ///
+    /// The reply captures one-based coordinates at request time. It returns
+    /// `false` without changing terminal state when the fixed-capacity reply
+    /// queue is full.
+    #[must_use]
+    pub fn request_cursor_position_report(&mut self) -> bool {
+        let cursor = self.cursor();
+        let row = u16::try_from(cursor.row() + 1)
+            .expect("validated terminal dimensions fit cursor-position reply coordinates");
+        let column = u16::try_from(cursor.column() + 1)
+            .expect("validated terminal dimensions fit cursor-position reply coordinates");
+        self.pending_replies
+            .push(TerminalReply::CursorPosition { row, column })
+    }
+
     /// Replaces the vertical scrolling margins when they are valid for the screen.
     ///
     /// A successful update homes the cursor at the screen origin and cancels

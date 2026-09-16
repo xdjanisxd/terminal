@@ -2,7 +2,7 @@
 
 ## Next
 
-- [ ] Add a narrow DSR/CPR slice that reuses the bounded `TerminalReply` FIFO for a cursor-position response without origin mode.
+- [x] Add a narrow DSR/CPR slice that reuses the bounded `TerminalReply` FIFO for a cursor-position response without origin mode.
 
 ## Later
 

@@ -367,6 +367,13 @@ impl vte::Perform for SemanticPerformer<'_> {
             return;
         }
 
+        if action == 'n' {
+            if count == 1 && values[0] == 6 {
+                let _ = self.terminal.request_cursor_position_report();
+            }
+            return;
+        }
+
         if action == 'r' {
             self.dispatch_decstbm(values, count);
             return;

@@ -22,6 +22,6 @@ pub use modes::{
     TerminalModes,
 };
 pub use parser::{TerminalParser, TerminalParserError};
-pub use reply::{MAX_PENDING_REPLIES, TerminalReply};
+pub use reply::{MAX_PENDING_REPLIES, TerminalReply, TerminalReplyBytes};
 pub use scrolling::VerticalScrollingMargins;
 pub use state::{CursorMovement, EraseDirection, EraseRegion, PrintError, TerminalState};
