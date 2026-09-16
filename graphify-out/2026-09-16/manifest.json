@@ -132,9 +132,9 @@
     "semantic_hash": "977888a5a5b3e299d00285acf57b0acd"
   },
   "crates/terminal-core/tests/state.rs": {
-    "mtime": 1789563512.960646,
-    "seen": 1789563604.296568,
-    "ast_hash": "4fe560a6e99fa6396fca8a4d3cf793fa",
+    "mtime": 1789563768.0052488,
+    "seen": 1789563782.6970844,
+    "ast_hash": "d4c857e2f95c553a989d5861c70a14c9",
     "semantic_hash": ""
   },
   "crates/terminal-pty/Cargo.toml": {
@@ -168,9 +168,9 @@
     "semantic_hash": ""
   },
   ".agent/SESSION.md": {
-    "mtime": 1789562638.7099018,
-    "seen": 1789563604.296568,
-    "ast_hash": "e1412c6cf56190153b69a20c17fa31a2",
+    "mtime": 1789563729.5603397,
+    "seen": 1789563782.6970844,
+    "ast_hash": "a1ef58fbbfa0c212130f1ab2baa3d6b7",
     "semantic_hash": ""
   },
   ".agent/TASKS.md": {
@@ -210,9 +210,9 @@
     "semantic_hash": ""
   },
   "docs/CURRENT_STATE.md": {
-    "mtime": 1789563551.949033,
-    "seen": 1789563604.2975652,
-    "ast_hash": "a7171e467a2db2b0bfbfaa8c0665b410",
+    "mtime": 1789563703.0738468,
+    "seen": 1789563782.6980846,
+    "ast_hash": "d3f2fbc4fd16299bcd2eac8f8a562501",
     "semantic_hash": ""
   },
   "docs/PERFORMANCE.md": {

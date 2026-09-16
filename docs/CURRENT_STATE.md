@@ -4,7 +4,7 @@
 
 - Valid Rust workspace, MIT metadata, and required repository knowledge system
 - Cross-platform GitHub Actions gates verified on Windows, Linux, and macOS for x86_64 and ARM64
-- Project-owned `terminal-core` models for bounded dimensions, cells, typed colors and rendition attributes, row-major screen storage, and a grid-owned bounded cursor
+- Project-owned `terminal-core` models for bounded dimensions, cells, typed colors and rendition attributes including normal/bold/faint intensity, row-major screen storage, and a grid-owned bounded cursor
 - Zero-based checked cell access, default-cell clearing, bounded inclusive region-scroll primitives, and top-left-preserving resize with cursor clamping
 - Typed terminal-global modes for cursor visibility, auto-wrap, and insert/replace behavior
 - Separate typed input-related state for normal/application cursor keys
@@ -14,7 +14,7 @@
 - Parser-independent printable-character, carriage-return, line-feed, index, reverse-index, next-line, bounded cursor-next/previous-line, backspace, horizontal-tab, region-aware-scroll, typed scrolling-margin, and typed rendition operations routed through `TerminalState`
 - Delayed right-margin wrapping, auto-wrap suppression, bounded region-aware SU/SD, IND/RI, and NEL scrolling, fixed-screen bottom scrolling, and fixed-width insert/replace output behavior
 - Incremental project-owned `TerminalParser` adapter encapsulating `vte` and preserving parser state across input chunks
-- Parser routing for printable input, CR, LF, BS, HT, HTS, IND, RI, NEL, primary DA1 queries `CSI c`/`CSI 0 c`, ANSI DSR status `CSI 5 n` and cursor-position `CSI 6 n` queries, TBC, CUU/CUD/CUF/CUB, CNL/CPL, CUP/HVP, CHA/VPA, bounded current-row ICH/DCH/ECH, ED, EL, cursor-relative IL/DL, region-aware SU/SD, DECSTBM, IRM, private DECCKM/DECAWM/DECTCEM, and SGR styles, defaults, ANSI 16 colors, semicolon-form indexed foreground/background colors, and semicolon-form exact RGB foreground/background colors; unsupported parser actions and parameters are ignored without approximation
+- Parser routing for printable input, CR, LF, BS, HT, HTS, IND, RI, NEL, primary DA1 queries `CSI c`/`CSI 0 c`, ANSI DSR status `CSI 5 n` and cursor-position `CSI 6 n` queries, TBC, CUU/CUD/CUF/CUB, CNL/CPL, CUP/HVP, CHA/VPA, bounded current-row ICH/DCH/ECH, ED, EL, cursor-relative IL/DL, region-aware SU/SD, DECSTBM, IRM, private DECCKM/DECAWM/DECTCEM, and SGR reset, bold, faint, italic, underline, inverse, defaults, ANSI 16 colors, semicolon-form indexed foreground/background colors, and semicolon-form exact RGB foreground/background colors; unsupported parser actions and parameters are ignored without approximation
 - IL/DL `CSI Ps L`/`CSI Ps M` use the cursor-to-bottom portion of the active scrolling region, leaving rows above the cursor and outside margins unchanged; blank lines use canonical default cells and delayed wrap is preserved
 - Bounded current-row ICH `CSI Ps @` and DCH `CSI Ps P` use generic grid cell insertion/deletion primitives, shift complete cells within the current row with final-column clipping, fill canonical default blank cells, and cancel delayed wrap without moving the cursor
 - Bounded current-row ECH `CSI Ps X` reuses the grid range-clear primitive to replace complete cells with canonical default blanks without shifting neighboring cells; it preserves cursor coordinates and cancels delayed wrap
@@ -23,13 +23,14 @@
 - Bounded grouped handling for extended-color SGR: indexed selectors consume one index, semicolon-form truecolor consumes exactly three scalar components and validates all before mutation, and unknown selectors consume the remaining CSI parameters so payload cannot leak into unrelated SGR
 - Bounded, resumable semantic-error reporting with exact consumed-byte counts
 - Bounded 1,024-byte OSC parser storage by compiling `vte` without its default `std` feature
-- Two hundred ninety-five `terminal-core` unit/integration tests plus four compile-fail ownership tests
+- Two hundred ninety-eight `terminal-core` unit/integration tests plus four compile-fail ownership tests
 
 ## Partial
 
 - `TerminalState::reset` restores the screen model to initial state at existing dimensions, including full-screen vertical margins, while preserving already-generated pending replies; it is explicitly not DECSTR or RIS
-- `Cell` stores one Unicode scalar plus foreground/background colors and the narrow bold, italic, underline, and inverse style set; combining characters, wide-cell continuations, additional styles, and grapheme behavior are not modeled yet
+- `Cell` stores one Unicode scalar plus foreground/background colors and the narrow normal/bold/faint intensity, italic, underline, and inverse style set; combining characters, wide-cell continuations, additional styles, and grapheme behavior are not modeled yet
 - Printable output accepts only single-cell ASCII space through tilde and snapshots current rendition attributes; all other Unicode remains explicitly deferred
+- Faint is represented in terminal state and captured by cells, but visual dimming remains deferred with renderer implementation
 - The parser recognizes broader VTE syntax incrementally, but only printable input, CR, LF, BS, HT, HTS, IND, RI, NEL, primary DA1, ANSI DSR cursor-position queries, the supported cursor/erase/region-aware-scroll/DECSTBM CSI subset, IRM/DECAWM/DECTCEM, and the documented style, default, ANSI 16-color, semicolon-form indexed-color, and semicolon-form truecolor SGR subsets currently have terminal semantics
 - Resize preserves the top-left rectangular intersection, resets vertical scrolling margins to the full new screen height, and does not reflow text; final terminal resize/reflow semantics remain future compatibility work
 - Public branding and minimum operating-system versions remain intentionally deferred as documented in ADR-0008

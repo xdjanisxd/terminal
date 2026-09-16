@@ -584,7 +584,7 @@
       "file_type": "code",
       "norm_label": "accepts_ascii_boundaries_and_rejects_delete()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L387"
+      "source_location": "L418"
     },
     {
       "id": "crates_terminal_core_tests_state_backspace_at_the_margin_is_a_no_op_even_when_wrap_is_pending",
@@ -595,7 +595,7 @@
       "file_type": "code",
       "norm_label": "backspace_at_the_margin_is_a_no_op_even_when_wrap_is_pending()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L569"
+      "source_location": "L600"
     },
     {
       "id": "crates_terminal_core_tests_state_backspace_cancels_pending_wrap_before_the_next_print",
@@ -606,7 +606,7 @@
       "file_type": "code",
       "norm_label": "backspace_cancels_pending_wrap_before_the_next_print()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L556"
+      "source_location": "L587"
     },
     {
       "id": "crates_terminal_core_tests_state_backspace_moves_left_without_erasing_and_stops_at_the_margin",
@@ -617,7 +617,7 @@
       "file_type": "code",
       "norm_label": "backspace_moves_left_without_erasing_and_stops_at_the_margin()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L540"
+      "source_location": "L571"
     },
     {
       "id": "crates_terminal_core_tests_state_bottom_line_feed_preserves_pending_wrap_for_a_later_print",
@@ -628,7 +628,7 @@
       "file_type": "code",
       "norm_label": "bottom_line_feed_preserves_pending_wrap_for_a_later_print()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L510"
+      "source_location": "L541"
     },
     {
       "id": "crates_terminal_core_tests_state_carriage_return_cancels_a_pending_wrap",
@@ -639,7 +639,7 @@
       "file_type": "code",
       "norm_label": "carriage_return_cancels_a_pending_wrap()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L472"
+      "source_location": "L503"
     },
     {
       "id": "crates_terminal_core_tests_state_carriage_return_moves_to_the_first_column_without_changing_row",
@@ -650,7 +650,7 @@
       "file_type": "code",
       "norm_label": "carriage_return_moves_to_the_first_column_without_changing_row()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L462"
+      "source_location": "L493"
     },
     {
       "id": "crates_terminal_core_tests_state_changes_supported_terminal_modes_through_the_facade",
@@ -661,7 +661,7 @@
       "file_type": "code",
       "norm_label": "changes_supported_terminal_modes_through_the_facade()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L724"
+      "source_location": "L755"
     },
     {
       "id": "crates_terminal_core_tests_state_clear_screen_cancels_pending_wrap_without_moving_the_cursor",
@@ -672,7 +672,7 @@
       "file_type": "code",
       "norm_label": "clear_screen_cancels_pending_wrap_without_moving_the_cursor()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L614"
+      "source_location": "L645"
     },
     {
       "id": "crates_terminal_core_tests_state_clears_the_active_screen_without_moving_the_cursor",
@@ -683,7 +683,7 @@
       "file_type": "code",
       "norm_label": "clears_the_active_screen_without_moving_the_cursor()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L693"
+      "source_location": "L724"
     },
     {
       "id": "crates_terminal_core_tests_state_constructs_state_from_validated_dimensions_with_documented_defaults",
@@ -694,7 +694,7 @@
       "file_type": "code",
       "norm_label": "constructs_state_from_validated_dimensions_with_documented_defaults()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L655"
+      "source_location": "L686"
     },
     {
       "id": "crates_terminal_core_tests_state_coordinates_absolute_and_relative_cursor_operations",
@@ -705,7 +705,7 @@
       "file_type": "code",
       "norm_label": "coordinates_absolute_and_relative_cursor_operations()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L675"
+      "source_location": "L706"
     },
     {
       "id": "crates_terminal_core_tests_state_cursor_key_mode_transitions_through_the_facade_are_idempotent",
@@ -716,7 +716,7 @@
       "file_type": "code",
       "norm_label": "cursor_key_mode_transitions_through_the_facade_are_idempotent()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L743"
+      "source_location": "L774"
     },
     {
       "id": "crates_terminal_core_tests_state_cursor_next_and_previous_line_are_bounded_column_reset_movements",
@@ -738,7 +738,7 @@
       "file_type": "code",
       "norm_label": "cursor_next_and_previous_line_cancel_delayed_wrap()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L207"
+      "source_location": "L238"
     },
     {
       "id": "crates_terminal_core_tests_state_custom_horizontal_tab_stops_can_be_set_and_cleared",
@@ -749,7 +749,7 @@
       "file_type": "code",
       "norm_label": "custom_horizontal_tab_stops_can_be_set_and_cleared()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L879"
+      "source_location": "L910"
     },
     {
       "id": "crates_terminal_core_tests_state_default_horizontal_tab_stops_are_every_eight_columns",
@@ -760,7 +760,7 @@
       "file_type": "code",
       "norm_label": "default_horizontal_tab_stops_are_every_eight_columns()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L834"
+      "source_location": "L865"
     },
     {
       "id": "crates_terminal_core_tests_state_disabled_auto_wrap_replaces_the_final_column_without_wrapping",
@@ -771,7 +771,7 @@
       "file_type": "code",
       "norm_label": "disabled_auto_wrap_replaces_the_final_column_without_wrapping()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L421"
+      "source_location": "L452"
     },
     {
       "id": "crates_terminal_core_tests_state_disabling_auto_wrap_cancels_an_existing_pending_wrap",
@@ -782,7 +782,7 @@
       "file_type": "code",
       "norm_label": "disabling_auto_wrap_cancels_an_existing_pending_wrap()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L435"
+      "source_location": "L466"
     },
     {
       "id": "crates_terminal_core_tests_state_erase_cancels_delayed_wrap_without_moving_the_cursor",
@@ -793,7 +793,7 @@
       "file_type": "code",
       "norm_label": "erase_cancels_delayed_wrap_without_moving_the_cursor()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L320"
+      "source_location": "L351"
     },
     {
       "id": "crates_terminal_core_tests_state_every_typed_cursor_operation_cancels_delayed_wrap",
@@ -804,7 +804,7 @@
       "file_type": "code",
       "norm_label": "every_typed_cursor_operation_cancels_delayed_wrap()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L232"
+      "source_location": "L263"
     },
     {
       "id": "crates_terminal_core_tests_state_final_column_enters_delayed_wrap_until_the_next_print",
@@ -815,7 +815,7 @@
       "file_type": "code",
       "norm_label": "final_column_enters_delayed_wrap_until_the_next_print()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L403"
+      "source_location": "L434"
     },
     {
       "id": "crates_terminal_core_tests_state_full_screen_scrolling_preserves_delayed_wrap",
@@ -826,7 +826,7 @@
       "file_type": "code",
       "norm_label": "full_screen_scrolling_preserves_delayed_wrap()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1084"
+      "source_location": "L1115"
     },
     {
       "id": "crates_terminal_core_tests_state_growing_preserves_existing_tab_stops_and_defaults_new_columns",
@@ -837,7 +837,7 @@
       "file_type": "code",
       "norm_label": "growing_preserves_existing_tab_stops_and_defaults_new_columns()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L898"
+      "source_location": "L929"
     },
     {
       "id": "crates_terminal_core_tests_state_horizontal_tab_moves_to_the_next_stop_from_multiple_columns",
@@ -848,7 +848,7 @@
       "file_type": "code",
       "norm_label": "horizontal_tab_moves_to_the_next_stop_from_multiple_columns()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L848"
+      "source_location": "L879"
     },
     {
       "id": "crates_terminal_core_tests_state_horizontal_tab_uses_the_final_column_when_no_later_stop_exists",
@@ -859,7 +859,7 @@
       "file_type": "code",
       "norm_label": "horizontal_tab_uses_the_final_column_when_no_later_stop_exists()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L862"
+      "source_location": "L893"
     },
     {
       "id": "crates_terminal_core_tests_state_index_moves_down_preserves_column_and_cancels_delayed_wrap",
@@ -870,7 +870,7 @@
       "file_type": "code",
       "norm_label": "index_moves_down_preserves_column_and_cancels_delayed_wrap()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1105"
+      "source_location": "L1136"
     },
     {
       "id": "crates_terminal_core_tests_state_insert_mode_at_the_final_column_replaces_then_delays_wrap",
@@ -881,7 +881,7 @@
       "file_type": "code",
       "norm_label": "insert_mode_at_the_final_column_replaces_then_delays_wrap()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L597"
+      "source_location": "L628"
     },
     {
       "id": "crates_terminal_core_tests_state_insert_mode_shifts_the_current_row_right_and_drops_the_last_cell",
@@ -892,7 +892,7 @@
       "file_type": "code",
       "norm_label": "insert_mode_shifts_the_current_row_right_and_drops_the_last_cell()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L582"
+      "source_location": "L613"
     },
     {
       "id": "crates_terminal_core_tests_state_line_feed_at_the_bottom_scrolls_the_screen_and_keeps_the_column",
@@ -903,7 +903,7 @@
       "file_type": "code",
       "norm_label": "line_feed_at_the_bottom_scrolls_the_screen_and_keeps_the_column()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L525"
+      "source_location": "L556"
     },
     {
       "id": "crates_terminal_core_tests_state_line_feed_moves_down_without_changing_column",
@@ -914,7 +914,7 @@
       "file_type": "code",
       "norm_label": "line_feed_moves_down_without_changing_column()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L485"
+      "source_location": "L516"
     },
     {
       "id": "crates_terminal_core_tests_state_line_feed_preserves_pending_wrap_until_the_next_print",
@@ -925,7 +925,7 @@
       "file_type": "code",
       "norm_label": "line_feed_preserves_pending_wrap_until_the_next_print()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L495"
+      "source_location": "L526"
     },
     {
       "id": "crates_terminal_core_tests_state_next_line_moves_down_resets_column_and_cancels_delayed_wrap",
@@ -936,7 +936,7 @@
       "file_type": "code",
       "norm_label": "next_line_moves_down_resets_column_and_cancels_delayed_wrap()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1197"
+      "source_location": "L1228"
     },
     {
       "id": "crates_terminal_core_tests_state_prints_a_character_at_the_cursor_and_advances_one_column",
@@ -947,7 +947,7 @@
       "file_type": "code",
       "norm_label": "prints_a_character_at_the_cursor_and_advances_one_column()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L334"
+      "source_location": "L365"
     },
     {
       "id": "crates_terminal_core_tests_state_prints_sequential_characters_in_replace_mode",
@@ -958,7 +958,7 @@
       "file_type": "code",
       "norm_label": "prints_sequential_characters_in_replace_mode()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L345"
+      "source_location": "L376"
     },
     {
       "id": "crates_terminal_core_tests_state_rejects_control_characters_without_mutating_state",
@@ -969,7 +969,7 @@
       "file_type": "code",
       "norm_label": "rejects_control_characters_without_mutating_state()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L357"
+      "source_location": "L388"
     },
     {
       "id": "crates_terminal_core_tests_state_rejects_unicode_whose_cell_width_is_not_modeled",
@@ -980,7 +980,7 @@
       "file_type": "code",
       "norm_label": "rejects_unicode_whose_cell_width_is_not_modeled()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L370"
+      "source_location": "L401"
     },
     {
       "id": "crates_terminal_core_tests_state_reset_discards_pending_wrap_and_restores_the_origin",
@@ -991,7 +991,7 @@
       "file_type": "code",
       "norm_label": "reset_discards_pending_wrap_and_restores_the_origin()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L627"
+      "source_location": "L658"
     },
     {
       "id": "crates_terminal_core_tests_state_reset_is_idempotent",
@@ -1002,7 +1002,7 @@
       "file_type": "code",
       "norm_label": "reset_is_idempotent()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L795"
+      "source_location": "L826"
     },
     {
       "id": "crates_terminal_core_tests_state_reset_restores_default_horizontal_tab_stops_at_current_dimensions",
@@ -1013,7 +1013,7 @@
       "file_type": "code",
       "norm_label": "reset_restores_default_horizontal_tab_stops_at_current_dimensions()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L932"
+      "source_location": "L963"
     },
     {
       "id": "crates_terminal_core_tests_state_reset_restores_initial_supported_state_at_current_dimensions",
@@ -1024,7 +1024,7 @@
       "file_type": "code",
       "norm_label": "reset_restores_initial_supported_state_at_current_dimensions()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L774"
+      "source_location": "L805"
     },
     {
       "id": "crates_terminal_core_tests_state_resize_cancels_pending_wrap",
@@ -1035,7 +1035,7 @@
       "file_type": "code",
       "norm_label": "resize_cancels_pending_wrap()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L641"
+      "source_location": "L672"
     },
     {
       "id": "crates_terminal_core_tests_state_resize_preserves_cursor_key_mode",
@@ -1046,7 +1046,7 @@
       "file_type": "code",
       "norm_label": "resize_preserves_cursor_key_mode()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L761"
+      "source_location": "L792"
     },
     {
       "id": "crates_terminal_core_tests_state_resize_then_reset_keeps_resized_dimensions_and_restores_invariants",
@@ -1057,7 +1057,7 @@
       "file_type": "code",
       "norm_label": "resize_then_reset_keeps_resized_dimensions_and_restores_invariants()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L814"
+      "source_location": "L845"
     },
     {
       "id": "crates_terminal_core_tests_state_resizes_the_active_screen_and_keeps_cursor_bounded",
@@ -1068,7 +1068,7 @@
       "file_type": "code",
       "norm_label": "resizes_the_active_screen_and_keeps_cursor_bounded()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L711"
+      "source_location": "L742"
     },
     {
       "id": "crates_terminal_core_tests_state_reverse_index_moves_up_preserves_column_and_cancels_delayed_wrap",
@@ -1079,7 +1079,7 @@
       "file_type": "code",
       "norm_label": "reverse_index_moves_up_preserves_column_and_cancels_delayed_wrap()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1118"
+      "source_location": "L1149"
     },
     {
       "id": "crates_terminal_core_tests_state_shrinking_discards_out_of_bounds_stops_and_regrowth_uses_defaults",
@@ -1090,7 +1090,7 @@
       "file_type": "code",
       "norm_label": "shrinking_discards_out_of_bounds_stops_and_regrowth_uses_defaults()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L913"
+      "source_location": "L944"
     },
     {
       "id": "crates_terminal_core_tests_state_typed_cursor_movements_clamp_zero_and_extreme_amounts_to_screen_bounds",
@@ -1123,7 +1123,7 @@
       "file_type": "code",
       "norm_label": "wrapping_from_the_final_row_scrolls_only_the_active_screen()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L449"
+      "source_location": "L480"
     },
     {
       "id": "crates_terminal_core_src_state",
@@ -1695,7 +1695,7 @@
       "file_type": "code",
       "norm_label": "bottom_index_scrolls_styled_cells_and_preserves_terminal_state()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1149"
+      "source_location": "L1180"
     },
     {
       "id": "crates_terminal_core_tests_state_bottom_next_line_scrolls_up_and_preserves_rendition_and_modes",
@@ -1706,7 +1706,7 @@
       "file_type": "code",
       "norm_label": "bottom_next_line_scrolls_up_and_preserves_rendition_and_modes()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1210"
+      "source_location": "L1241"
     },
     {
       "id": "crates_terminal_core_tests_state_erase_in_display_supports_all_directions_without_moving_the_cursor",
@@ -1717,7 +1717,7 @@
       "file_type": "code",
       "norm_label": "erase_in_display_supports_all_directions_without_moving_the_cursor()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L292"
+      "source_location": "L323"
     },
     {
       "id": "crates_terminal_core_tests_state_full_screen_scroll_moves_complete_cells_and_preserves_rendition_and_modes",
@@ -1728,7 +1728,7 @@
       "file_type": "code",
       "norm_label": "full_screen_scroll_moves_complete_cells_and_preserves_rendition_and_modes()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1021"
+      "source_location": "L1052"
     },
     {
       "id": "crates_terminal_core_tests_state_scroll_down_moves_attributes_and_clears_new_top_rows_with_default_cells",
@@ -1739,7 +1739,7 @@
       "file_type": "code",
       "norm_label": "scroll_down_moves_attributes_and_clears_new_top_rows_with_default_cells()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1056"
+      "source_location": "L1087"
     },
     {
       "id": "crates_terminal_core_tests_state_styled_control_state",
@@ -1750,7 +1750,7 @@
       "file_type": "code",
       "norm_label": "styled_control_state()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1130"
+      "source_location": "L1161"
     },
     {
       "id": "crates_terminal_core_tests_state_top_reverse_index_scrolls_styled_cells_and_clears_default_top_row",
@@ -1761,7 +1761,7 @@
       "file_type": "code",
       "norm_label": "top_reverse_index_scrolls_styled_cells_and_clears_default_top_row()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1173"
+      "source_location": "L1204"
     },
     {
       "id": "crates_terminal_core_src_modes",
@@ -7487,7 +7487,7 @@
       "file_type": "code",
       "norm_label": "erase_in_line_supports_all_directions_without_moving_the_cursor()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L265"
+      "source_location": "L296"
     },
     {
       "id": "crates_terminal_core_tests_state_filled_state",
@@ -7509,7 +7509,7 @@
       "file_type": "code",
       "norm_label": "full_screen_scroll_down_normalizes_count_to_screen_height()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L996"
+      "source_location": "L1027"
     },
     {
       "id": "crates_terminal_core_tests_state_full_screen_scroll_up_normalizes_count_to_screen_height",
@@ -7520,7 +7520,7 @@
       "file_type": "code",
       "norm_label": "full_screen_scroll_up_normalizes_count_to_screen_height()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L971"
+      "source_location": "L1002"
     },
     {
       "id": "crates_terminal_core_tests_state_horizontal_tab_resolves_delayed_wrap_without_modifying_cells_or_modes",
@@ -7531,7 +7531,7 @@
       "file_type": "code",
       "norm_label": "horizontal_tab_resolves_delayed_wrap_without_modifying_cells_or_modes()",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L946"
+      "source_location": "L977"
     },
     {
       "id": "crates_terminal_core_tests_state_row_text",
@@ -12021,7 +12021,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1150",
+      "source_location": "L1181",
       "weight": 1.0
     },
     {
@@ -12033,7 +12033,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1161",
+      "source_location": "L1192",
       "weight": 1.0
     },
     {
@@ -12045,7 +12045,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1211",
+      "source_location": "L1242",
       "weight": 1.0
     },
     {
@@ -12057,7 +12057,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1222",
+      "source_location": "L1253",
       "weight": 1.0
     },
     {
@@ -12105,7 +12105,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L300",
+      "source_location": "L331",
       "weight": 1.0
     },
     {
@@ -12117,7 +12117,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L315",
+      "source_location": "L346",
       "weight": 1.0
     },
     {
@@ -12129,7 +12129,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L273",
+      "source_location": "L304",
       "weight": 1.0
     },
     {
@@ -12141,7 +12141,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L287",
+      "source_location": "L318",
       "weight": 1.0
     },
     {
@@ -12153,7 +12153,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1007",
+      "source_location": "L1038",
       "weight": 1.0
     },
     {
@@ -12165,7 +12165,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1044",
+      "source_location": "L1075",
       "weight": 1.0
     },
     {
@@ -12177,7 +12177,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L982",
+      "source_location": "L1013",
       "weight": 1.0
     },
     {
@@ -12189,7 +12189,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L954",
+      "source_location": "L985",
       "weight": 1.0
     },
     {
@@ -12201,7 +12201,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1076",
+      "source_location": "L1107",
       "weight": 1.0
     },
     {
@@ -12213,7 +12213,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1174",
+      "source_location": "L1205",
       "weight": 1.0
     },
     {
@@ -12225,7 +12225,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1185",
+      "source_location": "L1216",
       "weight": 1.0
     },
     {
@@ -15381,7 +15381,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1130",
+      "source_location": "L1161",
       "weight": 1.0
     },
     {
@@ -19194,13 +19194,35 @@
     },
     {
       "source": "crates_terminal_core_tests_state",
+      "target": "crates_terminal_core_tests_state_full_screen_scroll_up_normalizes_count_to_screen_height",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/state.rs",
+      "source_location": "L1002",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_state",
+      "target": "crates_terminal_core_tests_state_full_screen_scroll_down_normalizes_count_to_screen_height",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/state.rs",
+      "source_location": "L1027",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_state",
       "target": "crates_terminal_core_tests_state_full_screen_scroll_moves_complete_cells_and_preserves_rendition_and_modes",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1021",
+      "source_location": "L1052",
       "weight": 1.0
     },
     {
@@ -19211,7 +19233,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1056",
+      "source_location": "L1087",
       "weight": 1.0
     },
     {
@@ -19222,7 +19244,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1084",
+      "source_location": "L1115",
       "weight": 1.0
     },
     {
@@ -19233,7 +19255,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1105",
+      "source_location": "L1136",
       "weight": 1.0
     },
     {
@@ -19244,7 +19266,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1118",
+      "source_location": "L1149",
       "weight": 1.0
     },
     {
@@ -19255,7 +19277,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1130",
+      "source_location": "L1161",
       "weight": 1.0
     },
     {
@@ -19266,7 +19288,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1149",
+      "source_location": "L1180",
       "weight": 1.0
     },
     {
@@ -19277,7 +19299,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1173",
+      "source_location": "L1204",
       "weight": 1.0
     },
     {
@@ -19288,18 +19310,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1197",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_state",
-      "target": "crates_terminal_core_tests_state_bottom_next_line_scrolls_up_and_preserves_rendition_and_modes",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L1210",
+      "source_location": "L1228",
       "weight": 1.0
     },
     {
@@ -19311,6 +19322,17 @@
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
       "source_location": "L124",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_state",
+      "target": "crates_terminal_core_tests_state_bottom_next_line_scrolls_up_and_preserves_rendition_and_modes",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/state.rs",
+      "source_location": "L1241",
       "weight": 1.0
     },
     {
@@ -19343,7 +19365,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L207",
+      "source_location": "L238",
       "weight": 1.0
     },
     {
@@ -19354,18 +19376,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L232",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_state",
-      "target": "crates_terminal_core_tests_state_erase_in_line_supports_all_directions_without_moving_the_cursor",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L265",
+      "source_location": "L263",
       "weight": 1.0
     },
     {
@@ -19381,46 +19392,24 @@
     },
     {
       "source": "crates_terminal_core_tests_state",
+      "target": "crates_terminal_core_tests_state_erase_in_line_supports_all_directions_without_moving_the_cursor",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/state.rs",
+      "source_location": "L296",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_state",
       "target": "crates_terminal_core_tests_state_erase_in_display_supports_all_directions_without_moving_the_cursor",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L292",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_state",
-      "target": "crates_terminal_core_tests_state_erase_cancels_delayed_wrap_without_moving_the_cursor",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L320",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_state",
-      "target": "crates_terminal_core_tests_state_prints_a_character_at_the_cursor_and_advances_one_column",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L334",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_state",
-      "target": "crates_terminal_core_tests_state_prints_sequential_characters_in_replace_mode",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L345",
+      "source_location": "L323",
       "weight": 1.0
     },
     {
@@ -19436,13 +19425,46 @@
     },
     {
       "source": "crates_terminal_core_tests_state",
+      "target": "crates_terminal_core_tests_state_erase_cancels_delayed_wrap_without_moving_the_cursor",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/state.rs",
+      "source_location": "L351",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_state",
+      "target": "crates_terminal_core_tests_state_prints_a_character_at_the_cursor_and_advances_one_column",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/state.rs",
+      "source_location": "L365",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_state",
+      "target": "crates_terminal_core_tests_state_prints_sequential_characters_in_replace_mode",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/state.rs",
+      "source_location": "L376",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_state",
       "target": "crates_terminal_core_tests_state_rejects_control_characters_without_mutating_state",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L357",
+      "source_location": "L388",
       "weight": 1.0
     },
     {
@@ -19453,7 +19475,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L370",
+      "source_location": "L401",
       "weight": 1.0
     },
     {
@@ -19464,7 +19486,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L387",
+      "source_location": "L418",
       "weight": 1.0
     },
     {
@@ -19475,7 +19497,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L403",
+      "source_location": "L434",
       "weight": 1.0
     },
     {
@@ -19486,7 +19508,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L421",
+      "source_location": "L452",
       "weight": 1.0
     },
     {
@@ -19497,7 +19519,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L435",
+      "source_location": "L466",
       "weight": 1.0
     },
     {
@@ -19508,7 +19530,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L449",
+      "source_location": "L480",
       "weight": 1.0
     },
     {
@@ -19519,7 +19541,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L462",
+      "source_location": "L493",
       "weight": 1.0
     },
     {
@@ -19530,7 +19552,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L472",
+      "source_location": "L503",
       "weight": 1.0
     },
     {
@@ -19541,7 +19563,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L485",
+      "source_location": "L516",
       "weight": 1.0
     },
     {
@@ -19552,7 +19574,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L495",
+      "source_location": "L526",
       "weight": 1.0
     },
     {
@@ -19563,34 +19585,12 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L510",
+      "source_location": "L541",
       "weight": 1.0
     },
     {
       "source": "crates_terminal_core_tests_state",
       "target": "crates_terminal_core_tests_state_line_feed_at_the_bottom_scrolls_the_screen_and_keeps_the_column",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L525",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_state",
-      "target": "crates_terminal_core_tests_state_backspace_moves_left_without_erasing_and_stops_at_the_margin",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L540",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_state",
-      "target": "crates_terminal_core_tests_state_backspace_cancels_pending_wrap_before_the_next_print",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -19612,13 +19612,35 @@
     },
     {
       "source": "crates_terminal_core_tests_state",
+      "target": "crates_terminal_core_tests_state_backspace_moves_left_without_erasing_and_stops_at_the_margin",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/state.rs",
+      "source_location": "L571",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_state",
+      "target": "crates_terminal_core_tests_state_backspace_cancels_pending_wrap_before_the_next_print",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/state.rs",
+      "source_location": "L587",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_state",
       "target": "crates_terminal_core_tests_state_backspace_at_the_margin_is_a_no_op_even_when_wrap_is_pending",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L569",
+      "source_location": "L600",
       "weight": 1.0
     },
     {
@@ -19629,7 +19651,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L582",
+      "source_location": "L613",
       "weight": 1.0
     },
     {
@@ -19640,7 +19662,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L597",
+      "source_location": "L628",
       "weight": 1.0
     },
     {
@@ -19651,7 +19673,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L614",
+      "source_location": "L645",
       "weight": 1.0
     },
     {
@@ -19662,7 +19684,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L627",
+      "source_location": "L658",
       "weight": 1.0
     },
     {
@@ -19673,7 +19695,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L641",
+      "source_location": "L672",
       "weight": 1.0
     },
     {
@@ -19684,29 +19706,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L655",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_state",
-      "target": "crates_terminal_core_tests_state_coordinates_absolute_and_relative_cursor_operations",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L675",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_state",
-      "target": "crates_terminal_core_tests_state_clears_the_active_screen_without_moving_the_cursor",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L693",
+      "source_location": "L686",
       "weight": 1.0
     },
     {
@@ -19722,18 +19722,18 @@
     },
     {
       "source": "crates_terminal_core_tests_state",
-      "target": "crates_terminal_core_tests_state_resizes_the_active_screen_and_keeps_cursor_bounded",
+      "target": "crates_terminal_core_tests_state_coordinates_absolute_and_relative_cursor_operations",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L711",
+      "source_location": "L706",
       "weight": 1.0
     },
     {
       "source": "crates_terminal_core_tests_state",
-      "target": "crates_terminal_core_tests_state_changes_supported_terminal_modes_through_the_facade",
+      "target": "crates_terminal_core_tests_state_clears_the_active_screen_without_moving_the_cursor",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -19744,29 +19744,29 @@
     },
     {
       "source": "crates_terminal_core_tests_state",
+      "target": "crates_terminal_core_tests_state_resizes_the_active_screen_and_keeps_cursor_bounded",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/state.rs",
+      "source_location": "L742",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_state",
+      "target": "crates_terminal_core_tests_state_changes_supported_terminal_modes_through_the_facade",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/state.rs",
+      "source_location": "L755",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_state",
       "target": "crates_terminal_core_tests_state_cursor_key_mode_transitions_through_the_facade_are_idempotent",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L743",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_state",
-      "target": "crates_terminal_core_tests_state_resize_preserves_cursor_key_mode",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L761",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_state",
-      "target": "crates_terminal_core_tests_state_reset_restores_initial_supported_state_at_current_dimensions",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -19788,13 +19788,35 @@
     },
     {
       "source": "crates_terminal_core_tests_state",
+      "target": "crates_terminal_core_tests_state_resize_preserves_cursor_key_mode",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/state.rs",
+      "source_location": "L792",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_state",
+      "target": "crates_terminal_core_tests_state_reset_restores_initial_supported_state_at_current_dimensions",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/state.rs",
+      "source_location": "L805",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_state",
       "target": "crates_terminal_core_tests_state_reset_is_idempotent",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L795",
+      "source_location": "L826",
       "weight": 1.0
     },
     {
@@ -19805,7 +19827,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L814",
+      "source_location": "L845",
       "weight": 1.0
     },
     {
@@ -19816,7 +19838,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L834",
+      "source_location": "L865",
       "weight": 1.0
     },
     {
@@ -19827,7 +19849,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L848",
+      "source_location": "L879",
       "weight": 1.0
     },
     {
@@ -19838,7 +19860,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L862",
+      "source_location": "L893",
       "weight": 1.0
     },
     {
@@ -19849,7 +19871,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L879",
+      "source_location": "L910",
       "weight": 1.0
     },
     {
@@ -19860,7 +19882,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L898",
+      "source_location": "L929",
       "weight": 1.0
     },
     {
@@ -19871,7 +19893,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L913",
+      "source_location": "L944",
       "weight": 1.0
     },
     {
@@ -19882,7 +19904,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L932",
+      "source_location": "L963",
       "weight": 1.0
     },
     {
@@ -19893,29 +19915,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L946",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_state",
-      "target": "crates_terminal_core_tests_state_full_screen_scroll_up_normalizes_count_to_screen_height",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L971",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_state",
-      "target": "crates_terminal_core_tests_state_full_screen_scroll_down_normalizes_count_to_screen_height",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/state.rs",
-      "source_location": "L996",
+      "source_location": "L977",
       "weight": 1.0
     },
     {

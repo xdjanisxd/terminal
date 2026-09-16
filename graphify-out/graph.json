@@ -23,7 +23,7 @@
       "file_type": "code",
       "norm_label": "empty_and_colon_extended_color_parameters_are_handled_deterministically()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1189"
+      "source_location": "L1291"
     },
     {
       "id": "crates_terminal_core_tests_parser_malformed_indexed_color_groups_do_not_leak_payload_parameters",
@@ -34,7 +34,7 @@
       "file_type": "code",
       "norm_label": "malformed_indexed_color_groups_do_not_leak_payload_parameters()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1091"
+      "source_location": "L1193"
     },
     {
       "id": "crates_terminal_core_tests_parser_malformed_or_incomplete_escape_input_does_not_panic_or_mutate_state",
@@ -188,7 +188,7 @@
       "file_type": "code",
       "norm_label": "parser_printing_snapshots_rendition_without_changing_existing_cells()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L939"
+      "source_location": "L1041"
     },
     {
       "id": "crates_terminal_core_tests_parser_parser_sets_and_clears_horizontal_tab_stops",
@@ -254,7 +254,7 @@
       "file_type": "code",
       "norm_label": "printable_text_neighbors_ind_ri_and_nel_controls()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1395"
+      "source_location": "L1497"
     },
     {
       "id": "crates_terminal_core_tests_parser_printed_cells_snapshot_indexed_colors_without_retroactive_changes",
@@ -265,7 +265,7 @@
       "file_type": "code",
       "norm_label": "printed_cells_snapshot_indexed_colors_without_retroactive_changes()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1032"
+      "source_location": "L1134"
     },
     {
       "id": "crates_terminal_core_tests_parser_private_mode_sequences_control_auto_wrap_and_cursor_visibility",
@@ -353,7 +353,18 @@
       "file_type": "code",
       "norm_label": "sgr_default_color_codes_restore_only_the_selected_channel()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L855"
+      "source_location": "L957"
+    },
+    {
+      "id": "crates_terminal_core_tests_parser_sgr_faint_preserves_non_rendition_state_and_incomplete_input",
+      "label": "sgr_faint_preserves_non_rendition_state_and_incomplete_input()",
+      "_origin": "ast",
+      "community": 0,
+      "community_name": "tests/parser.rs",
+      "file_type": "code",
+      "norm_label": "sgr_faint_preserves_non_rendition_state_and_incomplete_input()",
+      "source_file": "crates/terminal-core/tests/parser.rs",
+      "source_location": "L878"
     },
     {
       "id": "crates_terminal_core_tests_parser_sgr_indexed_color_groups_preserve_parameter_order",
@@ -364,7 +375,7 @@
       "file_type": "code",
       "norm_label": "sgr_indexed_color_groups_preserve_parameter_order()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1055"
+      "source_location": "L1157"
     },
     {
       "id": "crates_terminal_core_tests_parser_sgr_indexed_colors_preserve_styles_across_channel_defaults_and_reset_fully",
@@ -375,7 +386,7 @@
       "file_type": "code",
       "norm_label": "sgr_indexed_colors_preserve_styles_across_channel_defaults_and_reset_fully()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1004"
+      "source_location": "L1106"
     },
     {
       "id": "crates_terminal_core_tests_parser_sgr_indexed_foreground_and_background_accept_full_u8_range",
@@ -386,7 +397,7 @@
       "file_type": "code",
       "norm_label": "sgr_indexed_foreground_and_background_accept_full_u8_range()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L974"
+      "source_location": "L1076"
     },
     {
       "id": "crates_terminal_core_tests_parser_sgr_maps_all_standard_and_bright_background_colors",
@@ -397,7 +408,7 @@
       "file_type": "code",
       "norm_label": "sgr_maps_all_standard_and_bright_background_colors()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L830"
+      "source_location": "L932"
     },
     {
       "id": "crates_terminal_core_tests_parser_sgr_maps_all_standard_and_bright_foreground_colors",
@@ -408,7 +419,7 @@
       "file_type": "code",
       "norm_label": "sgr_maps_all_standard_and_bright_foreground_colors()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L805"
+      "source_location": "L907"
     },
     {
       "id": "crates_terminal_core_tests_parser_sgr_parameters_apply_in_order_including_empty_parameters",
@@ -419,7 +430,7 @@
       "file_type": "code",
       "norm_label": "sgr_parameters_apply_in_order_including_empty_parameters()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L887"
+      "source_location": "L989"
     },
     {
       "id": "crates_terminal_core_tests_parser_sgr_style_set_and_clear_pairs_are_independent",
@@ -441,7 +452,7 @@
       "file_type": "code",
       "norm_label": "sgr_zero_bare_and_empty_parameters_reset_the_complete_rendition()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L874"
+      "source_location": "L976"
     },
     {
       "id": "crates_terminal_core_tests_parser_standard_mode_sequences_control_insert_and_replace_modes",
@@ -474,7 +485,7 @@
       "file_type": "code",
       "norm_label": "truncated_indexed_color_sequence_has_no_effect_until_completed()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1254"
+      "source_location": "L1356"
     },
     {
       "id": "crates_terminal_core_tests_parser_unsupported_controls_are_ignored_without_approximation",
@@ -507,7 +518,7 @@
       "file_type": "code",
       "norm_label": "unsupported_extended_color_selectors_consume_the_remaining_sequence()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1168"
+      "source_location": "L1270"
     },
     {
       "id": "crates_terminal_core_tests_parser_unsupported_malformed_and_incomplete_tab_forms_are_safe_no_ops",
@@ -540,7 +551,7 @@
       "file_type": "code",
       "norm_label": "unsupported_sgr_parameters_and_subparameters_are_individual_no_ops()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L912"
+      "source_location": "L1014"
     },
     {
       "id": "crates_terminal_core_tests_parser_unsupported_unicode_error_is_reported_when_split_codepoint_completes",
@@ -2591,81 +2602,81 @@
       "source_location": "L51"
     },
     {
-      "id": "crates_terminal_core_tests_dsr_status_parser",
-      "label": "dsr_status_parser.rs",
+      "id": "crates_terminal_core_tests_cpr_parser",
+      "label": "cpr_parser.rs",
       "_origin": "ast",
       "community": 17,
-      "community_name": "dsr_status_parser.rs",
+      "community_name": "cpr_parser.rs",
       "file_type": "code",
-      "norm_label": "dsr_status_parser.rs",
-      "source_file": "crates/terminal-core/tests/dsr_status_parser.rs",
+      "norm_label": "cpr_parser.rs",
+      "source_file": "crates/terminal-core/tests/cpr_parser.rs",
       "source_location": "L1"
     },
     {
-      "id": "crates_terminal_core_tests_dsr_status_parser_bytes",
-      "label": "bytes()",
+      "id": "crates_terminal_core_tests_cpr_parser_cpr_is_chunk_safe_at_every_input_boundary_and_across_calls",
+      "label": "cpr_is_chunk_safe_at_every_input_boundary_and_across_calls()",
       "_origin": "ast",
       "community": 17,
-      "community_name": "dsr_status_parser.rs",
+      "community_name": "cpr_parser.rs",
       "file_type": "code",
-      "norm_label": "bytes()",
-      "source_file": "crates/terminal-core/tests/dsr_status_parser.rs",
-      "source_location": "L9"
+      "norm_label": "cpr_is_chunk_safe_at_every_input_boundary_and_across_calls()",
+      "source_file": "crates/terminal-core/tests/cpr_parser.rs",
+      "source_location": "L12"
     },
     {
-      "id": "crates_terminal_core_tests_dsr_status_parser_parser_dispatches_status_at_every_chunk_boundary",
-      "label": "parser_dispatches_status_at_every_chunk_boundary()",
+      "id": "crates_terminal_core_tests_cpr_parser_incomplete_or_malformed_dsr_does_not_reply_before_a_complete_valid_query",
+      "label": "incomplete_or_malformed_dsr_does_not_reply_before_a_complete_valid_query()",
       "_origin": "ast",
       "community": 17,
-      "community_name": "dsr_status_parser.rs",
+      "community_name": "cpr_parser.rs",
       "file_type": "code",
-      "norm_label": "parser_dispatches_status_at_every_chunk_boundary()",
-      "source_file": "crates/terminal-core/tests/dsr_status_parser.rs",
-      "source_location": "L14"
+      "norm_label": "incomplete_or_malformed_dsr_does_not_reply_before_a_complete_valid_query()",
+      "source_file": "crates/terminal-core/tests/cpr_parser.rs",
+      "source_location": "L75"
     },
     {
-      "id": "crates_terminal_core_tests_dsr_status_parser_rs_vec",
+      "id": "crates_terminal_core_tests_cpr_parser_multiple_and_interleaved_da1_and_cpr_queries_keep_exact_fifo_order",
+      "label": "multiple_and_interleaved_da1_and_cpr_queries_keep_exact_fifo_order()",
+      "_origin": "ast",
+      "community": 17,
+      "community_name": "cpr_parser.rs",
+      "file_type": "code",
+      "norm_label": "multiple_and_interleaved_da1_and_cpr_queries_keep_exact_fifo_order()",
+      "source_file": "crates/terminal-core/tests/cpr_parser.rs",
+      "source_location": "L46"
+    },
+    {
+      "id": "crates_terminal_core_tests_cpr_parser_reply_bytes",
+      "label": "reply_bytes()",
+      "_origin": "ast",
+      "community": 17,
+      "community_name": "cpr_parser.rs",
+      "file_type": "code",
+      "norm_label": "reply_bytes()",
+      "source_file": "crates/terminal-core/tests/cpr_parser.rs",
+      "source_location": "L7"
+    },
+    {
+      "id": "crates_terminal_core_tests_cpr_parser_rs_vec",
       "label": "Vec",
       "_origin": "ast",
       "community": 17,
-      "community_name": "dsr_status_parser.rs",
+      "community_name": "cpr_parser.rs",
       "file_type": "code",
       "norm_label": "vec",
       "source_file": "",
       "source_location": ""
     },
     {
-      "id": "crates_terminal_core_tests_dsr_status_parser_state",
+      "id": "crates_terminal_core_tests_cpr_parser_state",
       "label": "state()",
       "_origin": "ast",
       "community": 17,
-      "community_name": "dsr_status_parser.rs",
+      "community_name": "cpr_parser.rs",
       "file_type": "code",
       "norm_label": "state()",
-      "source_file": "crates/terminal-core/tests/dsr_status_parser.rs",
-      "source_location": "L5"
-    },
-    {
-      "id": "crates_terminal_core_tests_dsr_status_parser_status_preserves_order_with_cpr_and_da1",
-      "label": "status_preserves_order_with_cpr_and_da1()",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "dsr_status_parser.rs",
-      "file_type": "code",
-      "norm_label": "status_preserves_order_with_cpr_and_da1()",
-      "source_file": "crates/terminal-core/tests/dsr_status_parser.rs",
-      "source_location": "L27"
-    },
-    {
-      "id": "crates_terminal_core_tests_dsr_status_parser_unsupported_dsr_forms_remain_noops",
-      "label": "unsupported_dsr_forms_remain_noops()",
-      "_origin": "ast",
-      "community": 17,
-      "community_name": "dsr_status_parser.rs",
-      "file_type": "code",
-      "norm_label": "unsupported_dsr_forms_remain_noops()",
-      "source_file": "crates/terminal-core/tests/dsr_status_parser.rs",
-      "source_location": "L46"
+      "source_file": "crates/terminal-core/tests/cpr_parser.rs",
+      "source_location": "L3"
     },
     {
       "id": "crates_terminal_core_tests_insert_delete_lines",
@@ -2852,7 +2863,7 @@
       "file_type": "code",
       "norm_label": "ind_ri_nel_are_chunk_safe_at_every_byte_boundary()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1420"
+      "source_location": "L1522"
     },
     {
       "id": "crates_terminal_core_tests_parser_indexed_color_and_malformed_groups_are_chunk_safe_at_every_boundary",
@@ -2863,7 +2874,7 @@
       "file_type": "code",
       "norm_label": "indexed_color_and_malformed_groups_are_chunk_safe_at_every_boundary()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1236"
+      "source_location": "L1338"
     },
     {
       "id": "crates_terminal_core_tests_parser_many_chunk_sizes_match_one_shot_input",
@@ -2918,7 +2929,18 @@
       "file_type": "code",
       "norm_label": "representative_sgr_stream_is_chunk_safe_at_every_byte_boundary()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L960"
+      "source_location": "L1062"
+    },
+    {
+      "id": "crates_terminal_core_tests_parser_sgr_faint_has_ordered_reset_and_snapshot_semantics",
+      "label": "sgr_faint_has_ordered_reset_and_snapshot_semantics()",
+      "_origin": "ast",
+      "community": 19,
+      "community_name": "assert_observable_state_eq",
+      "file_type": "code",
+      "norm_label": "sgr_faint_has_ordered_reset_and_snapshot_semantics()",
+      "source_file": "crates/terminal-core/tests/parser.rs",
+      "source_location": "L805"
     },
     {
       "id": "crates_terminal_core_tests_parser_supported_csi_is_chunk_safe_at_every_byte_boundary",
@@ -2951,7 +2973,7 @@
       "file_type": "code",
       "norm_label": "default_one()",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L533"
+      "source_location": "L534"
     },
     {
       "id": "crates_terminal_core_src_parser_extendedcolorchannel",
@@ -3083,7 +3105,7 @@
       "file_type": "code",
       "norm_label": ".dispatch_extended_color()",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L253"
+      "source_location": "L254"
     },
     {
       "id": "crates_terminal_core_src_parser_semanticperformer_a_dispatch_mode",
@@ -3127,7 +3149,7 @@
       "file_type": "code",
       "norm_label": ".csi_dispatch()",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L361"
+      "source_location": "L362"
     },
     {
       "id": "crates_terminal_core_src_parser_semanticperformer_esc_dispatch",
@@ -3138,7 +3160,7 @@
       "file_type": "code",
       "norm_label": ".esc_dispatch()",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L347"
+      "source_location": "L348"
     },
     {
       "id": "crates_terminal_core_src_parser_semanticperformer_execute",
@@ -3149,7 +3171,7 @@
       "file_type": "code",
       "norm_label": ".execute()",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L333"
+      "source_location": "L334"
     },
     {
       "id": "crates_terminal_core_src_parser_semanticperformer_print",
@@ -3160,7 +3182,7 @@
       "file_type": "code",
       "norm_label": ".print()",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L327"
+      "source_location": "L328"
     },
     {
       "id": "crates_terminal_core_src_parser_semanticperformer_terminated",
@@ -3171,7 +3193,7 @@
       "file_type": "code",
       "norm_label": ".terminated()",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L515"
+      "source_location": "L516"
     },
     {
       "id": "crates_terminal_core_src_parser_simple_csi_parameters",
@@ -3182,7 +3204,7 @@
       "file_type": "code",
       "norm_label": "simple_csi_parameters()",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L520"
+      "source_location": "L521"
     },
     {
       "id": "crates_terminal_core_src_parser_terminalparser",
@@ -3897,7 +3919,18 @@
       "file_type": "code",
       "norm_label": "cursor_modes_tabs_erase_and_delayed_wrap_preserve_current_rendition()",
       "source_file": "crates/terminal-core/tests/rendition.rs",
-      "source_location": "L165"
+      "source_location": "L181"
+    },
+    {
+      "id": "crates_terminal_core_tests_rendition_faint_intensity_is_typed_idempotent_and_preserved_by_resize",
+      "label": "faint_intensity_is_typed_idempotent_and_preserved_by_resize()",
+      "_origin": "ast",
+      "community": 24,
+      "community_name": "rendition.rs",
+      "file_type": "code",
+      "norm_label": "faint_intensity_is_typed_idempotent_and_preserved_by_resize()",
+      "source_file": "crates/terminal-core/tests/rendition.rs",
+      "source_location": "L42"
     },
     {
       "id": "crates_terminal_core_tests_rendition_foreground_and_background_channels_change_independently",
@@ -3908,7 +3941,7 @@
       "file_type": "code",
       "norm_label": "foreground_and_background_channels_change_independently()",
       "source_file": "crates/terminal-core/tests/rendition.rs",
-      "source_location": "L96"
+      "source_location": "L112"
     },
     {
       "id": "crates_terminal_core_tests_rendition_inverse_video_can_be_set_and_cleared_independently",
@@ -3919,7 +3952,7 @@
       "file_type": "code",
       "norm_label": "inverse_video_can_be_set_and_cleared_independently()",
       "source_file": "crates/terminal-core/tests/rendition.rs",
-      "source_location": "L76"
+      "source_location": "L92"
     },
     {
       "id": "crates_terminal_core_tests_rendition_italic_can_be_set_and_cleared_independently",
@@ -3930,7 +3963,7 @@
       "file_type": "code",
       "norm_label": "italic_can_be_set_and_cleared_independently()",
       "source_file": "crates/terminal-core/tests/rendition.rs",
-      "source_location": "L42"
+      "source_location": "L58"
     },
     {
       "id": "crates_terminal_core_tests_rendition_printed_cells_snapshot_the_current_rendition_without_retroactive_changes",
@@ -3941,7 +3974,7 @@
       "file_type": "code",
       "norm_label": "printed_cells_snapshot_the_current_rendition_without_retroactive_changes()",
       "source_file": "crates/terminal-core/tests/rendition.rs",
-      "source_location": "L122"
+      "source_location": "L138"
     },
     {
       "id": "crates_terminal_core_tests_rendition_state",
@@ -3963,7 +3996,7 @@
       "file_type": "code",
       "norm_label": "terminal_reset_restores_rendition_defaults()",
       "source_file": "crates/terminal-core/tests/rendition.rs",
-      "source_location": "L150"
+      "source_location": "L166"
     },
     {
       "id": "crates_terminal_core_tests_rendition_text_intensity_can_be_set_and_cleared_independently",
@@ -3985,7 +4018,7 @@
       "file_type": "code",
       "norm_label": "underline_can_be_set_and_cleared_independently()",
       "source_file": "crates/terminal-core/tests/rendition.rs",
-      "source_location": "L56"
+      "source_location": "L72"
     },
     {
       "id": "crates_terminal_core_src_cursor_cursor_set_position",
@@ -4218,7 +4251,7 @@
       "node_kind": "heading",
       "norm_label": "early integration checkpoint",
       "source_file": "docs/ROADMAP.md",
-      "source_location": "L68"
+      "source_location": "L69"
     },
     {
       "id": "docs_roadmap_m0_repository_foundation",
@@ -4266,7 +4299,7 @@
       "node_kind": "heading",
       "norm_label": "m3: pty and session lifecycle",
       "source_file": "docs/ROADMAP.md",
-      "source_location": "L54"
+      "source_location": "L55"
     },
     {
       "id": "docs_roadmap_m4_window_and_renderer",
@@ -4278,7 +4311,7 @@
       "node_kind": "heading",
       "norm_label": "m4: window and renderer",
       "source_file": "docs/ROADMAP.md",
-      "source_location": "L61"
+      "source_location": "L62"
     },
     {
       "id": "docs_roadmap_m5_input_and_configuration",
@@ -4290,7 +4323,7 @@
       "node_kind": "heading",
       "norm_label": "m5: input and configuration",
       "source_file": "docs/ROADMAP.md",
-      "source_location": "L83"
+      "source_location": "L84"
     },
     {
       "id": "docs_roadmap_m6_workspaces_and_release_readiness",
@@ -4302,7 +4335,7 @@
       "node_kind": "heading",
       "norm_label": "m6: workspaces and release readiness",
       "source_file": "docs/ROADMAP.md",
-      "source_location": "L90"
+      "source_location": "L91"
     },
     {
       "id": "docs_roadmap_roadmap",
@@ -4768,28 +4801,6 @@
       "source_location": "L115"
     },
     {
-      "id": "crates_terminal_core_tests_cpr_parser",
-      "label": "cpr_parser.rs",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "TerminalReply",
-      "file_type": "code",
-      "norm_label": "cpr_parser.rs",
-      "source_file": "crates/terminal-core/tests/cpr_parser.rs",
-      "source_location": "L1"
-    },
-    {
-      "id": "crates_terminal_core_tests_cpr_parser_cpr_is_chunk_safe_at_every_input_boundary_and_across_calls",
-      "label": "cpr_is_chunk_safe_at_every_input_boundary_and_across_calls()",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "TerminalReply",
-      "file_type": "code",
-      "norm_label": "cpr_is_chunk_safe_at_every_input_boundary_and_across_calls()",
-      "source_file": "crates/terminal-core/tests/cpr_parser.rs",
-      "source_location": "L12"
-    },
-    {
       "id": "crates_terminal_core_tests_cpr_parser_cpr_preserves_absolute_position_and_does_not_reply_to_other_dsr_forms",
       "label": "parser_cpr_preserves_absolute_position_and_does_not_reply_to_other_dsr_forms()",
       "_origin": "ast",
@@ -4799,61 +4810,6 @@
       "norm_label": "parser_cpr_preserves_absolute_position_and_does_not_reply_to_other_dsr_forms()",
       "source_file": "crates/terminal-core/tests/cpr.rs",
       "source_location": "L175"
-    },
-    {
-      "id": "crates_terminal_core_tests_cpr_parser_incomplete_or_malformed_dsr_does_not_reply_before_a_complete_valid_query",
-      "label": "incomplete_or_malformed_dsr_does_not_reply_before_a_complete_valid_query()",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "TerminalReply",
-      "file_type": "code",
-      "norm_label": "incomplete_or_malformed_dsr_does_not_reply_before_a_complete_valid_query()",
-      "source_file": "crates/terminal-core/tests/cpr_parser.rs",
-      "source_location": "L75"
-    },
-    {
-      "id": "crates_terminal_core_tests_cpr_parser_multiple_and_interleaved_da1_and_cpr_queries_keep_exact_fifo_order",
-      "label": "multiple_and_interleaved_da1_and_cpr_queries_keep_exact_fifo_order()",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "TerminalReply",
-      "file_type": "code",
-      "norm_label": "multiple_and_interleaved_da1_and_cpr_queries_keep_exact_fifo_order()",
-      "source_file": "crates/terminal-core/tests/cpr_parser.rs",
-      "source_location": "L46"
-    },
-    {
-      "id": "crates_terminal_core_tests_cpr_parser_reply_bytes",
-      "label": "reply_bytes()",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "TerminalReply",
-      "file_type": "code",
-      "norm_label": "reply_bytes()",
-      "source_file": "crates/terminal-core/tests/cpr_parser.rs",
-      "source_location": "L7"
-    },
-    {
-      "id": "crates_terminal_core_tests_cpr_parser_rs_vec",
-      "label": "Vec",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "TerminalReply",
-      "file_type": "code",
-      "norm_label": "vec",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "crates_terminal_core_tests_cpr_parser_state",
-      "label": "state()",
-      "_origin": "ast",
-      "community": 3,
-      "community_name": "TerminalReply",
-      "file_type": "code",
-      "norm_label": "state()",
-      "source_file": "crates/terminal-core/tests/cpr_parser.rs",
-      "source_location": "L3"
     },
     {
       "id": "crates_terminal_core_tests_cpr_reply_bytes",
@@ -4975,6 +4931,83 @@
       "norm_label": "bytes()",
       "source_file": "crates/terminal-core/tests/dsr_status.rs",
       "source_location": "L9"
+    },
+    {
+      "id": "crates_terminal_core_tests_dsr_status_parser",
+      "label": "dsr_status_parser.rs",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "TerminalReply",
+      "file_type": "code",
+      "norm_label": "dsr_status_parser.rs",
+      "source_file": "crates/terminal-core/tests/dsr_status_parser.rs",
+      "source_location": "L1"
+    },
+    {
+      "id": "crates_terminal_core_tests_dsr_status_parser_bytes",
+      "label": "bytes()",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "TerminalReply",
+      "file_type": "code",
+      "norm_label": "bytes()",
+      "source_file": "crates/terminal-core/tests/dsr_status_parser.rs",
+      "source_location": "L9"
+    },
+    {
+      "id": "crates_terminal_core_tests_dsr_status_parser_parser_dispatches_status_at_every_chunk_boundary",
+      "label": "parser_dispatches_status_at_every_chunk_boundary()",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "TerminalReply",
+      "file_type": "code",
+      "norm_label": "parser_dispatches_status_at_every_chunk_boundary()",
+      "source_file": "crates/terminal-core/tests/dsr_status_parser.rs",
+      "source_location": "L14"
+    },
+    {
+      "id": "crates_terminal_core_tests_dsr_status_parser_rs_vec",
+      "label": "Vec",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "TerminalReply",
+      "file_type": "code",
+      "norm_label": "vec",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "crates_terminal_core_tests_dsr_status_parser_state",
+      "label": "state()",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "TerminalReply",
+      "file_type": "code",
+      "norm_label": "state()",
+      "source_file": "crates/terminal-core/tests/dsr_status_parser.rs",
+      "source_location": "L5"
+    },
+    {
+      "id": "crates_terminal_core_tests_dsr_status_parser_status_preserves_order_with_cpr_and_da1",
+      "label": "status_preserves_order_with_cpr_and_da1()",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "TerminalReply",
+      "file_type": "code",
+      "norm_label": "status_preserves_order_with_cpr_and_da1()",
+      "source_file": "crates/terminal-core/tests/dsr_status_parser.rs",
+      "source_location": "L27"
+    },
+    {
+      "id": "crates_terminal_core_tests_dsr_status_parser_unsupported_dsr_forms_remain_noops",
+      "label": "unsupported_dsr_forms_remain_noops()",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "TerminalReply",
+      "file_type": "code",
+      "norm_label": "unsupported_dsr_forms_remain_noops()",
+      "source_file": "crates/terminal-core/tests/dsr_status_parser.rs",
+      "source_location": "L46"
     },
     {
       "id": "crates_terminal_core_tests_dsr_status_rs_vec",
@@ -5414,7 +5447,7 @@
       "file_type": "code",
       "norm_label": "incomplete_and_malformed_index_controls_do_not_mutate_unrelated_state()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1435"
+      "source_location": "L1537"
     },
     {
       "id": "crates_terminal_core_tests_parser_labeled_scroll_state",
@@ -5425,7 +5458,7 @@
       "file_type": "code",
       "norm_label": "labeled_scroll_state()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1272"
+      "source_location": "L1374"
     },
     {
       "id": "crates_terminal_core_tests_parser_malformed_or_extra_su_sd_parameters_are_safe_no_ops",
@@ -5436,7 +5469,7 @@
       "file_type": "code",
       "norm_label": "malformed_or_extra_su_sd_parameters_are_safe_no_ops()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1337"
+      "source_location": "L1439"
     },
     {
       "id": "crates_terminal_core_tests_parser_parser_dispatches_index_reverse_index_and_next_line",
@@ -5447,7 +5480,7 @@
       "file_type": "code",
       "norm_label": "parser_dispatches_index_reverse_index_and_next_line()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1376"
+      "source_location": "L1478"
     },
     {
       "id": "crates_terminal_core_tests_parser_parser_sd_uses_one_for_omitted_and_zero_counts",
@@ -5458,7 +5491,7 @@
       "file_type": "code",
       "norm_label": "parser_sd_uses_one_for_omitted_and_zero_counts()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1300"
+      "source_location": "L1402"
     },
     {
       "id": "crates_terminal_core_tests_parser_parser_su_and_sd_clamp_explicit_and_oversized_counts",
@@ -5469,7 +5502,7 @@
       "file_type": "code",
       "norm_label": "parser_su_and_sd_clamp_explicit_and_oversized_counts()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1315"
+      "source_location": "L1417"
     },
     {
       "id": "crates_terminal_core_tests_parser_parser_su_uses_one_for_omitted_and_zero_counts",
@@ -5480,7 +5513,7 @@
       "file_type": "code",
       "norm_label": "parser_su_uses_one_for_omitted_and_zero_counts()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1285"
+      "source_location": "L1387"
     },
     {
       "id": "crates_terminal_core_tests_parser_su_sd_sequences_are_chunk_safe_at_every_byte_boundary",
@@ -5491,7 +5524,7 @@
       "file_type": "code",
       "norm_label": "su_sd_sequences_are_chunk_safe_at_every_byte_boundary()",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1355"
+      "source_location": "L1457"
     },
     {
       "id": "crates_terminal_core_tests_region_ind_ri_parser",
@@ -5942,7 +5975,7 @@
       "file_type": "code",
       "norm_label": "cell",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L121"
+      "source_location": "L122"
     },
     {
       "id": "crates_terminal_core_src_cell_cell_character",
@@ -5953,7 +5986,7 @@
       "file_type": "code",
       "norm_label": ".character()",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L134"
+      "source_location": "L135"
     },
     {
       "id": "crates_terminal_core_src_cell_rs_default",
@@ -7236,7 +7269,7 @@
       "node_kind": "heading",
       "norm_label": "deferred by scope",
       "source_file": ".agent/TASKS.md",
-      "source_location": "L49"
+      "source_location": "L50"
     },
     {
       "id": "agent_tasks_later",
@@ -7251,7 +7284,7 @@
       "source_location": "L7"
     },
     {
-      "id": "agent_tasks_later_21",
+      "id": "agent_tasks_later_22",
       "label": "Later",
       "_origin": "ast",
       "community": 52,
@@ -7260,7 +7293,7 @@
       "node_kind": "heading",
       "norm_label": "later",
       "source_file": ".agent/TASKS.md",
-      "source_location": "L21"
+      "source_location": "L22"
     },
     {
       "id": "agent_tasks_next",
@@ -8103,7 +8136,7 @@
       "file_type": "code",
       "norm_label": ".attributes()",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L138"
+      "source_location": "L139"
     },
     {
       "id": "crates_terminal_core_src_cell_cell_default",
@@ -8114,7 +8147,7 @@
       "file_type": "code",
       "norm_label": ".default()",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L144"
+      "source_location": "L145"
     },
     {
       "id": "crates_terminal_core_src_cell_cell_new",
@@ -8125,7 +8158,7 @@
       "file_type": "code",
       "norm_label": ".new()",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L127"
+      "source_location": "L128"
     },
     {
       "id": "crates_terminal_core_src_cell_cellattributes",
@@ -8136,7 +8169,7 @@
       "file_type": "code",
       "norm_label": "cellattributes",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L48"
+      "source_location": "L49"
     },
     {
       "id": "crates_terminal_core_src_cell_cellattributes_background",
@@ -8147,7 +8180,7 @@
       "file_type": "code",
       "norm_label": ".background()",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L74"
+      "source_location": "L75"
     },
     {
       "id": "crates_terminal_core_src_cell_cellattributes_foreground",
@@ -8158,7 +8191,7 @@
       "file_type": "code",
       "norm_label": ".foreground()",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L70"
+      "source_location": "L71"
     },
     {
       "id": "crates_terminal_core_src_cell_cellattributes_intensity",
@@ -8169,7 +8202,7 @@
       "file_type": "code",
       "norm_label": ".intensity()",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L78"
+      "source_location": "L79"
     },
     {
       "id": "crates_terminal_core_src_cell_cellattributes_inverse",
@@ -8180,7 +8213,7 @@
       "file_type": "code",
       "norm_label": ".inverse()",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L90"
+      "source_location": "L91"
     },
     {
       "id": "crates_terminal_core_src_cell_cellattributes_italic",
@@ -8191,7 +8224,7 @@
       "file_type": "code",
       "norm_label": ".italic()",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L82"
+      "source_location": "L83"
     },
     {
       "id": "crates_terminal_core_src_cell_cellattributes_new",
@@ -8202,7 +8235,7 @@
       "file_type": "code",
       "norm_label": ".new()",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L59"
+      "source_location": "L60"
     },
     {
       "id": "crates_terminal_core_src_cell_cellattributes_set_background",
@@ -8213,7 +8246,7 @@
       "file_type": "code",
       "norm_label": ".set_background()",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L98"
+      "source_location": "L99"
     },
     {
       "id": "crates_terminal_core_src_cell_cellattributes_set_foreground",
@@ -8224,7 +8257,7 @@
       "file_type": "code",
       "norm_label": ".set_foreground()",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L94"
+      "source_location": "L95"
     },
     {
       "id": "crates_terminal_core_src_cell_cellattributes_set_intensity",
@@ -8235,7 +8268,7 @@
       "file_type": "code",
       "norm_label": ".set_intensity()",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L102"
+      "source_location": "L103"
     },
     {
       "id": "crates_terminal_core_src_cell_cellattributes_set_inverse",
@@ -8246,7 +8279,7 @@
       "file_type": "code",
       "norm_label": ".set_inverse()",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L114"
+      "source_location": "L115"
     },
     {
       "id": "crates_terminal_core_src_cell_cellattributes_set_italic",
@@ -8257,7 +8290,7 @@
       "file_type": "code",
       "norm_label": ".set_italic()",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L106"
+      "source_location": "L107"
     },
     {
       "id": "crates_terminal_core_src_cell_cellattributes_set_underline",
@@ -8268,7 +8301,7 @@
       "file_type": "code",
       "norm_label": ".set_underline()",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L110"
+      "source_location": "L111"
     },
     {
       "id": "crates_terminal_core_src_cell_cellattributes_underline",
@@ -8279,7 +8312,7 @@
       "file_type": "code",
       "norm_label": ".underline()",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L86"
+      "source_location": "L87"
     },
     {
       "id": "crates_terminal_core_src_cell_cellcolor",
@@ -8301,7 +8334,7 @@
       "file_type": "code",
       "norm_label": "inversevideo",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L40"
+      "source_location": "L41"
     },
     {
       "id": "crates_terminal_core_src_cell_italicstyle",
@@ -8312,7 +8345,7 @@
       "file_type": "code",
       "norm_label": "italicstyle",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L24"
+      "source_location": "L25"
     },
     {
       "id": "crates_terminal_core_src_cell_rs_self",
@@ -8345,7 +8378,7 @@
       "file_type": "code",
       "norm_label": "underlinestyle",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L32"
+      "source_location": "L33"
     },
     {
       "id": "crates_terminal_core_src_state_terminalstate_current_rendition",
@@ -9393,7 +9426,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L232",
+      "source_location": "L233",
       "weight": 1.0
     },
     {
@@ -9405,7 +9438,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L378",
+      "source_location": "L379",
       "weight": 1.0
     },
     {
@@ -9417,7 +9450,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L387",
+      "source_location": "L388",
       "weight": 1.0
     },
     {
@@ -9429,7 +9462,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L391",
+      "source_location": "L392",
       "weight": 1.0
     },
     {
@@ -9441,7 +9474,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L418",
+      "source_location": "L419",
       "weight": 1.0
     },
     {
@@ -9453,7 +9486,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L434",
+      "source_location": "L435",
       "weight": 1.0
     },
     {
@@ -11037,7 +11070,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1437",
+      "source_location": "L1539",
       "weight": 1.0
     },
     {
@@ -11049,7 +11082,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1440",
+      "source_location": "L1542",
       "weight": 1.0
     },
     {
@@ -11061,7 +11094,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1422",
+      "source_location": "L1524",
       "weight": 1.0
     },
     {
@@ -11073,7 +11106,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1429",
+      "source_location": "L1531",
       "weight": 1.0
     },
     {
@@ -11085,7 +11118,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1241",
+      "source_location": "L1343",
       "weight": 1.0
     },
     {
@@ -11097,7 +11130,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1248",
+      "source_location": "L1350",
       "weight": 1.0
     },
     {
@@ -11109,7 +11142,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1345",
+      "source_location": "L1447",
       "weight": 1.0
     },
     {
@@ -11121,7 +11154,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1350",
+      "source_location": "L1452",
       "weight": 1.0
     },
     {
@@ -11157,7 +11190,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1385",
+      "source_location": "L1487",
       "weight": 1.0
     },
     {
@@ -11193,7 +11226,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1303",
+      "source_location": "L1405",
       "weight": 1.0
     },
     {
@@ -11205,7 +11238,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1325",
+      "source_location": "L1427",
       "weight": 1.0
     },
     {
@@ -11217,7 +11250,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1288",
+      "source_location": "L1390",
       "weight": 1.0
     },
     {
@@ -11253,7 +11286,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L962",
+      "source_location": "L1064",
       "weight": 1.0
     },
     {
@@ -11265,7 +11298,31 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L969",
+      "source_location": "L1071",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_parser_sgr_faint_has_ordered_reset_and_snapshot_semantics",
+      "target": "crates_terminal_core_tests_parser_parse_in_chunks",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "crates/terminal-core/tests/parser.rs",
+      "source_location": "L820",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_parser_sgr_faint_has_ordered_reset_and_snapshot_semantics",
+      "target": "crates_terminal_core_tests_parser_assert_observable_state_eq",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "crates/terminal-core/tests/parser.rs",
+      "source_location": "L826",
       "weight": 1.0
     },
     {
@@ -11277,7 +11334,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1362",
+      "source_location": "L1464",
       "weight": 1.0
     },
     {
@@ -11289,7 +11346,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1370",
+      "source_location": "L1472",
       "weight": 1.0
     },
     {
@@ -11893,31 +11950,7 @@
       "weight": 1.0
     },
     {
-      "source": "crates_terminal_core_tests_rendition_foreground_and_background_channels_change_independently",
-      "target": "crates_terminal_core_tests_rendition_state",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "crates/terminal-core/tests/rendition.rs",
-      "source_location": "L97",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_rendition_inverse_video_can_be_set_and_cleared_independently",
-      "target": "crates_terminal_core_tests_rendition_state",
-      "relation": "calls",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "context": "call",
-      "source_file": "crates/terminal-core/tests/rendition.rs",
-      "source_location": "L77",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_rendition_italic_can_be_set_and_cleared_independently",
+      "source": "crates_terminal_core_tests_rendition_faint_intensity_is_typed_idempotent_and_preserved_by_resize",
       "target": "crates_terminal_core_tests_rendition_state",
       "relation": "calls",
       "_origin": "ast",
@@ -11929,6 +11962,42 @@
       "weight": 1.0
     },
     {
+      "source": "crates_terminal_core_tests_rendition_foreground_and_background_channels_change_independently",
+      "target": "crates_terminal_core_tests_rendition_state",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "crates/terminal-core/tests/rendition.rs",
+      "source_location": "L113",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_rendition_inverse_video_can_be_set_and_cleared_independently",
+      "target": "crates_terminal_core_tests_rendition_state",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "crates/terminal-core/tests/rendition.rs",
+      "source_location": "L93",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_rendition_italic_can_be_set_and_cleared_independently",
+      "target": "crates_terminal_core_tests_rendition_state",
+      "relation": "calls",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "call",
+      "source_file": "crates/terminal-core/tests/rendition.rs",
+      "source_location": "L59",
+      "weight": 1.0
+    },
+    {
       "source": "crates_terminal_core_tests_rendition_printed_cells_snapshot_the_current_rendition_without_retroactive_changes",
       "target": "crates_terminal_core_tests_rendition_state",
       "relation": "calls",
@@ -11937,7 +12006,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/rendition.rs",
-      "source_location": "L123",
+      "source_location": "L139",
       "weight": 1.0
     },
     {
@@ -11949,7 +12018,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/rendition.rs",
-      "source_location": "L151",
+      "source_location": "L167",
       "weight": 1.0
     },
     {
@@ -11973,7 +12042,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-core/tests/rendition.rs",
-      "source_location": "L57",
+      "source_location": "L73",
       "weight": 1.0
     },
     {
@@ -12297,7 +12366,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L123",
+      "source_location": "L124",
       "weight": 1.0
     },
     {
@@ -12309,7 +12378,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L50",
+      "source_location": "L51",
       "weight": 1.0
     },
     {
@@ -12321,7 +12390,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L51",
+      "source_location": "L52",
       "weight": 1.0
     },
     {
@@ -12333,7 +12402,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L52",
+      "source_location": "L53",
       "weight": 1.0
     },
     {
@@ -12345,7 +12414,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L53",
+      "source_location": "L54",
       "weight": 1.0
     },
     {
@@ -12357,7 +12426,7 @@
       "confidence_score": 1.0,
       "context": "field",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L54",
+      "source_location": "L55",
       "weight": 1.0
     },
     {
@@ -13017,7 +13086,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L127",
+      "source_location": "L128",
       "weight": 1.0
     },
     {
@@ -13029,7 +13098,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L59",
+      "source_location": "L60",
       "weight": 1.0
     },
     {
@@ -13041,7 +13110,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L98",
+      "source_location": "L99",
       "weight": 1.0
     },
     {
@@ -13053,7 +13122,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L94",
+      "source_location": "L95",
       "weight": 1.0
     },
     {
@@ -13065,7 +13134,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L102",
+      "source_location": "L103",
       "weight": 1.0
     },
     {
@@ -13077,7 +13146,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L114",
+      "source_location": "L115",
       "weight": 1.0
     },
     {
@@ -13089,7 +13158,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L106",
+      "source_location": "L107",
       "weight": 1.0
     },
     {
@@ -13101,7 +13170,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L110",
+      "source_location": "L111",
       "weight": 1.0
     },
     {
@@ -13329,7 +13398,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L253",
+      "source_location": "L254",
       "weight": 1.0
     },
     {
@@ -13341,7 +13410,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L253",
+      "source_location": "L254",
       "weight": 1.0
     },
     {
@@ -13389,7 +13458,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L361",
+      "source_location": "L362",
       "weight": 1.0
     },
     {
@@ -13401,7 +13470,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L520",
+      "source_location": "L521",
       "weight": 1.0
     },
     {
@@ -14013,7 +14082,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L138",
+      "source_location": "L139",
       "weight": 1.0
     },
     {
@@ -14025,7 +14094,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L144",
+      "source_location": "L145",
       "weight": 1.0
     },
     {
@@ -14037,7 +14106,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L127",
+      "source_location": "L128",
       "weight": 1.0
     },
     {
@@ -14049,7 +14118,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L74",
+      "source_location": "L75",
       "weight": 1.0
     },
     {
@@ -14061,7 +14130,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L70",
+      "source_location": "L71",
       "weight": 1.0
     },
     {
@@ -14073,7 +14142,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L78",
+      "source_location": "L79",
       "weight": 1.0
     },
     {
@@ -14085,7 +14154,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L90",
+      "source_location": "L91",
       "weight": 1.0
     },
     {
@@ -14097,7 +14166,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L82",
+      "source_location": "L83",
       "weight": 1.0
     },
     {
@@ -14109,7 +14178,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L59",
+      "source_location": "L60",
       "weight": 1.0
     },
     {
@@ -14121,7 +14190,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L86",
+      "source_location": "L87",
       "weight": 1.0
     },
     {
@@ -14361,7 +14430,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L520",
+      "source_location": "L521",
       "weight": 1.0
     },
     {
@@ -15081,7 +15150,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1272",
+      "source_location": "L1374",
       "weight": 1.0
     },
     {
@@ -15520,13 +15589,13 @@
     },
     {
       "source": "agent_tasks_tasks",
-      "target": "agent_tasks_later_21",
+      "target": "agent_tasks_later_22",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": ".agent/TASKS.md",
-      "source_location": "L21",
+      "source_location": "L22",
       "weight": 1.0
     },
     {
@@ -15548,7 +15617,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": ".agent/TASKS.md",
-      "source_location": "L49",
+      "source_location": "L50",
       "weight": 1.0
     },
     {
@@ -15647,7 +15716,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L121",
+      "source_location": "L122",
       "weight": 1.0
     },
     {
@@ -15669,7 +15738,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L24",
+      "source_location": "L25",
       "weight": 1.0
     },
     {
@@ -15691,7 +15760,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L32",
+      "source_location": "L33",
       "weight": 1.0
     },
     {
@@ -15702,7 +15771,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0
     },
     {
@@ -15713,7 +15782,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L48",
+      "source_location": "L49",
       "weight": 1.0
     },
     {
@@ -15977,7 +16046,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L520",
+      "source_location": "L521",
       "weight": 1.0
     },
     {
@@ -15988,7 +16057,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L533",
+      "source_location": "L534",
       "weight": 1.0
     },
     {
@@ -17610,46 +17679,57 @@
     },
     {
       "source": "crates_terminal_core_tests_parser",
+      "target": "crates_terminal_core_tests_parser_unsupported_sgr_parameters_and_subparameters_are_individual_no_ops",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/parser.rs",
+      "source_location": "L1014",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_parser",
+      "target": "crates_terminal_core_tests_parser_parser_printing_snapshots_rendition_without_changing_existing_cells",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/parser.rs",
+      "source_location": "L1041",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_parser",
+      "target": "crates_terminal_core_tests_parser_representative_sgr_stream_is_chunk_safe_at_every_byte_boundary",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/parser.rs",
+      "source_location": "L1062",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_parser",
+      "target": "crates_terminal_core_tests_parser_sgr_indexed_foreground_and_background_accept_full_u8_range",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/parser.rs",
+      "source_location": "L1076",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_parser",
       "target": "crates_terminal_core_tests_parser_sgr_indexed_colors_preserve_styles_across_channel_defaults_and_reset_fully",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1004",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_printed_cells_snapshot_indexed_colors_without_retroactive_changes",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1032",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_sgr_indexed_color_groups_preserve_parameter_order",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1055",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_malformed_indexed_color_groups_do_not_leak_payload_parameters",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1091",
+      "source_location": "L1106",
       "weight": 1.0
     },
     {
@@ -17665,24 +17745,35 @@
     },
     {
       "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_unsupported_extended_color_selectors_consume_the_remaining_sequence",
+      "target": "crates_terminal_core_tests_parser_printed_cells_snapshot_indexed_colors_without_retroactive_changes",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1168",
+      "source_location": "L1134",
       "weight": 1.0
     },
     {
       "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_empty_and_colon_extended_color_parameters_are_handled_deterministically",
+      "target": "crates_terminal_core_tests_parser_sgr_indexed_color_groups_preserve_parameter_order",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1189",
+      "source_location": "L1157",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_parser",
+      "target": "crates_terminal_core_tests_parser_malformed_indexed_color_groups_do_not_leak_payload_parameters",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/parser.rs",
+      "source_location": "L1193",
       "weight": 1.0
     },
     {
@@ -17698,46 +17789,24 @@
     },
     {
       "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_indexed_color_and_malformed_groups_are_chunk_safe_at_every_boundary",
+      "target": "crates_terminal_core_tests_parser_unsupported_extended_color_selectors_consume_the_remaining_sequence",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1236",
+      "source_location": "L1270",
       "weight": 1.0
     },
     {
       "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_truncated_indexed_color_sequence_has_no_effect_until_completed",
+      "target": "crates_terminal_core_tests_parser_empty_and_colon_extended_color_parameters_are_handled_deterministically",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1254",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_labeled_scroll_state",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1272",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_parser_su_uses_one_for_omitted_and_zero_counts",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1285",
+      "source_location": "L1291",
       "weight": 1.0
     },
     {
@@ -17753,46 +17822,24 @@
     },
     {
       "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_parser_sd_uses_one_for_omitted_and_zero_counts",
+      "target": "crates_terminal_core_tests_parser_indexed_color_and_malformed_groups_are_chunk_safe_at_every_boundary",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1300",
+      "source_location": "L1338",
       "weight": 1.0
     },
     {
       "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_parser_su_and_sd_clamp_explicit_and_oversized_counts",
+      "target": "crates_terminal_core_tests_parser_truncated_indexed_color_sequence_has_no_effect_until_completed",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1315",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_malformed_or_extra_su_sd_parameters_are_safe_no_ops",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1337",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_su_sd_sequences_are_chunk_safe_at_every_byte_boundary",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1355",
+      "source_location": "L1356",
       "weight": 1.0
     },
     {
@@ -17808,46 +17855,68 @@
     },
     {
       "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_parser_dispatches_index_reverse_index_and_next_line",
+      "target": "crates_terminal_core_tests_parser_labeled_scroll_state",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1376",
+      "source_location": "L1374",
       "weight": 1.0
     },
     {
       "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_printable_text_neighbors_ind_ri_and_nel_controls",
+      "target": "crates_terminal_core_tests_parser_parser_su_uses_one_for_omitted_and_zero_counts",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1395",
+      "source_location": "L1387",
       "weight": 1.0
     },
     {
       "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_ind_ri_nel_are_chunk_safe_at_every_byte_boundary",
+      "target": "crates_terminal_core_tests_parser_parser_sd_uses_one_for_omitted_and_zero_counts",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1420",
+      "source_location": "L1402",
       "weight": 1.0
     },
     {
       "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_incomplete_and_malformed_index_controls_do_not_mutate_unrelated_state",
+      "target": "crates_terminal_core_tests_parser_parser_su_and_sd_clamp_explicit_and_oversized_counts",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L1435",
+      "source_location": "L1417",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_parser",
+      "target": "crates_terminal_core_tests_parser_malformed_or_extra_su_sd_parameters_are_safe_no_ops",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/parser.rs",
+      "source_location": "L1439",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_parser",
+      "target": "crates_terminal_core_tests_parser_su_sd_sequences_are_chunk_safe_at_every_byte_boundary",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/parser.rs",
+      "source_location": "L1457",
       "weight": 1.0
     },
     {
@@ -17859,6 +17928,50 @@
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
       "source_location": "L147",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_parser",
+      "target": "crates_terminal_core_tests_parser_parser_dispatches_index_reverse_index_and_next_line",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/parser.rs",
+      "source_location": "L1478",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_parser",
+      "target": "crates_terminal_core_tests_parser_printable_text_neighbors_ind_ri_and_nel_controls",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/parser.rs",
+      "source_location": "L1497",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_parser",
+      "target": "crates_terminal_core_tests_parser_ind_ri_nel_are_chunk_safe_at_every_byte_boundary",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/parser.rs",
+      "source_location": "L1522",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_parser",
+      "target": "crates_terminal_core_tests_parser_incomplete_and_malformed_index_controls_do_not_mutate_unrelated_state",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/parser.rs",
+      "source_location": "L1537",
       "weight": 1.0
     },
     {
@@ -18281,7 +18394,7 @@
     },
     {
       "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_sgr_maps_all_standard_and_bright_foreground_colors",
+      "target": "crates_terminal_core_tests_parser_sgr_faint_has_ordered_reset_and_snapshot_semantics",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -18292,35 +18405,13 @@
     },
     {
       "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_sgr_maps_all_standard_and_bright_background_colors",
+      "target": "crates_terminal_core_tests_parser_sgr_faint_preserves_non_rendition_state_and_incomplete_input",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L830",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_sgr_default_color_codes_restore_only_the_selected_channel",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L855",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_sgr_zero_bare_and_empty_parameters_reset_the_complete_rendition",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L874",
+      "source_location": "L878",
       "weight": 1.0
     },
     {
@@ -18336,57 +18427,57 @@
     },
     {
       "source": "crates_terminal_core_tests_parser",
+      "target": "crates_terminal_core_tests_parser_sgr_maps_all_standard_and_bright_foreground_colors",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/parser.rs",
+      "source_location": "L907",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_parser",
+      "target": "crates_terminal_core_tests_parser_sgr_maps_all_standard_and_bright_background_colors",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/parser.rs",
+      "source_location": "L932",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_parser",
+      "target": "crates_terminal_core_tests_parser_sgr_default_color_codes_restore_only_the_selected_channel",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/parser.rs",
+      "source_location": "L957",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_parser",
+      "target": "crates_terminal_core_tests_parser_sgr_zero_bare_and_empty_parameters_reset_the_complete_rendition",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/parser.rs",
+      "source_location": "L976",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_parser",
       "target": "crates_terminal_core_tests_parser_sgr_parameters_apply_in_order_including_empty_parameters",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L887",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_unsupported_sgr_parameters_and_subparameters_are_individual_no_ops",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L912",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_parser_printing_snapshots_rendition_without_changing_existing_cells",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L939",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_representative_sgr_stream_is_chunk_safe_at_every_byte_boundary",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L960",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_parser",
-      "target": "crates_terminal_core_tests_parser_sgr_indexed_foreground_and_background_accept_full_u8_range",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/parser.rs",
-      "source_location": "L974",
+      "source_location": "L989",
       "weight": 1.0
     },
     {
@@ -18974,6 +19065,17 @@
     },
     {
       "source": "crates_terminal_core_tests_rendition",
+      "target": "crates_terminal_core_tests_rendition_foreground_and_background_channels_change_independently",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/rendition.rs",
+      "source_location": "L112",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_rendition",
       "target": "crates_terminal_core_tests_rendition_current_rendition_uses_documented_defaults",
       "relation": "contains",
       "_origin": "ast",
@@ -18991,7 +19093,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/rendition.rs",
-      "source_location": "L122",
+      "source_location": "L138",
       "weight": 1.0
     },
     {
@@ -19002,7 +19104,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/rendition.rs",
-      "source_location": "L150",
+      "source_location": "L166",
       "weight": 1.0
     },
     {
@@ -19013,7 +19115,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/rendition.rs",
-      "source_location": "L165",
+      "source_location": "L181",
       "weight": 1.0
     },
     {
@@ -19029,7 +19131,7 @@
     },
     {
       "source": "crates_terminal_core_tests_rendition",
-      "target": "crates_terminal_core_tests_rendition_italic_can_be_set_and_cleared_independently",
+      "target": "crates_terminal_core_tests_rendition_faint_intensity_is_typed_idempotent_and_preserved_by_resize",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -19040,13 +19142,13 @@
     },
     {
       "source": "crates_terminal_core_tests_rendition",
-      "target": "crates_terminal_core_tests_rendition_underline_can_be_set_and_cleared_independently",
+      "target": "crates_terminal_core_tests_rendition_italic_can_be_set_and_cleared_independently",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/rendition.rs",
-      "source_location": "L56",
+      "source_location": "L58",
       "weight": 1.0
     },
     {
@@ -19062,24 +19164,24 @@
     },
     {
       "source": "crates_terminal_core_tests_rendition",
+      "target": "crates_terminal_core_tests_rendition_underline_can_be_set_and_cleared_independently",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-core/tests/rendition.rs",
+      "source_location": "L72",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_core_tests_rendition",
       "target": "crates_terminal_core_tests_rendition_inverse_video_can_be_set_and_cleared_independently",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/tests/rendition.rs",
-      "source_location": "L76",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_core_tests_rendition",
-      "target": "crates_terminal_core_tests_rendition_foreground_and_background_channels_change_independently",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-core/tests/rendition.rs",
-      "source_location": "L96",
+      "source_location": "L92",
       "weight": 1.0
     },
     {
@@ -20850,7 +20952,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ROADMAP.md",
-      "source_location": "L54",
+      "source_location": "L55",
       "weight": 1.0
     },
     {
@@ -20861,7 +20963,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ROADMAP.md",
-      "source_location": "L61",
+      "source_location": "L62",
       "weight": 1.0
     },
     {
@@ -20872,7 +20974,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ROADMAP.md",
-      "source_location": "L68",
+      "source_location": "L69",
       "weight": 1.0
     },
     {
@@ -20883,7 +20985,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ROADMAP.md",
-      "source_location": "L83",
+      "source_location": "L84",
       "weight": 1.0
     },
     {
@@ -20894,7 +20996,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/ROADMAP.md",
-      "source_location": "L90",
+      "source_location": "L91",
       "weight": 1.0
     },
     {
@@ -20971,7 +21073,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L143",
+      "source_location": "L144",
       "weight": 1.0
     },
     {
@@ -21026,7 +21128,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L326",
+      "source_location": "L327",
       "weight": 1.0
     },
     {
@@ -21103,7 +21205,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L127",
+      "source_location": "L128",
       "weight": 1.0
     },
     {
@@ -21114,7 +21216,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L134",
+      "source_location": "L135",
       "weight": 1.0
     },
     {
@@ -21125,7 +21227,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L138",
+      "source_location": "L139",
       "weight": 1.0
     },
     {
@@ -21136,7 +21238,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L144",
+      "source_location": "L145",
       "weight": 1.0
     },
     {
@@ -21147,7 +21249,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L102",
+      "source_location": "L103",
       "weight": 1.0
     },
     {
@@ -21158,7 +21260,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L106",
+      "source_location": "L107",
       "weight": 1.0
     },
     {
@@ -21169,7 +21271,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L110",
+      "source_location": "L111",
       "weight": 1.0
     },
     {
@@ -21180,7 +21282,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L114",
+      "source_location": "L115",
       "weight": 1.0
     },
     {
@@ -21191,7 +21293,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L59",
+      "source_location": "L60",
       "weight": 1.0
     },
     {
@@ -21202,7 +21304,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L70",
+      "source_location": "L71",
       "weight": 1.0
     },
     {
@@ -21213,7 +21315,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L74",
+      "source_location": "L75",
       "weight": 1.0
     },
     {
@@ -21224,7 +21326,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L78",
+      "source_location": "L79",
       "weight": 1.0
     },
     {
@@ -21235,7 +21337,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L82",
+      "source_location": "L83",
       "weight": 1.0
     },
     {
@@ -21246,7 +21348,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L86",
+      "source_location": "L87",
       "weight": 1.0
     },
     {
@@ -21257,7 +21359,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L90",
+      "source_location": "L91",
       "weight": 1.0
     },
     {
@@ -21268,7 +21370,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L94",
+      "source_location": "L95",
       "weight": 1.0
     },
     {
@@ -21279,7 +21381,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/cell.rs",
-      "source_location": "L98",
+      "source_location": "L99",
       "weight": 1.0
     },
     {
@@ -21708,7 +21810,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L327",
+      "source_location": "L328",
       "weight": 1.0
     },
     {
@@ -21719,7 +21821,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L333",
+      "source_location": "L334",
       "weight": 1.0
     },
     {
@@ -21730,7 +21832,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L347",
+      "source_location": "L348",
       "weight": 1.0
     },
     {
@@ -21741,7 +21843,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L361",
+      "source_location": "L362",
       "weight": 1.0
     },
     {
@@ -21752,7 +21854,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L515",
+      "source_location": "L516",
       "weight": 1.0
     },
     {
@@ -21807,7 +21909,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-core/src/parser.rs",
-      "source_location": "L253",
+      "source_location": "L254",
       "weight": 1.0
     },
     {
@@ -22725,5 +22827,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "7cb866b3ffce49476c6441ebfd938bb535d54b33"
+  "built_at_commit": "f39f7a7a5daaadd190ca4536a2935e80797089ae"
 }

@@ -802,6 +802,108 @@ fn sgr_style_set_and_clear_pairs_are_independent() {
 }
 
 #[test]
+fn sgr_faint_has_ordered_reset_and_snapshot_semantics() {
+    for (sequence, expected) in [
+        (b"\x1b[2m".as_slice(), TextIntensity::Faint),
+        (b"\x1b[2;22m".as_slice(), TextIntensity::Normal),
+        (b"\x1b[2;0m".as_slice(), TextIntensity::Normal),
+        (b"\x1b[1;2m".as_slice(), TextIntensity::Faint),
+        (b"\x1b[2;1m".as_slice(), TextIntensity::Bold),
+    ] {
+        let mut parser = TerminalParser::new();
+        let mut state = TerminalState::new(TerminalDimensions::new(5, 1).unwrap());
+        parser.advance(&mut state, sequence).unwrap();
+        assert_eq!(state.current_rendition().intensity(), expected);
+    }
+
+    let input = b"a\x1b[1mb\x1b[2;3;4;7;31;44mc\x1b[22md";
+    let expected = parse_in_chunks(input, input.len());
+    for split in 0..=input.len() {
+        let mut parser = TerminalParser::new();
+        let mut state = TerminalState::new(TerminalDimensions::new(12, 4).unwrap());
+        parser.advance(&mut state, &input[..split]).unwrap();
+        parser.advance(&mut state, &input[split..]).unwrap();
+        assert_observable_state_eq(&state, &expected);
+    }
+
+    assert_eq!(
+        expected
+            .screen()
+            .cell(0, 1)
+            .unwrap()
+            .attributes()
+            .intensity(),
+        TextIntensity::Bold
+    );
+    let faint = expected.screen().cell(0, 2).unwrap().attributes();
+    assert_eq!(faint.intensity(), TextIntensity::Faint);
+    assert_eq!(faint.italic(), ItalicStyle::Italic);
+    assert_eq!(faint.underline(), UnderlineStyle::Enabled);
+    assert_eq!(faint.inverse(), InverseVideo::Enabled);
+    assert_eq!(faint.foreground(), CellColor::Indexed(1));
+    assert_eq!(faint.background(), CellColor::Indexed(4));
+    assert_eq!(
+        expected
+            .screen()
+            .cell(0, 3)
+            .unwrap()
+            .attributes()
+            .intensity(),
+        TextIntensity::Normal
+    );
+    assert_eq!(
+        expected.current_rendition().intensity(),
+        TextIntensity::Normal
+    );
+    assert_eq!(expected.current_rendition().italic(), ItalicStyle::Italic);
+    assert_eq!(
+        expected.current_rendition().underline(),
+        UnderlineStyle::Enabled
+    );
+    assert_eq!(
+        expected.current_rendition().inverse(),
+        InverseVideo::Enabled
+    );
+    assert_eq!(
+        expected.current_rendition().foreground(),
+        CellColor::Indexed(1)
+    );
+    assert_eq!(
+        expected.current_rendition().background(),
+        CellColor::Indexed(4)
+    );
+}
+
+#[test]
+fn sgr_faint_preserves_non_rendition_state_and_incomplete_input() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(8, 4).unwrap());
+    state.set_cursor_position(2, 3).unwrap();
+    assert!(state.set_vertical_scrolling_margins(1, 2));
+    state.set_cursor_position(2, 3).unwrap();
+    state.set_auto_wrap(AutoWrapMode::Disabled);
+    state.set_character_insertion(CharacterInsertionMode::Insert);
+    state.set_cursor_visibility(CursorVisibility::Hidden);
+    state.set_cursor_key_mode(CursorKeyMode::Application);
+    state.set_horizontal_tab_stop();
+    assert!(state.request_terminal_status());
+    let cursor = state.cursor();
+    let modes = *state.terminal_modes();
+    let input_modes = *state.input_modes();
+    let margins = state.vertical_scrolling_margins();
+
+    parser.advance(&mut state, b"\x1b[2m\x1b[").unwrap();
+
+    assert_eq!(state.current_rendition().intensity(), TextIntensity::Faint);
+    assert_eq!(state.cursor(), cursor);
+    assert_eq!(*state.terminal_modes(), modes);
+    assert_eq!(*state.input_modes(), input_modes);
+    assert_eq!(state.vertical_scrolling_margins(), margins);
+    assert!(state.has_horizontal_tab_stop(3));
+    assert_eq!(state.pending_reply_count(), 1);
+}
+
+#[test]
 fn sgr_maps_all_standard_and_bright_foreground_colors() {
     let mut parser = TerminalParser::new();
     let mut state = TerminalState::new(TerminalDimensions::new(4, 1).unwrap());
@@ -916,7 +1018,7 @@ fn unsupported_sgr_parameters_and_subparameters_are_individual_no_ops() {
     let initial = *state.current_rendition();
 
     parser
-        .advance(&mut state, b"\x1b[2;5;8;9;38;48;58;999m")
+        .advance(&mut state, b"\x1b[5;8;9;38;48;58;999m")
         .unwrap();
     assert_eq!(state.current_rendition(), &initial);
 
