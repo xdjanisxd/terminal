@@ -112,7 +112,7 @@ fn accesses_and_mutates_cells_by_row_and_column() {
     let mut grid = ScreenGrid::new(dimensions);
     let marked = Cell::new('x', CellAttributes::default());
 
-    *grid.cell_mut(1, 0).unwrap() = marked;
+    assert!(grid.set_cell(1, 0, marked));
 
     assert_eq!(grid.cell(1, 0), Some(&marked));
     assert_eq!(grid.cell(0, 1), Some(&Cell::default()));
@@ -127,8 +127,8 @@ fn returns_none_for_out_of_bounds_cells() {
     assert_eq!(grid.index_of(0, 3), None);
     assert_eq!(grid.cell(2, 0), None);
     assert_eq!(grid.cell(0, 3), None);
-    assert_eq!(grid.cell_mut(2, 0), None);
-    assert_eq!(grid.cell_mut(0, 3), None);
+    assert!(!grid.set_cell(2, 0, Cell::default()));
+    assert!(!grid.set_cell(0, 3, Cell::default()));
 }
 
 #[test]
@@ -193,8 +193,8 @@ fn clearing_blanks_every_cell_without_moving_the_cursor() {
         'x',
         CellAttributes::new(CellColor::Indexed(1), CellColor::Indexed(2)),
     );
-    *grid.cell_mut(0, 0).unwrap() = marked;
-    *grid.cell_mut(1, 1).unwrap() = marked;
+    assert!(grid.set_cell(0, 0, marked));
+    assert!(grid.set_cell(1, 1, marked));
     grid.set_cursor_position(1, 1).unwrap();
 
     grid.clear();
@@ -215,8 +215,8 @@ fn growing_resize_preserves_top_left_cells_and_blanks_new_cells() {
         'b',
         CellAttributes::new(CellColor::Indexed(3), CellColor::Default),
     );
-    *grid.cell_mut(0, 0).unwrap() = first;
-    *grid.cell_mut(1, 1).unwrap() = second;
+    assert!(grid.set_cell(0, 0, first));
+    assert!(grid.set_cell(1, 1, second));
 
     let grown = TerminalDimensions::new(4, 3).unwrap();
     grid.resize(grown);
@@ -233,8 +233,8 @@ fn shrinking_resize_keeps_top_left_intersection_and_clamps_cursor() {
     let mut grid = ScreenGrid::new(TerminalDimensions::new(3, 3).unwrap());
     let kept = Cell::new('k', CellAttributes::default());
     let dropped = Cell::new('d', CellAttributes::default());
-    *grid.cell_mut(1, 1).unwrap() = kept;
-    *grid.cell_mut(2, 2).unwrap() = dropped;
+    assert!(grid.set_cell(1, 1, kept));
+    assert!(grid.set_cell(2, 2, dropped));
     grid.set_cursor_position(2, 2).unwrap();
 
     let shrunk = TerminalDimensions::new(2, 2).unwrap();
@@ -251,8 +251,8 @@ fn mixed_axis_resize_preserves_only_the_top_left_intersection() {
     let mut grid = ScreenGrid::new(TerminalDimensions::new(3, 2).unwrap());
     let kept = Cell::new('k', CellAttributes::default());
     let dropped = Cell::new('d', CellAttributes::default());
-    *grid.cell_mut(1, 1).unwrap() = kept;
-    *grid.cell_mut(0, 2).unwrap() = dropped;
+    assert!(grid.set_cell(1, 1, kept));
+    assert!(grid.set_cell(0, 2, dropped));
 
     let taller_and_narrower = TerminalDimensions::new(2, 4).unwrap();
     grid.resize(taller_and_narrower);

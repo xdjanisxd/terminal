@@ -33,7 +33,7 @@ The renderer consumes terminal snapshots/state and damage information; it does n
 ## Initial terminal-core model invariants
 
 - `TerminalDimensions` is non-zero and rejects per-axis and total-cell resource limits.
-- `ScreenGrid` uses zero-based `(row, column)` coordinates over row-major storage; checked access returns `None` outside the grid.
+- `ScreenGrid` uses zero-based `(row, column)` coordinates over row-major storage; checked access returns `None` outside the grid. A `Cell` has project-owned `Single`, `WideLead`, or `WideContinuation` occupancy. At every stable grid boundary, a lead is followed immediately by exactly one continuation, a continuation is preceded immediately by its lead, and neither can appear at a row edge without its pair. The lead alone holds the character and rendition; generic bounded horizontal edits normalize clipped or split pairs to canonical blanks.
 - A screen grid owns its cursor so cursor mutations and resize keep it inside current dimensions.
 - Clearing writes default blank cells without moving the cursor.
 - Resize preserves the top-left rectangular intersection, blanks newly exposed cells, discards cells outside the new rectangle, and clamps the cursor. It does not yet implement terminal line reflow.

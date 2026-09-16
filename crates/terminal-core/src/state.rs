@@ -1,5 +1,7 @@
 use std::{error::Error, fmt};
 
+use unicode_width::UnicodeWidthChar;
+
 use crate::reply::PendingReplies;
 use crate::tabs::HorizontalTabStops;
 use crate::{
@@ -13,7 +15,9 @@ use crate::{
 pub enum PrintError {
     /// Control functions must use their dedicated semantic operation.
     ControlCharacter(char),
-    /// Width-sensitive Unicode is deferred until cell width can be modeled.
+    /// Width-zero characters remain deferred until combining behavior is modeled.
+    UnsupportedZeroWidthCharacter(char),
+    /// Character width is not representable by the current one- or two-cell model.
     UnsupportedCharacter(char),
 }
 
@@ -25,9 +29,14 @@ impl fmt::Display for PrintError {
                 "control character U+{:04X} is not printable terminal output",
                 *character as u32
             ),
+            Self::UnsupportedZeroWidthCharacter(character) => write!(
+                formatter,
+                "width-zero character U+{:04X} requires deferred combining behavior",
+                *character as u32
+            ),
             Self::UnsupportedCharacter(character) => write!(
                 formatter,
-                "character U+{:04X} is outside the supported single-cell ASCII range",
+                "character U+{:04X} has unsupported terminal cell width",
                 *character as u32
             ),
         }
@@ -35,6 +44,30 @@ impl fmt::Display for PrintError {
 }
 
 impl Error for PrintError {}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum PrintableWidth {
+    One,
+    Two,
+}
+
+impl PrintableWidth {
+    fn classify(character: char) -> Result<Self, PrintError> {
+        if character.is_control() {
+            return Err(PrintError::ControlCharacter(character));
+        }
+        if character == '\u{FFFD}' {
+            return Err(PrintError::UnsupportedCharacter(character));
+        }
+
+        match character.width() {
+            Some(1) => Ok(Self::One),
+            Some(2) => Ok(Self::Two),
+            Some(0) => Err(PrintError::UnsupportedZeroWidthCharacter(character)),
+            _ => Err(PrintError::UnsupportedCharacter(character)),
+        }
+    }
+}
 
 /// Parser-independent cursor movement over zero-based terminal coordinates.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -286,38 +319,60 @@ impl TerminalState {
         self.carriage_return();
     }
 
-    /// Prints one supported single-cell ASCII character at the cursor.
+    /// Prints one Unicode scalar whose display width is one or two cells.
     ///
-    /// The current fixed-width model accepts ASCII space through tilde and
-    /// snapshots the current rendition into the cell. Other Unicode is rejected
-    /// until width and combining behavior can be modeled without approximation.
+    /// Width-zero combining behavior remains deferred. A two-cell character that
+    /// cannot fit at the right margin wraps before writing only when auto-wrap is
+    /// enabled; otherwise it is ignored without changing the grid or cursor.
     pub fn print_character(&mut self, character: char) -> Result<(), PrintError> {
-        if character.is_control() {
-            return Err(PrintError::ControlCharacter(character));
-        }
-        if !character.is_ascii() {
-            return Err(PrintError::UnsupportedCharacter(character));
-        }
+        let width = PrintableWidth::classify(character)?;
 
         if self.wrap_pending {
             self.wrap_before_print();
         }
 
         let cursor = self.cursor();
-        let cell = Cell::new(character, self.current_rendition);
-        match self.terminal_modes.character_insertion() {
-            CharacterInsertionMode::Replace => {
-                *self
-                    .screen
-                    .cell_mut(cursor.row(), cursor.column())
-                    .expect("terminal cursor is always in bounds") = cell;
+        let columns = self.dimensions().columns();
+        if width == PrintableWidth::Two && cursor.column() + 1 >= columns {
+            if self.terminal_modes.auto_wrap() == AutoWrapMode::Disabled {
+                return Ok(());
             }
-            CharacterInsertionMode::Insert => {
-                self.screen.insert_cell(cursor.row(), cursor.column(), cell);
-            }
+            self.wrap_before_print();
         }
 
-        if cursor.column() + 1 < self.dimensions().columns() {
+        let cursor = self.cursor();
+        match (self.terminal_modes.character_insertion(), width) {
+            (CharacterInsertionMode::Replace, PrintableWidth::One) => self.screen.write_single(
+                cursor.row(),
+                cursor.column(),
+                character,
+                self.current_rendition,
+            ),
+            (CharacterInsertionMode::Replace, PrintableWidth::Two) => self.screen.write_wide(
+                cursor.row(),
+                cursor.column(),
+                character,
+                self.current_rendition,
+            ),
+            (CharacterInsertionMode::Insert, PrintableWidth::One) => self.screen.insert_cells(
+                cursor.row(),
+                cursor.column(),
+                1,
+                Cell::new(character, self.current_rendition),
+            ),
+            (CharacterInsertionMode::Insert, PrintableWidth::Two) => self.screen.insert_wide(
+                cursor.row(),
+                cursor.column(),
+                character,
+                self.current_rendition,
+            ),
+        }
+
+        let final_column = columns - 1;
+        if width == PrintableWidth::Two && cursor.column() + 1 == final_column {
+            self.screen.move_cursor(0, 1);
+            self.wrap_pending = self.terminal_modes.auto_wrap() == AutoWrapMode::Enabled;
+        } else if cursor.column() < final_column {
             self.screen.move_cursor(0, 1);
         } else {
             self.wrap_pending = self.terminal_modes.auto_wrap() == AutoWrapMode::Enabled;

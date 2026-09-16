@@ -117,18 +117,34 @@ impl CellAttributes {
     }
 }
 
+/// Describes how a cell occupies columns in a fixed terminal row.
+///
+/// A `WideLead` is valid only when immediately followed by one
+/// `WideContinuation`; continuation cells carry no duplicated character or
+/// rendition snapshot.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum CellOccupancy {
+    #[default]
+    Single,
+    WideLead,
+    WideContinuation,
+}
+
 /// One fixed-grid terminal cell.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Cell {
     character: char,
     attributes: CellAttributes,
+    occupancy: CellOccupancy,
 }
 
 impl Cell {
+    /// Creates an ordinary single-column cell.
     pub const fn new(character: char, attributes: CellAttributes) -> Self {
         Self {
             character,
             attributes,
+            occupancy: CellOccupancy::Single,
         }
     }
 
@@ -139,13 +155,38 @@ impl Cell {
     pub const fn attributes(&self) -> &CellAttributes {
         &self.attributes
     }
+
+    pub const fn occupancy(self) -> CellOccupancy {
+        self.occupancy
+    }
+
+    pub fn is_wide_lead(self) -> bool {
+        self.occupancy == CellOccupancy::WideLead
+    }
+
+    pub fn is_wide_continuation(self) -> bool {
+        self.occupancy == CellOccupancy::WideContinuation
+    }
+
+    pub(crate) const fn wide_lead(character: char, attributes: CellAttributes) -> Self {
+        Self {
+            character,
+            attributes,
+            occupancy: CellOccupancy::WideLead,
+        }
+    }
+
+    pub(crate) fn wide_continuation() -> Self {
+        Self {
+            character: ' ',
+            attributes: CellAttributes::default(),
+            occupancy: CellOccupancy::WideContinuation,
+        }
+    }
 }
 
 impl Default for Cell {
     fn default() -> Self {
-        Self {
-            character: ' ',
-            attributes: CellAttributes::default(),
-        }
+        Self::new(' ', CellAttributes::default())
     }
 }

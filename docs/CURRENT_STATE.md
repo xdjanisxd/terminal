@@ -4,7 +4,7 @@
 
 - Valid Rust workspace, MIT metadata, and required repository knowledge system
 - Cross-platform GitHub Actions gates verified on Windows, Linux, and macOS for x86_64 and ARM64
-- Project-owned `terminal-core` models for bounded dimensions, cells, typed colors and rendition attributes including normal/bold/faint intensity, row-major screen storage, and a grid-owned bounded cursor
+- Project-owned `terminal-core` models for bounded dimensions, cells with typed single/wide-lead/wide-continuation occupancy, typed colors and rendition attributes including normal/bold/faint intensity, row-major screen storage, and a grid-owned bounded cursor
 - Zero-based checked cell access, default-cell clearing, bounded inclusive region-scroll primitives, and top-left-preserving resize with cursor clamping
 - Typed terminal-global modes for cursor visibility, auto-wrap, and insert/replace behavior
 - Separate typed input-related state for normal/application cursor keys
@@ -28,8 +28,8 @@
 ## Partial
 
 - `TerminalState::reset` restores the screen model to initial state at existing dimensions, including full-screen vertical margins, while preserving already-generated pending replies; it is explicitly not DECSTR or RIS
-- `Cell` stores one Unicode scalar plus foreground/background colors and the narrow normal/bold/faint intensity, italic, underline, and inverse style set; combining characters, wide-cell continuations, additional styles, and grapheme behavior are not modeled yet
-- Printable output accepts only single-cell ASCII space through tilde and snapshots current rendition attributes; all other Unicode remains explicitly deferred
+- `Cell` stores one Unicode scalar and its rendition snapshot in a single or wide-leading cell; a distinct continuation cell stores no duplicate character or rendition. Grid mutation normalizes every row so each lead is immediately followed by one continuation and continuations never stand alone; combining/grapheme behavior remains deferred.
+- Printable output supports width-one and width-two Unicode scalars through the project-owned `CellOccupancy` model and `unicode-width`; width-zero characters still return an explicit deferred-combining semantic error, while malformed UTF-8 replacement characters remain errors
 - Faint is represented in terminal state and captured by cells, but visual dimming remains deferred with renderer implementation
 - The parser recognizes broader VTE syntax incrementally, but only printable input, CR, LF, BS, HT, HTS, IND, RI, NEL, primary DA1, ANSI DSR cursor-position queries, the supported cursor/erase/region-aware-scroll/DECSTBM CSI subset, IRM/DECAWM/DECTCEM, and the documented style, default, ANSI 16-color, semicolon-form indexed-color, and semicolon-form truecolor SGR subsets currently have terminal semantics
 - Resize preserves the top-left rectangular intersection, resets vertical scrolling margins to the full new screen height, and does not reflow text; final terminal resize/reflow semantics remain future compatibility work
