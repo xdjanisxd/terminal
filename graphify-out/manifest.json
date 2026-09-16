@@ -72,10 +72,10 @@
     "semantic_hash": "a1be051baf193d726b886723bf2171f8"
   },
   "crates/terminal-core/src/grid.rs": {
-    "mtime": 1789465583.7696173,
-    "seen": 1789465801.3793986,
-    "ast_hash": "c7f8e6473d7057fde4ca8735dd7226f9",
-    "semantic_hash": "c7f8e6473d7057fde4ca8735dd7226f9"
+    "mtime": 1789550835.8187883,
+    "seen": 1789551051.779809,
+    "ast_hash": "bc60fa07af4b6d997260dadd702e1a62",
+    "semantic_hash": "bc60fa07af4b6d997260dadd702e1a62"
   },
   "crates/terminal-core/src/lib.rs": {
     "mtime": 1789541208.5923097,
@@ -90,16 +90,16 @@
     "semantic_hash": "eca9dc164b5745a93c313727afef22fe"
   },
   "crates/terminal-core/src/parser.rs": {
-    "mtime": 1789548173.5874221,
-    "seen": 1789548304.7284412,
-    "ast_hash": "3194576c5c5e91b7223b9382064e2e95",
-    "semantic_hash": "3194576c5c5e91b7223b9382064e2e95"
+    "mtime": 1789550895.0814111,
+    "seen": 1789551051.779809,
+    "ast_hash": "cfea83179a8d2dce9134355d010f3061",
+    "semantic_hash": "cfea83179a8d2dce9134355d010f3061"
   },
   "crates/terminal-core/src/state.rs": {
-    "mtime": 1789548123.9940886,
-    "seen": 1789548304.7284412,
-    "ast_hash": "018cf5315e4b8c058e8689726f941eed",
-    "semantic_hash": "018cf5315e4b8c058e8689726f941eed"
+    "mtime": 1789550828.167781,
+    "seen": 1789551051.779809,
+    "ast_hash": "825b1b683a51f736cd862bac6f04668f",
+    "semantic_hash": "825b1b683a51f736cd862bac6f04668f"
   },
   "crates/terminal-core/src/tabs.rs": {
     "mtime": 1789026787.771412,
@@ -388,5 +388,17 @@
     "seen": 1789548304.730442,
     "ast_hash": "8fd7dc581c05e64458c1e0a1c703c192",
     "semantic_hash": "8fd7dc581c05e64458c1e0a1c703c192"
+  },
+  "crates/terminal-core/tests/insert_characters.rs": {
+    "mtime": 1789550914.767917,
+    "seen": 1789551051.781809,
+    "ast_hash": "2bd70696b666ddd7c2c866f4d0bb3ff6",
+    "semantic_hash": "2bd70696b666ddd7c2c866f4d0bb3ff6"
+  },
+  "crates/terminal-core/tests/insert_characters_parser.rs": {
+    "mtime": 1789550938.7399826,
+    "seen": 1789551051.781809,
+    "ast_hash": "2280c91729434053a21e93cb3fd0afd4",
+    "semantic_hash": "2280c91729434053a21e93cb3fd0afd4"
   }
 }

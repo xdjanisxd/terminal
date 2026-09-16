@@ -287,6 +287,18 @@ impl TerminalState {
         Ok(())
     }
 
+    /// Inserts canonical blank cells from the cursor through the final column.
+    ///
+    /// The count is normalized so zero inserts one cell, then clamped by the
+    /// bounded grid width. This explicit current-row editing operation preserves
+    /// the cursor but cancels delayed wrap, matching erase and other cursor edits.
+    pub fn insert_characters(&mut self, count: usize) {
+        let cursor = self.cursor();
+        self.screen
+            .insert_cells(cursor.row(), cursor.column(), count.max(1), Cell::default());
+        self.wrap_pending = false;
+    }
+
     /// Moves the cursor to the first column of its current row.
     pub fn carriage_return(&mut self) {
         let row = self.cursor().row();

@@ -70,15 +70,24 @@ impl ScreenGrid {
     }
 
     pub(crate) fn insert_cell(&mut self, row: usize, column: usize, cell: Cell) {
+        self.insert_cells(row, column, 1, cell);
+    }
+
+    pub(crate) fn insert_cells(&mut self, row: usize, column: usize, count: usize, cell: Cell) {
         let index = self
             .index_of(row, column)
             .expect("terminal state keeps cell writes in bounds");
         let row_end = (row + 1) * self.dimensions.columns();
-
-        if index + 1 < row_end {
-            self.cells.copy_within(index..row_end - 1, index + 1);
+        let count = count.min(row_end - index);
+        if count == 0 {
+            return;
         }
-        self.cells[index] = cell;
+
+        if count < row_end - index {
+            self.cells
+                .copy_within(index..row_end - count, index + count);
+        }
+        self.cells[index..index + count].fill(cell);
     }
 
     pub(crate) fn erase_cells(&mut self, start: usize, end: usize) {
