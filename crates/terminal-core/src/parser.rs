@@ -465,6 +465,16 @@ impl vte::Perform for SemanticPerformer<'_> {
             return;
         }
 
+        if matches!(action, 'E' | 'F') && count <= 1 {
+            let rows = default_one(values[0]);
+            if action == 'E' {
+                self.terminal.cursor_next_line(rows);
+            } else {
+                self.terminal.cursor_previous_line(rows);
+            }
+            return;
+        }
+
         let movement = match action {
             'A' if count <= 1 => Some(CursorMovement::Up(default_one(values[0]))),
             'B' if count <= 1 => Some(CursorMovement::Down(default_one(values[0]))),

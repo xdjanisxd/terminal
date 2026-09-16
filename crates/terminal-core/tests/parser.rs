@@ -190,6 +190,71 @@ fn routes_supported_cursor_csi_with_defaults_zeroes_and_large_parameters() {
 }
 
 #[test]
+fn routes_cnl_and_cpl_with_normalized_counts_and_column_reset() {
+    let cases = [
+        (b"\x1b[E".as_slice(), (3, 0)),
+        (b"\x1b[0E".as_slice(), (3, 0)),
+        (b"\x1b[1E".as_slice(), (3, 0)),
+        (b"\x1b[3E".as_slice(), (5, 0)),
+        (b"\x1b[F".as_slice(), (1, 0)),
+        (b"\x1b[0F".as_slice(), (1, 0)),
+        (b"\x1b[1F".as_slice(), (1, 0)),
+        (b"\x1b[3F".as_slice(), (0, 0)),
+        (b"\x1b[65535E".as_slice(), (5, 0)),
+        (b"\x1b[65535F".as_slice(), (0, 0)),
+    ];
+
+    for (sequence, expected) in cases {
+        let mut parser = TerminalParser::new();
+        let mut state = TerminalState::new(TerminalDimensions::new(8, 6).unwrap());
+        state.set_cursor_position(2, 7).unwrap();
+        parser.advance(&mut state, sequence).unwrap();
+        assert_eq!(
+            (state.cursor().row(), state.cursor().column()),
+            expected,
+            "sequence {sequence:?}"
+        );
+    }
+}
+
+#[test]
+fn cnl_and_cpl_are_chunk_safe_and_preserve_printable_input() {
+    let input = b"ab\x1b[2E!\x1b[1F?";
+    let expected = parse_in_chunks(input, input.len());
+
+    for split in 0..=input.len() {
+        let mut parser = TerminalParser::new();
+        let mut state = TerminalState::new(TerminalDimensions::new(12, 4).unwrap());
+        parser.advance(&mut state, &input[..split]).unwrap();
+        parser.advance(&mut state, &input[split..]).unwrap();
+        assert_observable_state_eq(&state, &expected);
+    }
+
+    assert_eq!(row_text(&expected, 0), "ab          ");
+    assert_eq!(row_text(&expected, 1), "?           ");
+    assert_eq!(row_text(&expected, 2), "!           ");
+    assert_eq!(
+        (expected.cursor().row(), expected.cursor().column()),
+        (1, 1)
+    );
+}
+
+#[test]
+fn malformed_or_unsupported_cnl_and_cpl_forms_are_safe_no_ops() {
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(8, 6).unwrap());
+    state.set_cursor_position(2, 4).unwrap();
+    let cursor = state.cursor();
+
+    parser
+        .advance(&mut state, b"\x1b[?2E\x1b[>2F\x1b[1:2E\x1b[1;2F\x1b[3")
+        .unwrap();
+
+    assert_eq!(state.cursor(), cursor);
+    assert_eq!(row_text(&state, 2), "        ");
+}
+
+#[test]
 fn routes_supported_erase_csi_and_preserves_cursor() {
     let cases = [
         (b"\x1b[K".as_slice(), ["abcde", "fg   ", "klmno"]),
