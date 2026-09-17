@@ -33,7 +33,7 @@
 - Printable output supports width-one and width-two Unicode scalars through the project-owned `CellOccupancy` model and `unicode-width`; width-zero classification uses the narrow attachment policy above rather than claiming full Unicode grapheme correctness, while malformed UTF-8 replacement characters remain errors
 - Faint is represented in terminal state and captured by cells, but visual dimming remains deferred with renderer implementation
 - The parser recognizes broader VTE syntax incrementally, but only printable input, CR, LF, BS, HT, HTS, IND, RI, NEL, primary DA1, ANSI DSR cursor-position queries, the supported cursor/erase/region-aware-scroll/DECSTBM CSI subset, IRM/DECAWM/DECTCEM, and the documented style, default, ANSI 16-color, semicolon-form indexed-color, and semicolon-form truecolor SGR subsets currently have terminal semantics
-- Resize preserves the top-left rectangular intersection, resets vertical scrolling margins to the full new screen height, and does not reflow text; final terminal resize/reflow semantics remain future compatibility work
+- Resize preserves the top-left rectangular intersection of both screen-local grids, resets each screen-local margin to the full new height, cancels delayed wrap, preserves valid shared tab stops and global rendition/modes, clamps active/saved cursor restoration safely, and retains Primary history at capture-time widths with no text or history reflow.
 - Public branding and minimum operating-system versions remain intentionally deferred as documented in ADR-0008
 
 ## Missing

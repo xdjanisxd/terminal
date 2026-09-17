@@ -78,15 +78,18 @@ impl ScreenState {
             return;
         }
 
-        if margins == VerticalScrollingMargins::full_screen(self.grid.dimensions().rows()) {
-            if let Some(scrollback) = &mut self.scrollback {
-                for row in margins.top()..margins.top() + rows {
-                    let displaced = self
-                        .grid
-                        .row(row)
-                        .expect("scrolling margin row is always in bounds");
-                    scrollback.push(displaced);
-                }
+        if margins != VerticalScrollingMargins::full_screen(self.grid.dimensions().rows()) {
+            self.grid.scroll_region_up(margins, rows);
+            return;
+        }
+
+        if let Some(scrollback) = &mut self.scrollback {
+            for row in margins.top()..margins.top() + rows {
+                let displaced = self
+                    .grid
+                    .row(row)
+                    .expect("scrolling margin row is always in bounds");
+                scrollback.push(displaced);
             }
         }
 

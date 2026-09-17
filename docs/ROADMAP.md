@@ -52,13 +52,14 @@ Completion marks require tested acceptance criteria, not code presence alone.
 - [x] Implement Unicode combining and wide-cell invariants
   - [x] Add typed wide-cell lead/continuation representation and bounded grid/write invariants
   - [x] Add width-zero combining-mark attachment to narrow and wide base cells without cursor advancement
-- [ ] Implement primary/alternate screens, resize behavior, and bounded scrollback
+- [x] Implement primary/alternate screens, resize behavior, and bounded scrollback
   - [x] Add project-owned primary/alternate screen buffers with atomic TerminalState switching and independent screen-local state
   - [x] Add DEC `?47` parser dispatch for non-clearing primary/alternate screen switching
   - [x] Add DEC `?1047` alternate-screen entry/exit with explicit alternate clear/reset semantics and no saved cursor
   - [x] Add project-owned per-screen saved-cursor state with explicit `TerminalState` save/restore semantics
   - [x] Add DEC `?1049` alternate-screen save/reset/switch/restore semantics through project-owned saved-cursor state
   - [x] Add bounded Primary-screen scrollback capture for full-screen upward scrolling with deterministic eviction
+  - [x] Audit and test resize coherence across both screens, saved cursor slots, tabs, margins, and mixed-width Primary history
 - [ ] Validate against representative modern shells and TUIs
 
 ## M3: PTY and session lifecycle

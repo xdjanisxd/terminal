@@ -36,7 +36,7 @@ The renderer consumes terminal snapshots/state and damage information; it does n
 - `ScreenGrid` uses zero-based `(row, column)` coordinates over row-major storage; checked access returns `None` outside the grid. A `Cell` has project-owned `Single`, `WideLead`, or `WideContinuation` occupancy. At every stable grid boundary, a lead is followed immediately by exactly one continuation, a continuation is preceded immediately by its lead, and neither can appear at a row edge without its pair. The lead alone holds the character and rendition; generic bounded horizontal edits normalize clipped or split pairs to canonical blanks.
 - A screen grid owns its cursor so cursor mutations and resize keep it inside current dimensions.
 - Clearing writes default blank cells without moving the cursor.
-- Resize preserves the top-left rectangular intersection, blanks newly exposed cells, discards cells outside the new rectangle, and clamps the cursor. It does not yet implement terminal line reflow.
+- Resize preserves the top-left rectangular intersection, blanks newly exposed cells, discards cells outside the new rectangle, and clamps the cursor. `TerminalState` applies this atomically to both Primary and Alternate even when Alternate is active, resets each screen's margins to its full new height, cancels each delayed-wrap flag, preserves terminal-global rendition/modes and valid tab stops, and never reflows text or stored history.
 - Line feed at the bottom row scrolls the active fixed-size grid up by one row and blanks the new bottom row. When this is Primary and the entire visible screen is scrolled upward, the displaced complete top row enters bounded scrollback; Alternate never retains scrollback.
 
 ## Mode ownership

@@ -2,12 +2,13 @@
 
 ## Next
 
-- [ ] Audit the remaining primary/alternate-screen, resize, and scrollback parent before choosing a narrow resize/reflow policy or a read-only viewport model; do not add renderer UI or shell/TUI validation yet.
+- [ ] Define the representative modern shell/TUI compatibility validation matrix after terminal-core is connected to PTY and renderer boundaries; do not implement it yet.
 
 ##...[truncated]
 
 ## Completed in this slice
 
+- [x] Audit and test Primary/Alternate resize coherence, saved-cursor clamping, shared tab/rendition preservation, mixed-width Primary history, and `?47`/`?1047`/`?1049` resize round trips; close the terminal-core primary/alternate/resize/scrollback roadmap parent.
 - [x] Add bounded Primary-only scrollback capture for whole-screen upward scrolling, exact `Cell` preservation, 10,000-row FIFO eviction, reset clearing, capture-time width retention across resize, and no viewport/reflow behavior.
 - [x] Add DEC `?1049` parser dispatch through dedicated `TerminalState` save-Primary/reset-Alternate/switch/restore-Primary semantics, with idempotent Alternate entry and no new saved fields.
 - [x] Add project-owned per-screen saved-cursor state with explicit `TerminalState` save/restore semantics: cursor coordinates and current rendition only, uninitialized restore no-op, restore-time coordinate clamping, `?47` preservation, `?1047` Alternate-slot reset, and no parser dispatch.
