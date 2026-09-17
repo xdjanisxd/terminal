@@ -167,6 +167,22 @@ impl TerminalState {
         &self.screen
     }
 
+    /// Returns the number of historical rows retained from the Primary screen.
+    ///
+    /// The result is independent of the active screen; Alternate never owns or
+    /// contributes scrollback in this foundation.
+    pub fn scrollback_len(&self) -> usize {
+        self.screen.primary_scrollback_len()
+    }
+
+    /// Returns an immutable historical Primary-screen row by chronological index.
+    ///
+    /// Rows retain the exact width and complete `Cell` payload they had when
+    /// captured. No viewport composition or mutable storage access is exposed.
+    pub fn scrollback_row(&self, index: usize) -> Option<&[Cell]> {
+        self.screen.primary_scrollback_row(index)
+    }
+
     /// Returns the active screen's bounded cursor.
     pub fn cursor(&self) -> Cursor {
         self.screen.cursor()
@@ -508,17 +524,20 @@ impl TerminalState {
         self.screen.set_wrap_pending(false);
     }
 
-    /// Moves down one row, scrolling the active screen at its bottom edge.
+    /// Moves down one row, scrolling the full active screen at its bottom edge.
     ///
-    /// This is an in-screen scroll only; discarded top-row cells are not kept
-    /// as scrollback. The cursor column and any delayed-wrap condition are
-    /// unchanged.
+    /// On Primary, this captures the displaced top row as history; Alternate
+    /// scrolls internally without history. The cursor column and any delayed-wrap
+    /// condition are unchanged.
     pub fn line_feed(&mut self) {
         let cursor = self.cursor();
         if cursor.row() + 1 < self.dimensions().rows() {
             self.screen.move_cursor(1, 0);
         } else {
-            self.screen.scroll_up(1);
+            self.screen.scroll_region_up(
+                VerticalScrollingMargins::full_screen(self.dimensions().rows()),
+                1,
+            );
         }
     }
 
@@ -562,7 +581,8 @@ impl TerminalState {
     ///
     /// The count is clamped to the region height. Newly exposed rows use the
     /// canonical default blank cell. Current rendition and delayed wrap are
-    /// preserved.
+    /// preserved. A full-screen Primary `SU` is deliberate terminal scrolling
+    /// and captures each displaced top row; restricted regions do not.
     pub fn scroll_up(&mut self, rows: usize) {
         let margins = self.screen.vertical_scrolling_margins();
         self.screen.scroll_region_up(margins, rows);
@@ -613,7 +633,7 @@ impl TerminalState {
         let affected =
             VerticalScrollingMargins::new(cursor_row, margins.bottom(), self.dimensions().rows())
                 .expect("cursor and active bottom margin define an in-bounds subregion");
-        self.screen.scroll_region_up(affected, rows);
+        self.screen.scroll_region_up_without_history(affected, rows);
     }
 
     /// Moves left one column without erasing and without reverse wrapping.

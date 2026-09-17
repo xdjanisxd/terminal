@@ -52,6 +52,12 @@ impl ScreenGrid {
             .and_then(|index| self.cells.get(index))
     }
 
+    pub(crate) fn row(&self, row: usize) -> Option<&[Cell]> {
+        let columns = self.dimensions.columns();
+        let start = self.index_of(row, 0)?;
+        self.cells.get(start..start + columns)
+    }
+
     /// Replaces a cell through the bounded grid API, clearing any intersected wide pair.
     ///
     /// The supplied cell is normalized to single-cell occupancy so continuation
@@ -284,13 +290,6 @@ impl ScreenGrid {
                 }
             })
         })
-    }
-
-    pub(crate) fn scroll_up(&mut self, rows: usize) {
-        self.scroll_region_up(
-            VerticalScrollingMargins::full_screen(self.dimensions.rows()),
-            rows,
-        );
     }
 
     pub(crate) fn scroll_region_up(&mut self, margins: VerticalScrollingMargins, rows: usize) {
