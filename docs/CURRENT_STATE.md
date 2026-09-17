@@ -4,7 +4,7 @@
 
 - Valid Rust workspace, MIT metadata, and required repository knowledge system
 - Cross-platform GitHub Actions gates verified on Windows, Linux, and macOS for x86_64 and ARM64
-- Project-owned `terminal-core` models for bounded dimensions, cells with typed single/wide-lead/wide-continuation occupancy, typed colors and rendition attributes including normal/bold/faint intensity, row-major screen storage, and a grid-owned bounded cursor
+- Project-owned `terminal-core` models for bounded dimensions, cells with typed single/wide-lead/wide-continuation occupancy, bounded ordered width-zero attachment payloads on printable bases, typed colors and rendition attributes including normal/bold/faint intensity, row-major screen storage, and a grid-owned bounded cursor
 - Zero-based checked cell access, default-cell clearing, bounded inclusive region-scroll primitives, and top-left-preserving resize with cursor clamping
 - Typed terminal-global modes for cursor visibility, auto-wrap, and insert/replace behavior
 - Separate typed input-related state for normal/application cursor keys
@@ -23,13 +23,13 @@
 - Bounded grouped handling for extended-color SGR: indexed selectors consume one index, semicolon-form truecolor consumes exactly three scalar components and validates all before mutation, and unknown selectors consume the remaining CSI parameters so payload cannot leak into unrelated SGR
 - DA2 uses fixed `ESC [ > 0 ; 0 ; 0 c`: Pp=0 retains DA1's conservative VT100-class identity, Pv=0 avoids exposing package/release versions, and Pc=0 claims no optional hardware features
 - Bounded 1,024-byte OSC parser storage by compiling `vte` without its default `std` feature
-- Three hundred nine `terminal-core` unit/integration tests plus four compile-fail ownership tests
+- Three hundred eighteen `terminal-core` unit/integration tests plus four compile-fail ownership tests
 
 ## Partial
 
 - `TerminalState::reset` restores the screen model to initial state at existing dimensions, including full-screen vertical margins, while preserving already-generated pending replies; it is explicitly not DECSTR or RIS
-- `Cell` stores one Unicode scalar and its rendition snapshot in a single or wide-leading cell; a distinct continuation cell stores no duplicate character or rendition. Grid mutation normalizes every row so each lead is immediately followed by one continuation and continuations never stand alone; combining/grapheme behavior remains deferred.
-- Printable output supports width-one and width-two Unicode scalars through the project-owned `CellOccupancy` model and `unicode-width`; width-zero characters still return an explicit deferred-combining semantic error, while malformed UTF-8 replacement characters remain errors
+- `Cell` stores one Unicode scalar, its rendition snapshot, and up to eight ordered width-zero scalars in a single or wide-leading cell; a distinct continuation cell stores no duplicate character, rendition, or combining payload. Width-zero output attaches only to the preceding logical printable base without moving the cursor or resolving delayed wrap; without a base it is ignored, and overflow returns `PrintError::CombiningMarkOverflow` without mutation. Grid mutation normalizes every row so each lead is immediately followed by one continuation and continuations never stand alone; grapheme segmentation, normalization, ZWJ handling, and renderer shaping remain deferred.
+- Printable output supports width-one and width-two Unicode scalars through the project-owned `CellOccupancy` model and `unicode-width`; width-zero classification uses the narrow attachment policy above rather than claiming full Unicode grapheme correctness, while malformed UTF-8 replacement characters remain errors
 - Faint is represented in terminal state and captured by cells, but visual dimming remains deferred with renderer implementation
 - The parser recognizes broader VTE syntax incrementally, but only printable input, CR, LF, BS, HT, HTS, IND, RI, NEL, primary DA1, ANSI DSR cursor-position queries, the supported cursor/erase/region-aware-scroll/DECSTBM CSI subset, IRM/DECAWM/DECTCEM, and the documented style, default, ANSI 16-color, semicolon-form indexed-color, and semicolon-form truecolor SGR subsets currently have terminal semantics
 - Resize preserves the top-left rectangular intersection, resets vertical scrolling margins to the full new screen height, and does not reflow text; final terminal resize/reflow semantics remain future compatibility work

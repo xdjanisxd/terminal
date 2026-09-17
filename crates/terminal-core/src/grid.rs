@@ -17,6 +17,13 @@ enum ScrollDirection {
     Down,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum CombiningMarkAttachment {
+    Attached,
+    NoBase,
+    Full,
+}
+
 impl ScreenGrid {
     pub fn new(dimensions: TerminalDimensions) -> Self {
         Self {
@@ -82,6 +89,27 @@ impl ScreenGrid {
     /// Replaces every cell with the default blank cell without moving the cursor.
     pub fn clear(&mut self) {
         self.cells.fill(Cell::default());
+    }
+
+    pub(crate) fn append_combining_mark(
+        &mut self,
+        row: usize,
+        column: usize,
+        character: char,
+    ) -> CombiningMarkAttachment {
+        let Some(index) = self.index_of(row, column) else {
+            return CombiningMarkAttachment::NoBase;
+        };
+        let lead_index = match self.cells[index].occupancy() {
+            CellOccupancy::WideContinuation if column > 0 => index - 1,
+            CellOccupancy::WideContinuation => return CombiningMarkAttachment::NoBase,
+            CellOccupancy::Single | CellOccupancy::WideLead => index,
+        };
+        match self.cells[lead_index].append_combining_mark(character) {
+            Ok(true) => CombiningMarkAttachment::Attached,
+            Ok(false) => CombiningMarkAttachment::NoBase,
+            Err(()) => CombiningMarkAttachment::Full,
+        }
     }
 
     /// Writes a single-column printable cell, clearing any intersected wide pair.

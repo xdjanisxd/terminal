@@ -51,6 +51,7 @@ Completion marks require tested acceptance criteria, not code presence alone.
   - [x] Add conservative fixed DA2 secondary-device-attributes replies through the existing bounded reply FIFO
 - [ ] Implement Unicode combining and wide-cell invariants
   - [x] Add typed wide-cell lead/continuation representation and bounded grid/write invariants
+  - [x] Add width-zero combining-mark attachment to narrow and wide base cells without cursor advancement
 - [ ] Implement primary/alternate screens, resize behavior, and bounded scrollback
 - [ ] Validate against representative modern shells and TUIs
 
