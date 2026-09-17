@@ -2,6 +2,7 @@ use std::{error::Error, fmt};
 
 use unicode_width::UnicodeWidthChar;
 
+use crate::grid::CombiningMarkAttachment;
 use crate::reply::PendingReplies;
 use crate::tabs::HorizontalTabStops;
 use crate::{
@@ -15,8 +16,8 @@ use crate::{
 pub enum PrintError {
     /// Control functions must use their dedicated semantic operation.
     ControlCharacter(char),
-    /// Width-zero characters remain deferred until combining behavior is modeled.
-    UnsupportedZeroWidthCharacter(char),
+    /// A valid base cell has reached its bounded combining-mark capacity.
+    CombiningMarkOverflow(char),
     /// Character width is not representable by the current one- or two-cell model.
     UnsupportedCharacter(char),
 }
@@ -29,9 +30,9 @@ impl fmt::Display for PrintError {
                 "control character U+{:04X} is not printable terminal output",
                 *character as u32
             ),
-            Self::UnsupportedZeroWidthCharacter(character) => write!(
+            Self::CombiningMarkOverflow(character) => write!(
                 formatter,
-                "width-zero character U+{:04X} requires deferred combining behavior",
+                "width-zero character U+{:04X} exceeds the bounded combining-mark capacity",
                 *character as u32
             ),
             Self::UnsupportedCharacter(character) => write!(
@@ -47,6 +48,7 @@ impl Error for PrintError {}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum PrintableWidth {
+    Zero,
     One,
     Two,
 }
@@ -63,7 +65,7 @@ impl PrintableWidth {
         match character.width() {
             Some(1) => Ok(Self::One),
             Some(2) => Ok(Self::Two),
-            Some(0) => Err(PrintError::UnsupportedZeroWidthCharacter(character)),
+            Some(0) => Ok(Self::Zero),
             _ => Err(PrintError::UnsupportedCharacter(character)),
         }
     }
@@ -319,13 +321,18 @@ impl TerminalState {
         self.carriage_return();
     }
 
-    /// Prints one Unicode scalar whose display width is one or two cells.
+    /// Prints one Unicode scalar through the project-owned cell model.
     ///
-    /// Width-zero combining behavior remains deferred. A two-cell character that
-    /// cannot fit at the right margin wraps before writing only when auto-wrap is
-    /// enabled; otherwise it is ignored without changing the grid or cursor.
+    /// Width-zero scalars attach to the immediately preceding logical base cell
+    /// without resolving delayed wrap or advancing the cursor. Without a valid
+    /// base they are ignored. A two-cell character that cannot fit at the right
+    /// margin wraps before writing only when auto-wrap is enabled; otherwise it
+    /// is ignored without changing the grid or cursor.
     pub fn print_character(&mut self, character: char) -> Result<(), PrintError> {
         let width = PrintableWidth::classify(character)?;
+        if width == PrintableWidth::Zero {
+            return self.attach_combining_mark(character);
+        }
 
         if self.wrap_pending {
             self.wrap_before_print();
@@ -366,6 +373,7 @@ impl TerminalState {
                 character,
                 self.current_rendition,
             ),
+            (_, PrintableWidth::Zero) => unreachable!("width-zero output returns before writing"),
         }
 
         let final_column = columns - 1;
@@ -706,6 +714,31 @@ impl TerminalState {
         let pending_replies = std::mem::take(&mut self.pending_replies);
         *self = Self::new(self.dimensions());
         self.pending_replies = pending_replies;
+    }
+
+    fn attach_combining_mark(&mut self, character: char) -> Result<(), PrintError> {
+        let cursor = self.cursor();
+        let target_column = if self.wrap_pending
+            || self
+                .screen
+                .cell(cursor.row(), cursor.column())
+                .is_some_and(|cell| cell.is_wide_continuation())
+        {
+            Some(cursor.column())
+        } else {
+            cursor.column().checked_sub(1)
+        };
+        let Some(column) = target_column else {
+            return Ok(());
+        };
+
+        match self
+            .screen
+            .append_combining_mark(cursor.row(), column, character)
+        {
+            CombiningMarkAttachment::Attached | CombiningMarkAttachment::NoBase => Ok(()),
+            CombiningMarkAttachment::Full => Err(PrintError::CombiningMarkOverflow(character)),
+        }
     }
 
     fn wrap_before_print(&mut self) {

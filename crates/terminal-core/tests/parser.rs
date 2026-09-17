@@ -1,7 +1,7 @@
 use terminal_core::{
     AutoWrapMode, CellAttributes, CellColor, CharacterInsertionMode, CursorKeyMode,
     CursorVisibility, InverseVideo, ItalicStyle, PrintError, TerminalDimensions, TerminalParser,
-    TerminalParserError, TerminalState, TextIntensity, UnderlineStyle,
+    TerminalState, TextIntensity, UnderlineStyle,
 };
 
 fn row_text(state: &TerminalState, row: usize) -> String {
@@ -397,41 +397,35 @@ fn oversized_unsupported_osc_is_bounded_and_does_not_corrupt_state() {
 }
 
 #[test]
-fn zero_width_unicode_returns_a_bounded_error_with_consumed_bytes() {
+fn zero_width_unicode_attaches_without_interrupting_parser_input() {
     let mut parser = TerminalParser::new();
     let mut state = TerminalState::new(TerminalDimensions::new(5, 1).unwrap());
     let input = "A\u{0301}B".as_bytes();
 
-    let error = parser.advance(&mut state, input).unwrap_err();
+    parser.advance(&mut state, input).unwrap();
 
-    assert_eq!(error.bytes_consumed(), 3);
-    assert_eq!(
-        error.semantic_error(),
-        PrintError::UnsupportedZeroWidthCharacter('\u{0301}')
-    );
-    assert_eq!(row_text(&state, 0), "A    ");
-
-    parser
-        .advance(&mut state, &input[error.bytes_consumed()..])
-        .unwrap();
     assert_eq!(row_text(&state, 0), "AB   ");
+    assert_eq!(
+        state.screen().cell(0, 0).unwrap().combining_marks(),
+        ['\u{0301}']
+    );
+    assert_eq!((state.cursor().row(), state.cursor().column()), (0, 2));
 }
 
 #[test]
-fn zero_width_unicode_error_is_reported_when_split_codepoint_completes() {
+fn zero_width_unicode_attaches_when_a_split_codepoint_completes() {
     let mut parser = TerminalParser::new();
     let mut state = TerminalState::new(TerminalDimensions::new(4, 1).unwrap());
-    let bytes = "\u{0301}".as_bytes();
+    let bytes = "a\u{0301}".as_bytes();
 
-    parser.advance(&mut state, &bytes[..1]).unwrap();
-    let error = parser.advance(&mut state, &bytes[1..]).unwrap_err();
+    parser.advance(&mut state, &bytes[..2]).unwrap();
+    parser.advance(&mut state, &bytes[2..]).unwrap();
 
-    assert_eq!(error.bytes_consumed(), 1);
+    assert_eq!(row_text(&state, 0), "a   ");
     assert_eq!(
-        error.semantic_error(),
-        PrintError::UnsupportedZeroWidthCharacter('\u{0301}')
+        state.screen().cell(0, 0).unwrap().combining_marks(),
+        ['\u{0301}']
     );
-    assert_eq!(row_text(&state, 0), "    ");
 }
 
 #[test]
@@ -467,26 +461,6 @@ fn malformed_partial_utf8_does_not_execute_reprocessed_control_after_error() {
 
     parser.advance(&mut state, b"\r").unwrap();
     assert_eq!((state.cursor().row(), state.cursor().column()), (0, 0));
-}
-
-#[test]
-fn parser_error_is_project_owned_and_exposes_standard_error_source() {
-    fn assert_error(error: &dyn std::error::Error) {
-        assert!(error.source().is_some());
-    }
-
-    let mut parser = TerminalParser::new();
-    let mut state = TerminalState::new(TerminalDimensions::new(2, 1).unwrap());
-    let error: TerminalParserError = parser
-        .advance(&mut state, "\u{0301}".as_bytes())
-        .unwrap_err();
-
-    assert_error(&error);
-    assert_eq!(error.bytes_consumed(), 2);
-    assert_eq!(
-        error.semantic_error(),
-        PrintError::UnsupportedZeroWidthCharacter('\u{0301}')
-    );
 }
 
 #[test]

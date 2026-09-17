@@ -2,10 +2,11 @@
 
 ## Next
 
-- [ ] Implement combining-mark / width-zero behavior on the established wide-cell model; retain the no-orphan invariants and do not begin grapheme clusters, shaping, normalization, alternate screens, scrollback, PTY, renderer, or input work.
+- [ ] Audit the remaining Unicode/wide-cell parent acceptance criteria before closing it; do not begin grapheme clusters, shaping, normalization, alternate screens, scrollback, PTY, renderer, or input work.
 
 ## Completed in this slice
 
+- [x] Add width-zero combining-mark attachment to narrow and wide base cells with bounded ordered storage, no cursor advancement, delayed-wrap preservation, and no standalone mark cells.
 - [x] Add typed wide-cell lead/continuation representation, bounded grid repair, width-two output, and no-orphan resize/edit invariants; defer width-zero combining behavior.
 
 ## Later
@@ -47,7 +48,7 @@
 - [x] Add project-owned current rendition with SGR reset, bold, italic, underline, inverse, ANSI standard/bright colors, and per-channel default restoration.
 - [ ] Add origin mode only with scrolling-region state, cursor homing, saved-state behavior, and primary/alternate-screen semantics coordinated atomically by `TerminalState`.
 - [ ] Defer line-feed/new-line mode and application keypad mode until their behavior is required by parser/input milestones; do not grow a speculative mode catalog.
-- [ ] Extend cell content for combining and wide-character invariants during the Unicode compatibility slice; do not assume the current single-`char` representation is final.
+- [ ] Audit remaining edge-case width classifications, variation selectors, and zero-width scalar policy before closing the Unicode parent; do not imply grapheme-cluster semantics.
 - [ ] Decide resize reflow behavior during the compatibility milestone; the current top-left preservation rule does not perform terminal line reflow.
 - [ ] Determine minimum OS versions from pinned stack requirements and real platform validation when those dependencies are introduced; record the result in a new ADR.
 

@@ -130,21 +130,33 @@ pub enum CellOccupancy {
     WideContinuation,
 }
 
+/// Maximum width-zero scalars retained on one printable cell.
+///
+/// Input order is preserved. A further attachment returns a bounded semantic
+/// error without changing the cell, cursor, or grid.
+pub const MAX_COMBINING_MARKS: usize = 8;
+
 /// One fixed-grid terminal cell.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Cell {
     character: char,
     attributes: CellAttributes,
     occupancy: CellOccupancy,
+    has_printable_base: bool,
+    combining_marks: [char; MAX_COMBINING_MARKS],
+    combining_mark_count: u8,
 }
 
 impl Cell {
-    /// Creates an ordinary single-column cell.
+    /// Creates an ordinary single-column printable cell.
     pub const fn new(character: char, attributes: CellAttributes) -> Self {
         Self {
             character,
             attributes,
             occupancy: CellOccupancy::Single,
+            has_printable_base: true,
+            combining_marks: ['\0'; MAX_COMBINING_MARKS],
+            combining_mark_count: 0,
         }
     }
 
@@ -160,6 +172,11 @@ impl Cell {
         self.occupancy
     }
 
+    /// Returns width-zero scalars attached to this printable base in input order.
+    pub fn combining_marks(&self) -> &[char] {
+        &self.combining_marks[..usize::from(self.combining_mark_count)]
+    }
+
     pub fn is_wide_lead(self) -> bool {
         self.occupancy == CellOccupancy::WideLead
     }
@@ -173,6 +190,9 @@ impl Cell {
             character,
             attributes,
             occupancy: CellOccupancy::WideLead,
+            has_printable_base: true,
+            combining_marks: ['\0'; MAX_COMBINING_MARKS],
+            combining_mark_count: 0,
         }
     }
 
@@ -181,12 +201,35 @@ impl Cell {
             character: ' ',
             attributes: CellAttributes::default(),
             occupancy: CellOccupancy::WideContinuation,
+            has_printable_base: false,
+            combining_marks: ['\0'; MAX_COMBINING_MARKS],
+            combining_mark_count: 0,
         }
+    }
+
+    pub(crate) fn append_combining_mark(&mut self, character: char) -> Result<bool, ()> {
+        if !self.has_printable_base || self.is_wide_continuation() {
+            return Ok(false);
+        }
+        let index = usize::from(self.combining_mark_count);
+        let Some(slot) = self.combining_marks.get_mut(index) else {
+            return Err(());
+        };
+        *slot = character;
+        self.combining_mark_count += 1;
+        Ok(true)
     }
 }
 
 impl Default for Cell {
     fn default() -> Self {
-        Self::new(' ', CellAttributes::default())
+        Self {
+            character: ' ',
+            attributes: CellAttributes::default(),
+            occupancy: CellOccupancy::Single,
+            has_printable_base: false,
+            combining_marks: ['\0'; MAX_COMBINING_MARKS],
+            combining_mark_count: 0,
+        }
     }
 }

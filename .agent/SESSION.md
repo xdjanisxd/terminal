@@ -2,24 +2,18 @@
 
 ## Current state
 
-The M2 wide-cell foundation slice is complete on `feat/m2-wide-cell-foundation`, based on the completed DA2 commit `9fa69ae` rather than continuing the DA2 branch.
+The width-zero combining-mark slice is implemented on `feat/m2-combining-marks`, created from the validated wide-cell foundation state.
 
-`Cell` now has project-owned `CellOccupancy::{Single, WideLead, WideContinuation}`. A width-two character and its rendition live only in the lead; the continuation has no duplicated character/rendition. `ScreenGrid` owns writing, pair clearing, range repair, bounded row normalization, and resize repair, so stable grids have no orphaned wide halves.
+`Cell` now stores its printable base scalar, immutable rendition snapshot, and up to `MAX_COMBINING_MARKS` (8) ordered width-zero scalar attachments. The attachment storage is project-owned and fixed-size; overflow returns `PrintError::CombiningMarkOverflow` without mutating the cell, grid, or cursor. `Cell::default()` retains no printable base and no attachments.
 
-`TerminalState` classifies widths through `unicode-width` 0.2.2, selected after confirming no existing width abstraction and applying the dependency policy. Width-one and width-two scalars are accepted. Width-zero scalars return `PrintError::UnsupportedZeroWidthCharacter` until the next combining-mark slice; malformed UTF-8 replacement remains an error.
+`TerminalState` classifies scalars through `unicode-width`. Width-zero scalars attach to the logical printable base immediately preceding the insertion point. They do not advance the cursor, consume columns, resolve/create delayed wrap, or modify the base rendition. At a wide continuation target, `ScreenGrid` resolves attachment to the corresponding `WideLead`; continuations retain no character, rendition, or combining payload. With no valid base, width-zero input is ignored without mutation. This is intentionally only width-zero scalar attachment: no normalization, grapheme segmentation, ZWJ composition, variation-selector shaping, or renderer shaping is implemented.
 
-At the final column, a width-two write wraps before writing only with auto-wrap enabled; with auto-wrap disabled it is ignored. A width-two write ending in the final column leaves the cursor at that column and creates existing delayed-wrap state. Pending delayed wrap resolves before the next printable write.
-
-ICH/DCH retain their existing cell-count semantics but normalize rows after bounded shifts. This intentionally guarantees structural validity (split/clipped pairs become blanks) rather than claiming fully wide-aware editing semantics. Vertical operations move whole rows and preserve pairs. Resize normalizes copied rows, and reset produces only ordinary blank cells.
+Existing grid repair, clearing, row movement, and resize move or clear whole `Cell` values, therefore preserve combining payloads on valid surviving bases and eliminate them with cleared/clipped cells.
 
 ## Validation
 
-All required gates passed: workspace format, all-target tests, doctests, check, Clippy with warnings denied, and both x86_64 Windows target suites. `git diff --check`, locked metadata, dependency direction, and changed-slice static/security inspection passed. `unicode-width` remains only in `terminal-core` at version 0.2.2, with default features disabled; its lockfile resolution is limited to that crate and package.
-
-Graphify structural refresh completed (`graphify . --update --code-only` plus `cluster-only`): 852 nodes, 1,294 edges, and 78 communities. Semantic refresh remains unavailable because no supported LLM API key is configured; this did not block structural extraction.
-
-The only validation fixes were disabling the unnecessary default `unicode-width` feature set and replacing stale ASCII-only architecture documentation with the implemented wide/zero-width boundary.
+Focused combining-mark tests and all final gates passed: workspace format, all-target tests, doctests, check, Clippy with warnings denied, GNU/MSVC x86_64 target suites, `git diff --check`, dependency...[truncated]
 
 ## Next
 
-Implement only combining-mark / width-zero behavior on this established model. Do not add grapheme clusters, normalization, renderer shaping, alternate screens, scrollback, PTY, renderer, or input behavior.
+Audit the remaining Unicode/wide-cell parent acceptance criteria before closing it; do not begin grapheme clusters, normalization, renderer shaping, alternate screens, scrollback, PTY, renderer, or input behavior.

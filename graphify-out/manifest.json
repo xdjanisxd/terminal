@@ -54,10 +54,10 @@
     "semantic_hash": "9c60447ffb31866c769f07628d0cd66f"
   },
   "crates/terminal-core/src/cell.rs": {
-    "mtime": 1789566452.4149964,
-    "seen": 1789628375.15465,
-    "ast_hash": "c6cedcdd03deecef35ab16b31dae96ce",
-    "semantic_hash": "c6cedcdd03deecef35ab16b31dae96ce"
+    "mtime": 1789628834.9405653,
+    "seen": 1789629300.6190221,
+    "ast_hash": "64c7e8bbef02690795a2cf3ad5f70c22",
+    "semantic_hash": "64c7e8bbef02690795a2cf3ad5f70c22"
   },
   "crates/terminal-core/src/cursor.rs": {
     "mtime": 1788943117.7603695,
@@ -72,16 +72,16 @@
     "semantic_hash": "a1be051baf193d726b886723bf2171f8"
   },
   "crates/terminal-core/src/grid.rs": {
-    "mtime": 1789566773.0608456,
-    "seen": 1789628375.15465,
-    "ast_hash": "f23d0fd2074d933603648dcacd18a813",
-    "semantic_hash": "f23d0fd2074d933603648dcacd18a813"
+    "mtime": 1789628852.7616086,
+    "seen": 1789629300.6190221,
+    "ast_hash": "194ee3d6505ffcae1a6f860faae7bde2",
+    "semantic_hash": "194ee3d6505ffcae1a6f860faae7bde2"
   },
   "crates/terminal-core/src/lib.rs": {
-    "mtime": 1789566432.5788417,
-    "seen": 1789628375.15465,
-    "ast_hash": "d18180032f2794335f1d11ed4db91b73",
-    "semantic_hash": "d18180032f2794335f1d11ed4db91b73"
+    "mtime": 1789629135.0394504,
+    "seen": 1789629300.6190221,
+    "ast_hash": "cdeedfbbe6d81adc12c3966d71a1c8cd",
+    "semantic_hash": "cdeedfbbe6d81adc12c3966d71a1c8cd"
   },
   "crates/terminal-core/src/modes.rs": {
     "mtime": 1788944776.2894592,
@@ -96,10 +96,10 @@
     "semantic_hash": "3672e37ab043b234da44cc348f8ff394"
   },
   "crates/terminal-core/src/state.rs": {
-    "mtime": 1789566502.743188,
-    "seen": 1789628375.15465,
-    "ast_hash": "85941c42b6b74ab0d5f724a324d33f84",
-    "semantic_hash": "85941c42b6b74ab0d5f724a324d33f84"
+    "mtime": 1789628948.4718902,
+    "seen": 1789629300.6210206,
+    "ast_hash": "eee46b15b9107630d4f134cd9c44f8a0",
+    "semantic_hash": "eee46b15b9107630d4f134cd9c44f8a0"
   },
   "crates/terminal-core/src/tabs.rs": {
     "mtime": 1789026787.771412,
@@ -120,10 +120,10 @@
     "semantic_hash": "ba3a0a000761a49ceb25508923cb418b"
   },
   "crates/terminal-core/tests/parser.rs": {
-    "mtime": 1789566534.7863464,
-    "seen": 1789628375.1571846,
-    "ast_hash": "05184c0355d71fd0deeb2d90af78b191",
-    "semantic_hash": "05184c0355d71fd0deeb2d90af78b191"
+    "mtime": 1789629060.7012403,
+    "seen": 1789629300.6327004,
+    "ast_hash": "ffedbf5d8986751f17e66bcd8672ecf8",
+    "semantic_hash": "ffedbf5d8986751f17e66bcd8672ecf8"
   },
   "crates/terminal-core/tests/rendition.rs": {
     "mtime": 1789564240.9359002,
@@ -132,10 +132,10 @@
     "semantic_hash": "9f3afa76d81bb3a97abb52d22ae06ec6"
   },
   "crates/terminal-core/tests/state.rs": {
-    "mtime": 1789566565.7367146,
-    "seen": 1789628375.159175,
-    "ast_hash": "b9b88c00efcc1090a68efbb1e2641916",
-    "semantic_hash": "b9b88c00efcc1090a68efbb1e2641916"
+    "mtime": 1789628977.3689518,
+    "seen": 1789629300.6359966,
+    "ast_hash": "c7e80bc8438dd86555e243c324adf3b6",
+    "semantic_hash": "c7e80bc8438dd86555e243c324adf3b6"
   },
   "crates/terminal-pty/Cargo.toml": {
     "mtime": 1788940761.4340515,
@@ -448,5 +448,11 @@
     "seen": 1789628375.159175,
     "ast_hash": "3082d6353d19fd2aa099a55b4bf0de58",
     "semantic_hash": "3082d6353d19fd2aa099a55b4bf0de58"
+  },
+  "crates/terminal-core/tests/combining_marks.rs": {
+    "mtime": 1789629263.7230525,
+    "seen": 1789629300.6210206,
+    "ast_hash": "379dc93a43e5346868709f8f2f332720",
+    "semantic_hash": "379dc93a43e5346868709f8f2f332720"
   }
 }
