@@ -187,6 +187,19 @@ impl TerminalState {
         self.screen.switch_to(ScreenKind::Alternate);
     }
 
+    /// Resets the alternate screen locally and activates it for DEC private mode 1047.
+    ///
+    /// This resets only alternate grid/cursor, vertical scrolling margins, and
+    /// delayed-wrap state. Terminal-global state is not modified.
+    pub fn enter_alternate_screen_1047(&mut self) {
+        self.screen.enter_alternate_screen_1047();
+    }
+
+    /// Activates the primary screen for DEC private mode 1047 without restoring saved state.
+    pub fn leave_alternate_screen_1047(&mut self) {
+        self.screen.leave_alternate_screen_1047();
+    }
+
     /// Returns the active screen's inclusive zero-based vertical scrolling margins.
     pub fn vertical_scrolling_margins(&self) -> VerticalScrollingMargins {
         self.screen.vertical_scrolling_margins()

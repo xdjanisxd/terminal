@@ -2,12 +2,13 @@
 
 ## Next
 
-- [ ] Add one narrow DEC `?1047` alternate-screen parser/state slice through the established screen-switching facade; keep saved-cursor semantics and scrollback separate.
+- [ ] Add a saved-cursor foundation that remains separate from `?1049` dispatch and scrollback, so later alternate-screen semantics have explicit project-owned state.
 
 ##...[truncated]
 
 ## Completed in this slice
 
+- [x] Add DEC `?1047` parser dispatch through `TerminalState` for alternate-screen-local grid/cursor/margins/delayed-wrap reset on entry, Primary selection on exit, and no saved cursor or global state reset.
 - [x] Add DEC `?47` parser dispatch through `TerminalState` for non-clearing primary/alternate screen selection, preserving screen-local and shared state while leaving `?1047`/`?1049` unsupported.
 - [x] Add width-zero combining-mark attachment to narrow and wide base cells with bounded ordered storage, no cursor advancement, delayed-wrap preservation, and no standalone mark cells.
 - [x] Add typed wide-cell lead/continuation representation, bounded grid repair, width-two output, and no-orphan resize/edit invariants; defer width-zero combining behavior.
