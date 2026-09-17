@@ -136,7 +136,7 @@ fn dec_private_mode_1047_clears_wide_combining_alternate_cells_but_not_primary_c
 }
 
 #[test]
-fn dec_private_mode_1047_is_distinct_from_47_and_isolated_from_1049() {
+fn dec_private_mode_1047_is_distinct_from_47_and_rejects_malformed_mode_forms() {
     let mut parser = TerminalParser::new();
     let mut state = state();
 
@@ -153,7 +153,7 @@ fn dec_private_mode_1047_is_distinct_from_47_and_isolated_from_1049() {
     parser
         .advance(
             &mut state,
-            b"\x1b[1047h\x1b[1047l\x1b[?1049h\x1b[?1049l\x1b[?999;1047h\x1b[?1047;999l",
+            b"\x1b[1047h\x1b[1047l\x1b[?999;1047h\x1b[?1047;999l",
         )
         .unwrap();
     assert_eq!(state.active_screen(), ScreenKind::Primary);

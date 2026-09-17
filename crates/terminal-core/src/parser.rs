@@ -13,6 +13,7 @@ const MAX_OSC_BYTES: usize = 1024;
 const APPLICATION_CURSOR_KEYS_MODE: u16 = 1;
 const ALTERNATE_SCREEN_MODE: u16 = 47;
 const ALTERNATE_SCREEN_CLEAR_MODE: u16 = 1047;
+const ALTERNATE_SCREEN_SAVE_RESTORE_MODE: u16 = 1049;
 const INSERT_REPLACE_MODE: u16 = 4;
 const AUTO_WRAP_MODE: u16 = 7;
 const CURSOR_VISIBILITY_MODE: u16 = 25;
@@ -163,6 +164,13 @@ impl<'a> SemanticPerformer<'a> {
                         self.terminal.enter_alternate_screen_1047();
                     } else {
                         self.terminal.leave_alternate_screen_1047();
+                    }
+                }
+                (true, ALTERNATE_SCREEN_SAVE_RESTORE_MODE) => {
+                    if enabled {
+                        self.terminal.enter_alternate_screen_1049();
+                    } else {
+                        self.terminal.leave_alternate_screen_1049();
                     }
                 }
                 (false, INSERT_REPLACE_MODE) => {

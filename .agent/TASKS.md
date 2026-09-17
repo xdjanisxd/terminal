@@ -2,15 +2,16 @@
 
 ## Next
 
-- [ ] Add DEC `?1049` parser/state semantics using the saved-cursor foundation, without scrollback or reflow.
+- [ ] Add a bounded primary-screen scrollback foundation that remains separate from reflow and renderer behavior.
 
 ##...[truncated]
 
 ## Completed in this slice
 
+- [x] Add DEC `?1049` parser dispatch through dedicated `TerminalState` save-Primary/reset-Alternate/switch/restore-Primary semantics, with idempotent Alternate entry and no new saved fields.
 - [x] Add project-owned per-screen saved-cursor state with explicit `TerminalState` save/restore semantics: cursor coordinates and current rendition only, uninitialized restore no-op, restore-time coordinate clamping, `?47` preservation, `?1047` Alternate-slot reset, and no parser dispatch.
 - [x] Add DEC `?1047` parser dispatch through `TerminalState` for alternate-screen-local grid/cursor/margins/delayed-wrap reset on entry, Primary selection on exit, and no saved cursor or global state reset.
-- [x] Add DEC `?47` parser dispatch through `TerminalState` for non-clearing primary/alternate screen selection, preserving screen-local and shared state while leaving `?1047`/`?1049` unsupported.
+- [x] Add DEC `?47` parser dispatch through `TerminalState` for non-clearing primary/alternate screen selection, preserving screen-local and shared state while leaving `?1047` unsupported at that slice.
 - [x] Add width-zero combining-mark attachment to narrow and wide base cells with bounded ordered storage, no cursor advancement, delayed-wrap preservation, and no standalone mark cells.
 - [x] Add typed wide-cell lead/continuation representation, bounded grid repair, width-two output, and no-orphan resize/edit invariants; defer width-zero combining behavior.
 
