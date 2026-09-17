@@ -14,7 +14,11 @@ ICH/DCH retain their existing cell-count semantics but normalize rows after boun
 
 ## Validation
 
-Focused wide-cell tests and the full default terminal-core all-target suite passed before final gates. The final validation must run workspace formatting, tests, doctests, check, clippy, both Windows targets, dependency/security checks, `git diff --check`, and Graphify refresh/check.
+All required gates passed: workspace format, all-target tests, doctests, check, Clippy with warnings denied, and both x86_64 Windows target suites. `git diff --check`, locked metadata, dependency direction, and changed-slice static/security inspection passed. `unicode-width` remains only in `terminal-core` at version 0.2.2, with default features disabled; its lockfile resolution is limited to that crate and package.
+
+Graphify structural refresh completed (`graphify . --update --code-only` plus `cluster-only`): 852 nodes, 1,294 edges, and 78 communities. Semantic refresh remains unavailable because no supported LLM API key is configured; this did not block structural extraction.
+
+The only validation fixes were disabling the unnecessary default `unicode-width` feature set and replacing stale ASCII-only architecture documentation with the implemented wide/zero-width boundary.
 
 ## Next
 
