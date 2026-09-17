@@ -2,16 +2,14 @@
 
 ## Current state
 
-`feat/m2-screen-state-foundation` adds project-owned primary and alternate screen buffers behind `TerminalState`. `ScreenKind` selects the active buffer atomically.
+`feat/m2-dec-alt-screen-47` adds narrow DEC private mode 47 parser dispatch through `TerminalState`: `CSI ? 47 h` selects Alternate and `CSI ? 47 l` selects Primary. Switching is pure typed `ScreenKind` selection; it preserves both buffers, per-screen cursor/margins/delayed-wrap, and shared rendition, tab stops, terminal/input modes, and pending replies.
 
-Per-screen state: `ScreenGrid` (and cursor), vertical scrolling margins, and delayed-wrap state. Shared state: current rendition, horizontal tab stops, terminal modes (IRM, DECAWM, DECTCEM), input cursor-key mode, and pending replies. Both buffers resize with the existing top-left-preserving policy; reset recreates blank buffers and selects Primary.
-
-No DEC alternate-screen parser dispatch, saved-cursor semantics, scrollback, or reflow exists.
+`?1047` and `?1049` remain unsupported. No clearing, cursor save/restore, scrollback, reflow, renderer, PTY, or input work exists in this slice. Resize still updates both buffers with top-left preservation; reset recreates blank buffers and selects Primary.
 
 ## Validation
 
-All workspace format, tests, doctests, check, Clippy, GNU/MSVC target tests, and `git diff --check` passed.
+Focused DEC `?47` parser tests cover switching, repeated/mixed modes, chunk boundaries, incomplete CSI, isolation, wide/combining cells, resize, and reset. Full workspace format, tests, doctests, check, Clippy, GNU/MSVC target tests, repository static/dependency checks, Graphify refresh, and `git diff --check` passed.
 
 ## Next
 
-Add one carefully selected DEC alternate-screen parser mode family to the established switching facade, without saved-cursor or scrollback behavior.
+Add one narrow DEC `?1047` alternate-screen parser/state slice through the established switching facade, keeping saved-cursor semantics and scrollback separate.

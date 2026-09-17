@@ -2,12 +2,13 @@
 
 ## Next
 
-- [ ] Add parser dispatch for one selected DEC alternate-screen mode family through the established screen-switching facade; keep saved-cursor semantics and scrollback separate.
+- [ ] Add one narrow DEC `?1047` alternate-screen parser/state slice through the established screen-switching facade; keep saved-cursor semantics and scrollback separate.
 
 ##...[truncated]
 
 ## Completed in this slice
 
+- [x] Add DEC `?47` parser dispatch through `TerminalState` for non-clearing primary/alternate screen selection, preserving screen-local and shared state while leaving `?1047`/`?1049` unsupported.
 - [x] Add width-zero combining-mark attachment to narrow and wide base cells with bounded ordered storage, no cursor advancement, delayed-wrap preservation, and no standalone mark cells.
 - [x] Add typed wide-cell lead/continuation representation, bounded grid repair, width-two output, and no-orphan resize/edit invariants; defer width-zero combining behavior.
 
