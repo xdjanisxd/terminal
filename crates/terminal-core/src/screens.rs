@@ -78,12 +78,9 @@ impl ScreenState {
             return;
         }
 
-        if margins != VerticalScrollingMargins::full_screen(self.grid.dimensions().rows()) {
-            self.grid.scroll_region_up(margins, rows);
-            return;
-        }
-
-        if let Some(scrollback) = &mut self.scrollback {
+        if margins == VerticalScrollingMargins::full_screen(self.grid.dimensions().rows())
+            && let Some(scrollback) = &mut self.scrollback
+        {
             for row in margins.top()..margins.top() + rows {
                 let displaced = self
                     .grid
