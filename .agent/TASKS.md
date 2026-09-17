@@ -2,12 +2,13 @@
 
 ## Next
 
-- [ ] Add a bounded primary-screen scrollback foundation that remains separate from reflow and renderer behavior.
+- [ ] Audit the remaining primary/alternate-screen, resize, and scrollback parent before choosing a narrow resize/reflow policy or a read-only viewport model; do not add renderer UI or shell/TUI validation yet.
 
 ##...[truncated]
 
 ## Completed in this slice
 
+- [x] Add bounded Primary-only scrollback capture for whole-screen upward scrolling, exact `Cell` preservation, 10,000-row FIFO eviction, reset clearing, capture-time width retention across resize, and no viewport/reflow behavior.
 - [x] Add DEC `?1049` parser dispatch through dedicated `TerminalState` save-Primary/reset-Alternate/switch/restore-Primary semantics, with idempotent Alternate entry and no new saved fields.
 - [x] Add project-owned per-screen saved-cursor state with explicit `TerminalState` save/restore semantics: cursor coordinates and current rendition only, uninitialized restore no-op, restore-time coordinate clamping, `?47` preservation, `?1047` Alternate-slot reset, and no parser dispatch.
 - [x] Add DEC `?1047` parser dispatch through `TerminalState` for alternate-screen-local grid/cursor/margins/delayed-wrap reset on entry, Primary selection on exit, and no saved cursor or global state reset.

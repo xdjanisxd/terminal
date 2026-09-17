@@ -1,6 +1,9 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::{CellAttributes, Cursor, ScreenGrid, TerminalDimensions, VerticalScrollingMargins};
+use crate::{
+    Cell, CellAttributes, Cursor, ScreenGrid, TerminalDimensions, VerticalScrollingMargins,
+    scrollback::Scrollback,
+};
 
 /// Selects the terminal screen receiving semantic operations.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -24,15 +27,17 @@ struct ScreenState {
     vertical_scrolling_margins: VerticalScrollingMargins,
     wrap_pending: bool,
     saved_cursor: Option<SavedCursor>,
+    scrollback: Option<Scrollback>,
 }
 
 impl ScreenState {
-    fn new(dimensions: TerminalDimensions) -> Self {
+    fn new(dimensions: TerminalDimensions, owns_scrollback: bool) -> Self {
         Self {
             grid: ScreenGrid::new(dimensions),
             vertical_scrolling_margins: VerticalScrollingMargins::full_screen(dimensions.rows()),
             wrap_pending: false,
             saved_cursor: None,
+            scrollback: owns_scrollback.then(Scrollback::new),
         }
     }
 
@@ -56,13 +61,44 @@ impl ScreenState {
     }
 
     fn reset(&mut self) {
-        *self = Self::new(self.grid.dimensions());
+        let owns_scrollback = self.scrollback.is_some();
+        *self = Self::new(self.grid.dimensions(), owns_scrollback);
     }
 
     fn resize(&mut self, dimensions: TerminalDimensions) {
         self.grid.resize(dimensions);
         self.vertical_scrolling_margins = VerticalScrollingMargins::full_screen(dimensions.rows());
         self.wrap_pending = false;
+    }
+
+    fn scroll_region_up(&mut self, margins: VerticalScrollingMargins, rows: usize) {
+        let height = margins.bottom() - margins.top() + 1;
+        let rows = rows.min(height);
+        if rows == 0 {
+            return;
+        }
+
+        if margins == VerticalScrollingMargins::full_screen(self.grid.dimensions().rows()) {
+            if let Some(scrollback) = &mut self.scrollback {
+                for row in margins.top()..margins.top() + rows {
+                    let displaced = self
+                        .grid
+                        .row(row)
+                        .expect("scrolling margin row is always in bounds");
+                    scrollback.push(displaced);
+                }
+            }
+        }
+
+        self.grid.scroll_region_up(margins, rows);
+    }
+
+    fn scrollback_len(&self) -> usize {
+        self.scrollback.as_ref().map_or(0, Scrollback::len)
+    }
+
+    fn scrollback_row(&self, index: usize) -> Option<&[Cell]> {
+        self.scrollback.as_ref()?.row(index)
     }
 }
 
@@ -77,8 +113,8 @@ pub(crate) struct ScreenSet {
 impl ScreenSet {
     pub(crate) fn new(dimensions: TerminalDimensions) -> Self {
         Self {
-            primary: ScreenState::new(dimensions),
-            alternate: ScreenState::new(dimensions),
+            primary: ScreenState::new(dimensions, true),
+            alternate: ScreenState::new(dimensions, false),
             active: ScreenKind::Primary,
         }
     }
@@ -127,6 +163,26 @@ impl ScreenSet {
     pub(crate) fn resize_all(&mut self, dimensions: TerminalDimensions) {
         self.primary.resize(dimensions);
         self.alternate.resize(dimensions);
+    }
+
+    pub(crate) fn scroll_region_up(&mut self, margins: VerticalScrollingMargins, rows: usize) {
+        self.active_state_mut().scroll_region_up(margins, rows);
+    }
+
+    pub(crate) fn scroll_region_up_without_history(
+        &mut self,
+        margins: VerticalScrollingMargins,
+        rows: usize,
+    ) {
+        self.active_state_mut().grid.scroll_region_up(margins, rows);
+    }
+
+    pub(crate) fn primary_scrollback_len(&self) -> usize {
+        self.primary.scrollback_len()
+    }
+
+    pub(crate) fn primary_scrollback_row(&self, index: usize) -> Option<&[Cell]> {
+        self.primary.scrollback_row(index)
     }
 
     fn active_state(&self) -> &ScreenState {
