@@ -1,7 +1,10 @@
 use std::ffi::OsString;
 use std::path::PathBuf;
 
-use terminal_pty::{PtyExitStatus, PtyLifecycle, PtyOutput, PtySize, PtySizeError, PtySpawnConfig};
+use terminal_pty::{
+    PortablePtyBackend, PtyExitStatus, PtyLifecycle, PtyOutput, PtySize, PtySizeError,
+    PtySpawnConfig,
+};
 
 #[test]
 fn size_rejects_zero_dimensions() {
@@ -38,6 +41,11 @@ fn output_preserves_arbitrary_bytes_and_distinguishes_eof_from_exit() {
     );
     assert_eq!(PtyOutput::bytes(Vec::new()), None);
     assert_ne!(PtyOutput::Eof, PtyOutput::Exited(PtyExitStatus::code(7)));
+}
+
+#[test]
+fn portable_backend_is_project_owned_and_constructible() {
+    let _backend = PortablePtyBackend::new();
 }
 
 #[test]
