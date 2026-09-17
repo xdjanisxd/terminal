@@ -6,5 +6,5 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-unicode-width = "0.2.2"
+unicode-width = { version = "0.2.2", default-features = false }
 vte = { version = "0.15.0", default-features = false }

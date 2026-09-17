@@ -23,7 +23,7 @@
 - Bounded grouped handling for extended-color SGR: indexed selectors consume one index, semicolon-form truecolor consumes exactly three scalar components and validates all before mutation, and unknown selectors consume the remaining CSI parameters so payload cannot leak into unrelated SGR
 - DA2 uses fixed `ESC [ > 0 ; 0 ; 0 c`: Pp=0 retains DA1's conservative VT100-class identity, Pv=0 avoids exposing package/release versions, and Pc=0 claims no optional hardware features
 - Bounded 1,024-byte OSC parser storage by compiling `vte` without its default `std` feature
-- Three hundred two `terminal-core` unit/integration tests plus four compile-fail ownership tests
+- Three hundred nine `terminal-core` unit/integration tests plus four compile-fail ownership tests
 
 ## Partial
 
