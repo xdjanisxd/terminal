@@ -2,7 +2,9 @@
 
 ## Next
 
-- [ ] Audit the remaining Unicode/wide-cell parent acceptance criteria before closing it; do not begin grapheme clusters, shaping, normalization, alternate screens, scrollback, PTY, renderer, or input work.
+- [ ] Add a project-owned primary/alternate screen-state model with atomic `TerminalState` switching semantics, keeping parser dispatch, scrollback, and resize reflow out of the first slice.
+
+##...[truncated]
 
 ## Completed in this slice
 
@@ -48,7 +50,7 @@
 - [x] Add project-owned current rendition with SGR reset, bold, italic, underline, inverse, ANSI standard/bright colors, and per-channel default restoration.
 - [ ] Add origin mode only with scrolling-region state, cursor homing, saved-state behavior, and primary/alternate-screen semantics coordinated atomically by `TerminalState`.
 - [ ] Defer line-feed/new-line mode and application keypad mode until their behavior is required by parser/input milestones; do not grow a speculative mode catalog.
-- [ ] Audit remaining edge-case width classifications, variation selectors, and zero-width scalar policy before closing the Unicode parent; do not imply grapheme-cluster semantics.
+- [x] Audit Unicode width classifications, width-zero/variation-selector attachment policy, payload bounds, repair paths, and public ownership; close the Unicode parent without claiming grapheme or rendering...[truncated]
 - [ ] Decide resize reflow behavior during the compatibility milestone; the current top-left preservation rule does not perform terminal line reflow.
 - [ ] Determine minimum OS versions from pinned stack requirements and real platform validation when those dependencies are introduced; record the result in a new ADR.
 

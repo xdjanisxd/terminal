@@ -2,18 +2,16 @@
 
 ## Current state
 
-The width-zero combining-mark slice is implemented on `feat/m2-combining-marks`, created from the validated wide-cell foundation state.
+The Unicode combining and wide-cell invariants parent is complete on `feat/m2-combining-marks` after a focused acceptance audit.
 
-`Cell` now stores its printable base scalar, immutable rendition snapshot, and up to `MAX_COMBINING_MARKS` (8) ordered width-zero scalar attachments. The attachment storage is project-owned and fixed-size; overflow returns `PrintError::CombiningMarkOverflow` without mutating the cell, grid, or cursor. `Cell::default()` retains no printable base and no attachments.
+`TerminalState` accepts only `unicode-width` scalar widths 0, 1, and 2. Unsupported widths, controls, and U+FFFD return project-owned errors before grid mutation. Width-zero scalars—including U+FE0E, U+FE0F, and U+200D under `unicode-width` 0.2.2—attach in input order to a preceding printable `Single` or `WideLead`; no-base input is ignored without mutation. This preserves grid/cursor invariants but intentionally does not promise grapheme, ZWJ, normalization, or renderer-shaping correctness.
 
-`TerminalState` classifies scalars through `unicode-width`. Width-zero scalars attach to the logical printable base immediately preceding the insertion point. They do not advance the cursor, consume columns, resolve/create delayed wrap, or modify the base rendition. At a wide continuation target, `ScreenGrid` resolves attachment to the corresponding `WideLead`; continuations retain no character, rendition, or combining payload. With no valid base, width-zero input is ignored without mutation. This is intentionally only width-zero scalar attachment: no normalization, grapheme segmentation, ZWJ composition, variation-selector shaping, or renderer shaping is implemented.
-
-Existing grid repair, clearing, row movement, and resize move or clear whole `Cell` values, therefore preserve combining payloads on valid surviving bases and eliminate them with cleared/clipped cells.
+`Cell` owns a fixed capacity of eight attachments. Overflow returns `PrintError::CombiningMarkOverflow` before mutation. Continuations and canonical default cells have no attachment payload. `ScreenGrid` centrally repairs wide pairs after writes, erases, shifts, clipping, and resize, so complete payloads move with valid bases or are removed with invalid pairs.
 
 ## Validation
 
-Focused combining-mark tests and all final gates passed: workspace format, all-target tests, doctests, check, Clippy with warnings denied, GNU/MSVC x86_64 target suites, `git diff --check`, dependency...[truncated]
+The accepted source baseline remains 318 terminal-core unit/integration tests plus four compile-fail doctests; all full workspace/platform quality gates passed for the combining slice. This audit made documentation-only changes and passed `git diff --check`. Graphify was used read-only: 878 nodes, 1,341 edges, 84 communities; it confirms `TerminalParser -> TerminalState -> ScreenGrid -> Cell`, with no parser-local attachment state or renderer/input/PTY/workspace coupling.
 
 ## Next
 
-Audit the remaining Unicode/wide-cell parent acceptance criteria before closing it; do not begin grapheme clusters, normalization, renderer shaping, alternate screens, scrollback, PTY, renderer, or input behavior.
+Begin the next roadmap item with a narrow project-owned primary/alternate screen-state model and atomic `TerminalState` switching semantics. Keep parser dispatch, scrollback, and resize reflow out of that first slice.
