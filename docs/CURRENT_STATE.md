@@ -11,7 +11,7 @@
 - Parser-independent `TerminalState` owns independent primary/alternate screen buffers selected through typed operations, current rendition, terminal/input modes, bounded tab stops, and a fixed-capacity FIFO of project-owned pending replies for DA1, DA2, ANSI DSR status, and captured ANSI CPR responses
 - Controlled state operations for bounded CUU/CUD/CUF/CUB, CNL/CPL, CHA, VPA, CUP/HVP cursor movement; margin-aware SU/SD, IND/RI, and NEL; horizontal tabs and tab-stop mutation; vertical scrolling-margin updates; current rendition; bounded DA1; fixed ANSI DSR status; and absolute ANSI CPR reply generation with FIFO consumption, clearing, resizing, supported mode changes, and a project-owned reset
 - Project-owned typed cursor movement and inclusive erase-region operations, with all absolute and relative movement clamped to the active screen
-- `TerminalState` owns independent primary and alternate project screen buffers with atomic typed switching; each buffer retains grid/cursor, scrolling margins, and delayed-wrap state, while rendition, tabs, terminal/input modes, and replies remain shared. DEC `?1047` entry resets only the Alternate buffer's grid/cursor, margins, and delayed-wrap before selecting it; its exit selects Primary without saved-cursor behavior.
+- `TerminalState` owns independent primary and alternate project screen buffers with atomic typed switching; each buffer retains grid/cursor, scrolling margins, delayed-wrap state, and an optional project-owned saved-cursor slot. Each slot stores only cursor coordinates plus current rendition; save replaces only the active slot, and restore is an uninitialized-slot no-op that restores only the active slot, clamps coordinates at restore, restores rendition, and cancels delayed wrap. `?47` leaves slots untouched; DEC `?1047` entry resets Alternate including its slot, and its exit selects Primary without restore.
 - Parser-independent printable-character, carriage-return, line-feed, index, reverse-index, next-line, bounded cursor-next/previous-line, backspace, horizontal-tab, region-aware-scroll, typed scrolling-margin, and typed rendition operations routed through `TerminalState`
 - Delayed right-margin wrapping, auto-wrap suppression, bounded region-aware SU/SD, IND/RI, and NEL scrolling, fixed-screen bottom scrolling, and fixed-width insert/replace output behavior
 - Incremental project-owned `TerminalParser` adapter encapsulating `vte` and preserving parser state across input chunks
@@ -38,7 +38,7 @@
 
 ## Missing
 
-- Remaining CSI/SGR style semantics and modes, colon-form color semantics, OSC/DCS semantics, secondary/tertiary DA replies, other DSR/CPR forms, saved cursor state, origin mode, and alternate screens
+- Remaining CSI/SGR style semantics and modes, colon-form color semantics, OSC/DCS semantics, secondary/tertiary DA replies, other DSR/CPR forms, origin mode, and additional alternate-screen semantics including `?1049`
 - PTY, renderer, input encoding, configuration, workspace, and platform implementations
 - Scrollback and compatibility/performance baselines
 

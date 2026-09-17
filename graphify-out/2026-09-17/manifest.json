@@ -90,16 +90,16 @@
     "semantic_hash": "eca9dc164b5745a93c313727afef22fe"
   },
   "crates/terminal-core/src/parser.rs": {
-    "mtime": 1789630893.0534627,
-    "seen": 1789631093.1823905,
-    "ast_hash": "d2e79179e9f526744f5906d5a55f0512",
-    "semantic_hash": ""
+    "mtime": 1789632248.1335304,
+    "seen": 1789647931.7255847,
+    "ast_hash": "a23b17ddb7832a13aa732b9ae8c0a8e4",
+    "semantic_hash": "a23b17ddb7832a13aa732b9ae8c0a8e4"
   },
   "crates/terminal-core/src/state.rs": {
-    "mtime": 1789630404.0227454,
-    "seen": 1789630543.725289,
-    "ast_hash": "0a6dd34bc63446cd5f9dba379fc13c7b",
-    "semantic_hash": "0a6dd34bc63446cd5f9dba379fc13c7b"
+    "mtime": 1789647803.91068,
+    "seen": 1789647931.7255847,
+    "ast_hash": "7766f1bdfe70794f2fa0a4eeb6492bac",
+    "semantic_hash": "7766f1bdfe70794f2fa0a4eeb6492bac"
   },
   "crates/terminal-core/src/tabs.rs": {
     "mtime": 1789026787.771412,
@@ -168,15 +168,15 @@
     "semantic_hash": ""
   },
   ".agent/SESSION.md": {
-    "mtime": 1789631034.9320283,
-    "seen": 1789631093.1886373,
-    "ast_hash": "1f8ac020beee62e49ff2572892557ad7",
+    "mtime": 1789632439.8194041,
+    "seen": 1789632448.0040483,
+    "ast_hash": "9b84764311363fa8bb5916829e77f6ca",
     "semantic_hash": ""
   },
   ".agent/TASKS.md": {
-    "mtime": 1789631024.9547212,
-    "seen": 1789631093.1886373,
-    "ast_hash": "a23f80f45b79653193f1a8d74f6dd47e",
+    "mtime": 1789632430.1218019,
+    "seen": 1789632448.0040483,
+    "ast_hash": "77cf10b59e70f8d7ea265950a0fdb005",
     "semantic_hash": ""
   },
   ".agent/WORKFLOW.md": {
@@ -198,9 +198,9 @@
     "semantic_hash": ""
   },
   "docs/ARCHITECTURE.md": {
-    "mtime": 1789631084.3886428,
-    "seen": 1789631093.1886373,
-    "ast_hash": "c34043aed7103d440fc98b233962b032",
+    "mtime": 1789632411.8932512,
+    "seen": 1789632448.0050492,
+    "ast_hash": "58e2944eac044f588b66655ff501aea3",
     "semantic_hash": ""
   },
   "docs/CONVENTIONS.md": {
@@ -210,9 +210,9 @@
     "semantic_hash": ""
   },
   "docs/CURRENT_STATE.md": {
-    "mtime": 1789630982.3887575,
-    "seen": 1789631093.1886373,
-    "ast_hash": "b33febbb4b27c3a1a46c9b854d546401",
+    "mtime": 1789632389.0557437,
+    "seen": 1789632448.0050492,
+    "ast_hash": "0d008516423a2641bf0f7bdf6b45c4a2",
     "semantic_hash": ""
   },
   "docs/PERFORMANCE.md": {
@@ -228,9 +228,9 @@
     "semantic_hash": ""
   },
   "docs/ROADMAP.md": {
-    "mtime": 1789630988.8810565,
-    "seen": 1789631093.1886373,
-    "ast_hash": "3b2f5186bc3d7b346487a12eb7c92627",
+    "mtime": 1789632396.7092502,
+    "seen": 1789632448.0050492,
+    "ast_hash": "4afe549c842d9e418da1e43c1ee20eec",
     "semantic_hash": ""
   },
   "docs/decisions/ADR-0001-rust-cargo-workspace.md": {
@@ -456,10 +456,10 @@
     "semantic_hash": "379dc93a43e5346868709f8f2f332720"
   },
   "crates/terminal-core/src/screens.rs": {
-    "mtime": 1789630318.8449275,
-    "seen": 1789630543.725289,
-    "ast_hash": "5435cdc0e52118df10b69adddb326a88",
-    "semantic_hash": "5435cdc0e52118df10b69adddb326a88"
+    "mtime": 1789647593.5695202,
+    "seen": 1789647931.7255847,
+    "ast_hash": "522b393c4680c1f6242aefbe294ee16a",
+    "semantic_hash": "522b393c4680c1f6242aefbe294ee16a"
   },
   "crates/terminal-core/tests/screen_switching.rs": {
     "mtime": 1789630404.0887775,
@@ -469,8 +469,20 @@
   },
   "crates/terminal-core/tests/dec_alt_screen_47.rs": {
     "mtime": 1789630961.0566373,
-    "seen": 1789631093.1886373,
+    "seen": 1789647931.7281594,
     "ast_hash": "c0f04343763a890b1ddaf4826bf4f1cf",
-    "semantic_hash": ""
+    "semantic_hash": "c0f04343763a890b1ddaf4826bf4f1cf"
+  },
+  "crates/terminal-core/tests/dec_alt_screen_1047.rs": {
+    "mtime": 1789632358.239894,
+    "seen": 1789647931.7281594,
+    "ast_hash": "9980fb3d3f22abed2679ee367c908dc9",
+    "semantic_hash": "9980fb3d3f22abed2679ee367c908dc9"
+  },
+  "crates/terminal-core/tests/saved_cursor.rs": {
+    "mtime": 1789647684.027684,
+    "seen": 1789647931.729186,
+    "ast_hash": "574d398e310a5decd175cc4d2183aec0",
+    "semantic_hash": "574d398e310a5decd175cc4d2183aec0"
   }
 }

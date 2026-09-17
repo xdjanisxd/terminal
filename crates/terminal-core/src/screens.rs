@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::{ScreenGrid, TerminalDimensions, VerticalScrollingMargins};
+use crate::{CellAttributes, Cursor, ScreenGrid, TerminalDimensions, VerticalScrollingMargins};
 
 /// Selects the terminal screen receiving semantic operations.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -12,11 +12,18 @@ pub enum ScreenKind {
     Alternate,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct SavedCursor {
+    cursor: Cursor,
+    rendition: CellAttributes,
+}
+
 #[derive(Debug)]
 struct ScreenState {
     grid: ScreenGrid,
     vertical_scrolling_margins: VerticalScrollingMargins,
     wrap_pending: bool,
+    saved_cursor: Option<SavedCursor>,
 }
 
 impl ScreenState {
@@ -25,7 +32,27 @@ impl ScreenState {
             grid: ScreenGrid::new(dimensions),
             vertical_scrolling_margins: VerticalScrollingMargins::full_screen(dimensions.rows()),
             wrap_pending: false,
+            saved_cursor: None,
         }
+    }
+
+    fn save_cursor(&mut self, rendition: CellAttributes) {
+        self.saved_cursor = Some(SavedCursor {
+            cursor: self.grid.cursor(),
+            rendition,
+        });
+    }
+
+    fn restore_cursor(&mut self) -> Option<CellAttributes> {
+        let saved = self.saved_cursor?;
+        let dimensions = self.grid.dimensions();
+        self.grid
+            .set_cursor_position(
+                saved.cursor.row().min(dimensions.rows() - 1),
+                saved.cursor.column().min(dimensions.columns() - 1),
+            )
+            .expect("clamped saved cursor is always in bounds");
+        Some(saved.rendition)
     }
 
     fn reset(&mut self) {
@@ -87,6 +114,14 @@ impl ScreenSet {
 
     pub(crate) fn set_wrap_pending(&mut self, pending: bool) {
         self.active_state_mut().wrap_pending = pending;
+    }
+
+    pub(crate) fn save_cursor(&mut self, rendition: CellAttributes) {
+        self.active_state_mut().save_cursor(rendition);
+    }
+
+    pub(crate) fn restore_cursor(&mut self) -> Option<CellAttributes> {
+        self.active_state_mut().restore_cursor()
     }
 
     pub(crate) fn resize_all(&mut self, dimensions: TerminalDimensions) {

@@ -56,6 +56,7 @@ Completion marks require tested acceptance criteria, not code presence alone.
   - [x] Add project-owned primary/alternate screen buffers with atomic TerminalState switching and independent screen-local state
   - [x] Add DEC `?47` parser dispatch for non-clearing primary/alternate screen switching
   - [x] Add DEC `?1047` alternate-screen entry/exit with explicit alternate clear/reset semantics and no saved cursor
+  - [x] Add project-owned per-screen saved-cursor state with explicit `TerminalState` save/restore semantics
 - [ ] Validate against representative modern shells and TUIs
 
 ## M3: PTY and session lifecycle
