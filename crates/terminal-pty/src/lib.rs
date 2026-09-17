@@ -4,6 +4,11 @@
 //! terminal parsing, screen state, rendering, input encoding, or a backend API.
 //! A future `portable-pty` adapter implements `PtyBackend` and `PtySession`.
 
+use std::io::{Read, Write};
+use std::sync::Mutex;
+
+use portable_pty::{CommandBuilder, MasterPty, PtyPair, PtySystem};
+
 use std::error::Error;
 use std::ffi::OsString;
 use std::fmt;
@@ -174,8 +179,14 @@ impl Error for PtyError {}
 /// The session owner calls `terminate` for deterministic shutdown; `Drop` is only
 /// a backend safety net. Calls after exit or termination request return
 /// `PtyError::NotRunning`; repeated termination succeeds without another effect.
+pub trait PtyOutputReader {
+    /// Reads raw PTY bytes without decoding, parsing, or normalization.
+    fn read(&mut self, bytes: &mut [u8]) -> Result<usize, PtyError>;
+}
+
 pub trait PtySession {
     fn lifecycle(&self) -> PtyLifecycle;
+    fn take_output_reader(&mut self) -> Result<Box<dyn PtyOutputReader + Send>, PtyError>;
     fn write(&mut self, bytes: &[u8]) -> Result<(), PtyError>;
     fn resize(&mut self, size: PtySize) -> Result<(), PtyError>;
     fn terminate(&mut self) -> Result<(), PtyError>;
@@ -185,4 +196,143 @@ pub trait PtySession {
 pub trait PtyBackend {
     type Session: PtySession;
     fn spawn(&self, configuration: PtySpawnConfig) -> Result<Self::Session, PtyError>;
+}
+
+/// Concrete `portable-pty` adapter hidden behind project-owned types.
+pub struct PortablePtyBackend {
+    system: Box<dyn PtySystem + Send>,
+}
+
+impl PortablePtyBackend {
+    pub fn new() -> Self {
+        Self {
+            system: portable_pty::native_pty_system(),
+        }
+    }
+}
+
+impl Default for PortablePtyBackend {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+pub struct PortablePtySession {
+    master: Box<dyn MasterPty + Send>,
+    child: Mutex<Box<dyn portable_pty::Child + Send + Sync>>,
+    writer: Option<Box<dyn Write + Send>>,
+    lifecycle: PtyLifecycle,
+}
+
+struct PortableOutputReader(Box<dyn Read + Send>);
+impl PtyOutputReader for PortableOutputReader {
+    fn read(&mut self, bytes: &mut [u8]) -> Result<usize, PtyError> {
+        self.0.read(bytes).map_err(|_| PtyError::WriteFailed)
+    }
+}
+
+impl PtyBackend for PortablePtyBackend {
+    type Session = PortablePtySession;
+
+    fn spawn(&self, configuration: PtySpawnConfig) -> Result<Self::Session, PtyError> {
+        let size = portable_pty::PtySize {
+            rows: configuration.initial_size.rows(),
+            cols: configuration.initial_size.columns(),
+            pixel_width: 0,
+            pixel_height: 0,
+        };
+        let PtyPair { master, slave } = self
+            .system
+            .openpty(size)
+            .map_err(|_| PtyError::SpawnFailed)?;
+        let mut command = CommandBuilder::new(configuration.program());
+        command.args(configuration.arguments());
+        if let Some(directory) = configuration.working_directory() {
+            command.cwd(directory);
+        }
+        for (key, value) in configuration.environment() {
+            command.env(key, value);
+        }
+        let child = slave
+            .spawn_command(command)
+            .map_err(|_| PtyError::SpawnFailed)?;
+        let writer = master.take_writer().map_err(|_| PtyError::SpawnFailed)?;
+        Ok(PortablePtySession {
+            master,
+            child: Mutex::new(child),
+            writer: Some(writer),
+            lifecycle: PtyLifecycle::Running,
+        })
+    }
+}
+
+impl PortablePtySession {
+    fn refresh_lifecycle(&self) -> PtyLifecycle {
+        let mut child = self.child.lock().expect("PTY child mutex is not poisoned");
+        match child.try_wait() {
+            Ok(Some(status)) => PtyLifecycle::Exited(
+                i32::try_from(status.exit_code())
+                    .map(PtyExitStatus::code)
+                    .unwrap_or_else(|_| PtyExitStatus::unknown()),
+            ),
+            Ok(None) | Err(_) => PtyLifecycle::Running,
+        }
+    }
+}
+
+impl PtySession for PortablePtySession {
+    fn lifecycle(&self) -> PtyLifecycle {
+        match self.lifecycle {
+            PtyLifecycle::Running => self.refresh_lifecycle(),
+            state => state,
+        }
+    }
+
+    fn take_output_reader(&mut self) -> Result<Box<dyn PtyOutputReader + Send>, PtyError> {
+        if !self.lifecycle().allows_operations() {
+            return Err(PtyError::NotRunning);
+        }
+        self.master
+            .try_clone_reader()
+            .map(|reader| Box::new(PortableOutputReader(reader)) as Box<dyn PtyOutputReader + Send>)
+            .map_err(|_| PtyError::SpawnFailed)
+    }
+
+    fn write(&mut self, bytes: &[u8]) -> Result<(), PtyError> {
+        if !self.lifecycle().allows_operations() {
+            return Err(PtyError::NotRunning);
+        }
+        self.writer
+            .as_mut()
+            .ok_or(PtyError::NotRunning)?
+            .write_all(bytes)
+            .map_err(|_| PtyError::WriteFailed)
+    }
+
+    fn resize(&mut self, size: PtySize) -> Result<(), PtyError> {
+        if !self.lifecycle().allows_operations() {
+            return Err(PtyError::NotRunning);
+        }
+        self.master
+            .resize(portable_pty::PtySize {
+                rows: size.rows(),
+                cols: size.columns(),
+                pixel_width: 0,
+                pixel_height: 0,
+            })
+            .map_err(|_| PtyError::ResizeFailed)
+    }
+
+    fn terminate(&mut self) -> Result<(), PtyError> {
+        if !self.lifecycle().allows_operations() {
+            return Ok(());
+        }
+        self.lifecycle = PtyLifecycle::TerminationRequested;
+        self.writer.take();
+        self.child
+            .lock()
+            .expect("PTY child mutex is not poisoned")
+            .kill()
+            .map_err(|_| PtyError::TerminateFailed)
+    }
 }
