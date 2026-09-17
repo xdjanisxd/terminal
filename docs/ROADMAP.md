@@ -64,7 +64,7 @@ Completion marks require tested acceptance criteria, not code presence alone.
 
 ## M3: PTY and session lifecycle
 
-- [ ] Define the project-owned PTY contract
+- [x] Define the project-owned PTY contract
 - [ ] Integrate `portable-pty` for Windows, Linux, and macOS
 - [ ] Add deterministic lifecycle, resize, EOF, exit, and termination tests
 - [ ] Connect PTY workers through bounded event-driven communication

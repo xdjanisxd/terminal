@@ -2,12 +2,13 @@
 
 ## Next
 
-- [ ] Define the representative modern shell/TUI compatibility validation matrix after terminal-core is connected to PTY and renderer boundaries; do not implement it yet.
+- [ ] Integrate `portable-pty` for Windows, Linux, and macOS through the completed project-owned PTY contract; keep parser, renderer, input encoding, and worker/channel design out of that adapter slice.
 
 ##...[truncated]
 
 ## Completed in this slice
 
+- [x] Define a backend-independent project-owned PTY contract with validated cell sizing, owned local spawn configuration, raw byte/EOF/exit events, lifecycle and error ownership, and no backend integration.
 - [x] Audit and test Primary/Alternate resize coherence, saved-cursor clamping, shared tab/rendition preservation, mixed-width Primary history, and `?47`/`?1047`/`?1049` resize round trips; close the terminal-core primary/alternate/resize/scrollback roadmap parent.
 - [x] Add bounded Primary-only scrollback capture for whole-screen upward scrolling, exact `Cell` preservation, 10,000-row FIFO eviction, reset clearing, capture-time width retention across resize, and no viewport/reflow behavior.
 - [x] Add DEC `?1049` parser dispatch through dedicated `TerminalState` save-Primary/reset-Alternate/switch/restore-Primary semantics, with idempotent Alternate entry and no new saved fields.

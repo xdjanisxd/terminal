@@ -75,6 +75,12 @@ The renderer consumes terminal snapshots/state and damage information; it does n
 - `vte` is compiled without default features so OSC collection uses a fixed 1,024-byte buffer rather than an unbounded `Vec`. Excess unsupported OSC payload is discarded by the parser.
 - `TerminalParser::advance` processes without per-byte allocation and uses `vte` termination checks to stop before callbacks following the first `TerminalState` semantic error can mutate state. Its project-owned error reports both that semantic error and the number of bytes consumed, allowing the caller to resume with the unconsumed suffix without losing later errors silently. The count can be zero when malformed UTF-8 retained from a prior chunk is rejected before the current byte is reprocessed.
 
+## PTY contract
+
+`terminal-pty` owns a backend-independent local-session contract. `PtySpawnConfig` owns an executable path, exact platform arguments, optional working directory, environment pairs, and a validated nonzero `PtySize`; it intentionally supplies no shell policy. `PtyBackend` creates a project-owned `PtySession`, so later `portable-pty` types remain inside its adapter. Session writes accept raw caller bytes; output is `PtyOutput::Bytes(Vec<u8>)`, never decoded or normalized, and empty chunks are not events. EOF and `Exited(PtyExitStatus)` are distinct: exit may precede output drain, while EOF means no further output. `PtyExitStatus` exposes only an optional numeric code because a portable backend may not provide more.
+
+Only the session owner writes, resizes, terminates, and consumes output. Resize uses project-owned cell dimensions. `terminate` is explicit and idempotent; termination request or exit rejects later write/resize operations. Drop is a backend safety net, not lifecycle control. Project-owned `PtyError` reports spawn, write, resize, termination, and not-running categories. No backend, thread, queue, parser, `TerminalState`, renderer, input encoder, or real child is implemented in this slice.
+
 ## Runtime model
 
 Use one process. The main thread owns the `winit` event loop, input, windows, and render scheduling. PTY reads and child communication run on worker threads and wake the event loop when work is available. Start with `std::thread` and `std::sync`; add an async runtime or more workers only for a demonstrated architectural need. Avoid polling and request redraws only on state changes.
