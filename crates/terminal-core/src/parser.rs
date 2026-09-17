@@ -11,6 +11,7 @@ use crate::{
 // is discarded by vte and never reaches terminal semantics.
 const MAX_OSC_BYTES: usize = 1024;
 const APPLICATION_CURSOR_KEYS_MODE: u16 = 1;
+const ALTERNATE_SCREEN_MODE: u16 = 47;
 const INSERT_REPLACE_MODE: u16 = 4;
 const AUTO_WRAP_MODE: u16 = 7;
 const CURSOR_VISIBILITY_MODE: u16 = 25;
@@ -148,6 +149,13 @@ impl<'a> SemanticPerformer<'a> {
                         CursorKeyMode::Normal
                     };
                     self.terminal.set_cursor_key_mode(cursor_keys);
+                }
+                (true, ALTERNATE_SCREEN_MODE) => {
+                    if enabled {
+                        self.terminal.switch_to_alternate_screen();
+                    } else {
+                        self.terminal.switch_to_primary_screen();
+                    }
                 }
                 (false, INSERT_REPLACE_MODE) => {
                     let insertion = if enabled {
