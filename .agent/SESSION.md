@@ -2,16 +2,16 @@
 
 ## Current state
 
-The Unicode combining and wide-cell invariants parent is complete on `feat/m2-combining-marks` after a focused acceptance audit.
+`feat/m2-screen-state-foundation` adds project-owned primary and alternate screen buffers behind `TerminalState`. `ScreenKind` selects the active buffer atomically.
 
-`TerminalState` accepts only `unicode-width` scalar widths 0, 1, and 2. Unsupported widths, controls, and U+FFFD return project-owned errors before grid mutation. Width-zero scalars—including U+FE0E, U+FE0F, and U+200D under `unicode-width` 0.2.2—attach in input order to a preceding printable `Single` or `WideLead`; no-base input is ignored without mutation. This preserves grid/cursor invariants but intentionally does not promise grapheme, ZWJ, normalization, or renderer-shaping correctness.
+Per-screen state: `ScreenGrid` (and cursor), vertical scrolling margins, and delayed-wrap state. Shared state: current rendition, horizontal tab stops, terminal modes (IRM, DECAWM, DECTCEM), input cursor-key mode, and pending replies. Both buffers resize with the existing top-left-preserving policy; reset recreates blank buffers and selects Primary.
 
-`Cell` owns a fixed capacity of eight attachments. Overflow returns `PrintError::CombiningMarkOverflow` before mutation. Continuations and canonical default cells have no attachment payload. `ScreenGrid` centrally repairs wide pairs after writes, erases, shifts, clipping, and resize, so complete payloads move with valid bases or are removed with invalid pairs.
+No DEC alternate-screen parser dispatch, saved-cursor semantics, scrollback, or reflow exists.
 
 ## Validation
 
-The accepted source baseline remains 318 terminal-core unit/integration tests plus four compile-fail doctests; all full workspace/platform quality gates passed for the combining slice. This audit made documentation-only changes and passed `git diff --check`. Graphify was used read-only: 878 nodes, 1,341 edges, 84 communities; it confirms `TerminalParser -> TerminalState -> ScreenGrid -> Cell`, with no parser-local attachment state or renderer/input/PTY/workspace coupling.
+All workspace format, tests, doctests, check, Clippy, GNU/MSVC target tests, and `git diff --check` passed.
 
 ## Next
 
-Begin the next roadmap item with a narrow project-owned primary/alternate screen-state model and atomic `TerminalState` switching semantics. Keep parser dispatch, scrollback, and resize reflow out of that first slice.
+Add one carefully selected DEC alternate-screen parser mode family to the established switching facade, without saved-cursor or scrollback behavior.

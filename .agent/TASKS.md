@@ -2,7 +2,7 @@
 
 ## Next
 
-- [ ] Add a project-owned primary/alternate screen-state model with atomic `TerminalState` switching semantics, keeping parser dispatch, scrollback, and resize reflow out of the first slice.
+- [ ] Add parser dispatch for one selected DEC alternate-screen mode family through the established screen-switching facade; keep saved-cursor semantics and scrollback separate.
 
 ##...[truncated]
 
