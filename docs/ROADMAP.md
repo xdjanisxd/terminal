@@ -53,6 +53,7 @@ Completion marks require tested acceptance criteria, not code presence alone.
   - [x] Add typed wide-cell lead/continuation representation and bounded grid/write invariants
   - [x] Add width-zero combining-mark attachment to narrow and wide base cells without cursor advancement
 - [ ] Implement primary/alternate screens, resize behavior, and bounded scrollback
+  - [x] Add project-owned primary/alternate screen buffers with atomic TerminalState switching and independent screen-local state
 - [ ] Validate against representative modern shells and TUIs
 
 ## M3: PTY and session lifecycle

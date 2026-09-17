@@ -78,10 +78,10 @@
     "semantic_hash": "194ee3d6505ffcae1a6f860faae7bde2"
   },
   "crates/terminal-core/src/lib.rs": {
-    "mtime": 1789629135.0394504,
-    "seen": 1789629300.6190221,
-    "ast_hash": "cdeedfbbe6d81adc12c3966d71a1c8cd",
-    "semantic_hash": "cdeedfbbe6d81adc12c3966d71a1c8cd"
+    "mtime": 1789630404.0160182,
+    "seen": 1789630543.725289,
+    "ast_hash": "57333e09ffcf9f706a623c19e941d9c1",
+    "semantic_hash": "57333e09ffcf9f706a623c19e941d9c1"
   },
   "crates/terminal-core/src/modes.rs": {
     "mtime": 1788944776.2894592,
@@ -96,10 +96,10 @@
     "semantic_hash": "3672e37ab043b234da44cc348f8ff394"
   },
   "crates/terminal-core/src/state.rs": {
-    "mtime": 1789628948.4718902,
-    "seen": 1789629300.6210206,
-    "ast_hash": "eee46b15b9107630d4f134cd9c44f8a0",
-    "semantic_hash": "eee46b15b9107630d4f134cd9c44f8a0"
+    "mtime": 1789630404.0227454,
+    "seen": 1789630543.725289,
+    "ast_hash": "0a6dd34bc63446cd5f9dba379fc13c7b",
+    "semantic_hash": "0a6dd34bc63446cd5f9dba379fc13c7b"
   },
   "crates/terminal-core/src/tabs.rs": {
     "mtime": 1789026787.771412,
@@ -454,5 +454,17 @@
     "seen": 1789629300.6210206,
     "ast_hash": "379dc93a43e5346868709f8f2f332720",
     "semantic_hash": "379dc93a43e5346868709f8f2f332720"
+  },
+  "crates/terminal-core/src/screens.rs": {
+    "mtime": 1789630318.8449275,
+    "seen": 1789630543.725289,
+    "ast_hash": "5435cdc0e52118df10b69adddb326a88",
+    "semantic_hash": "5435cdc0e52118df10b69adddb326a88"
+  },
+  "crates/terminal-core/tests/screen_switching.rs": {
+    "mtime": 1789630404.0887775,
+    "seen": 1789630543.7325807,
+    "ast_hash": "462751716ab8f64ee2352162a237de97",
+    "semantic_hash": "462751716ab8f64ee2352162a237de97"
   }
 }

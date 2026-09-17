@@ -11,6 +11,7 @@
 - Parser-independent `TerminalState` owns one active `ScreenGrid`, current rendition, terminal/input modes, bounded tab stops and scrolling margins, and a fixed-capacity FIFO of project-owned pending replies for DA1, DA2, ANSI DSR status, and captured ANSI CPR responses
 - Controlled state operations for bounded CUU/CUD/CUF/CUB, CNL/CPL, CHA, VPA, CUP/HVP cursor movement; margin-aware SU/SD, IND/RI, and NEL; horizontal tabs and tab-stop mutation; vertical scrolling-margin updates; current rendition; bounded DA1; fixed ANSI DSR status; and absolute ANSI CPR reply generation with FIFO consumption, clearing, resizing, supported mode changes, and a project-owned reset
 - Project-owned typed cursor movement and inclusive erase-region operations, with all absolute and relative movement clamped to the active screen
+- `TerminalState` owns independent primary and alternate project screen buffers with atomic typed switching; each buffer retains grid/cursor, scrolling margins, and delayed-wrap state, while rendition, tabs, terminal/input modes, and replies remain shared.
 - Parser-independent printable-character, carriage-return, line-feed, index, reverse-index, next-line, bounded cursor-next/previous-line, backspace, horizontal-tab, region-aware-scroll, typed scrolling-margin, and typed rendition operations routed through `TerminalState`
 - Delayed right-margin wrapping, auto-wrap suppression, bounded region-aware SU/SD, IND/RI, and NEL scrolling, fixed-screen bottom scrolling, and fixed-width insert/replace output behavior
 - Incremental project-owned `TerminalParser` adapter encapsulating `vte` and preserving parser state across input chunks
@@ -23,7 +24,7 @@
 - Bounded grouped handling for extended-color SGR: indexed selectors consume one index, semicolon-form truecolor consumes exactly three scalar components and validates all before mutation, and unknown selectors consume the remaining CSI parameters so payload cannot leak into unrelated SGR
 - DA2 uses fixed `ESC [ > 0 ; 0 ; 0 c`: Pp=0 retains DA1's conservative VT100-class identity, Pv=0 avoids exposing package/release versions, and Pc=0 claims no optional hardware features
 - Unicode combining and wide-cell invariant scope is complete: widths 0/1/2 are safely classified, width-zero scalars attach in order to a valid preceding base or are ignored without mutation, and central...[truncated]
-- Three hundred eighteen `terminal-core` unit/integration tests plus four compile-fail ownership tests
+- Three hundred twenty-three `terminal-core` unit/integration tests plus four compile-fail ownership tests
 
 ## Partial
 

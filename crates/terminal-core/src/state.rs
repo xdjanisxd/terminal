@@ -4,6 +4,7 @@ use unicode_width::UnicodeWidthChar;
 
 use crate::grid::CombiningMarkAttachment;
 use crate::reply::PendingReplies;
+use crate::screens::{ScreenKind, ScreenSet};
 use crate::tabs::HorizontalTabStops;
 use crate::{
     AutoWrapMode, Cell, CellAttributes, CellColor, CharacterInsertionMode, Cursor, CursorKeyMode,
@@ -135,49 +136,60 @@ pub enum EraseDirection {
 /// ```
 #[derive(Debug)]
 pub struct TerminalState {
-    screen: ScreenGrid,
+    screen: ScreenSet,
     terminal_modes: TerminalModes,
     input_modes: InputModes,
     current_rendition: CellAttributes,
     horizontal_tab_stops: HorizontalTabStops,
-    vertical_scrolling_margins: VerticalScrollingMargins,
     pending_replies: PendingReplies,
-    wrap_pending: bool,
 }
 
 impl TerminalState {
     /// Creates a terminal in its documented default state.
     pub fn new(dimensions: TerminalDimensions) -> Self {
         Self {
-            screen: ScreenGrid::new(dimensions),
+            screen: ScreenSet::new(dimensions),
             terminal_modes: TerminalModes::default(),
             input_modes: InputModes::default(),
             current_rendition: CellAttributes::default(),
             horizontal_tab_stops: HorizontalTabStops::new(dimensions.columns()),
-            vertical_scrolling_margins: VerticalScrollingMargins::full_screen(dimensions.rows()),
             pending_replies: PendingReplies::default(),
-            wrap_pending: false,
         }
     }
 
     /// Returns the current validated screen dimensions.
-    pub const fn dimensions(&self) -> TerminalDimensions {
+    pub fn dimensions(&self) -> TerminalDimensions {
         self.screen.dimensions()
     }
 
     /// Returns read-only access to the active screen.
-    pub const fn screen(&self) -> &ScreenGrid {
+    pub fn screen(&self) -> &ScreenGrid {
         &self.screen
     }
 
     /// Returns the active screen's bounded cursor.
-    pub const fn cursor(&self) -> Cursor {
+    pub fn cursor(&self) -> Cursor {
         self.screen.cursor()
     }
 
-    /// Returns the inclusive zero-based vertical scrolling margins.
-    pub const fn vertical_scrolling_margins(&self) -> VerticalScrollingMargins {
-        self.vertical_scrolling_margins
+    /// Returns the active screen selector.
+    pub const fn active_screen(&self) -> ScreenKind {
+        self.screen.active_kind()
+    }
+
+    /// Activates the independent primary screen without modifying either screen.
+    pub fn switch_to_primary_screen(&mut self) {
+        self.screen.switch_to(ScreenKind::Primary);
+    }
+
+    /// Activates the independent alternate screen without modifying either screen.
+    pub fn switch_to_alternate_screen(&mut self) {
+        self.screen.switch_to(ScreenKind::Alternate);
+    }
+
+    /// Returns the active screen's inclusive zero-based vertical scrolling margins.
+    pub fn vertical_scrolling_margins(&self) -> VerticalScrollingMargins {
+        self.screen.vertical_scrolling_margins()
     }
 
     /// Returns the number of replies waiting for caller consumption.
@@ -246,11 +258,11 @@ impl TerminalState {
             return false;
         };
 
-        self.vertical_scrolling_margins = margins;
+        self.screen.set_vertical_scrolling_margins(margins);
         self.screen
             .set_cursor_position(0, 0)
             .expect("screen origin is always in bounds");
-        self.wrap_pending = false;
+        self.screen.set_wrap_pending(false);
         true
     }
 
@@ -262,7 +274,7 @@ impl TerminalState {
     ) -> Result<(), crate::CursorError> {
         let result = self.screen.set_cursor_position(row, column);
         if result.is_ok() {
-            self.wrap_pending = false;
+            self.screen.set_wrap_pending(false);
         }
         result
     }
@@ -298,7 +310,7 @@ impl TerminalState {
         self.screen
             .set_cursor_position(row, column)
             .expect("clamped semantic cursor position is always in bounds");
-        self.wrap_pending = false;
+        self.screen.set_wrap_pending(false);
     }
 
     /// Moves down by a bounded count and returns to the first column without scrolling.
@@ -334,7 +346,7 @@ impl TerminalState {
             return self.attach_combining_mark(character);
         }
 
-        if self.wrap_pending {
+        if self.screen.wrap_pending() {
             self.wrap_before_print();
         }
 
@@ -379,11 +391,13 @@ impl TerminalState {
         let final_column = columns - 1;
         if width == PrintableWidth::Two && cursor.column() + 1 == final_column {
             self.screen.move_cursor(0, 1);
-            self.wrap_pending = self.terminal_modes.auto_wrap() == AutoWrapMode::Enabled;
+            self.screen
+                .set_wrap_pending(self.terminal_modes.auto_wrap() == AutoWrapMode::Enabled);
         } else if cursor.column() < final_column {
             self.screen.move_cursor(0, 1);
         } else {
-            self.wrap_pending = self.terminal_modes.auto_wrap() == AutoWrapMode::Enabled;
+            self.screen
+                .set_wrap_pending(self.terminal_modes.auto_wrap() == AutoWrapMode::Enabled);
         }
 
         Ok(())
@@ -398,7 +412,7 @@ impl TerminalState {
         let cursor = self.cursor();
         self.screen
             .insert_cells(cursor.row(), cursor.column(), count.max(1), Cell::default());
-        self.wrap_pending = false;
+        self.screen.set_wrap_pending(false);
     }
 
     /// Deletes cells from the cursor through the final column.
@@ -410,7 +424,7 @@ impl TerminalState {
         let cursor = self.cursor();
         self.screen
             .delete_cells(cursor.row(), cursor.column(), count.max(1));
-        self.wrap_pending = false;
+        self.screen.set_wrap_pending(false);
     }
 
     /// Erases canonical blank cells beginning at the cursor without shifting cells.
@@ -425,7 +439,7 @@ impl TerminalState {
         let start = cursor.row() * columns + cursor.column();
         let width = count.max(1).min(columns - cursor.column());
         self.screen.erase_cells(start, start + width);
-        self.wrap_pending = false;
+        self.screen.set_wrap_pending(false);
     }
 
     /// Moves the cursor to the first column of its current row.
@@ -434,7 +448,7 @@ impl TerminalState {
         self.screen
             .set_cursor_position(row, 0)
             .expect("first column is always in bounds");
-        self.wrap_pending = false;
+        self.screen.set_wrap_pending(false);
     }
 
     /// Moves down one row, scrolling the active screen at its bottom edge.
@@ -457,13 +471,13 @@ impl TerminalState {
     /// never scrolls. The cursor column is preserved and delayed wrap is cancelled.
     pub fn index(&mut self) {
         let cursor_row = self.cursor().row();
-        if cursor_row == self.vertical_scrolling_margins.bottom() {
-            self.screen
-                .scroll_region_up(self.vertical_scrolling_margins, 1);
+        let margins = self.screen.vertical_scrolling_margins();
+        if cursor_row == margins.bottom() {
+            self.screen.scroll_region_up(margins, 1);
         } else if cursor_row + 1 < self.dimensions().rows() {
             self.screen.move_cursor(1, 0);
         }
-        self.wrap_pending = false;
+        self.screen.set_wrap_pending(false);
     }
 
     /// Moves up one row, scrolling the active region at its top margin.
@@ -472,13 +486,13 @@ impl TerminalState {
     /// never scrolls. The cursor column is preserved and delayed wrap is cancelled.
     pub fn reverse_index(&mut self) {
         let cursor_row = self.cursor().row();
-        if cursor_row == self.vertical_scrolling_margins.top() {
-            self.screen
-                .scroll_region_down(self.vertical_scrolling_margins, 1);
+        let margins = self.screen.vertical_scrolling_margins();
+        if cursor_row == margins.top() {
+            self.screen.scroll_region_down(margins, 1);
         } else if cursor_row > 0 {
             self.screen.move_cursor(-1, 0);
         }
-        self.wrap_pending = false;
+        self.screen.set_wrap_pending(false);
     }
 
     /// Advances one row using index semantics and returns to the first column.
@@ -493,8 +507,8 @@ impl TerminalState {
     /// canonical default blank cell. Current rendition and delayed wrap are
     /// preserved.
     pub fn scroll_up(&mut self, rows: usize) {
-        self.screen
-            .scroll_region_up(self.vertical_scrolling_margins, rows);
+        let margins = self.screen.vertical_scrolling_margins();
+        self.screen.scroll_region_up(margins, rows);
     }
 
     /// Scrolls the active vertical scrolling region downward without moving the cursor.
@@ -503,8 +517,8 @@ impl TerminalState {
     /// canonical default blank cell. Current rendition and delayed wrap are
     /// preserved.
     pub fn scroll_down(&mut self, rows: usize) {
-        self.screen
-            .scroll_region_down(self.vertical_scrolling_margins, rows);
+        let margins = self.screen.vertical_scrolling_margins();
+        self.screen.scroll_region_down(margins, rows);
     }
 
     /// Inserts blank lines from the cursor through the bottom active margin.
@@ -515,7 +529,7 @@ impl TerminalState {
     /// wrap is preserved because this operation does not move the cursor.
     pub fn insert_lines(&mut self, rows: usize) {
         let cursor_row = self.cursor().row();
-        let margins = self.vertical_scrolling_margins;
+        let margins = self.screen.vertical_scrolling_margins();
         if cursor_row < margins.top() || cursor_row > margins.bottom() {
             return;
         }
@@ -534,7 +548,7 @@ impl TerminalState {
     /// wrap is preserved because this operation does not move the cursor.
     pub fn delete_lines(&mut self, rows: usize) {
         let cursor_row = self.cursor().row();
-        let margins = self.vertical_scrolling_margins;
+        let margins = self.screen.vertical_scrolling_margins();
         if cursor_row < margins.top() || cursor_row > margins.bottom() {
             return;
         }
@@ -549,7 +563,7 @@ impl TerminalState {
     pub fn backspace(&mut self) {
         if self.cursor().column() > 0 {
             self.screen.move_cursor(0, -1);
-            self.wrap_pending = false;
+            self.screen.set_wrap_pending(false);
         }
     }
 
@@ -567,7 +581,7 @@ impl TerminalState {
         self.screen
             .set_cursor_position(cursor.row(), column)
             .expect("tab target is always in bounds");
-        self.wrap_pending = false;
+        self.screen.set_wrap_pending(false);
     }
 
     /// Returns whether an in-bounds zero-based column has a horizontal tab stop.
@@ -593,7 +607,7 @@ impl TerminalState {
     /// Clears every active-screen cell without moving the cursor.
     pub fn clear_screen(&mut self) {
         self.screen.clear();
-        self.wrap_pending = false;
+        self.screen.set_wrap_pending(false);
     }
 
     /// Erases default blank cells in the selected region without moving the cursor.
@@ -615,20 +629,18 @@ impl TerminalState {
         };
 
         self.screen.erase_cells(start, end);
-        self.wrap_pending = false;
+        self.screen.set_wrap_pending(false);
     }
 
-    /// Resizes the active screen, horizontal tab stops, and scrolling margins.
+    /// Resizes both independent screen buffers and shared horizontal tab stops.
     ///
     /// Existing stops in surviving columns are preserved. Stops beyond a
     /// shrunken width are discarded, while newly exposed columns receive the
-    /// conventional default stops. Vertical scrolling margins reset to the
-    /// full height of the resized screen.
+    /// conventional default stops. Each screen retains current grid resize
+    /// semantics and resets its own margins and delayed-wrap state.
     pub fn resize(&mut self, dimensions: TerminalDimensions) {
-        self.screen.resize(dimensions);
+        self.screen.resize_all(dimensions);
         self.horizontal_tab_stops.resize(dimensions.columns());
-        self.vertical_scrolling_margins = VerticalScrollingMargins::full_screen(dimensions.rows());
-        self.wrap_pending = false;
     }
 
     /// Returns the current rendition copied into newly printed cells.
@@ -685,7 +697,7 @@ impl TerminalState {
     pub fn set_auto_wrap(&mut self, auto_wrap: AutoWrapMode) {
         self.terminal_modes.set_auto_wrap(auto_wrap);
         if auto_wrap == AutoWrapMode::Disabled {
-            self.wrap_pending = false;
+            self.screen.set_wrap_pending(false);
         }
     }
 
@@ -718,7 +730,7 @@ impl TerminalState {
 
     fn attach_combining_mark(&mut self, character: char) -> Result<(), PrintError> {
         let cursor = self.cursor();
-        let target_column = if self.wrap_pending
+        let target_column = if self.screen.wrap_pending()
             || self
                 .screen
                 .cell(cursor.row(), cursor.column())
