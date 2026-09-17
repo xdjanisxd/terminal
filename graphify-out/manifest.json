@@ -144,10 +144,10 @@
     "semantic_hash": "045fd09e5b17e703c27d5cbb381cc5f0"
   },
   "crates/terminal-pty/src/lib.rs": {
-    "mtime": 1788940761.4350512,
-    "seen": 1789457276.7704732,
-    "ast_hash": "80a50533ae5e68bdffc934e63b1b224d",
-    "semantic_hash": "80a50533ae5e68bdffc934e63b1b224d"
+    "mtime": 1789651894.7019114,
+    "seen": 1789652058.7161937,
+    "ast_hash": "b5fe5d7f78864cf96ee84ac677996074",
+    "semantic_hash": "b5fe5d7f78864cf96ee84ac677996074"
   },
   "crates/workspace/Cargo.toml": {
     "mtime": 1788940761.4350512,
@@ -456,10 +456,10 @@
     "semantic_hash": "379dc93a43e5346868709f8f2f332720"
   },
   "crates/terminal-core/src/screens.rs": {
-    "mtime": 1789650229.2952838,
-    "seen": 1789650479.9817255,
-    "ast_hash": "35701fea9f86b4c5153660f69d8f2dc3",
-    "semantic_hash": "35701fea9f86b4c5153660f69d8f2dc3"
+    "mtime": 1789650977.8636997,
+    "seen": 1789652058.6996045,
+    "ast_hash": "47064865b6fce541f1bcf9bc9a908a99",
+    "semantic_hash": "47064865b6fce541f1bcf9bc9a908a99"
   },
   "crates/terminal-core/tests/screen_switching.rs": {
     "mtime": 1789630404.0887775,
@@ -508,5 +508,11 @@
     "seen": 1789650480.005752,
     "ast_hash": "c49ee6f560fe8e9f114ee682d7aaf070",
     "semantic_hash": "c49ee6f560fe8e9f114ee682d7aaf070"
+  },
+  "crates/terminal-pty/tests/contract.rs": {
+    "mtime": 1789651894.7150397,
+    "seen": 1789652058.7161937,
+    "ast_hash": "b7fa1b2b28526ec65bcda07c60434bfb",
+    "semantic_hash": "b7fa1b2b28526ec65bcda07c60434bfb"
   }
 }

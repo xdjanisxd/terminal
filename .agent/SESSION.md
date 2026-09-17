@@ -2,7 +2,7 @@
 
 ## Current state
 
-`feat/m2-screen-resize-scrollback-audit` closes the terminal-core roadmap parent for Primary/Alternate screens, resize behavior, and bounded scrollback. The audit found the established `TerminalState -> ScreenSet -> ScreenState -> ScreenGrid` resize path already applies deterministic top-left grid preservation to both screens, including when Alternate is active. It clamps grid cursors, resets each screen's margins to the full new height, cancels delayed wrap, preserves global rendition/modes and valid shared tab stops, and keeps saved cursor coordinates for clamp-on-restore.
+`feat/m3-pty-contract` defines the first M3 project-owned PTY boundary without a backend. `terminal-pty` now owns validated character-cell size, owned mechanism-only spawn configuration, raw byte/EOF/exit events, project-owned lifecycle/error types, and narrow `PtyBackend`/`PtySession` traits. Output is arbitrary undecoded bytes; empty chunks are omitted; EOF and exit are distinct; termination is explicit/idempotent; no real child, portable-pty dependency, threads, queues, parser coupling, or renderer coupling exists.
 
 Primary owns the only 10,000-row scrollback. Resize never mutates it: rows retain exact capture-time widths, complete cells, combining payloads, and wide metadata. There is no reflow, crop/pad, logical-line reconstruction, viewport offset, renderer composition, navigation, persistence, or Alternate history. `?47`, `?1047`, and `?1049` resize round trips preserve Primary history; `?1049` restore correctly clamps saved cursor coordinates and restores saved rendition. Full reset clears Primary history.
 
