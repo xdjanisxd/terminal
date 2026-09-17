@@ -28,6 +28,10 @@ impl ScreenState {
         }
     }
 
+    fn reset(&mut self) {
+        *self = Self::new(self.grid.dimensions());
+    }
+
     fn resize(&mut self, dimensions: TerminalDimensions) {
         self.grid.resize(dimensions);
         self.vertical_scrolling_margins = VerticalScrollingMargins::full_screen(dimensions.rows());
@@ -58,6 +62,15 @@ impl ScreenSet {
 
     pub(crate) fn switch_to(&mut self, screen: ScreenKind) {
         self.active = screen;
+    }
+
+    pub(crate) fn enter_alternate_screen_1047(&mut self) {
+        self.alternate.reset();
+        self.active = ScreenKind::Alternate;
+    }
+
+    pub(crate) fn leave_alternate_screen_1047(&mut self) {
+        self.active = ScreenKind::Primary;
     }
 
     pub(crate) fn vertical_scrolling_margins(&self) -> VerticalScrollingMargins {

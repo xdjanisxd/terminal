@@ -55,6 +55,7 @@ Completion marks require tested acceptance criteria, not code presence alone.
 - [ ] Implement primary/alternate screens, resize behavior, and bounded scrollback
   - [x] Add project-owned primary/alternate screen buffers with atomic TerminalState switching and independent screen-local state
   - [x] Add DEC `?47` parser dispatch for non-clearing primary/alternate screen switching
+  - [x] Add DEC `?1047` alternate-screen entry/exit with explicit alternate clear/reset semantics and no saved cursor
 - [ ] Validate against representative modern shells and TUIs
 
 ## M3: PTY and session lifecycle
