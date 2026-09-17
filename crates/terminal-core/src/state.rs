@@ -222,6 +222,28 @@ impl TerminalState {
         self.screen.leave_alternate_screen_1047();
     }
 
+    /// Saves Primary and resets then activates Alternate for DEC private mode 1049.
+    ///
+    /// Entry is idempotent while Alternate is active: it neither overwrites Primary's
+    /// saved slot nor clears the active Alternate buffer. From Primary, it saves the
+    /// existing cursor/rendition before applying the established 1047 Alternate reset.
+    pub fn enter_alternate_screen_1049(&mut self) {
+        if self.active_screen() == ScreenKind::Primary {
+            self.save_cursor();
+            self.screen.enter_alternate_screen_1047();
+        }
+    }
+
+    /// Activates Primary and restores its saved cursor/rendition for DEC private mode 1049.
+    ///
+    /// This shares the saved-cursor restore policy: coordinates clamp to the current
+    /// dimensions, rendition is restored, delayed wrap is cancelled, and an empty
+    /// Primary slot is a safe no-op.
+    pub fn leave_alternate_screen_1049(&mut self) {
+        self.screen.leave_alternate_screen_1047();
+        self.restore_cursor();
+    }
+
     /// Returns the active screen's inclusive zero-based vertical scrolling margins.
     pub fn vertical_scrolling_margins(&self) -> VerticalScrollingMargins {
         self.screen.vertical_scrolling_margins()
