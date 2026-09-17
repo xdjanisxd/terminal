@@ -187,10 +187,32 @@ impl TerminalState {
         self.screen.switch_to(ScreenKind::Alternate);
     }
 
+    /// Saves the active screen's cursor and current rendition in its bounded local slot.
+    ///
+    /// This does not move the cursor, modify cells, change modes, or enqueue replies.
+    /// The slot is intentionally separate for each screen so future alternate-screen
+    /// semantics can save Primary before switching without sharing mutable state.
+    pub fn save_cursor(&mut self) {
+        self.screen.save_cursor(self.current_rendition);
+    }
+
+    /// Restores the active screen's saved cursor and current rendition when initialized.
+    ///
+    /// Restore before any save is a safe no-op. Saved coordinates are clamped to the
+    /// active screen's current dimensions; the stored coordinates remain unchanged so
+    /// a later growth can restore their original value. Delayed wrap is not saved and
+    /// is cancelled on successful restore, matching other explicit cursor movement.
+    pub fn restore_cursor(&mut self) {
+        if let Some(rendition) = self.screen.restore_cursor() {
+            self.current_rendition = rendition;
+            self.screen.set_wrap_pending(false);
+        }
+    }
+
     /// Resets the alternate screen locally and activates it for DEC private mode 1047.
     ///
-    /// This resets only alternate grid/cursor, vertical scrolling margins, and
-    /// delayed-wrap state. Terminal-global state is not modified.
+    /// This resets only alternate grid/cursor, vertical scrolling margins, delayed-wrap,
+    /// and saved-cursor state. Terminal-global state is not modified.
     pub fn enter_alternate_screen_1047(&mut self) {
         self.screen.enter_alternate_screen_1047();
     }
