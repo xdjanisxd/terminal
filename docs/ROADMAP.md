@@ -66,6 +66,7 @@ Completion marks require tested acceptance criteria, not code presence alone.
 
 - [x] Define the project-owned PTY contract
 - [ ] Integrate `portable-pty` for Windows, Linux, and macOS
+  - Implementation and local Windows runtime smoke coverage are complete; native GitHub Actions acceptance on Linux and macOS remains required before this parent can close.
 - [ ] Add deterministic lifecycle, resize, EOF, exit, and termination tests
 - [ ] Connect PTY workers through bounded event-driven communication
 

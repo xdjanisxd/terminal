@@ -1,33 +1,33 @@
-# Graph Report - terminal  (2026-09-18)
+# Graph Report - terminal  (2026-09-17)
 
 ## Corpus Check
 - cluster-only mode — file stats not available
 
 ## Summary
-- 1121 nodes · 1796 edges · 111 communities (69 shown, 33 thin omitted)
+- 1089 nodes · 1709 edges · 112 communities (70 shown, 33 thin omitted)
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `4fba24c0`
+- Built from commit: `c1eb3b1c`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- PortablePtySession
 - CellAttributes
 - ScreenGrid
+- PtySpawnConfig
 - ScreenSet
-- TerminalState
 - SemanticPerformer
+- TerminalState
 - TerminalDimensions
 - .cursor
 - tests/scrollback.rs
 - TerminalModes
-- .dimensions
 - combining_marks.rs
 - region_ind_ri.rs
 - Scrollback
+- .dimensions
 - HorizontalTabStops
 - assert_observable_state_eq
 - region_su_sd_parser.rs
@@ -43,11 +43,11 @@
 - insert_delete_lines_parser.rs
 - screen_resize_scrollback_audit.rs
 - TerminalReply
-- src/state.rs
 - dec_alt_screen_1047.rs
 - region_nel_parser.rs
 - wide_cells.rs
 - Roadmap
+- src/state.rs
 - dec_alt_screen_47.rs
 - decstbm.rs
 - delete_characters.rs
@@ -70,7 +70,7 @@
 - da1.rs
 - Terminal Workspace Application
 - Tasks
-- PrintError
+- .print_character
 - .vertical_scrolling_margins
 - dsr_status.rs
 - Current State
@@ -91,7 +91,9 @@
 - Performance
 - CellColor
 - row_text
-- main
+- .set_italic_style
+- .set_text_intensity
+- .set_underline_style
 - Default
 - Cell
 - CellAttributes
@@ -103,9 +105,8 @@
 - Error
 - Formatter
 - ScreenGrid
-- Option
-- Self
 - CursorError
+- Option
 - terminal-app
 - terminal-config
 - terminal-core
@@ -113,21 +114,21 @@
 - terminal-pty
 - terminal-renderer
 - terminal-workspace
-- Result
 - ScreenKind
 - ScreenSet
+- Self
 
 ## God Nodes (most connected - your core abstractions)
 1. `TerminalState` - 153 edges
 2. `ScreenGrid` - 34 edges
 3. `ScreenSet` - 26 edges
 4. `CellAttributes` - 23 edges
-5. `PortablePtySession` - 18 edges
-6. `ScreenState` - 17 edges
-7. `PtySpawnConfig` - 16 edges
-8. `Cell` - 16 edges
-9. `assert_observable_state_eq()` - 16 edges
-10. `parse_in_chunks()` - 13 edges
+5. `ScreenState` - 17 edges
+6. `Cell` - 16 edges
+7. `assert_observable_state_eq()` - 16 edges
+8. `PtySpawnConfig` - 15 edges
+9. `parse_in_chunks()` - 13 edges
+10. `state()` - 12 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `cursor()` --references--> `TerminalState`  [EXTRACTED]
@@ -144,31 +145,31 @@
 ## Import Cycles
 - None detected.
 
-## Communities (111 total, 33 thin omitted)
+## Communities (112 total, 33 thin omitted)
 
-### Community 0 - "PortablePtySession"
-Cohesion: 0.06
-Nodes (38): Box, Child, PortableOutputReader, PortablePtyBackend, PortablePtySession, PtyBackend, PtyError, PtyExitStatus (+30 more)
-
-### Community 1 - "CellAttributes"
+### Community 0 - "CellAttributes"
 Cohesion: 0.07
 Nodes (28): Cell, CellAttributes, CellColor, CellOccupancy, InverseVideo, ItalicStyle, Default, Result (+20 more)
 
-### Community 4 - "ScreenGrid"
-Cohesion: 0.10
+### Community 3 - "ScreenGrid"
+Cohesion: 0.11
 Nodes (21): CombiningMarkAttachment, delete_cells_shifts_complete_row_cells_left_and_clamps(), labeled_grid(), region_scroll_clamps_counts_and_handles_one_row_regions(), region_scroll_preserves_complete_cells_and_uses_default_exposed_rows(), region_scroll_supports_ranges_touching_either_screen_edge(), row_text(), Cell (+13 more)
+
+### Community 4 - "PtySpawnConfig"
+Cohesion: 0.07
+Nodes (21): PtyBackend, PtyError, PtyExitStatus, PtyLifecycle, PtyOutput, PtySession, PtySize, PtySizeError (+13 more)
 
 ### Community 5 - "ScreenSet"
 Cohesion: 0.09
-Nodes (17): Cell, CellAttributes, Option, Self, SavedCursor, ScreenKind, ScreenSet, ScreenState (+9 more)
+Nodes (16): Cell, CellAttributes, Option, Self, SavedCursor, ScreenKind, ScreenSet, ScreenState (+8 more)
 
-### Community 6 - "TerminalState"
-Cohesion: 0.06
-Nodes (12): AutoWrapMode, CharacterInsertionMode, CellAttributes, TerminalState, CursorKeyMode, CursorVisibility, InputModes, InverseVideo (+4 more)
-
-### Community 7 - "SemanticPerformer"
+### Community 6 - "SemanticPerformer"
 Cohesion: 0.08
-Nodes (18): default_one(), ExtendedColorChannel, Display, Error, Formatter, Option, Result, Self (+10 more)
+Nodes (20): default_one(), ExtendedColorChannel, Display, Error, Formatter, Option, Result, Self (+12 more)
+
+### Community 7 - "TerminalState"
+Cohesion: 0.07
+Nodes (9): AutoWrapMode, CharacterInsertionMode, CellAttributes, TerminalState, CursorKeyMode, CursorVisibility, InputModes, InverseVideo (+1 more)
 
 ### Community 8 - "TerminalDimensions"
 Cohesion: 0.09
@@ -182,21 +183,21 @@ Nodes (15): alternate_scrolling_does_not_append_primary_history_and_switches_pre
 Cohesion: 0.25
 Nodes (6): AutoWrapMode, CharacterInsertionMode, CursorKeyMode, CursorVisibility, InputModes, TerminalModes
 
-### Community 13 - ".dimensions"
-Cohesion: 0.21
-Nodes (5): reset_clears_existing_screen_content(), resize_preserves_overlap_and_blanks_new_cells_through_facade(), CursorError, Self, TerminalDimensions
-
-### Community 14 - "combining_marks.rs"
+### Community 13 - "combining_marks.rs"
 Cohesion: 0.36
 Nodes (13): assert_valid_cells(), combining_at_right_margin_attaches_before_delayed_wrap_resolves(), combining_capacity_is_bounded_without_mutating_the_base_or_cursor(), editing_and_resize_move_or_clear_complete_combining_payloads(), erase_overwrite_and_reset_clear_combining_payloads(), marks(), narrow_base_owns_ordered_marks_without_cursor_or_rendition_changes(), no_base_or_erased_base_ignores_marks_without_mutation() (+5 more)
 
-### Community 15 - "region_ind_ri.rs"
+### Community 14 - "region_ind_ri.rs"
 Cohesion: 0.27
 Nodes (12): crossing_into_region_by_index_or_reverse_index_does_not_scroll(), full_screen_margins_preserve_previous_index_and_reverse_index_behavior(), index_and_reverse_index_clear_only_a_single_row_region(), index_and_reverse_index_move_outside_region_without_scrolling_or_clamping(), index_moves_inside_region_and_scrolls_only_at_bottom_margin(), labeled_state(), region_boundary_scrolling_preserves_styled_cells_and_unrelated_state(), reverse_index_moves_inside_region_and_scrolls_only_at_top_margin() (+4 more)
 
-### Community 16 - "Scrollback"
+### Community 15 - "Scrollback"
 Cohesion: 0.23
 Nodes (8): evicts_the_oldest_row_when_at_capacity(), row_is_valid(), Cell, Option, Self, Vec, Scrollback, VecDeque
+
+### Community 16 - ".dimensions"
+Cohesion: 0.23
+Nodes (4): reset_clears_existing_screen_content(), resize_preserves_overlap_and_blanks_new_cells_through_facade(), CursorError, TerminalDimensions
 
 ### Community 17 - "HorizontalTabStops"
 Cohesion: 0.17
@@ -254,25 +255,25 @@ Nodes (10): primary_history_retains_chronological_mixed_width_rows_across_resize
 Cohesion: 0.24
 Nodes (8): PendingReplies, Default, Option, TerminalReply, reply_bytes(), Vec, bytes(), Vec
 
-### Community 33 - "src/state.rs"
-Cohesion: 0.22
-Nodes (7): clear_screen_clears_owned_screen_content(), CursorMovement, EraseDirection, EraseRegion, PrintableWidth, HorizontalTabStops, PendingReplies
-
-### Community 34 - "dec_alt_screen_1047.rs"
+### Community 33 - "dec_alt_screen_1047.rs"
 Cohesion: 0.33
 Nodes (9): dec_private_mode_1047_clears_the_resized_alternate_and_terminal_reset_is_unchanged(), dec_private_mode_1047_clears_wide_combining_alternate_cells_but_not_primary_cells(), dec_private_mode_1047_entry_resets_the_alternate_screen_locally(), dec_private_mode_1047_is_distinct_from_47_and_rejects_malformed_mode_forms(), dec_private_mode_1047_preserves_terminal_global_state(), dec_private_mode_1047_repeated_entry_clears_again_and_exit_is_idempotent(), row_text(), String (+1 more)
 
-### Community 35 - "region_nel_parser.rs"
+### Community 34 - "region_nel_parser.rs"
 Cohesion: 0.38
 Nodes (9): assert_observable_state_eq(), incomplete_and_malformed_nel_escapes_keep_safe_existing_behavior(), labeled_state(), parse(), parser_region_nel_is_chunk_safe_at_every_input_boundary(), parser_routes_decstbm_followed_by_nel_through_active_region(), printable_text_before_and_after_nel_uses_region_semantics(), row_text() (+1 more)
 
-### Community 36 - "wide_cells.rs"
+### Community 35 - "wide_cells.rs"
 Cohesion: 0.51
 Nodes (9): assert_valid_wide_cells(), erase_editing_resize_reset_and_vertical_moves_preserve_wide_cell_structure(), final_full_width_write_uses_delayed_wrap_and_partial_erase_repairs_the_pair(), insert_mode_wide_writes_do_not_leave_orphans_at_the_right_edge(), row_movement_primitives_preserve_valid_wide_pairs(), state(), wide_character_at_final_column_wraps_only_when_auto_wrap_is_enabled(), wide_printable_uses_a_lead_and_continuation_with_rendition_snapshot() (+1 more)
 
-### Community 37 - "Roadmap"
+### Community 36 - "Roadmap"
 Cohesion: 0.20
 Nodes (9): Early integration checkpoint, M0: Repository foundation, M1: Terminal core foundation, M2: Terminal compatibility, M3: PTY and session lifecycle, M4: Window and renderer, M5: Input and configuration, M6: Workspaces and release readiness (+1 more)
+
+### Community 37 - "src/state.rs"
+Cohesion: 0.25
+Nodes (6): clear_screen_clears_owned_screen_content(), CursorMovement, EraseDirection, EraseRegion, HorizontalTabStops, PendingReplies
 
 ### Community 38 - "dec_alt_screen_47.rs"
 Cohesion: 0.39
@@ -354,6 +355,10 @@ Nodes (6): Current validation, License, Priorities, Repository map, Target platf
 Cohesion: 0.33
 Nodes (5): Completed in this slice, Deferred by scope, Later, Next, Tasks
 
+### Community 60 - ".print_character"
+Cohesion: 0.47
+Nodes (3): PrintableWidth, Result, Self
+
 ### Community 63 - "Current State"
 Cohesion: 0.33
 Nodes (5): Current State, Known issues, Missing, Partial, Working
@@ -423,24 +428,24 @@ Cohesion: 0.67
 Nodes (3): row_text(), String, successive_mode_sequences_preserve_unrelated_state()
 
 ## Knowledge Gaps
-- **95 isolated node(s):** `terminal-app`, `terminal-config`, `terminal-core`, `terminal-platform`, `terminal-pty` (+90 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 434 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **97 isolated node(s):** `terminal-app`, `terminal-config`, `terminal-core`, `terminal-platform`, `terminal-pty` (+92 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 430 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **33 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `TerminalState` connect `TerminalState` to `CellAttributes`, `ScreenGrid`, `ScreenSet`, `SemanticPerformer`, `.cursor`, `tests/scrollback.rs`, `.dimensions`, `combining_marks.rs`, `region_ind_ri.rs`, `assert_observable_state_eq`, `region_su_sd_parser.rs`, `saved_cursor.rs`, `da1_parser.rs`, `insert_delete_lines.rs`, `region_su_sd.rs`, `rendition.rs`, `scrolling_margins.rs`, `dec_alt_screen_1049.rs`, `insert_delete_lines_parser.rs`, `src/state.rs`, `dec_alt_screen_1047.rs`, `region_nel_parser.rs`, `wide_cells.rs`, `dec_alt_screen_47.rs`, `decstbm.rs`, `delete_characters.rs`, `erase_characters.rs`, `insert_characters.rs`, `screen_switching.rs`, `filled_state`, `da2.rs`, `decckm_parser.rs`, `delete_characters_parser.rs`, `erase_characters_parser.rs`, `insert_characters_parser.rs`, `labeled_scroll_state`, `region_ind_ri_parser.rs`, `assert_default_cell`, `PrintError`, `.vertical_scrolling_margins`, `.scrollback_row`, `cpr_parser.rs`, `dsr_status_parser.rs`, `CellColor`, `row_text`?**
-  _High betweenness centrality (0.564) - this node is a cross-community bridge._
+- **Why does `TerminalState` connect `TerminalState` to `CellAttributes`, `ScreenSet`, `SemanticPerformer`, `.cursor`, `tests/scrollback.rs`, `combining_marks.rs`, `region_ind_ri.rs`, `.dimensions`, `assert_observable_state_eq`, `region_su_sd_parser.rs`, `saved_cursor.rs`, `da1_parser.rs`, `insert_delete_lines.rs`, `region_su_sd.rs`, `rendition.rs`, `scrolling_margins.rs`, `dec_alt_screen_1049.rs`, `insert_delete_lines_parser.rs`, `dec_alt_screen_1047.rs`, `region_nel_parser.rs`, `wide_cells.rs`, `src/state.rs`, `dec_alt_screen_47.rs`, `decstbm.rs`, `delete_characters.rs`, `erase_characters.rs`, `insert_characters.rs`, `screen_switching.rs`, `filled_state`, `da2.rs`, `decckm_parser.rs`, `delete_characters_parser.rs`, `erase_characters_parser.rs`, `insert_characters_parser.rs`, `labeled_scroll_state`, `region_ind_ri_parser.rs`, `assert_default_cell`, `.print_character`, `.vertical_scrolling_margins`, `.scrollback_row`, `cpr_parser.rs`, `dsr_status_parser.rs`, `CellColor`, `row_text`, `.set_italic_style`, `.set_text_intensity`, `.set_underline_style`?**
+  _High betweenness centrality (0.569) - this node is a cross-community bridge._
+- **Why does `ScreenGrid` connect `ScreenGrid` to `TerminalState`?**
+  _High betweenness centrality (0.100) - this node is a cross-community bridge._
 - **Why does `ScreenSet` connect `ScreenSet` to `TerminalState`?**
-  _High betweenness centrality (0.079) - this node is a cross-community bridge._
-- **Why does `cells()` connect `saved_cursor.rs` to `PortablePtySession`, `ScreenSet`, `TerminalState`?**
-  _High betweenness centrality (0.072) - this node is a cross-community bridge._
+  _High betweenness centrality (0.073) - this node is a cross-community bridge._
 - **What connects `terminal-app`, `terminal-config`, `terminal-core` to the rest of the system?**
-  _95 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `PortablePtySession` be split into smaller, more focused modules?**
-  _Cohesion score 0.06018018018018018 - nodes in this community are weakly interconnected._
+  _97 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `CellAttributes` be split into smaller, more focused modules?**
   _Cohesion score 0.06666666666666667 - nodes in this community are weakly interconnected._
 - **Should `tests/parser.rs` be split into smaller, more focused modules?**
+  _Cohesion score 0.0392156862745098 - nodes in this community are weakly interconnected._
+- **Should `tests/state.rs` be split into smaller, more focused modules?**
   _Cohesion score 0.0392156862745098 - nodes in this community are weakly interconnected._

@@ -2,7 +2,7 @@
 
 ## Next
 
-- [ ] Integrate `portable-pty` for Windows, Linux, and macOS through the completed project-owned PTY contract; keep parser, renderer, input encoding, and worker/channel design out of that adapter slice.
+- [ ] Integrate `portable-pty` for Windows, Linux, and macOS through the completed project-owned PTY contract. Implementation and local Windows smoke coverage are complete; leave this open until native GitHub Actions runtime acceptance completes on Linux and macOS. Keep parser, renderer, input encoding, and worker/channel design out of this adapter slice.
 
 ##...[truncated]
 

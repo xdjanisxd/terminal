@@ -1,10 +1,31 @@
 use std::ffi::OsString;
 use std::path::PathBuf;
+use std::thread;
+use std::time::{Duration, Instant};
 
 use terminal_pty::{
-    PortablePtyBackend, PtyExitStatus, PtyLifecycle, PtyOutput, PtySize, PtySizeError,
-    PtySpawnConfig,
+    PortablePtyBackend, PtyBackend, PtyError, PtyExitStatus, PtyLifecycle, PtyOutput, PtySession,
+    PtySize, PtySizeError, PtySpawnConfig,
 };
+
+const HELPER_OUTPUT: &[u8] = b"TERMINAL_PTY_HELPER_MARKER";
+const CONPTY_CURSOR_POSITION_QUERY: &[u8] = b"\x1b[6n";
+const TEST_DEADLINE: Duration = Duration::from_secs(5);
+const MAX_READS: usize = 16;
+
+fn helper_session() -> impl PtySession {
+    let configuration = PtySpawnConfig::new(
+        PathBuf::from(env!("CARGO_BIN_EXE_pty_test_helper")),
+        PtySize::new(24, 80).unwrap(),
+    );
+    PortablePtyBackend::new().spawn(configuration).unwrap()
+}
+
+fn contains_subsequence(bytes: &[u8], expected: &[u8]) -> bool {
+    bytes
+        .windows(expected.len())
+        .any(|window| window == expected)
+}
 
 #[test]
 fn size_rejects_zero_dimensions() {
@@ -41,6 +62,56 @@ fn output_preserves_arbitrary_bytes_and_distinguishes_eof_from_exit() {
     );
     assert_eq!(PtyOutput::bytes(Vec::new()), None);
     assert_ne!(PtyOutput::Eof, PtyOutput::Exited(PtyExitStatus::code(7)));
+}
+
+#[test]
+fn portable_backend_streams_helper_output_without_assuming_read_boundaries() {
+    let mut session = helper_session();
+    let mut reader = session.take_output_reader().unwrap();
+    assert!(matches!(
+        session.take_output_reader(),
+        Err(PtyError::NotRunning)
+    ));
+    let deadline = Instant::now() + TEST_DEADLINE;
+    let mut output = Vec::new();
+    let mut answered_conpty_query = false;
+    for _ in 0..MAX_READS {
+        let mut chunk = [0_u8; 256];
+        let read = reader.read(&mut chunk).unwrap();
+        if read == 0 {
+            break;
+        }
+        output.extend_from_slice(&chunk[..read]);
+        if !answered_conpty_query && contains_subsequence(&output, CONPTY_CURSOR_POSITION_QUERY) {
+            // ConPTY can request cursor position before it permits child output.
+            // This protocol response is test-only setup, not shell formatting.
+            session.write(b"\x1b[1;1R").unwrap();
+            answered_conpty_query = true;
+        }
+        if contains_subsequence(&output, HELPER_OUTPUT) {
+            break;
+        }
+        assert!(Instant::now() < deadline, "PTY output deadline elapsed");
+    }
+
+    assert!(
+        contains_subsequence(&output, HELPER_OUTPUT),
+        "raw PTY stream did not contain the helper marker: {output:?}"
+    );
+
+    while !matches!(session.lifecycle(), PtyLifecycle::Exited(_)) {
+        assert!(Instant::now() < deadline, "child exit deadline elapsed");
+        thread::sleep(Duration::from_millis(10));
+    }
+    assert_eq!(
+        session.lifecycle(),
+        PtyLifecycle::Exited(PtyExitStatus::code(0))
+    );
+    assert_eq!(session.write(b"after-exit"), Err(PtyError::NotRunning));
+    assert_eq!(
+        session.resize(PtySize::new(30, 100).unwrap()),
+        Err(PtyError::NotRunning)
+    );
 }
 
 #[test]
