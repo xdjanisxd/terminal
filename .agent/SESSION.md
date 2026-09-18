@@ -2,18 +2,16 @@
 
 ## Current state
 
-`feat/m3-portable-pty-adapter` closes the M3 portable-pty adapter roadmap item. `PortablePtyBackend` maps owned spawn configuration and validated cell dimensions to the native portable-pty system. `PortablePtySession` owns the master PTY, child handle, writer, pre-acquired single reader capability, and persisted lifecycle state. No portable-pty, anyhow, or std::io type appears in public project signatures.
+`test/m3-pty-lifecycle-semantics` starts from the accepted portable-pty adapter state. This slice adds deterministic repository-helper lifecycle coverage without PTY workers, event channels, parser dispatch, renderer integration, input encoding, or shell policy.
 
-`take_output_reader` transfers the only raw reader exactly once; a repeated call deterministically returns `PtyError::NotRunning` without creating a competing reader. The reader returns arbitrary undecoded bytes and maps failures to project-owned `PtyError::ReadFailed`. A zero-byte read is raw output EOF and remains separate from independently observed `PtyLifecycle::Exited`. Future workers may turn those primitives into `PtyOutput::Bytes`, `PtyOutput::Eof`, and `PtyOutput::Exited`; no workers, channels, parser integration, renderer integration, or shell policy has been added.
+`PortablePtySession` now records child exit after both natural completion and a termination request. Verified transitions are `Running -> Exited` for natural exit and `Running -> TerminationRequested -> Exited` when the child has not already exited; a fast backend may be observed as `Exited` immediately after `terminate`. `terminate` remains idempotent and rejects later write/resize operations from its first request. Known exit releases the adapter-owned master PTY, allowing the exclusively transferred reader to drain buffered raw bytes and subsequently observe EOF. EOF and child exit remain distinct project-owned primitives.
 
-Write and character-cell resize are allowed only while `Running`. Lifecycle polling records a known exit; after exit, write and resize return `PtyError::NotRunning`. `terminate` changes lifecycle to `TerminationRequested` before dropping the writer and requesting backend termination; repeated termination is idempotent. Drop is only a backend safety net.
+The helper accepts narrowly scoped `exit <code>`, `wait`, and `payload` modes. Tests use finite reads and a five-second deadline to verify numeric natural exit, stable lifecycle polling, post-exit write/resize rejection, idempotent termination, safe running resize and raw-write calls, buffered output after observed exit, and EOF. The raw input write test proves byte acceptance without a user shell; it does not claim a cross-platform raw echo round trip because the helper intentionally does not modify platform TTY line discipline.
 
 ## Validation
 
-GitHub Actions run 35320057146 for commit `8d8e32668fe6ee41770514e5b64871d520a04bc5` completed successfully. Its `cargo test --workspace --all-targets` step ran the portable-pty adapter smoke test successfully on Linux x86_64, Linux ARM64, macOS x86_64, macOS ARM64, Windows x86_64, and Windows ARM64.
-
-Local final validation also passed: format, workspace all-target tests, doctests, check, Clippy with `-D warnings`, and `git diff --check`. No production-code fix was required after CI.
+Focused lifecycle tests, the complete repository suite, GNU/MSVC target suites, and the structural Graphify refresh all pass locally. Native CI acceptance remains pending after the final edits.
 
 ## Next
 
-Begin only the next M3 roadmap slice: Add deterministic lifecycle, resize, EOF, exit, and termination tests. Keep workers, channels, parser integration, renderer integration, input encoding, shell policy, and M4 work out of that slice.
+Keep this branch on the same lifecycle acceptance slice until the full suite and native GitHub Actions matrix pass on Linux x86_64/ARM64, macOS x86_64/ARM64, and Windows x86_64/ARM64. Do not begin PTY workers or bounded event channels yet.
