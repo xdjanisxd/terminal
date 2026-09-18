@@ -12402,7 +12402,7 @@
       "file_type": "code",
       "norm_label": "contains_subsequence()",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L27"
+      "source_location": "L25"
     },
     {
       "id": "crates_terminal_pty_tests_lifecycle_drain_until_marker",
@@ -12413,7 +12413,7 @@
       "file_type": "code",
       "norm_label": "drain_until_marker()",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L33"
+      "source_location": "L31"
     },
     {
       "id": "crates_terminal_pty_tests_lifecycle_naturally_exiting_child_preserves_numeric_exit_status",
@@ -12424,7 +12424,7 @@
       "file_type": "code",
       "norm_label": "naturally_exiting_child_preserves_numeric_exit_status()",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L81"
+      "source_location": "L79"
     },
     {
       "id": "crates_terminal_pty_tests_lifecycle_output_eof_follows_buffered_drain_after_child_exit",
@@ -12435,7 +12435,7 @@
       "file_type": "code",
       "norm_label": "output_eof_follows_buffered_drain_after_child_exit()",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L128"
+      "source_location": "L126"
     },
     {
       "id": "crates_terminal_pty_tests_lifecycle_resize_and_raw_write_succeed_while_running",
@@ -12446,7 +12446,7 @@
       "file_type": "code",
       "norm_label": "resize_and_raw_write_succeed_while_running()",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L170"
+      "source_location": "L177"
     },
     {
       "id": "crates_terminal_pty_tests_lifecycle_spawn_helper",
@@ -12457,7 +12457,7 @@
       "file_type": "code",
       "norm_label": "spawn_helper()",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L18"
+      "source_location": "L16"
     },
     {
       "id": "crates_terminal_pty_tests_lifecycle_terminate_rejects_later_operations_and_reader_reaches_eof",
@@ -12468,7 +12468,7 @@
       "file_type": "code",
       "norm_label": "terminate_rejects_later_operations_and_reader_reaches_eof()",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L98"
+      "source_location": "L96"
     },
     {
       "id": "crates_terminal_pty_tests_lifecycle_wait_for_exit",
@@ -12479,7 +12479,7 @@
       "file_type": "code",
       "norm_label": "wait_for_exit()",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L64"
+      "source_location": "L62"
     },
     {
       "id": "instant",
@@ -18116,7 +18116,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L49",
+      "source_location": "L47",
       "weight": 1.0
     },
     {
@@ -18128,7 +18128,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L82",
+      "source_location": "L80",
       "weight": 1.0
     },
     {
@@ -18140,7 +18140,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L87",
+      "source_location": "L85",
       "weight": 1.0
     },
     {
@@ -18152,7 +18152,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L129",
+      "source_location": "L127",
       "weight": 1.0
     },
     {
@@ -18164,7 +18164,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L138",
+      "source_location": "L144",
       "weight": 1.0
     },
     {
@@ -18176,7 +18176,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L171",
+      "source_location": "L178",
       "weight": 1.0
     },
     {
@@ -18188,7 +18188,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L115",
+      "source_location": "L113",
       "weight": 1.0
     },
     {
@@ -18200,7 +18200,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L99",
+      "source_location": "L97",
       "weight": 1.0
     },
     {
@@ -21392,7 +21392,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L33",
+      "source_location": "L31",
       "weight": 1.0
     },
     {
@@ -21404,7 +21404,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L33",
+      "source_location": "L31",
       "weight": 1.0
     },
     {
@@ -21416,7 +21416,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L33",
+      "source_location": "L31",
       "weight": 1.0
     },
     {
@@ -21428,7 +21428,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L64",
+      "source_location": "L62",
       "weight": 1.0
     },
     {
@@ -21440,7 +21440,7 @@
       "confidence_score": 1.0,
       "context": "parameter_type",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L64",
+      "source_location": "L62",
       "weight": 1.0
     },
     {
@@ -23708,7 +23708,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L33",
+      "source_location": "L31",
       "weight": 1.0
     },
     {
@@ -23720,7 +23720,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L18",
+      "source_location": "L16",
       "weight": 1.0
     },
     {
@@ -23732,7 +23732,7 @@
       "confidence_score": 1.0,
       "context": "return_type",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L64",
+      "source_location": "L62",
       "weight": 1.0
     },
     {
@@ -29694,18 +29694,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L128",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_pty_tests_lifecycle",
-      "target": "crates_terminal_pty_tests_lifecycle_resize_and_raw_write_succeed_while_running",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L170",
+      "source_location": "L126",
       "weight": 1.0
     },
     {
@@ -29716,7 +29705,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L18",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_pty_tests_lifecycle",
+      "target": "crates_terminal_pty_tests_lifecycle_resize_and_raw_write_succeed_while_running",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-pty/tests/lifecycle.rs",
+      "source_location": "L177",
       "weight": 1.0
     },
     {
@@ -29727,7 +29727,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L27",
+      "source_location": "L25",
       "weight": 1.0
     },
     {
@@ -29738,7 +29738,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L33",
+      "source_location": "L31",
       "weight": 1.0
     },
     {
@@ -29749,7 +29749,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L64",
+      "source_location": "L62",
       "weight": 1.0
     },
     {
@@ -29760,7 +29760,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L81",
+      "source_location": "L79",
       "weight": 1.0
     },
     {
@@ -29771,7 +29771,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L98",
+      "source_location": "L96",
       "weight": 1.0
     },
     {
@@ -33615,5 +33615,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "24ae0bd251b427cffbbdb8800583d35cfebe42d8"
+  "built_at_commit": "c3c657354032adc915958ab99c5f1bae77862d7f"
 }

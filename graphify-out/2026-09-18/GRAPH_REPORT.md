@@ -430,7 +430,7 @@ Nodes (3): row_text(), String, successive_mode_sequences_preserve_unrelated_stat
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `TerminalState` connect `TerminalState` to `CellAttributes`, `ScreenGrid`, `ScreenSet`, `SemanticPerformer`, `saved_cursor.rs`, `.cursor`, `src/state.rs`, `tests/scrollback.rs`, `combining_marks.rs`, `region_ind_ri.rs`, `assert_observable_state_eq`, `region_su_sd_parser.rs`, `insert_delete_lines.rs`, `region_su_sd.rs`, `rendition.rs`, `scrolling_margins.rs`, `dec_alt_screen_1049.rs`, `insert_delete_lines_parser.rs`, `da1_parser.rs`, `dec_alt_screen_1047.rs`, `region_nel_parser.rs`, `wide_cells.rs`, `dec_alt_screen_47.rs`, `decstbm.rs`, `delete_characters.rs`, `erase_characters.rs`, `insert_characters.rs`, `screen_switching.rs`, `filled_state`, `da2.rs`, `decckm_parser.rs`, `delete_characters_parser.rs`, `erase_characters_parser.rs`, `insert_characters_parser.rs`, `labeled_scroll_state`, `region_ind_ri_parser.rs`, `assert_default_cell`, `dsr_status_parser.rs`, `PrintError`, `.scrollback_row`, `cpr_parser.rs`, `row_text`, `.set_cursor_visibility`?**
-  _High betweenness centrality (0.539) - this node is a cross-community bridge._
+  _High betweenness centrality (0.535) - this node is a cross-community bridge._
 - **Why does `ScreenSet` connect `ScreenSet` to `TerminalState`?**
   _High betweenness centrality (0.075) - this node is a cross-community bridge._
 - **Why does `PrintError` connect `PrintError` to `PortablePtySession`, `src/state.rs`, `SemanticPerformer`?**

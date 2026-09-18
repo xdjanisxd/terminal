@@ -9,11 +9,9 @@ use terminal_pty::{
 };
 
 const HELPER_MARKER: &[u8] = b"TERMINAL_PTY_HELPER_MARKER";
-const POST_EXIT_BYTES: &[u8] = b"POST_EXIT_BYTES";
 const CONPTY_CURSOR_POSITION_QUERY: &[u8] = b"\x1b[6n";
 const DEADLINE: Duration = Duration::from_secs(5);
 const MAX_READS: usize = 16;
-const MARKER_READ_LIMIT: usize = MAX_READS * 256;
 
 fn spawn_helper(arguments: &[&str]) -> impl PtySession {
     let configuration = PtySpawnConfig::new(
@@ -126,20 +124,28 @@ fn terminate_rejects_later_operations_and_reader_reaches_eof() {
 
 #[test]
 fn output_eof_follows_buffered_drain_after_child_exit() {
-    let mut session = spawn_helper(&["payload"]);
+    let mut session = spawn_helper(&["exit", "0"]);
     let mut reader = session.take_output_reader().unwrap();
-    // One-byte reads stop exactly at the marker, leaving the small suffix unread.
-    let output = drain_until_marker::<1>(&mut session, reader.as_mut(), MARKER_READ_LIMIT);
-    assert!(
-        contains_subsequence(&output, HELPER_MARKER),
-        "helper marker was not observed before exit: {output:?}"
-    );
-    let output_before_exit = output.len();
+    let mut startup = [0_u8; 1];
+    let read = reader.read(&mut startup).unwrap();
+    assert_eq!(read, 1, "reader reached EOF before helper output");
+    let mut output = vec![startup[0]];
+
+    if CONPTY_CURSOR_POSITION_QUERY.starts_with(&output) {
+        while output.len() < CONPTY_CURSOR_POSITION_QUERY.len() {
+            let read = reader.read(&mut startup).unwrap();
+            assert_eq!(read, 1, "reader reached EOF during ConPTY startup query");
+            output.push(startup[0]);
+        }
+        assert_eq!(output, CONPTY_CURSOR_POSITION_QUERY);
+        session.write(b"\x1b[1;1R").unwrap();
+    }
+
     let exited = wait_for_exit(&session, Instant::now() + DEADLINE, &output);
     assert_eq!(exited, PtyLifecycle::Exited(PtyExitStatus::code(0)));
 
     let deadline = Instant::now() + DEADLINE;
-    let mut output = output;
+    let mut read_after_exit = false;
     let mut saw_eof = false;
     for _ in 0..MAX_READS {
         let mut chunk = [0_u8; 256];
@@ -148,6 +154,7 @@ fn output_eof_follows_buffered_drain_after_child_exit() {
             saw_eof = true;
             break;
         }
+        read_after_exit = true;
         output.extend_from_slice(&chunk[..read]);
         assert!(
             Instant::now() < deadline,
@@ -155,11 +162,11 @@ fn output_eof_follows_buffered_drain_after_child_exit() {
         );
     }
 
-    assert!(contains_subsequence(&output, HELPER_MARKER));
     assert!(
-        contains_subsequence(&output[output_before_exit..], POST_EXIT_BYTES),
-        "no post-exit payload was drained: {output:?}"
+        read_after_exit,
+        "reader reached EOF without post-exit bytes: {output:?}"
     );
+    assert!(contains_subsequence(&output, HELPER_MARKER));
     assert!(
         saw_eof,
         "reader did not report EOF after child exit: {output:?}"

@@ -6,7 +6,7 @@
 
 `PortablePtySession` now records child exit after both natural completion and a termination request. Verified transitions are `Running -> Exited` for natural exit and `Running -> TerminationRequested -> Exited` when the child has not already exited; a fast backend may be observed as `Exited` immediately after `terminate`. `terminate` remains idempotent and rejects later write/resize operations from its first request. Known exit releases the adapter-owned master PTY, allowing the exclusively transferred reader to drain buffered raw bytes and subsequently observe EOF. EOF and child exit remain distinct project-owned primitives.
 
-The helper accepts narrowly scoped `exit <code>`, `wait`, and `payload` modes. Tests use finite reads and a five-second deadline to verify numeric natural exit, stable lifecycle polling, post-exit write/resize rejection, idempotent termination, safe running resize and raw-write calls, buffered output after observed exit, and EOF. The raw input write test proves byte acceptance without a user shell; it does not claim a cross-platform raw echo round trip because the helper intentionally does not modify platform TTY line discipline.
+The helper accepts narrowly scoped `exit <code>` and `wait` modes. Tests use finite reads and a five-second deadline to verify numeric natural exit, stable lifecycle polling, post-exit write/resize rejection, idempotent termination, safe running resize and raw-write calls, buffered output after observed exit, and EOF. The raw input write test proves byte acceptance without a user shell; it does not claim a cross-platform raw echo round trip because the helper intentionally does not modify platform TTY line discipline.
 
 ## Validation
 
