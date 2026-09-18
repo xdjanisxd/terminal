@@ -1489,11 +1489,6 @@
       "degree": 17
     },
     {
-      "id": "crates_terminal_pty_src_lib_ptyspawnconfig",
-      "label": "PtySpawnConfig",
-      "degree": 16
-    },
-    {
       "id": "crates_terminal_core_src_cell_cell",
       "label": "Cell",
       "degree": 16
@@ -1501,6 +1496,11 @@
     {
       "id": "crates_terminal_core_tests_parser_assert_observable_state_eq",
       "label": "assert_observable_state_eq()",
+      "degree": 16
+    },
+    {
+      "id": "crates_terminal_pty_src_lib_ptyspawnconfig",
+      "label": "PtySpawnConfig",
       "degree": 16
     },
     {
@@ -1566,41 +1566,8 @@
       "why": "bridges separate communities"
     }
   ],
-  "questions": [
-    {
-      "type": "bridge_node",
-      "question": "Why does `TerminalState` connect `TerminalState` to `CellAttributes`, `ScreenGrid`, `ScreenSet`, `SemanticPerformer`, `.cursor`, `tests/scrollback.rs`, `.dimensions`, `combining_marks.rs`, `region_ind_ri.rs`, `assert_observable_state_eq`, `region_su_sd_parser.rs`, `saved_cursor.rs`, `da1_parser.rs`, `insert_delete_lines.rs`, `region_su_sd.rs`, `rendition.rs`, `scrolling_margins.rs`, `dec_alt_screen_1049.rs`, `insert_delete_lines_parser.rs`, `src/state.rs`, `dec_alt_screen_1047.rs`, `region_nel_parser.rs`, `wide_cells.rs`, `dec_alt_screen_47.rs`, `decstbm.rs`, `delete_characters.rs`, `erase_characters.rs`, `insert_characters.rs`, `screen_switching.rs`, `filled_state`, `da2.rs`, `decckm_parser.rs`, `delete_characters_parser.rs`, `erase_characters_parser.rs`, `insert_characters_parser.rs`, `labeled_scroll_state`, `region_ind_ri_parser.rs`, `assert_default_cell`, `PrintError`, `.vertical_scrolling_margins`, `.scrollback_row`, `cpr_parser.rs`, `dsr_status_parser.rs`, `CellColor`, `row_text`?",
-      "why": "High betweenness centrality (0.564) - this node is a cross-community bridge."
-    },
-    {
-      "type": "bridge_node",
-      "question": "Why does `ScreenSet` connect `ScreenSet` to `TerminalState`?",
-      "why": "High betweenness centrality (0.079) - this node is a cross-community bridge."
-    },
-    {
-      "type": "bridge_node",
-      "question": "Why does `cells()` connect `saved_cursor.rs` to `PortablePtySession`, `ScreenSet`, `TerminalState`?",
-      "why": "High betweenness centrality (0.072) - this node is a cross-community bridge."
-    },
-    {
-      "type": "isolated_nodes",
-      "question": "What connects `terminal-app`, `terminal-config`, `terminal-core` to the rest of the system?",
-      "why": "95 weakly-connected nodes found - possible documentation gaps or missing edges."
-    },
-    {
-      "type": "low_cohesion",
-      "question": "Should `PortablePtySession` be split into smaller, more focused modules?",
-      "why": "Cohesion score 0.06018018018018018 - nodes in this community are weakly interconnected."
-    },
-    {
-      "type": "low_cohesion",
-      "question": "Should `CellAttributes` be split into smaller, more focused modules?",
-      "why": "Cohesion score 0.06666666666666667 - nodes in this community are weakly interconnected."
-    },
-    {
-      "type": "low_cohesion",
-      "question": "Should `tests/parser.rs` be split into smaller, more focused modules?",
-      "why": "Cohesion score 0.0392156862745098 - nodes in this community are weakly interconnected."
-    }
-  ]
+  "tokens": {
+    "input": 0,
+    "output": 0
+  }
 }
