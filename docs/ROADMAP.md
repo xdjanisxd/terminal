@@ -65,8 +65,8 @@ Completion marks require tested acceptance criteria, not code presence alone.
 ## M3: PTY and session lifecycle
 
 - [x] Define the project-owned PTY contract
-- [ ] Integrate `portable-pty` for Windows, Linux, and macOS
-  - Implementation and local Windows runtime smoke coverage are complete; native GitHub Actions acceptance on Linux and macOS remains required before this parent can close.
+- [x] Integrate `portable-pty` for Windows, Linux, and macOS
+  - Native GitHub Actions run 35320057146 for commit `8d8e32668fe6ee41770514e5b64871d520a04bc5` passed the adapter smoke test on Linux x86_64/ARM64, macOS x86_64/ARM64, and Windows x86_64/ARM64.
 - [ ] Add deterministic lifecycle, resize, EOF, exit, and termination tests
 - [ ] Connect PTY workers through bounded event-driven communication
 

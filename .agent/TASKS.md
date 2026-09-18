@@ -2,13 +2,13 @@
 
 ## Next
 
-- [ ] Integrate `portable-pty` for Windows, Linux, and macOS through the completed project-owned PTY contract. Implementation and local Windows smoke coverage are complete; leave this open until native GitHub Actions runtime acceptance completes on Linux and macOS. Keep parser, renderer, input encoding, and worker/channel design out of this adapter slice.
+- [ ] Add deterministic lifecycle, resize, EOF, exit, and termination tests; keep worker/channel orchestration, parser, renderer, input encoding, and shell policy out of this next slice.
 
 ##...[truncated]
 
 ## Completed in this slice
 
-- [x] Define a backend-independent project-owned PTY contract with validated cell sizing, owned local spawn configuration, raw byte/EOF/exit events, lifecycle and error ownership, and no backend integration.
+- [x] Define the project-owned PTY contract and integrate `portable-pty` for Windows, Linux, and macOS behind it; GitHub Actions run 35320057146 passed its native smoke test on Linux x86_64/ARM64, macOS x86_64/ARM64, and Windows x86_64/ARM64.
 - [x] Audit and test Primary/Alternate resize coherence, saved-cursor clamping, shared tab/rendition preservation, mixed-width Primary history, and `?47`/`?1047`/`?1049` resize round trips; close the terminal-core primary/alternate/resize/scrollback roadmap parent.
 - [x] Add bounded Primary-only scrollback capture for whole-screen upward scrolling, exact `Cell` preservation, 10,000-row FIFO eviction, reset clearing, capture-time width retention across resize, and no viewport/reflow behavior.
 - [x] Add DEC `?1049` parser dispatch through dedicated `TerminalState` save-Primary/reset-Alternate/switch/restore-Primary semantics, with idempotent Alternate entry and no new saved fields.
