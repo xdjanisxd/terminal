@@ -522,9 +522,9 @@
     "semantic_hash": "956655e26e201c43e290c689775da26b"
   },
   "crates/terminal-pty/tests/lifecycle.rs": {
-    "mtime": 1789720523.9008493,
-    "seen": 1789720562.3156765,
-    "ast_hash": "92d6c134c555f0cb5cb6d53d5fdf0eb5",
-    "semantic_hash": "92d6c134c555f0cb5cb6d53d5fdf0eb5"
+    "mtime": 1789723723.188878,
+    "seen": 1789723775.585837,
+    "ast_hash": "9e2478d25fdfa3ad0a7e3f4225dc1c8e",
+    "semantic_hash": "9e2478d25fdfa3ad0a7e3f4225dc1c8e"
   }
 }

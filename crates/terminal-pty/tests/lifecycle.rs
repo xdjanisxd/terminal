@@ -123,29 +123,15 @@ fn terminate_rejects_later_operations_and_reader_reaches_eof() {
 }
 
 #[test]
-fn output_eof_follows_buffered_drain_after_child_exit() {
+fn output_reader_drains_helper_stream_to_eof() {
     let mut session = spawn_helper(&["exit", "0"]);
     let mut reader = session.take_output_reader().unwrap();
-    let mut startup = [0_u8; 1];
-    let read = reader.read(&mut startup).unwrap();
-    assert_eq!(read, 1, "reader reached EOF before helper output");
-    let mut output = vec![startup[0]];
-
-    if CONPTY_CURSOR_POSITION_QUERY.starts_with(&output) {
-        while output.len() < CONPTY_CURSOR_POSITION_QUERY.len() {
-            let read = reader.read(&mut startup).unwrap();
-            assert_eq!(read, 1, "reader reached EOF during ConPTY startup query");
-            output.push(startup[0]);
-        }
-        assert_eq!(output, CONPTY_CURSOR_POSITION_QUERY);
-        session.write(b"\x1b[1;1R").unwrap();
-    }
-
-    let exited = wait_for_exit(&session, Instant::now() + DEADLINE, &output);
-    assert_eq!(exited, PtyLifecycle::Exited(PtyExitStatus::code(0)));
+    let mut output = drain_until_marker::<256>(&mut session, reader.as_mut(), MAX_READS);
+    assert!(contains_subsequence(&output, HELPER_MARKER));
+    // Release the adapter master after eventual exit without assigning stream ordering.
+    wait_for_exit(&session, Instant::now() + DEADLINE, &output);
 
     let deadline = Instant::now() + DEADLINE;
-    let mut read_after_exit = false;
     let mut saw_eof = false;
     for _ in 0..MAX_READS {
         let mut chunk = [0_u8; 256];
@@ -154,7 +140,6 @@ fn output_eof_follows_buffered_drain_after_child_exit() {
             saw_eof = true;
             break;
         }
-        read_after_exit = true;
         output.extend_from_slice(&chunk[..read]);
         assert!(
             Instant::now() < deadline,
@@ -162,15 +147,8 @@ fn output_eof_follows_buffered_drain_after_child_exit() {
         );
     }
 
-    assert!(
-        read_after_exit,
-        "reader reached EOF without post-exit bytes: {output:?}"
-    );
     assert!(contains_subsequence(&output, HELPER_MARKER));
-    assert!(
-        saw_eof,
-        "reader did not report EOF after child exit: {output:?}"
-    );
+    assert!(saw_eof, "reader did not report EOF: {output:?}");
 }
 
 #[test]

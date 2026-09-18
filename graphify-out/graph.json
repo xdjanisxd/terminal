@@ -12427,13 +12427,13 @@
       "source_location": "L79"
     },
     {
-      "id": "crates_terminal_pty_tests_lifecycle_output_eof_follows_buffered_drain_after_child_exit",
-      "label": "output_eof_follows_buffered_drain_after_child_exit()",
+      "id": "crates_terminal_pty_tests_lifecycle_output_reader_drains_helper_stream_to_eof",
+      "label": "output_reader_drains_helper_stream_to_eof()",
       "_origin": "ast",
       "community": 9,
       "community_name": "saved_cursor.rs",
       "file_type": "code",
-      "norm_label": "output_eof_follows_buffered_drain_after_child_exit()",
+      "norm_label": "output_reader_drains_helper_stream_to_eof()",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
       "source_location": "L126"
     },
@@ -12446,7 +12446,7 @@
       "file_type": "code",
       "norm_label": "resize_and_raw_write_succeed_while_running()",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L177"
+      "source_location": "L155"
     },
     {
       "id": "crates_terminal_pty_tests_lifecycle_spawn_helper",
@@ -18144,7 +18144,7 @@
       "weight": 1.0
     },
     {
-      "source": "crates_terminal_pty_tests_lifecycle_output_eof_follows_buffered_drain_after_child_exit",
+      "source": "crates_terminal_pty_tests_lifecycle_output_reader_drains_helper_stream_to_eof",
       "target": "crates_terminal_pty_tests_lifecycle_spawn_helper",
       "relation": "calls",
       "_origin": "ast",
@@ -18156,7 +18156,7 @@
       "weight": 1.0
     },
     {
-      "source": "crates_terminal_pty_tests_lifecycle_output_eof_follows_buffered_drain_after_child_exit",
+      "source": "crates_terminal_pty_tests_lifecycle_output_reader_drains_helper_stream_to_eof",
       "target": "crates_terminal_pty_tests_lifecycle_wait_for_exit",
       "relation": "calls",
       "_origin": "ast",
@@ -18164,7 +18164,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L144",
+      "source_location": "L132",
       "weight": 1.0
     },
     {
@@ -18176,7 +18176,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L178",
+      "source_location": "L156",
       "weight": 1.0
     },
     {
@@ -29688,13 +29688,24 @@
     },
     {
       "source": "crates_terminal_pty_tests_lifecycle",
-      "target": "crates_terminal_pty_tests_lifecycle_output_eof_follows_buffered_drain_after_child_exit",
+      "target": "crates_terminal_pty_tests_lifecycle_output_reader_drains_helper_stream_to_eof",
       "relation": "contains",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
       "source_location": "L126",
+      "weight": 1.0
+    },
+    {
+      "source": "crates_terminal_pty_tests_lifecycle",
+      "target": "crates_terminal_pty_tests_lifecycle_resize_and_raw_write_succeed_while_running",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "crates/terminal-pty/tests/lifecycle.rs",
+      "source_location": "L155",
       "weight": 1.0
     },
     {
@@ -29706,17 +29717,6 @@
       "confidence_score": 1.0,
       "source_file": "crates/terminal-pty/tests/lifecycle.rs",
       "source_location": "L16",
-      "weight": 1.0
-    },
-    {
-      "source": "crates_terminal_pty_tests_lifecycle",
-      "target": "crates_terminal_pty_tests_lifecycle_resize_and_raw_write_succeed_while_running",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "crates/terminal-pty/tests/lifecycle.rs",
-      "source_location": "L177",
       "weight": 1.0
     },
     {
@@ -33615,5 +33615,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "c3c657354032adc915958ab99c5f1bae77862d7f"
+  "built_at_commit": "512ab5c3bccd56e5615ba61daea2da2de0af80f2"
 }

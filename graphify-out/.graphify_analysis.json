@@ -473,7 +473,7 @@
       "crates_terminal_pty_tests_lifecycle_contains_subsequence",
       "crates_terminal_pty_tests_lifecycle_drain_until_marker",
       "crates_terminal_pty_tests_lifecycle_naturally_exiting_child_preserves_numeric_exit_status",
-      "crates_terminal_pty_tests_lifecycle_output_eof_follows_buffered_drain_after_child_exit",
+      "crates_terminal_pty_tests_lifecycle_output_reader_drains_helper_stream_to_eof",
       "crates_terminal_pty_tests_lifecycle_resize_and_raw_write_succeed_while_running",
       "crates_terminal_pty_tests_lifecycle_spawn_helper",
       "crates_terminal_pty_tests_lifecycle_terminate_rejects_later_operations_and_reader_reaches_eof",
