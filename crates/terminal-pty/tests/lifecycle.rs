@@ -9,9 +9,11 @@ use terminal_pty::{
 };
 
 const HELPER_MARKER: &[u8] = b"TERMINAL_PTY_HELPER_MARKER";
+const POST_EXIT_BYTES: &[u8] = b"POST_EXIT_BYTES";
 const CONPTY_CURSOR_POSITION_QUERY: &[u8] = b"\x1b[6n";
 const DEADLINE: Duration = Duration::from_secs(5);
 const MAX_READS: usize = 16;
+const MARKER_READ_LIMIT: usize = MAX_READS * 256;
 
 fn spawn_helper(arguments: &[&str]) -> impl PtySession {
     let configuration = PtySpawnConfig::new(
@@ -28,16 +30,17 @@ fn contains_subsequence(bytes: &[u8], expected: &[u8]) -> bool {
         .any(|window| window == expected)
 }
 
-fn drain_until_marker(
+fn drain_until_marker<const CHUNK_SIZE: usize>(
     session: &mut impl PtySession,
     reader: &mut (impl PtyOutputReader + ?Sized),
+    max_reads: usize,
 ) -> Vec<u8> {
     let deadline = Instant::now() + DEADLINE;
     let mut output = Vec::new();
     let mut answered_conpty_query = false;
 
-    for _ in 0..MAX_READS {
-        let mut chunk = [0_u8; 256];
+    for _ in 0..max_reads {
+        let mut chunk = [0_u8; CHUNK_SIZE];
         let read = reader.read(&mut chunk).unwrap();
         if read == 0 {
             break;
@@ -58,7 +61,7 @@ fn drain_until_marker(
     output
 }
 
-fn wait_for_exit(session: &impl PtySession, deadline: Instant) -> PtyLifecycle {
+fn wait_for_exit(session: &impl PtySession, deadline: Instant, output: &[u8]) -> PtyLifecycle {
     loop {
         let lifecycle = session.lifecycle();
         if matches!(lifecycle, PtyLifecycle::Exited(_)) {
@@ -66,7 +69,9 @@ fn wait_for_exit(session: &impl PtySession, deadline: Instant) -> PtyLifecycle {
         }
         assert!(
             Instant::now() < deadline,
-            "child exit observation deadline elapsed: {lifecycle:?}"
+            "child exit observation deadline elapsed: {lifecycle:?}; bytes_read={}; marker_observed={}",
+            output.len(),
+            contains_subsequence(output, HELPER_MARKER),
         );
         thread::sleep(Duration::from_millis(10));
     }
@@ -76,10 +81,10 @@ fn wait_for_exit(session: &impl PtySession, deadline: Instant) -> PtyLifecycle {
 fn naturally_exiting_child_preserves_numeric_exit_status() {
     let mut session = spawn_helper(&["exit", "23"]);
     let mut reader = session.take_output_reader().unwrap();
-    let output = drain_until_marker(&mut session, reader.as_mut());
+    let output = drain_until_marker::<256>(&mut session, reader.as_mut(), MAX_READS);
     assert!(contains_subsequence(&output, HELPER_MARKER));
 
-    let exited = wait_for_exit(&session, Instant::now() + DEADLINE);
+    let exited = wait_for_exit(&session, Instant::now() + DEADLINE, &output);
     assert_eq!(exited, PtyLifecycle::Exited(PtyExitStatus::code(23)));
     assert_eq!(session.lifecycle(), exited);
     assert_eq!(session.write(b"after-exit"), Err(PtyError::NotRunning));
@@ -107,7 +112,7 @@ fn terminate_rejects_later_operations_and_reader_reaches_eof() {
         Err(PtyError::NotRunning)
     );
 
-    wait_for_exit(&session, Instant::now() + DEADLINE);
+    wait_for_exit(&session, Instant::now() + DEADLINE, &[]);
     let mut saw_eof = false;
     for _ in 0..MAX_READS {
         let mut chunk = [0_u8; 256];
@@ -123,9 +128,14 @@ fn terminate_rejects_later_operations_and_reader_reaches_eof() {
 fn output_eof_follows_buffered_drain_after_child_exit() {
     let mut session = spawn_helper(&["payload"]);
     let mut reader = session.take_output_reader().unwrap();
-    let output = drain_until_marker(&mut session, reader.as_mut());
+    // One-byte reads stop exactly at the marker, leaving the small suffix unread.
+    let output = drain_until_marker::<1>(&mut session, reader.as_mut(), MARKER_READ_LIMIT);
+    assert!(
+        contains_subsequence(&output, HELPER_MARKER),
+        "helper marker was not observed before exit: {output:?}"
+    );
     let output_before_exit = output.len();
-    let exited = wait_for_exit(&session, Instant::now() + DEADLINE);
+    let exited = wait_for_exit(&session, Instant::now() + DEADLINE, &output);
     assert_eq!(exited, PtyLifecycle::Exited(PtyExitStatus::code(0)));
 
     let deadline = Instant::now() + DEADLINE;
@@ -147,8 +157,8 @@ fn output_eof_follows_buffered_drain_after_child_exit() {
 
     assert!(contains_subsequence(&output, HELPER_MARKER));
     assert!(
-        output.len() > output_before_exit,
-        "no buffered output was drained after child exit: {output:?}"
+        contains_subsequence(&output[output_before_exit..], POST_EXIT_BYTES),
+        "no post-exit payload was drained: {output:?}"
     );
     assert!(
         saw_eof,

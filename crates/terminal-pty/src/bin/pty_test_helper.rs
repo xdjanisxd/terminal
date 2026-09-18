@@ -13,9 +13,7 @@ fn main() -> io::Result<()> {
     let mut output = io::stdout().lock();
     output.write_all(b"TERMINAL_PTY_HELPER_MARKER")?;
     if command == Some("payload") {
-        for _ in 0..128 {
-            output.write_all(b"POST_EXIT_BYTES")?;
-        }
+        output.write_all(b"POST_EXIT_BYTES")?;
     }
     output.flush()?;
 
