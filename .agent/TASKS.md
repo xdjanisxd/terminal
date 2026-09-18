@@ -2,7 +2,7 @@
 
 ## Next
 
-- [ ] Add deterministic lifecycle, resize, EOF, exit, and termination tests; keep worker/channel orchestration, parser, renderer, input encoding, and shell policy out of this next slice.
+- [ ] Add deterministic lifecycle, resize, EOF, exit, and termination tests. Local tests and a minimal EOF-on-known-exit correction are complete; leave this roadmap item open until the lifecycle suite passes the native GitHub Actions matrix on Linux x86_64/ARM64, macOS x86_64/ARM64, and Windows x86_64/ARM64. Keep worker/channel orchestration, parser, renderer, input encoding, and shell policy out of this slice.
 
 ##...[truncated]
 

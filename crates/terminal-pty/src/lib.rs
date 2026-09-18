@@ -231,7 +231,7 @@ impl Default for PortablePtyBackend {
 
 /// `portable-pty` session state kept entirely behind the project-owned traits.
 pub struct PortablePtySession {
-    master: Box<dyn MasterPty + Send>,
+    master: Mutex<Option<Box<dyn MasterPty + Send>>>,
     child: Mutex<Box<dyn portable_pty::Child + Send + Sync>>,
     writer: Option<Box<dyn Write + Send>>,
     reader: Option<Box<dyn Read + Send>>,
@@ -275,7 +275,7 @@ impl PtyBackend for PortablePtyBackend {
             .spawn_command(command)
             .map_err(|_| PtyError::SpawnFailed)?;
         Ok(PortablePtySession {
-            master,
+            master: Mutex::new(Some(master)),
             child: Mutex::new(child),
             writer: Some(writer),
             reader: Some(reader),
@@ -290,7 +290,7 @@ impl PortablePtySession {
             .lifecycle
             .lock()
             .expect("PTY lifecycle mutex is not poisoned");
-        if !lifecycle.allows_operations() {
+        if matches!(*lifecycle, PtyLifecycle::Exited(_)) {
             return *lifecycle;
         }
         let mut child = self.child.lock().expect("PTY child mutex is not poisoned");
@@ -300,6 +300,10 @@ impl PortablePtySession {
                     .map(PtyExitStatus::code)
                     .unwrap_or_else(|_| PtyExitStatus::unknown()),
             );
+            self.master
+                .lock()
+                .expect("PTY master mutex is not poisoned")
+                .take();
         }
         *lifecycle
     }
@@ -333,6 +337,10 @@ impl PtySession for PortablePtySession {
             return Err(PtyError::NotRunning);
         }
         self.master
+            .lock()
+            .expect("PTY master mutex is not poisoned")
+            .as_ref()
+            .ok_or(PtyError::NotRunning)?
             .resize(portable_pty::PtySize {
                 rows: size.rows(),
                 cols: size.columns(),
