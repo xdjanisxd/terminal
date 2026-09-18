@@ -144,10 +144,10 @@
     "semantic_hash": "3fa0b99984295d11ddcc4837174a1a03"
   },
   "crates/terminal-pty/src/lib.rs": {
-    "mtime": 1789717936.5250714,
-    "seen": 1789718122.6657932,
-    "ast_hash": "af5d5caacebb3bed65dec59671e311c8",
-    "semantic_hash": "af5d5caacebb3bed65dec59671e311c8"
+    "mtime": 1789724760.5270422,
+    "seen": 1789724947.2020063,
+    "ast_hash": "186b93475a64cb29be1ad201021dbe98",
+    "semantic_hash": "186b93475a64cb29be1ad201021dbe98"
   },
   "crates/workspace/Cargo.toml": {
     "mtime": 1788940761.4350512,
@@ -526,5 +526,11 @@
     "seen": 1789723775.585837,
     "ast_hash": "9e2478d25fdfa3ad0a7e3f4225dc1c8e",
     "semantic_hash": "9e2478d25fdfa3ad0a7e3f4225dc1c8e"
+  },
+  "crates/terminal-pty/tests/worker.rs": {
+    "mtime": 1789724760.5335605,
+    "seen": 1789724947.2030072,
+    "ast_hash": "883fb62b6628e7a3b5634970288b9b72",
+    "semantic_hash": "883fb62b6628e7a3b5634970288b9b72"
   }
 }
