@@ -1,83 +1,6 @@
 {
   "communities": {
     "0": [
-      "box",
-      "child",
-      "crates_terminal_pty_src_lib",
-      "crates_terminal_pty_src_lib_portableoutputreader",
-      "crates_terminal_pty_src_lib_portableoutputreader_read",
-      "crates_terminal_pty_src_lib_portableptybackend",
-      "crates_terminal_pty_src_lib_portableptybackend_default",
-      "crates_terminal_pty_src_lib_portableptybackend_new",
-      "crates_terminal_pty_src_lib_portableptybackend_spawn",
-      "crates_terminal_pty_src_lib_portableptysession",
-      "crates_terminal_pty_src_lib_portableptysession_lifecycle",
-      "crates_terminal_pty_src_lib_portableptysession_refresh_lifecycle",
-      "crates_terminal_pty_src_lib_portableptysession_resize",
-      "crates_terminal_pty_src_lib_portableptysession_take_output_reader",
-      "crates_terminal_pty_src_lib_portableptysession_terminate",
-      "crates_terminal_pty_src_lib_portableptysession_write",
-      "crates_terminal_pty_src_lib_ptybackend",
-      "crates_terminal_pty_src_lib_ptyerror",
-      "crates_terminal_pty_src_lib_ptyerror_fmt",
-      "crates_terminal_pty_src_lib_ptyexitstatus",
-      "crates_terminal_pty_src_lib_ptyexitstatus_code",
-      "crates_terminal_pty_src_lib_ptyexitstatus_code_value",
-      "crates_terminal_pty_src_lib_ptyexitstatus_unknown",
-      "crates_terminal_pty_src_lib_ptylifecycle",
-      "crates_terminal_pty_src_lib_ptylifecycle_allows_operations",
-      "crates_terminal_pty_src_lib_ptylifecycle_termination_is_idempotent",
-      "crates_terminal_pty_src_lib_ptyoutput",
-      "crates_terminal_pty_src_lib_ptyoutput_bytes",
-      "crates_terminal_pty_src_lib_ptyoutputreader",
-      "crates_terminal_pty_src_lib_ptysession",
-      "crates_terminal_pty_src_lib_ptysize",
-      "crates_terminal_pty_src_lib_ptysize_columns",
-      "crates_terminal_pty_src_lib_ptysize_new",
-      "crates_terminal_pty_src_lib_ptysize_rows",
-      "crates_terminal_pty_src_lib_ptysizeerror",
-      "crates_terminal_pty_src_lib_ptysizeerror_fmt",
-      "crates_terminal_pty_src_lib_ptyspawnconfig",
-      "crates_terminal_pty_src_lib_ptyspawnconfig_arguments",
-      "crates_terminal_pty_src_lib_ptyspawnconfig_environment",
-      "crates_terminal_pty_src_lib_ptyspawnconfig_initial_size",
-      "crates_terminal_pty_src_lib_ptyspawnconfig_new",
-      "crates_terminal_pty_src_lib_ptyspawnconfig_program",
-      "crates_terminal_pty_src_lib_ptyspawnconfig_with_arguments",
-      "crates_terminal_pty_src_lib_ptyspawnconfig_with_environment",
-      "crates_terminal_pty_src_lib_ptyspawnconfig_with_working_directory",
-      "crates_terminal_pty_src_lib_ptyspawnconfig_working_directory",
-      "crates_terminal_pty_src_lib_rs_result",
-      "crates_terminal_pty_src_lib_rs_vec",
-      "crates_terminal_pty_tests_contract",
-      "crates_terminal_pty_tests_contract_contains_subsequence",
-      "crates_terminal_pty_tests_contract_helper_session",
-      "crates_terminal_pty_tests_contract_lifecycle_keeps_exit_and_termination_distinct",
-      "crates_terminal_pty_tests_contract_output_preserves_arbitrary_bytes_and_distinguishes_eof_from_exit",
-      "crates_terminal_pty_tests_contract_portable_backend_is_project_owned_and_constructible",
-      "crates_terminal_pty_tests_contract_portable_backend_streams_helper_output_without_assuming_read_boundaries",
-      "crates_terminal_pty_tests_contract_size_rejects_zero_dimensions",
-      "crates_terminal_pty_tests_contract_spawn_config_owns_platform_arguments_environment_and_working_directory",
-      "display",
-      "error",
-      "formatter",
-      "intoiterator",
-      "item",
-      "masterpty",
-      "mutex",
-      "option",
-      "osstring",
-      "path",
-      "pathbuf",
-      "ptysystem",
-      "read",
-      "self",
-      "send",
-      "session",
-      "sync",
-      "write"
-    ],
-    "1": [
       "crates_terminal_core_src_cell",
       "crates_terminal_core_src_cell_cell",
       "crates_terminal_core_src_cell_cell_append_combining_mark",
@@ -134,7 +57,7 @@
       "crates_terminal_core_tests_truecolor_truecolor_is_chunk_safe_and_preserves_unrelated_terminal_state_and_replies",
       "crates_terminal_core_tests_truecolor_truecolor_minimum_maximum_replacement_and_resets_work_per_channel"
     ],
-    "2": [
+    "1": [
       "crates_terminal_core_tests_parser",
       "crates_terminal_core_tests_parser_empty_and_colon_extended_color_parameters_are_handled_deterministically",
       "crates_terminal_core_tests_parser_malformed_indexed_color_groups_do_not_leak_payload_parameters",
@@ -187,7 +110,7 @@
       "crates_terminal_core_tests_parser_zero_width_unicode_attaches_when_a_split_codepoint_completes",
       "crates_terminal_core_tests_parser_zero_width_unicode_attaches_without_interrupting_parser_input"
     ],
-    "3": [
+    "2": [
       "crates_terminal_core_tests_state",
       "crates_terminal_core_tests_state_accepts_ascii_boundaries_and_rejects_delete",
       "crates_terminal_core_tests_state_accepts_modeled_wide_unicode_and_attaches_zero_width_unicode",
@@ -240,7 +163,7 @@
       "crates_terminal_core_tests_state_typed_cursor_movements_cover_relative_and_absolute_semantics",
       "crates_terminal_core_tests_state_wrapping_from_the_final_row_scrolls_only_the_active_screen"
     ],
-    "4": [
+    "3": [
       "crates_terminal_core_src_grid",
       "crates_terminal_core_src_grid_combiningmarkattachment",
       "crates_terminal_core_src_grid_delete_cells_shifts_complete_row_cells_left_and_clamps",
@@ -288,10 +211,9 @@
       "crates_terminal_core_src_grid_screengrid_write_single",
       "crates_terminal_core_src_grid_screengrid_write_wide",
       "crates_terminal_core_src_grid_scrolldirection",
-      "crates_terminal_core_src_grid_scrolls_middle_region_up_and_down_without_touching_outside_rows",
-      "crates_terminal_core_src_state_terminalstate_screen"
+      "crates_terminal_core_src_grid_scrolls_middle_region_up_and_down_without_touching_outside_rows"
     ],
-    "5": [
+    "4": [
       "cell",
       "cellattributes",
       "crates_terminal_core_src_lib",
@@ -339,7 +261,7 @@
       "terminaldimensions",
       "verticalscrollingmargins"
     ],
-    "6": [
+    "5": [
       "autowrapmode",
       "cellcolor",
       "characterinsertionmode",
@@ -347,13 +269,12 @@
       "crates_terminal_core_src_state_terminalstate",
       "crates_terminal_core_src_state_terminalstate_active_screen",
       "crates_terminal_core_src_state_terminalstate_clear_all_horizontal_tab_stops",
-      "crates_terminal_core_src_state_terminalstate_clear_horizontal_tab_stop",
       "crates_terminal_core_src_state_terminalstate_current_rendition",
-      "crates_terminal_core_src_state_terminalstate_delete_characters",
       "crates_terminal_core_src_state_terminalstate_enter_alternate_screen_1047",
       "crates_terminal_core_src_state_terminalstate_enter_alternate_screen_1049",
       "crates_terminal_core_src_state_terminalstate_has_horizontal_tab_stop",
       "crates_terminal_core_src_state_terminalstate_input_modes",
+      "crates_terminal_core_src_state_terminalstate_insert_characters",
       "crates_terminal_core_src_state_terminalstate_leave_alternate_screen_1047",
       "crates_terminal_core_src_state_terminalstate_leave_alternate_screen_1049",
       "crates_terminal_core_src_state_terminalstate_pending_reply_count",
@@ -363,11 +284,13 @@
       "crates_terminal_core_src_state_terminalstate_reset_rendition",
       "crates_terminal_core_src_state_terminalstate_restore_cursor",
       "crates_terminal_core_src_state_terminalstate_save_cursor",
+      "crates_terminal_core_src_state_terminalstate_screen",
       "crates_terminal_core_src_state_terminalstate_scrollback_len",
       "crates_terminal_core_src_state_terminalstate_set_auto_wrap",
       "crates_terminal_core_src_state_terminalstate_set_background_color",
       "crates_terminal_core_src_state_terminalstate_set_character_insertion",
       "crates_terminal_core_src_state_terminalstate_set_cursor_key_mode",
+      "crates_terminal_core_src_state_terminalstate_set_cursor_visibility",
       "crates_terminal_core_src_state_terminalstate_set_foreground_color",
       "crates_terminal_core_src_state_terminalstate_set_inverse_video",
       "crates_terminal_core_src_state_terminalstate_set_italic_style",
@@ -377,6 +300,7 @@
       "crates_terminal_core_src_state_terminalstate_switch_to_primary_screen",
       "crates_terminal_core_src_state_terminalstate_terminal_modes",
       "cursorkeymode",
+      "cursorvisibility",
       "inputmodes",
       "inversevideo",
       "italicstyle",
@@ -384,7 +308,7 @@
       "textintensity",
       "underlinestyle"
     ],
-    "7": [
+    "6": [
       "crates_terminal_core_src_parser",
       "crates_terminal_core_src_parser_default_one",
       "crates_terminal_core_src_parser_extendedcolorchannel",
@@ -423,6 +347,41 @@
       "parser",
       "perform"
     ],
+    "7": [
+      "crates_terminal_pty_src_lib_ptysession",
+      "crates_terminal_pty_tests_worker",
+      "crates_terminal_pty_tests_worker_bounded_event_queue_backpressures_without_dropping_terminal_events",
+      "crates_terminal_pty_tests_worker_contains_subsequence",
+      "crates_terminal_pty_tests_worker_dropping_the_controller_terminates_and_joins_the_session",
+      "crates_terminal_pty_tests_worker_explicit_termination_emits_each_terminal_event_once_and_join_rejects_later_commands",
+      "crates_terminal_pty_tests_worker_full_command_queue_rejects_the_newest_command_without_dropping_queued_commands",
+      "crates_terminal_pty_tests_worker_helper_worker",
+      "crates_terminal_pty_tests_worker_rs_arc",
+      "crates_terminal_pty_tests_worker_rs_box",
+      "crates_terminal_pty_tests_worker_rs_default",
+      "crates_terminal_pty_tests_worker_rs_intoiterator",
+      "crates_terminal_pty_tests_worker_rs_item",
+      "crates_terminal_pty_tests_worker_rs_mutex",
+      "crates_terminal_pty_tests_worker_rs_option",
+      "crates_terminal_pty_tests_worker_rs_receiver",
+      "crates_terminal_pty_tests_worker_rs_result",
+      "crates_terminal_pty_tests_worker_rs_self",
+      "crates_terminal_pty_tests_worker_rs_send",
+      "crates_terminal_pty_tests_worker_rs_syncsender",
+      "crates_terminal_pty_tests_worker_rs_vec",
+      "crates_terminal_pty_tests_worker_scripted_worker",
+      "crates_terminal_pty_tests_worker_scriptedreader",
+      "crates_terminal_pty_tests_worker_scriptedreader_read",
+      "crates_terminal_pty_tests_worker_testsession",
+      "crates_terminal_pty_tests_worker_testsession_resize",
+      "crates_terminal_pty_tests_worker_testsession_take_output_reader",
+      "crates_terminal_pty_tests_worker_testsession_terminate",
+      "crates_terminal_pty_tests_worker_testsession_write",
+      "crates_terminal_pty_tests_worker_teststate",
+      "crates_terminal_pty_tests_worker_teststate_default",
+      "crates_terminal_pty_tests_worker_worker_forwards_raw_helper_output_and_independent_terminal_events",
+      "sync"
+    ],
     "8": [
       "crates_terminal_core_src_cursor",
       "crates_terminal_core_src_cursor_cursor",
@@ -456,6 +415,36 @@
       "nonzerousize"
     ],
     "9": [
+      "crates_terminal_core_src_state_rs_cursor",
+      "crates_terminal_core_src_state_rs_cursorerror",
+      "crates_terminal_core_src_state_rs_verticalscrollingmargins",
+      "crates_terminal_core_src_state_terminalstate_backspace",
+      "crates_terminal_core_src_state_terminalstate_carriage_return",
+      "crates_terminal_core_src_state_terminalstate_clear_horizontal_tab_stop",
+      "crates_terminal_core_src_state_terminalstate_cursor",
+      "crates_terminal_core_src_state_terminalstate_cursor_next_line",
+      "crates_terminal_core_src_state_terminalstate_cursor_previous_line",
+      "crates_terminal_core_src_state_terminalstate_delete_characters",
+      "crates_terminal_core_src_state_terminalstate_delete_lines",
+      "crates_terminal_core_src_state_terminalstate_dimensions",
+      "crates_terminal_core_src_state_terminalstate_erase_characters",
+      "crates_terminal_core_src_state_terminalstate_horizontal_tab",
+      "crates_terminal_core_src_state_terminalstate_index",
+      "crates_terminal_core_src_state_terminalstate_insert_lines",
+      "crates_terminal_core_src_state_terminalstate_line_feed",
+      "crates_terminal_core_src_state_terminalstate_move_cursor",
+      "crates_terminal_core_src_state_terminalstate_next_line",
+      "crates_terminal_core_src_state_terminalstate_request_cursor_position_report",
+      "crates_terminal_core_src_state_terminalstate_reverse_index",
+      "crates_terminal_core_src_state_terminalstate_scroll_down",
+      "crates_terminal_core_src_state_terminalstate_scroll_up",
+      "crates_terminal_core_src_state_terminalstate_set_cursor_position",
+      "crates_terminal_core_src_state_terminalstate_set_horizontal_tab_stop",
+      "crates_terminal_core_src_state_terminalstate_set_vertical_scrolling_margins",
+      "crates_terminal_core_src_state_terminalstate_vertical_scrolling_margins",
+      "crates_terminal_core_src_state_terminalstate_wrap_before_print"
+    ],
+    "10": [
       "crates_terminal_core_tests_saved_cursor",
       "crates_terminal_core_tests_saved_cursor_cells",
       "crates_terminal_core_tests_saved_cursor_cursor",
@@ -485,36 +474,32 @@
       "sized",
       "vec"
     ],
-    "10": [
-      "crates_terminal_core_src_state_rs_cursor",
-      "crates_terminal_core_src_state_rs_cursorerror",
-      "crates_terminal_core_src_state_rs_verticalscrollingmargins",
-      "crates_terminal_core_src_state_terminalstate_backspace",
-      "crates_terminal_core_src_state_terminalstate_carriage_return",
-      "crates_terminal_core_src_state_terminalstate_cursor",
-      "crates_terminal_core_src_state_terminalstate_cursor_next_line",
-      "crates_terminal_core_src_state_terminalstate_cursor_previous_line",
-      "crates_terminal_core_src_state_terminalstate_delete_lines",
-      "crates_terminal_core_src_state_terminalstate_dimensions",
-      "crates_terminal_core_src_state_terminalstate_erase_characters",
-      "crates_terminal_core_src_state_terminalstate_horizontal_tab",
-      "crates_terminal_core_src_state_terminalstate_index",
-      "crates_terminal_core_src_state_terminalstate_insert_characters",
-      "crates_terminal_core_src_state_terminalstate_insert_lines",
-      "crates_terminal_core_src_state_terminalstate_line_feed",
-      "crates_terminal_core_src_state_terminalstate_move_cursor",
-      "crates_terminal_core_src_state_terminalstate_next_line",
-      "crates_terminal_core_src_state_terminalstate_request_cursor_position_report",
-      "crates_terminal_core_src_state_terminalstate_reverse_index",
-      "crates_terminal_core_src_state_terminalstate_scroll_down",
-      "crates_terminal_core_src_state_terminalstate_scroll_up",
-      "crates_terminal_core_src_state_terminalstate_set_cursor_position",
-      "crates_terminal_core_src_state_terminalstate_set_horizontal_tab_stop",
-      "crates_terminal_core_src_state_terminalstate_set_vertical_scrolling_margins",
-      "crates_terminal_core_src_state_terminalstate_vertical_scrolling_margins",
-      "crates_terminal_core_src_state_terminalstate_wrap_before_print"
-    ],
     "11": [
+      "crates_terminal_pty_src_lib_portableptybackend",
+      "crates_terminal_pty_src_lib_portableptybackend_default",
+      "crates_terminal_pty_src_lib_portableptybackend_new",
+      "crates_terminal_pty_src_lib_portableptybackend_spawn",
+      "crates_terminal_pty_src_lib_ptybackend",
+      "crates_terminal_pty_src_lib_ptyspawnconfig",
+      "crates_terminal_pty_src_lib_ptyspawnconfig_arguments",
+      "crates_terminal_pty_src_lib_ptyspawnconfig_environment",
+      "crates_terminal_pty_src_lib_ptyspawnconfig_new",
+      "crates_terminal_pty_src_lib_ptyspawnconfig_program",
+      "crates_terminal_pty_src_lib_ptyspawnconfig_with_arguments",
+      "crates_terminal_pty_src_lib_ptyspawnconfig_with_environment",
+      "crates_terminal_pty_src_lib_ptyspawnconfig_with_working_directory",
+      "crates_terminal_pty_src_lib_ptyspawnconfig_working_directory",
+      "crates_terminal_pty_src_lib_rs_default",
+      "crates_terminal_pty_src_lib_rs_intoiterator",
+      "crates_terminal_pty_src_lib_rs_item",
+      "crates_terminal_pty_src_lib_rs_self",
+      "osstring",
+      "path",
+      "pathbuf",
+      "ptysystem",
+      "session"
+    ],
+    "12": [
       "crates_terminal_core_tests_models",
       "crates_terminal_core_tests_models_accepts_dimensions_at_each_resource_boundary",
       "crates_terminal_core_tests_models_accesses_and_mutates_cells_by_row_and_column",
@@ -536,7 +521,27 @@
       "crates_terminal_core_tests_models_returns_none_for_out_of_bounds_cells",
       "crates_terminal_core_tests_models_shrinking_resize_keeps_top_left_intersection_and_clamps_cursor"
     ],
-    "12": [
+    "13": [
+      "crates_terminal_pty_src_lib_ptyerror_fmt",
+      "crates_terminal_pty_src_lib_ptysizeerror_fmt",
+      "crates_terminal_pty_src_lib_ptyworker",
+      "crates_terminal_pty_src_lib_ptyworker_drop",
+      "crates_terminal_pty_src_lib_ptyworker_join",
+      "crates_terminal_pty_src_lib_ptyworker_recv_timeout",
+      "crates_terminal_pty_src_lib_ptyworker_resize",
+      "crates_terminal_pty_src_lib_ptyworker_send",
+      "crates_terminal_pty_src_lib_ptyworker_shutdown_and_join",
+      "crates_terminal_pty_src_lib_ptyworker_start",
+      "crates_terminal_pty_src_lib_ptyworker_terminate",
+      "crates_terminal_pty_src_lib_ptyworker_write",
+      "crates_terminal_pty_src_lib_ptyworkererror",
+      "crates_terminal_pty_src_lib_ptyworkererror_fmt",
+      "crates_terminal_pty_src_lib_rs_result",
+      "drop",
+      "formatter",
+      "joinhandle"
+    ],
+    "14": [
       "crates_terminal_core_src_state",
       "crates_terminal_core_src_state_clear_screen_clears_owned_screen_content",
       "crates_terminal_core_src_state_cursormovement",
@@ -555,7 +560,7 @@
       "horizontaltabstops",
       "pendingreplies"
     ],
-    "13": [
+    "15": [
       "crates_terminal_core_tests_scrollback",
       "crates_terminal_core_tests_scrollback_alternate_scrolling_does_not_append_primary_history_and_switches_preserve_it",
       "crates_terminal_core_tests_scrollback_captured_cells_preserve_combining_wide_occupancy_and_rendition",
@@ -573,7 +578,7 @@
       "crates_terminal_core_tests_scrollback_visible_row_text",
       "crates_terminal_core_tests_scrollback_write_row"
     ],
-    "14": [
+    "16": [
       "crates_terminal_core_src_modes",
       "crates_terminal_core_src_modes_autowrapmode",
       "crates_terminal_core_src_modes_characterinsertionmode",
@@ -590,7 +595,23 @@
       "crates_terminal_core_src_modes_terminalmodes_set_character_insertion",
       "crates_terminal_core_src_modes_terminalmodes_set_cursor_visibility"
     ],
-    "15": [
+    "17": [
+      "atomicbool",
+      "crates_terminal_pty_src_lib",
+      "crates_terminal_pty_src_lib_handle_command",
+      "crates_terminal_pty_src_lib_ptycommand",
+      "crates_terminal_pty_src_lib_ptyworkerevent",
+      "crates_terminal_pty_src_lib_request_termination",
+      "crates_terminal_pty_src_lib_rs_arc",
+      "crates_terminal_pty_src_lib_rs_receiver",
+      "crates_terminal_pty_src_lib_rs_syncsender",
+      "crates_terminal_pty_src_lib_run_reader",
+      "crates_terminal_pty_src_lib_run_session",
+      "crates_terminal_pty_src_lib_send_event",
+      "duration",
+      "s"
+    ],
+    "18": [
       "crates_terminal_core_tests_combining_marks",
       "crates_terminal_core_tests_combining_marks_assert_valid_cells",
       "crates_terminal_core_tests_combining_marks_combining_at_right_margin_attaches_before_delayed_wrap_resolves",
@@ -606,7 +627,7 @@
       "crates_terminal_core_tests_combining_marks_wide_base_owns_marks_and_continuation_remains_metadata_only",
       "crates_terminal_core_tests_combining_marks_wide_combining_payloads_survive_shifts_and_clear_with_their_pair"
     ],
-    "16": [
+    "19": [
       "crates_terminal_core_tests_region_ind_ri",
       "crates_terminal_core_tests_region_ind_ri_crossing_into_region_by_index_or_reverse_index_does_not_scroll",
       "crates_terminal_core_tests_region_ind_ri_full_screen_margins_preserve_previous_index_and_reverse_index_behavior",
@@ -622,7 +643,23 @@
       "crates_terminal_core_tests_region_ind_ri_rs_string",
       "crates_terminal_core_tests_region_ind_ri_rs_vec"
     ],
-    "17": [
+    "20": [
+      "crates_terminal_pty_src_lib_portableoutputreader_read",
+      "crates_terminal_pty_src_lib_portableptysession_resize",
+      "crates_terminal_pty_src_lib_portableptysession_terminate",
+      "crates_terminal_pty_src_lib_portableptysession_write",
+      "crates_terminal_pty_src_lib_ptyerror",
+      "crates_terminal_pty_src_lib_ptylifecycle_allows_operations",
+      "crates_terminal_pty_src_lib_ptysize",
+      "crates_terminal_pty_src_lib_ptysize_columns",
+      "crates_terminal_pty_src_lib_ptysize_new",
+      "crates_terminal_pty_src_lib_ptysize_rows",
+      "crates_terminal_pty_src_lib_ptysizeerror",
+      "crates_terminal_pty_src_lib_ptyspawnconfig_initial_size",
+      "display",
+      "error"
+    ],
+    "21": [
       "crates_terminal_core_src_scrollback",
       "crates_terminal_core_src_scrollback_evicts_the_oldest_row_when_at_capacity",
       "crates_terminal_core_src_scrollback_row_is_valid",
@@ -637,7 +674,7 @@
       "crates_terminal_core_src_scrollback_scrollback_row",
       "vecdeque"
     ],
-    "18": [
+    "22": [
       "crates_terminal_core_src_tabs",
       "crates_terminal_core_src_tabs_horizontaltabstops",
       "crates_terminal_core_src_tabs_horizontaltabstops_clear",
@@ -652,7 +689,7 @@
       "crates_terminal_core_src_tabs_rs_self",
       "crates_terminal_core_src_tabs_rs_vec"
     ],
-    "19": [
+    "23": [
       "crates_terminal_core_tests_parser_assert_observable_state_eq",
       "crates_terminal_core_tests_parser_byte_at_a_time_matches_one_shot_input",
       "crates_terminal_core_tests_parser_cnl_and_cpl_are_chunk_safe_and_preserve_printable_input",
@@ -667,7 +704,7 @@
       "crates_terminal_core_tests_parser_sgr_faint_has_ordered_reset_and_snapshot_semantics",
       "crates_terminal_core_tests_parser_supported_csi_is_chunk_safe_at_every_byte_boundary"
     ],
-    "20": [
+    "24": [
       "crates_terminal_core_tests_region_su_sd_parser",
       "crates_terminal_core_tests_region_su_sd_parser_decstbm_followed_by_su_or_sd_uses_active_region_and_default_count",
       "crates_terminal_core_tests_region_su_sd_parser_labeled_state",
@@ -682,7 +719,22 @@
       "crates_terminal_core_tests_region_su_sd_parser_rs_string",
       "crates_terminal_core_tests_region_su_sd_parser_rs_vec"
     ],
-    "21": [
+    "25": [
+      "crates_terminal_pty_src_lib_portableptysession_lifecycle",
+      "crates_terminal_pty_src_lib_portableptysession_refresh_lifecycle",
+      "crates_terminal_pty_src_lib_ptyexitstatus",
+      "crates_terminal_pty_src_lib_ptyexitstatus_code",
+      "crates_terminal_pty_src_lib_ptyexitstatus_code_value",
+      "crates_terminal_pty_src_lib_ptyexitstatus_unknown",
+      "crates_terminal_pty_src_lib_ptylifecycle",
+      "crates_terminal_pty_src_lib_ptylifecycle_termination_is_idempotent",
+      "crates_terminal_pty_src_lib_ptyoutput",
+      "crates_terminal_pty_src_lib_ptyoutput_bytes",
+      "crates_terminal_pty_src_lib_rs_option",
+      "crates_terminal_pty_src_lib_rs_vec",
+      "crates_terminal_pty_tests_worker_testsession_lifecycle"
+    ],
+    "26": [
       "docs_architecture",
       "docs_architecture_architecture",
       "docs_architecture_commands_and_workspaces",
@@ -697,7 +749,21 @@
       "docs_architecture_technical_direction",
       "docs_architecture_terminalstate_boundary"
     ],
-    "22": [
+    "27": [
+      "crates_terminal_core_tests_da1_parser",
+      "crates_terminal_core_tests_da1_parser_da1_queries_are_chunk_safe_at_every_input_boundary",
+      "crates_terminal_core_tests_da1_parser_incomplete_malformed_private_and_non_primary_da_forms_do_not_reply",
+      "crates_terminal_core_tests_da1_parser_multiple_queries_in_one_stream_and_separate_calls_are_preserved",
+      "crates_terminal_core_tests_da1_parser_parser_csi_c_and_csi_zero_c_produce_exact_da1_reply",
+      "crates_terminal_core_tests_da1_parser_parser_da1_at_capacity_is_bounded_and_does_not_overwrite_pending_replies",
+      "crates_terminal_core_tests_da1_parser_printable_text_neighbors_da1_without_becoming_reply_input",
+      "crates_terminal_core_tests_da1_parser_reply_bytes",
+      "crates_terminal_core_tests_da1_parser_row_text",
+      "crates_terminal_core_tests_da1_parser_rs_string",
+      "crates_terminal_core_tests_da1_parser_rs_vec",
+      "crates_terminal_core_tests_da1_parser_state"
+    ],
+    "28": [
       "crates_terminal_core_tests_insert_delete_lines",
       "crates_terminal_core_tests_insert_delete_lines_delete_lines_is_cursor_relative_within_the_active_region",
       "crates_terminal_core_tests_insert_delete_lines_insert_lines_is_cursor_relative_within_the_active_region",
@@ -711,7 +777,7 @@
       "crates_terminal_core_tests_insert_delete_lines_rs_string",
       "crates_terminal_core_tests_insert_delete_lines_rs_vec"
     ],
-    "23": [
+    "29": [
       "crates_terminal_core_tests_region_su_sd",
       "crates_terminal_core_tests_region_su_sd_full_screen_margins_keep_established_su_sd_behavior",
       "crates_terminal_core_tests_region_su_sd_labeled_state",
@@ -725,7 +791,7 @@
       "crates_terminal_core_tests_region_su_sd_sd_scrolls_only_custom_region_for_one_and_multiple_rows",
       "crates_terminal_core_tests_region_su_sd_su_scrolls_only_custom_region_for_one_and_multiple_rows"
     ],
-    "24": [
+    "30": [
       "crates_terminal_core_tests_rendition",
       "crates_terminal_core_tests_rendition_current_rendition_uses_documented_defaults",
       "crates_terminal_core_tests_rendition_cursor_modes_tabs_erase_and_delayed_wrap_preserve_current_rendition",
@@ -739,7 +805,7 @@
       "crates_terminal_core_tests_rendition_text_intensity_can_be_set_and_cleared_independently",
       "crates_terminal_core_tests_rendition_underline_can_be_set_and_cleared_independently"
     ],
-    "25": [
+    "31": [
       "crates_terminal_core_tests_scrolling_margins",
       "crates_terminal_core_tests_scrolling_margins_custom_margins_bound_su_sd_and_nel",
       "crates_terminal_core_tests_scrolling_margins_labeled_state",
@@ -753,7 +819,20 @@
       "crates_terminal_core_tests_scrolling_margins_setting_valid_margins_is_atomic_homes_cursor_and_preserves_unrelated_state",
       "crates_terminal_core_tests_scrolling_margins_typed_scrolling_margins_enforce_order_and_screen_bounds"
     ],
-    "26": [
+    "32": [
+      "child",
+      "crates_terminal_pty_src_lib_portableoutputreader",
+      "crates_terminal_pty_src_lib_portableptysession",
+      "crates_terminal_pty_src_lib_portableptysession_take_output_reader",
+      "crates_terminal_pty_src_lib_ptyoutputreader",
+      "crates_terminal_pty_src_lib_rs_box",
+      "crates_terminal_pty_src_lib_rs_mutex",
+      "crates_terminal_pty_src_lib_rs_send",
+      "masterpty",
+      "read",
+      "write"
+    ],
+    "33": [
       "crates_terminal_core_src_reply",
       "crates_terminal_core_src_reply_pendingreplies_default",
       "crates_terminal_core_src_reply_pendingreplies_push",
@@ -766,7 +845,7 @@
       "crates_terminal_core_src_reply_terminalreplybytes_push",
       "crates_terminal_core_src_reply_terminalreplybytes_push_decimal"
     ],
-    "27": [
+    "34": [
       "crates_terminal_core_tests_dec_alt_screen_1049",
       "crates_terminal_core_tests_dec_alt_screen_1049_cursor",
       "crates_terminal_core_tests_dec_alt_screen_1049_dec_private_mode_1049_is_chunk_safe_and_isolated_from_other_private_mode_forms",
@@ -779,7 +858,7 @@
       "crates_terminal_core_tests_dec_alt_screen_1049_rs_string",
       "crates_terminal_core_tests_dec_alt_screen_1049_state"
     ],
-    "28": [
+    "35": [
       "crates_terminal_core_tests_insert_delete_lines_parser",
       "crates_terminal_core_tests_insert_delete_lines_parser_labeled_state",
       "crates_terminal_core_tests_insert_delete_lines_parser_parse",
@@ -792,7 +871,7 @@
       "crates_terminal_core_tests_insert_delete_lines_parser_rs_string",
       "crates_terminal_core_tests_insert_delete_lines_parser_rs_vec"
     ],
-    "29": [
+    "36": [
       "crates_terminal_core_tests_modes",
       "crates_terminal_core_tests_modes_auto_wrap_transitions_are_explicit_and_idempotent",
       "crates_terminal_core_tests_modes_changing_character_insertion_does_not_change_unrelated_modes",
@@ -805,7 +884,7 @@
       "crates_terminal_core_tests_modes_input_modes_default_to_normal_cursor_keys",
       "crates_terminal_core_tests_modes_terminal_modes_use_standard_foundational_defaults"
     ],
-    "30": [
+    "37": [
       "crates_terminal_core_tests_screen_resize_scrollback_audit",
       "crates_terminal_core_tests_screen_resize_scrollback_audit_primary_history_retains_chronological_mixed_width_rows_across_resizes",
       "crates_terminal_core_tests_screen_resize_scrollback_audit_resize_during_1049_clamps_saved_cursor_without_mutating_primary_history",
@@ -818,7 +897,7 @@
       "string",
       "terminalstate"
     ],
-    "31": [
+    "38": [
       "crates_terminal_core_src_reply_pendingreplies",
       "crates_terminal_core_src_reply_pendingreplies_len",
       "crates_terminal_core_src_reply_pendingreplies_pop",
@@ -827,22 +906,10 @@
       "crates_terminal_core_src_reply_terminalreply",
       "crates_terminal_core_tests_cpr_parser_reply_bytes",
       "crates_terminal_core_tests_cpr_parser_rs_vec",
-      "crates_terminal_core_tests_da1_parser_reply_bytes",
-      "crates_terminal_core_tests_da1_parser_rs_vec"
+      "crates_terminal_core_tests_dsr_status_parser_bytes",
+      "crates_terminal_core_tests_dsr_status_parser_rs_vec"
     ],
-    "32": [
-      "crates_terminal_core_tests_da1_parser",
-      "crates_terminal_core_tests_da1_parser_da1_queries_are_chunk_safe_at_every_input_boundary",
-      "crates_terminal_core_tests_da1_parser_incomplete_malformed_private_and_non_primary_da_forms_do_not_reply",
-      "crates_terminal_core_tests_da1_parser_multiple_queries_in_one_stream_and_separate_calls_are_preserved",
-      "crates_terminal_core_tests_da1_parser_parser_csi_c_and_csi_zero_c_produce_exact_da1_reply",
-      "crates_terminal_core_tests_da1_parser_parser_da1_at_capacity_is_bounded_and_does_not_overwrite_pending_replies",
-      "crates_terminal_core_tests_da1_parser_printable_text_neighbors_da1_without_becoming_reply_input",
-      "crates_terminal_core_tests_da1_parser_row_text",
-      "crates_terminal_core_tests_da1_parser_rs_string",
-      "crates_terminal_core_tests_da1_parser_state"
-    ],
-    "33": [
+    "39": [
       "crates_terminal_core_tests_dec_alt_screen_1047",
       "crates_terminal_core_tests_dec_alt_screen_1047_dec_private_mode_1047_clears_the_resized_alternate_and_terminal_reset_is_unchanged",
       "crates_terminal_core_tests_dec_alt_screen_1047_dec_private_mode_1047_clears_wide_combining_alternate_cells_but_not_primary_cells",
@@ -854,7 +921,7 @@
       "crates_terminal_core_tests_dec_alt_screen_1047_rs_string",
       "crates_terminal_core_tests_dec_alt_screen_1047_state"
     ],
-    "34": [
+    "40": [
       "crates_terminal_core_tests_region_nel_parser",
       "crates_terminal_core_tests_region_nel_parser_assert_observable_state_eq",
       "crates_terminal_core_tests_region_nel_parser_incomplete_and_malformed_nel_escapes_keep_safe_existing_behavior",
@@ -866,7 +933,7 @@
       "crates_terminal_core_tests_region_nel_parser_row_text",
       "crates_terminal_core_tests_region_nel_parser_rs_string"
     ],
-    "35": [
+    "41": [
       "crates_terminal_core_tests_wide_cells",
       "crates_terminal_core_tests_wide_cells_assert_valid_wide_cells",
       "crates_terminal_core_tests_wide_cells_erase_editing_resize_reset_and_vertical_moves_preserve_wide_cell_structure",
@@ -878,7 +945,7 @@
       "crates_terminal_core_tests_wide_cells_wide_printable_uses_a_lead_and_continuation_with_rendition_snapshot",
       "crates_terminal_core_tests_wide_cells_wide_write_repairs_overwritten_halves_and_delayed_wrap_before_writing"
     ],
-    "36": [
+    "42": [
       "docs_roadmap",
       "docs_roadmap_early_integration_checkpoint",
       "docs_roadmap_m0_repository_foundation",
@@ -890,7 +957,7 @@
       "docs_roadmap_m6_workspaces_and_release_readiness",
       "docs_roadmap_roadmap"
     ],
-    "37": [
+    "43": [
       "crates_terminal_core_tests_dec_alt_screen_47",
       "crates_terminal_core_tests_dec_alt_screen_47_dec_private_mode_47_handles_mixed_parameters_and_isolates_neighboring_modes",
       "crates_terminal_core_tests_dec_alt_screen_47_dec_private_mode_47_is_chunk_invariant_and_keeps_printable_text_on_active_screen",
@@ -901,7 +968,7 @@
       "crates_terminal_core_tests_dec_alt_screen_47_rs_string",
       "crates_terminal_core_tests_dec_alt_screen_47_state"
     ],
-    "38": [
+    "44": [
       "crates_terminal_core_tests_decstbm",
       "crates_terminal_core_tests_decstbm_decstbm_accepts_full_explicit_and_partial_default_forms",
       "crates_terminal_core_tests_decstbm_decstbm_defaults_remain_valid_on_a_single_row_screen",
@@ -912,7 +979,7 @@
       "crates_terminal_core_tests_decstbm_parse",
       "crates_terminal_core_tests_decstbm_valid_decstbm_homes_cursor_cancels_wrap_and_preserves_unrelated_state"
     ],
-    "39": [
+    "45": [
       "crates_terminal_core_tests_delete_characters",
       "crates_terminal_core_tests_delete_characters_delete_characters_cancels_delayed_wrap_like_ich_and_erase",
       "crates_terminal_core_tests_delete_characters_delete_characters_is_independent_of_typing_insert_mode_and_preserves_state",
@@ -923,7 +990,7 @@
       "crates_terminal_core_tests_delete_characters_row",
       "crates_terminal_core_tests_delete_characters_rs_string"
     ],
-    "40": [
+    "46": [
       "crates_terminal_core_tests_erase_characters",
       "crates_terminal_core_tests_erase_characters_erase_characters_cancels_delayed_wrap_and_ignores_scrolling_margins",
       "crates_terminal_core_tests_erase_characters_erase_characters_clears_only_the_bounded_current_row_range",
@@ -934,7 +1001,7 @@
       "crates_terminal_core_tests_erase_characters_row",
       "crates_terminal_core_tests_erase_characters_rs_string"
     ],
-    "41": [
+    "47": [
       "crates_terminal_core_tests_insert_characters",
       "crates_terminal_core_tests_insert_characters_insert_characters_cancels_delayed_wrap_like_other_current_row_editing_operations",
       "crates_terminal_core_tests_insert_characters_insert_characters_does_not_depend_on_scrolling_margins",
@@ -945,7 +1012,7 @@
       "crates_terminal_core_tests_insert_characters_row",
       "crates_terminal_core_tests_insert_characters_rs_string"
     ],
-    "42": [
+    "48": [
       "crates_terminal_core_tests_screen_switching",
       "crates_terminal_core_tests_screen_switching_margins_and_pending_wrap_are_screen_local",
       "crates_terminal_core_tests_screen_switching_modes_rendition_tabs_and_replies_are_shared_across_switching",
@@ -956,7 +1023,7 @@
       "crates_terminal_core_tests_screen_switching_switching_is_idempotent_and_reset_blanks_both_screens_on_primary",
       "crates_terminal_core_tests_screen_switching_wide_combining_primary_payload_survives_round_trip_and_resize_updates_both_screens"
     ],
-    "43": [
+    "49": [
       "crates_terminal_core_tests_state_cursor_next_and_previous_line_do_not_use_scrolling_control_semantics",
       "crates_terminal_core_tests_state_cursor_next_and_previous_line_preserve_cells_state_and_screen_bounds",
       "crates_terminal_core_tests_state_erase_in_display_supports_all_directions_without_moving_the_cursor",
@@ -967,7 +1034,18 @@
       "crates_terminal_core_tests_state_row_text",
       "crates_terminal_core_tests_state_rs_string"
     ],
-    "44": [
+    "50": [
+      "crates_terminal_pty_tests_contract",
+      "crates_terminal_pty_tests_contract_contains_subsequence",
+      "crates_terminal_pty_tests_contract_helper_session",
+      "crates_terminal_pty_tests_contract_lifecycle_keeps_exit_and_termination_distinct",
+      "crates_terminal_pty_tests_contract_output_preserves_arbitrary_bytes_and_distinguishes_eof_from_exit",
+      "crates_terminal_pty_tests_contract_portable_backend_is_project_owned_and_constructible",
+      "crates_terminal_pty_tests_contract_portable_backend_streams_helper_output_without_assuming_read_boundaries",
+      "crates_terminal_pty_tests_contract_size_rejects_zero_dimensions",
+      "crates_terminal_pty_tests_contract_spawn_config_owns_platform_arguments_environment_and_working_directory"
+    ],
+    "51": [
       "crates_terminal_core_src_scrolling",
       "crates_terminal_core_src_scrolling_rs_option",
       "crates_terminal_core_src_scrolling_rs_self",
@@ -977,7 +1055,7 @@
       "crates_terminal_core_src_scrolling_verticalscrollingmargins_new",
       "crates_terminal_core_src_scrolling_verticalscrollingmargins_top"
     ],
-    "45": [
+    "52": [
       "crates_terminal_core_tests_cpr",
       "crates_terminal_core_tests_cpr_cpr_generation_preserves_terminal_state_and_delayed_wrap",
       "crates_terminal_core_tests_cpr_cpr_is_absolute_with_custom_margins_and_after_region_aware_scrolling",
@@ -987,7 +1065,7 @@
       "crates_terminal_core_tests_cpr_reply_bytes",
       "crates_terminal_core_tests_cpr_rs_vec"
     ],
-    "46": [
+    "53": [
       "crates_terminal_core_tests_da2",
       "crates_terminal_core_tests_da2_bytes",
       "crates_terminal_core_tests_da2_parser_recognizes_only_omitted_or_zero_da2_requests",
@@ -997,7 +1075,7 @@
       "crates_terminal_core_tests_da2_secondary_device_attributes_preserves_fifo_order_and_capacity",
       "crates_terminal_core_tests_da2_state"
     ],
-    "47": [
+    "54": [
       "crates_terminal_core_tests_decckm_parser",
       "crates_terminal_core_tests_decckm_parser_decckm_changes_only_cursor_key_mode_and_preserves_terminal_state",
       "crates_terminal_core_tests_decckm_parser_decckm_handles_private_parameters_independently_in_parser_order",
@@ -1007,7 +1085,7 @@
       "crates_terminal_core_tests_decckm_parser_row_text",
       "crates_terminal_core_tests_decckm_parser_rs_string"
     ],
-    "48": [
+    "55": [
       "crates_terminal_core_tests_delete_characters_parser",
       "crates_terminal_core_tests_delete_characters_parser_labeled_state",
       "crates_terminal_core_tests_delete_characters_parser_parse",
@@ -1017,7 +1095,7 @@
       "crates_terminal_core_tests_delete_characters_parser_row",
       "crates_terminal_core_tests_delete_characters_parser_rs_string"
     ],
-    "49": [
+    "56": [
       "crates_terminal_core_tests_erase_characters_parser",
       "crates_terminal_core_tests_erase_characters_parser_labeled_state",
       "crates_terminal_core_tests_erase_characters_parser_parse",
@@ -1027,7 +1105,7 @@
       "crates_terminal_core_tests_erase_characters_parser_row",
       "crates_terminal_core_tests_erase_characters_parser_rs_string"
     ],
-    "50": [
+    "57": [
       "crates_terminal_core_tests_insert_characters_parser",
       "crates_terminal_core_tests_insert_characters_parser_labeled_state",
       "crates_terminal_core_tests_insert_characters_parser_parse",
@@ -1037,7 +1115,7 @@
       "crates_terminal_core_tests_insert_characters_parser_row",
       "crates_terminal_core_tests_insert_characters_parser_rs_string"
     ],
-    "51": [
+    "58": [
       "crates_terminal_core_tests_parser_incomplete_and_malformed_index_controls_do_not_mutate_unrelated_state",
       "crates_terminal_core_tests_parser_labeled_scroll_state",
       "crates_terminal_core_tests_parser_malformed_or_extra_su_sd_parameters_are_safe_no_ops",
@@ -1047,7 +1125,7 @@
       "crates_terminal_core_tests_parser_parser_su_uses_one_for_omitted_and_zero_counts",
       "crates_terminal_core_tests_parser_su_sd_sequences_are_chunk_safe_at_every_byte_boundary"
     ],
-    "52": [
+    "59": [
       "crates_terminal_core_tests_region_ind_ri_parser",
       "crates_terminal_core_tests_region_ind_ri_parser_active_rendition_survives_parser_driven_region_scroll",
       "crates_terminal_core_tests_region_ind_ri_parser_parse",
@@ -1057,7 +1135,7 @@
       "crates_terminal_core_tests_region_ind_ri_parser_row_text",
       "crates_terminal_core_tests_region_ind_ri_parser_rs_string"
     ],
-    "53": [
+    "60": [
       "crates_terminal_core_tests_state_assert_default_cell",
       "crates_terminal_core_tests_state_bottom_index_scrolls_styled_cells_and_preserves_terminal_state",
       "crates_terminal_core_tests_state_bottom_next_line_scrolls_up_and_preserves_rendition_and_modes",
@@ -1067,7 +1145,7 @@
       "crates_terminal_core_tests_state_styled_control_state",
       "crates_terminal_core_tests_state_top_reverse_index_scrolls_styled_cells_and_clears_default_top_row"
     ],
-    "54": [
+    "61": [
       "docs_conventions",
       "docs_conventions_conventions",
       "docs_conventions_dependencies",
@@ -1077,7 +1155,7 @@
       "docs_conventions_required_local_gates",
       "docs_conventions_testing"
     ],
-    "55": [
+    "62": [
       "agent_workflow",
       "agent_workflow_before_implementation",
       "agent_workflow_completion_gates",
@@ -1086,7 +1164,7 @@
       "agent_workflow_implementation",
       "agent_workflow_reporting"
     ],
-    "56": [
+    "63": [
       "crates_terminal_core_tests_da1",
       "crates_terminal_core_tests_da1_da1_generation_and_consumption_preserve_terminal_state_and_delayed_wrap",
       "crates_terminal_core_tests_da1_pending_replies_are_fifo_bounded_and_never_overwritten",
@@ -1095,16 +1173,7 @@
       "crates_terminal_core_tests_da1_reset_and_resize_preserve_already_generated_replies",
       "crates_terminal_core_tests_da1_rs_vec"
     ],
-    "57": [
-      "crates_terminal_core_tests_dsr_status_parser",
-      "crates_terminal_core_tests_dsr_status_parser_bytes",
-      "crates_terminal_core_tests_dsr_status_parser_parser_dispatches_status_at_every_chunk_boundary",
-      "crates_terminal_core_tests_dsr_status_parser_rs_vec",
-      "crates_terminal_core_tests_dsr_status_parser_state",
-      "crates_terminal_core_tests_dsr_status_parser_status_preserves_order_with_cpr_and_da1",
-      "crates_terminal_core_tests_dsr_status_parser_unsupported_dsr_forms_remain_noops"
-    ],
-    "58": [
+    "64": [
       "readme",
       "readme_current_validation",
       "readme_license",
@@ -1113,7 +1182,7 @@
       "readme_target_platforms",
       "readme_terminal_workspace_application"
     ],
-    "59": [
+    "65": [
       "agent_tasks",
       "agent_tasks_completed_in_this_slice",
       "agent_tasks_deferred_by_scope",
@@ -1121,7 +1190,7 @@
       "agent_tasks_next",
       "agent_tasks_tasks"
     ],
-    "60": [
+    "66": [
       "crates_terminal_core_src_state_printablewidth_classify",
       "crates_terminal_core_src_state_printerror",
       "crates_terminal_core_src_state_printerror_fmt",
@@ -1129,7 +1198,7 @@
       "crates_terminal_core_src_state_terminalstate_attach_combining_mark",
       "crates_terminal_core_src_state_terminalstate_print_character"
     ],
-    "61": [
+    "67": [
       "crates_terminal_core_tests_dsr_status",
       "crates_terminal_core_tests_dsr_status_bytes",
       "crates_terminal_core_tests_dsr_status_rs_vec",
@@ -1137,7 +1206,7 @@
       "crates_terminal_core_tests_dsr_status_status_query_preserves_terminal_state_and_delayed_wrap",
       "crates_terminal_core_tests_dsr_status_terminal_status_encodes_exactly_and_is_bounded"
     ],
-    "62": [
+    "68": [
       "docs_current_state",
       "docs_current_state_current_state",
       "docs_current_state_known_issues",
@@ -1145,7 +1214,7 @@
       "docs_current_state_partial",
       "docs_current_state_working"
     ],
-    "63": [
+    "69": [
       "docs_decisions_adr_0001_rust_cargo_workspace",
       "docs_decisions_adr_0001_rust_cargo_workspace_alternatives",
       "docs_decisions_adr_0001_rust_cargo_workspace_consequences",
@@ -1153,7 +1222,7 @@
       "docs_decisions_adr_0001_rust_cargo_workspace_decision",
       "docs_decisions_adr_0001_rust_cargo_workspace_rust_and_cargo_workspace"
     ],
-    "64": [
+    "70": [
       "docs_decisions_adr_0002_component_boundaries",
       "docs_decisions_adr_0002_component_boundaries_alternatives",
       "docs_decisions_adr_0002_component_boundaries_component_boundaries_and_dependency_direction",
@@ -1161,7 +1230,7 @@
       "docs_decisions_adr_0002_component_boundaries_context",
       "docs_decisions_adr_0002_component_boundaries_decision"
     ],
-    "65": [
+    "71": [
       "docs_decisions_adr_0003_native_window_render_font_stack",
       "docs_decisions_adr_0003_native_window_render_font_stack_alternatives",
       "docs_decisions_adr_0003_native_window_render_font_stack_consequences",
@@ -1169,7 +1238,7 @@
       "docs_decisions_adr_0003_native_window_render_font_stack_decision",
       "docs_decisions_adr_0003_native_window_render_font_stack_native_window_gpu_rendering_and_font_stack"
     ],
-    "66": [
+    "72": [
       "docs_decisions_adr_0004_vte_custom_terminal_state",
       "docs_decisions_adr_0004_vte_custom_terminal_state_alternatives",
       "docs_decisions_adr_0004_vte_custom_terminal_state_consequences",
@@ -1177,7 +1246,7 @@
       "docs_decisions_adr_0004_vte_custom_terminal_state_decision",
       "docs_decisions_adr_0004_vte_custom_terminal_state_vte_parsing_with_project_owned_terminal_state"
     ],
-    "67": [
+    "73": [
       "docs_decisions_adr_0005_pty_process_threading",
       "docs_decisions_adr_0005_pty_process_threading_alternatives",
       "docs_decisions_adr_0005_pty_process_threading_consequences",
@@ -1185,7 +1254,7 @@
       "docs_decisions_adr_0005_pty_process_threading_decision",
       "docs_decisions_adr_0005_pty_process_threading_pty_boundary_process_model_and_threading"
     ],
-    "68": [
+    "74": [
       "docs_decisions_adr_0006_config_commands_workspaces",
       "docs_decisions_adr_0006_config_commands_workspaces_alternatives",
       "docs_decisions_adr_0006_config_commands_workspaces_consequences",
@@ -1193,7 +1262,7 @@
       "docs_decisions_adr_0006_config_commands_workspaces_decision",
       "docs_decisions_adr_0006_config_commands_workspaces_declarative_configuration_central_commands_and_workspaces"
     ],
-    "69": [
+    "75": [
       "docs_decisions_adr_0007_v1_scope_boundaries",
       "docs_decisions_adr_0007_v1_scope_boundaries_alternatives",
       "docs_decisions_adr_0007_v1_scope_boundaries_consequences",
@@ -1201,7 +1270,7 @@
       "docs_decisions_adr_0007_v1_scope_boundaries_decision",
       "docs_decisions_adr_0007_v1_scope_boundaries_v1_scope_boundaries"
     ],
-    "70": [
+    "76": [
       "docs_decisions_adr_0008_license_naming_target_architectures",
       "docs_decisions_adr_0008_license_naming_target_architectures_alternatives",
       "docs_decisions_adr_0008_license_naming_target_architectures_consequences",
@@ -1209,7 +1278,7 @@
       "docs_decisions_adr_0008_license_naming_target_architectures_decision",
       "docs_decisions_adr_0008_license_naming_target_architectures_license_internal_naming_and_target_architectures"
     ],
-    "71": [
+    "77": [
       "docs_product",
       "docs_product_goal",
       "docs_product_priorities",
@@ -1217,234 +1286,252 @@
       "docs_product_v1_non_goals",
       "docs_product_v1_scope"
     ],
-    "72": [
+    "78": [
       "agent_agent",
       "agent_agent_context_efficiency",
       "agent_agent_engineering_agent_contract",
       "agent_agent_non_negotiable_boundaries",
       "agent_agent_start_every_engineering_session"
     ],
-    "73": [
+    "79": [
       "agent_session",
       "agent_session_current_state",
       "agent_session_next",
       "agent_session_session_handoff",
       "agent_session_validation"
     ],
-    "74": [
+    "80": [
       "crates_terminal_core_src_state_rs_cell",
       "crates_terminal_core_src_state_rs_option",
       "crates_terminal_core_src_state_terminalstate_scrollback_row",
       "crates_terminal_core_src_state_terminalstate_take_reply",
       "terminalreply"
     ],
-    "75": [
+    "81": [
       "crates_terminal_core_tests_cpr_parser",
       "crates_terminal_core_tests_cpr_parser_cpr_is_chunk_safe_at_every_input_boundary_and_across_calls",
       "crates_terminal_core_tests_cpr_parser_incomplete_or_malformed_dsr_does_not_reply_before_a_complete_valid_query",
       "crates_terminal_core_tests_cpr_parser_multiple_and_interleaved_da1_and_cpr_queries_keep_exact_fifo_order",
       "crates_terminal_core_tests_cpr_parser_state"
     ],
-    "76": [
+    "82": [
+      "crates_terminal_core_tests_dsr_status_parser",
+      "crates_terminal_core_tests_dsr_status_parser_parser_dispatches_status_at_every_chunk_boundary",
+      "crates_terminal_core_tests_dsr_status_parser_state",
+      "crates_terminal_core_tests_dsr_status_parser_status_preserves_order_with_cpr_and_da1",
+      "crates_terminal_core_tests_dsr_status_parser_unsupported_dsr_forms_remain_noops"
+    ],
+    "83": [
       "docs_performance",
       "docs_performance_initial_goals",
       "docs_performance_measurements_to_add_with_implementations",
       "docs_performance_performance",
       "docs_performance_rules"
     ],
-    "77": [
+    "84": [
       "crates_terminal_core_tests_parser_row_text",
       "crates_terminal_core_tests_parser_rs_string",
       "crates_terminal_core_tests_parser_successive_mode_sequences_preserve_unrelated_state"
     ],
-    "78": [
+    "85": [
       "crates_terminal_pty_src_bin_pty_test_helper",
       "crates_terminal_pty_src_bin_pty_test_helper_main",
       "result"
     ],
-    "79": [
+    "86": [
       "crates_app_src_main",
       "crates_app_src_main_main"
     ],
-    "80": [
-      "crates_terminal_core_src_state_terminalstate_set_cursor_visibility",
-      "cursorvisibility"
-    ],
-    "81": [
-      "crates_config_src_lib"
-    ],
-    "82": [
-      "crates_platform_src_lib"
-    ],
-    "83": [
-      "crates_renderer_src_lib"
-    ],
-    "84": [
-      "crates_terminal_core_src_parser_rs_default"
-    ],
-    "85": [
-      "crates_terminal_core_src_screens_rs_cell"
-    ],
-    "86": [
-      "crates_terminal_core_src_screens_rs_cellattributes"
-    ],
     "87": [
-      "crates_terminal_core_src_screens_rs_cursor"
+      "box"
     ],
     "88": [
-      "crates_terminal_core_src_screens_rs_screengrid"
+      "crates_config_src_lib"
     ],
     "89": [
-      "crates_terminal_core_src_screens_rs_terminaldimensions"
+      "crates_platform_src_lib"
     ],
     "90": [
-      "crates_terminal_core_src_screens_rs_verticalscrollingmargins"
+      "crates_renderer_src_lib"
     ],
     "91": [
-      "crates_terminal_core_src_state_rs_display"
+      "crates_terminal_core_src_parser_rs_default"
     ],
     "92": [
-      "crates_terminal_core_src_state_rs_error"
+      "crates_terminal_core_src_screens_rs_cell"
     ],
     "93": [
-      "crates_terminal_core_src_state_rs_formatter"
+      "crates_terminal_core_src_screens_rs_cellattributes"
     ],
     "94": [
-      "crates_terminal_core_src_state_rs_screengrid"
+      "crates_terminal_core_src_screens_rs_cursor"
     ],
     "95": [
-      "crates_terminal_pty_src_bin_pty_test_helper_rs_result"
+      "crates_terminal_core_src_screens_rs_screengrid"
     ],
     "96": [
-      "crates_terminal_pty_src_lib_rs_option"
+      "crates_terminal_core_src_screens_rs_terminaldimensions"
     ],
     "97": [
-      "crates_terminal_pty_src_lib_rs_self"
+      "crates_terminal_core_src_screens_rs_verticalscrollingmargins"
     ],
     "98": [
-      "crates_terminal_pty_tests_lifecycle_rs_vec"
+      "crates_terminal_core_src_state_rs_display"
     ],
     "99": [
-      "crates_workspace_src_lib"
+      "crates_terminal_core_src_state_rs_error"
     ],
     "100": [
-      "cursorerror"
+      "crates_terminal_core_src_state_rs_formatter"
     ],
     "101": [
-      "pkg_terminal_app"
+      "crates_terminal_core_src_state_rs_screengrid"
     ],
     "102": [
-      "pkg_terminal_config"
+      "crates_terminal_pty_src_bin_pty_test_helper_rs_result"
     ],
     "103": [
-      "pkg_terminal_core"
+      "crates_terminal_pty_tests_lifecycle_rs_vec"
     ],
     "104": [
-      "pkg_terminal_platform"
+      "crates_workspace_src_lib"
     ],
     "105": [
-      "pkg_terminal_pty"
+      "cursorerror"
     ],
     "106": [
-      "pkg_terminal_renderer"
+      "intoiterator"
     ],
     "107": [
-      "pkg_terminal_workspace"
+      "item"
     ],
     "108": [
-      "screenkind"
+      "mutex"
     ],
     "109": [
+      "option"
+    ],
+    "110": [
+      "pkg_terminal_app"
+    ],
+    "111": [
+      "pkg_terminal_config"
+    ],
+    "112": [
+      "pkg_terminal_core"
+    ],
+    "113": [
+      "pkg_terminal_platform"
+    ],
+    "114": [
+      "pkg_terminal_pty"
+    ],
+    "115": [
+      "pkg_terminal_renderer"
+    ],
+    "116": [
+      "pkg_terminal_workspace"
+    ],
+    "117": [
+      "screenkind"
+    ],
+    "118": [
       "screenset"
+    ],
+    "119": [
+      "self"
+    ],
+    "120": [
+      "send"
     ]
   },
   "cohesion": {
-    "0": 0.05981981981981982,
-    "1": 0.06666666666666667,
+    "0": 0.06666666666666667,
+    "1": 0.0392156862745098,
     "2": 0.0392156862745098,
-    "3": 0.0392156862745098,
-    "4": 0.10459183673469388,
-    "5": 0.08985507246376812,
-    "6": 0.05647840531561462,
-    "7": 0.08108108108108109,
+    "3": 0.10815602836879433,
+    "4": 0.08985507246376812,
+    "5": 0.05353535353535353,
+    "6": 0.08108108108108109,
+    "7": 0.10416666666666667,
     "8": 0.08505747126436781,
-    "9": 0.12698412698412698,
-    "10": 0.13105413105413105,
-    "11": 0.1,
-    "12": 0.15441176470588236,
-    "13": 0.2833333333333333,
-    "14": 0.24761904761904763,
-    "15": 0.3626373626373626,
-    "16": 0.27472527472527475,
-    "17": 0.23076923076923078,
-    "18": 0.16666666666666666,
-    "19": 0.28205128205128205,
-    "20": 0.2692307692307692,
-    "21": 0.15384615384615385,
-    "22": 0.2878787878787879,
-    "23": 0.2727272727272727,
-    "24": 0.30303030303030304,
-    "25": 0.21212121212121213,
-    "26": 0.2727272727272727,
-    "27": 0.2909090909090909,
-    "28": 0.2909090909090909,
-    "29": 0.18181818181818182,
-    "30": 0.34545454545454546,
-    "31": 0.24444444444444444,
-    "32": 0.3333333333333333,
-    "33": 0.3333333333333333,
-    "34": 0.37777777777777777,
-    "35": 0.5111111111111111,
-    "36": 0.2,
-    "37": 0.3888888888888889,
-    "38": 0.2777777777777778,
-    "39": 0.3611111111111111,
-    "40": 0.3611111111111111,
-    "41": 0.3611111111111111,
-    "42": 0.3611111111111111,
-    "43": 0.2222222222222222,
-    "44": 0.2857142857142857,
-    "45": 0.25,
-    "46": 0.35714285714285715,
-    "47": 0.2857142857142857,
-    "48": 0.42857142857142855,
-    "49": 0.42857142857142855,
-    "50": 0.42857142857142855,
-    "51": 0.25,
-    "52": 0.35714285714285715,
-    "53": 0.32142857142857145,
-    "54": 0.25,
-    "55": 0.2857142857142857,
-    "56": 0.2857142857142857,
+    "9": 0.12433862433862433,
+    "10": 0.12698412698412698,
+    "11": 0.16996047430830039,
+    "12": 0.1,
+    "13": 0.2679738562091503,
+    "14": 0.15441176470588236,
+    "15": 0.2833333333333333,
+    "16": 0.24761904761904763,
+    "17": 0.4065934065934066,
+    "18": 0.3626373626373626,
+    "19": 0.27472527472527475,
+    "20": 0.2087912087912088,
+    "21": 0.23076923076923078,
+    "22": 0.16666666666666666,
+    "23": 0.28205128205128205,
+    "24": 0.2692307692307692,
+    "25": 0.21794871794871795,
+    "26": 0.15384615384615385,
+    "27": 0.25757575757575757,
+    "28": 0.2878787878787879,
+    "29": 0.2727272727272727,
+    "30": 0.30303030303030304,
+    "31": 0.21212121212121213,
+    "32": 0.2909090909090909,
+    "33": 0.2727272727272727,
+    "34": 0.2909090909090909,
+    "35": 0.2909090909090909,
+    "36": 0.18181818181818182,
+    "37": 0.34545454545454546,
+    "38": 0.24444444444444444,
+    "39": 0.3333333333333333,
+    "40": 0.37777777777777777,
+    "41": 0.5111111111111111,
+    "42": 0.2,
+    "43": 0.3888888888888889,
+    "44": 0.2777777777777778,
+    "45": 0.3611111111111111,
+    "46": 0.3611111111111111,
+    "47": 0.3611111111111111,
+    "48": 0.3611111111111111,
+    "49": 0.2222222222222222,
+    "50": 0.2777777777777778,
+    "51": 0.2857142857142857,
+    "52": 0.25,
+    "53": 0.35714285714285715,
+    "54": 0.2857142857142857,
+    "55": 0.42857142857142855,
+    "56": 0.42857142857142855,
     "57": 0.42857142857142855,
-    "58": 0.2857142857142857,
-    "59": 0.3333333333333333,
-    "60": 0.6666666666666666,
-    "61": 0.3333333333333333,
-    "62": 0.3333333333333333,
-    "63": 0.3333333333333333,
-    "64": 0.3333333333333333,
+    "58": 0.25,
+    "59": 0.35714285714285715,
+    "60": 0.32142857142857145,
+    "61": 0.25,
+    "62": 0.2857142857142857,
+    "63": 0.2857142857142857,
+    "64": 0.2857142857142857,
     "65": 0.3333333333333333,
-    "66": 0.3333333333333333,
+    "66": 0.6666666666666666,
     "67": 0.3333333333333333,
     "68": 0.3333333333333333,
     "69": 0.3333333333333333,
     "70": 0.3333333333333333,
     "71": 0.3333333333333333,
-    "72": 0.4,
-    "73": 0.4,
-    "74": 0.4,
-    "75": 0.7,
-    "76": 0.4,
-    "77": 0.6666666666666666,
-    "78": 0.6666666666666666,
-    "79": 1.0,
-    "80": 1.0,
-    "81": 1.0,
-    "82": 1.0,
-    "83": 1.0,
-    "84": 1.0,
-    "85": 1.0,
+    "72": 0.3333333333333333,
+    "73": 0.3333333333333333,
+    "74": 0.3333333333333333,
+    "75": 0.3333333333333333,
+    "76": 0.3333333333333333,
+    "77": 0.3333333333333333,
+    "78": 0.4,
+    "79": 0.4,
+    "80": 0.4,
+    "81": 0.7,
+    "82": 0.7,
+    "83": 0.4,
+    "84": 0.6666666666666666,
+    "85": 0.6666666666666666,
     "86": 1.0,
     "87": 1.0,
     "88": 1.0,
@@ -1468,7 +1555,18 @@
     "106": 1.0,
     "107": 1.0,
     "108": 1.0,
-    "109": 1.0
+    "109": 1.0,
+    "110": 1.0,
+    "111": 1.0,
+    "112": 1.0,
+    "113": 1.0,
+    "114": 1.0,
+    "115": 1.0,
+    "116": 1.0,
+    "117": 1.0,
+    "118": 1.0,
+    "119": 1.0,
+    "120": 1.0
   },
   "gods": [
     {
@@ -1492,6 +1590,11 @@
       "degree": 23
     },
     {
+      "id": "crates_terminal_pty_src_lib_ptyworker",
+      "label": "PtyWorker",
+      "degree": 19
+    },
+    {
       "id": "crates_terminal_pty_src_lib_portableptysession",
       "label": "PortablePtySession",
       "degree": 18
@@ -1502,24 +1605,19 @@
       "degree": 17
     },
     {
-      "id": "crates_terminal_pty_src_lib_ptyspawnconfig",
-      "label": "PtySpawnConfig",
-      "degree": 16
-    },
-    {
       "id": "crates_terminal_core_src_cell_cell",
       "label": "Cell",
       "degree": 16
     },
     {
-      "id": "crates_terminal_core_tests_parser_assert_observable_state_eq",
-      "label": "assert_observable_state_eq()",
+      "id": "crates_terminal_pty_src_lib_ptyspawnconfig",
+      "label": "PtySpawnConfig",
       "degree": 16
     },
     {
-      "id": "crates_terminal_core_tests_parser_parse_in_chunks",
-      "label": "parse_in_chunks()",
-      "degree": 13
+      "id": "crates_terminal_pty_src_lib_ptyerror",
+      "label": "PtyError",
+      "degree": 16
     }
   ],
   "surprises": [
@@ -1527,7 +1625,7 @@
       "source": "cursor()",
       "target": "TerminalState",
       "source_files": [
-        "crates/terminal-core/tests/dec_alt_screen_1049.rs",
+        "crates/terminal-core/tests/saved_cursor.rs",
         "crates/terminal-core/src/state.rs"
       ],
       "confidence": "EXTRACTED",
@@ -1538,7 +1636,7 @@
       "source": "cursor()",
       "target": "TerminalState",
       "source_files": [
-        "crates/terminal-core/tests/saved_cursor.rs",
+        "crates/terminal-core/tests/dec_alt_screen_1049.rs",
         "crates/terminal-core/src/state.rs"
       ],
       "confidence": "EXTRACTED",
@@ -1582,28 +1680,23 @@
   "questions": [
     {
       "type": "bridge_node",
-      "question": "Why does `TerminalState` connect `TerminalState` to `CellAttributes`, `ScreenGrid`, `ScreenSet`, `SemanticPerformer`, `saved_cursor.rs`, `.cursor`, `src/state.rs`, `tests/scrollback.rs`, `combining_marks.rs`, `region_ind_ri.rs`, `assert_observable_state_eq`, `region_su_sd_parser.rs`, `insert_delete_lines.rs`, `region_su_sd.rs`, `rendition.rs`, `scrolling_margins.rs`, `dec_alt_screen_1049.rs`, `insert_delete_lines_parser.rs`, `da1_parser.rs`, `dec_alt_screen_1047.rs`, `region_nel_parser.rs`, `wide_cells.rs`, `dec_alt_screen_47.rs`, `decstbm.rs`, `delete_characters.rs`, `erase_characters.rs`, `insert_characters.rs`, `screen_switching.rs`, `filled_state`, `da2.rs`, `decckm_parser.rs`, `delete_characters_parser.rs`, `erase_characters_parser.rs`, `insert_characters_parser.rs`, `labeled_scroll_state`, `region_ind_ri_parser.rs`, `assert_default_cell`, `dsr_status_parser.rs`, `PrintError`, `.scrollback_row`, `cpr_parser.rs`, `row_text`, `.set_cursor_visibility`?",
-      "why": "High betweenness centrality (0.535) - this node is a cross-community bridge."
+      "question": "Why does `TerminalState` connect `TerminalState` to `CellAttributes`, `ScreenSet`, `SemanticPerformer`, `.cursor`, `saved_cursor.rs`, `src/state.rs`, `tests/scrollback.rs`, `combining_marks.rs`, `region_ind_ri.rs`, `assert_observable_state_eq`, `region_su_sd_parser.rs`, `da1_parser.rs`, `insert_delete_lines.rs`, `region_su_sd.rs`, `rendition.rs`, `scrolling_margins.rs`, `dec_alt_screen_1049.rs`, `insert_delete_lines_parser.rs`, `dec_alt_screen_1047.rs`, `region_nel_parser.rs`, `wide_cells.rs`, `dec_alt_screen_47.rs`, `decstbm.rs`, `delete_characters.rs`, `erase_characters.rs`, `insert_characters.rs`, `screen_switching.rs`, `filled_state`, `da2.rs`, `decckm_parser.rs`, `delete_characters_parser.rs`, `erase_characters_parser.rs`, `insert_characters_parser.rs`, `labeled_scroll_state`, `region_ind_ri_parser.rs`, `assert_default_cell`, `PrintError`, `.scrollback_row`, `cpr_parser.rs`, `dsr_status_parser.rs`, `row_text`?",
+      "why": "High betweenness centrality (0.582) - this node is a cross-community bridge."
     },
     {
       "type": "bridge_node",
-      "question": "Why does `ScreenSet` connect `ScreenSet` to `TerminalState`?",
-      "why": "High betweenness centrality (0.075) - this node is a cross-community bridge."
+      "question": "Why does `PrintError` connect `PrintError` to `PtyError`, `SemanticPerformer`, `src/state.rs`?",
+      "why": "High betweenness centrality (0.160) - this node is a cross-community bridge."
     },
     {
       "type": "bridge_node",
-      "question": "Why does `PrintError` connect `PrintError` to `PortablePtySession`, `src/state.rs`, `SemanticPerformer`?",
-      "why": "High betweenness centrality (0.065) - this node is a cross-community bridge."
+      "question": "Why does `SemanticPerformer` connect `SemanticPerformer` to `PrintError`, `TerminalState`?",
+      "why": "High betweenness centrality (0.056) - this node is a cross-community bridge."
     },
     {
       "type": "isolated_nodes",
       "question": "What connects `terminal-app`, `terminal-config`, `terminal-core` to the rest of the system?",
       "why": "95 weakly-connected nodes found - possible documentation gaps or missing edges."
-    },
-    {
-      "type": "low_cohesion",
-      "question": "Should `PortablePtySession` be split into smaller, more focused modules?",
-      "why": "Cohesion score 0.05981981981981982 - nodes in this community are weakly interconnected."
     },
     {
       "type": "low_cohesion",
@@ -1613,6 +1706,11 @@
     {
       "type": "low_cohesion",
       "question": "Should `tests/parser.rs` be split into smaller, more focused modules?",
+      "why": "Cohesion score 0.0392156862745098 - nodes in this community are weakly interconnected."
+    },
+    {
+      "type": "low_cohesion",
+      "question": "Should `tests/state.rs` be split into smaller, more focused modules?",
       "why": "Cohesion score 0.0392156862745098 - nodes in this community are weakly interconnected."
     }
   ]

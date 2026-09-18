@@ -10,7 +10,11 @@ use std::ffi::OsString;
 use std::fmt;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError, SyncSender, TryRecvError, TrySendError};
+use std::sync::{Arc, Mutex};
+use std::thread::{self, JoinHandle};
+use std::time::Duration;
 
 use portable_pty::{CommandBuilder, MasterPty, PtyPair, PtySystem};
 
@@ -365,5 +369,340 @@ impl PtySession for PortablePtySession {
             .expect("PTY child mutex is not poisoned")
             .kill()
             .map_err(|_| PtyError::TerminateFailed)
+    }
+}
+
+/// Maximum queued commands. Eight commands bounds controller memory while allowing
+/// short write/resize bursts; a full queue rejects the newest command explicitly.
+pub const PTY_COMMAND_CAPACITY: usize = 8;
+/// Maximum queued events. At most eight 1 KiB raw chunks (plus terminal events)
+/// await the consumer; a full queue blocks the producer instead of dropping data.
+pub const PTY_EVENT_CAPACITY: usize = 8;
+/// Largest raw output payload placed in one event. Reads remain arbitrary chunks.
+pub const PTY_READ_CHUNK_SIZE: usize = 1024;
+const LIFECYCLE_POLL_INTERVAL: Duration = Duration::from_millis(20);
+
+/// Owned operations accepted by a PTY worker.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PtyCommand {
+    Write(Vec<u8>),
+    Resize(PtySize),
+    Terminate,
+}
+
+/// Bounded worker event stream. Output remains raw and exit remains distinct from EOF.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PtyWorkerEvent {
+    Output(PtyOutput),
+    Error(PtyWorkerError),
+}
+
+/// Project-owned worker failures; channel and backend implementation errors stay hidden.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PtyWorkerError {
+    CommandQueueFull,
+    WorkerUnavailable,
+    Pty(PtyError),
+    JoinFailed,
+}
+impl fmt::Display for PtyWorkerError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::CommandQueueFull => f.write_str("PTY worker command queue is full"),
+            Self::WorkerUnavailable => f.write_str("PTY worker is unavailable"),
+            Self::Pty(error) => write!(f, "PTY worker operation failed: {error}"),
+            Self::JoinFailed => f.write_str("PTY worker thread panicked"),
+        }
+    }
+}
+impl Error for PtyWorkerError {}
+
+/// Project-owned bounded worker handle. The controller owns this sender, receiver,
+/// and join handle; the worker owns the live session and its exclusive reader.
+pub struct PtyWorker {
+    commands: Option<SyncSender<PtyCommand>>,
+    events: Option<Receiver<PtyWorkerEvent>>,
+    join: Option<JoinHandle<()>>,
+}
+
+impl PtyWorker {
+    /// Starts one session thread and one blocking-reader thread.
+    pub fn start<S>(mut session: S) -> Result<Self, PtyWorkerError>
+    where
+        S: PtySession + Send + 'static,
+    {
+        let reader = session.take_output_reader().map_err(PtyWorkerError::Pty)?;
+        let (command_sender, command_receiver) = mpsc::sync_channel(PTY_COMMAND_CAPACITY);
+        let (event_sender, event_receiver) = mpsc::sync_channel(PTY_EVENT_CAPACITY);
+        let (reader_done_sender, reader_done_receiver) = mpsc::sync_channel(1);
+        let receiver_disconnected = Arc::new(AtomicBool::new(false));
+        let reader_failed = Arc::new(AtomicBool::new(false));
+        let reader_events = event_sender.clone();
+        let reader_disconnected = Arc::clone(&receiver_disconnected);
+        let reader_failed_flag = Arc::clone(&reader_failed);
+
+        let join = thread::spawn(move || {
+            let reader_join = thread::spawn(move || {
+                run_reader(
+                    reader,
+                    reader_events,
+                    reader_done_sender,
+                    reader_disconnected,
+                    reader_failed_flag,
+                );
+            });
+            run_session(
+                &mut session,
+                command_receiver,
+                event_sender,
+                reader_done_receiver,
+                receiver_disconnected,
+                reader_failed,
+            );
+            let _ = reader_join.join();
+        });
+
+        Ok(Self {
+            commands: Some(command_sender),
+            events: Some(event_receiver),
+            join: Some(join),
+        })
+    }
+
+    pub fn write(&self, bytes: Vec<u8>) -> Result<(), PtyWorkerError> {
+        self.send(PtyCommand::Write(bytes))
+    }
+
+    pub fn resize(&self, size: PtySize) -> Result<(), PtyWorkerError> {
+        self.send(PtyCommand::Resize(size))
+    }
+
+    pub fn terminate(&self) -> Result<(), PtyWorkerError> {
+        self.send(PtyCommand::Terminate)
+    }
+
+    pub fn send(&self, command: PtyCommand) -> Result<(), PtyWorkerError> {
+        let Some(sender) = &self.commands else {
+            return Err(PtyWorkerError::WorkerUnavailable);
+        };
+        match sender.try_send(command) {
+            Ok(()) => Ok(()),
+            Err(TrySendError::Full(_)) => Err(PtyWorkerError::CommandQueueFull),
+            Err(TrySendError::Disconnected(_)) => Err(PtyWorkerError::WorkerUnavailable),
+        }
+    }
+
+    /// Returns `None` for either a bounded timeout or a closed event stream.
+    pub fn recv_timeout(
+        &self,
+        timeout: Duration,
+    ) -> Result<Option<PtyWorkerEvent>, PtyWorkerError> {
+        let Some(events) = &self.events else {
+            return Err(PtyWorkerError::WorkerUnavailable);
+        };
+        match events.recv_timeout(timeout) {
+            Ok(event) => Ok(Some(event)),
+            Err(RecvTimeoutError::Timeout | RecvTimeoutError::Disconnected) => Ok(None),
+        }
+    }
+
+    /// Joins after natural exit or an earlier explicit termination request.
+    pub fn join(&mut self) -> Result<(), PtyWorkerError> {
+        let Some(join) = self.join.take() else {
+            return Ok(());
+        };
+        join.join().map_err(|_| PtyWorkerError::JoinFailed)
+    }
+
+    /// Discards unread events, requests termination, and joins both worker threads.
+    pub fn shutdown_and_join(&mut self) -> Result<(), PtyWorkerError> {
+        self.events.take();
+        if let Some(sender) = &self.commands {
+            let _ = sender.send(PtyCommand::Terminate);
+        }
+        self.commands.take();
+        self.join()
+    }
+}
+
+impl Drop for PtyWorker {
+    fn drop(&mut self) {
+        let _ = self.shutdown_and_join();
+    }
+}
+
+fn run_reader(
+    mut reader: Box<dyn PtyOutputReader + Send>,
+    events: SyncSender<PtyWorkerEvent>,
+    done: SyncSender<()>,
+    receiver_disconnected: Arc<AtomicBool>,
+    reader_failed: Arc<AtomicBool>,
+) {
+    let mut bytes = [0_u8; PTY_READ_CHUNK_SIZE];
+    loop {
+        match reader.read(&mut bytes) {
+            Ok(0) => {
+                if !send_event(
+                    &events,
+                    PtyWorkerEvent::Output(PtyOutput::Eof),
+                    &receiver_disconnected,
+                ) {
+                    break;
+                }
+                break;
+            }
+            Ok(read) => {
+                let event = PtyOutput::bytes(bytes[..read].to_vec()).expect("nonzero PTY read");
+                if !send_event(
+                    &events,
+                    PtyWorkerEvent::Output(event),
+                    &receiver_disconnected,
+                ) {
+                    break;
+                }
+            }
+            Err(error) => {
+                reader_failed.store(true, Ordering::Release);
+                let _ = send_event(
+                    &events,
+                    PtyWorkerEvent::Error(PtyWorkerError::Pty(error)),
+                    &receiver_disconnected,
+                );
+                break;
+            }
+        }
+    }
+    let _ = done.send(());
+}
+
+fn run_session<S>(
+    session: &mut S,
+    commands: Receiver<PtyCommand>,
+    events: SyncSender<PtyWorkerEvent>,
+    reader_done: Receiver<()>,
+    receiver_disconnected: Arc<AtomicBool>,
+    reader_failed: Arc<AtomicBool>,
+) where
+    S: PtySession,
+{
+    let mut command_channel_closed = false;
+    let mut termination_requested = false;
+    let mut exited_emitted = false;
+    let mut reader_finished = false;
+
+    loop {
+        if receiver_disconnected.load(Ordering::Acquire)
+            || reader_failed.load(Ordering::Acquire)
+            || command_channel_closed
+        {
+            request_termination(
+                session,
+                &events,
+                &receiver_disconnected,
+                &mut termination_requested,
+            );
+        }
+
+        match commands.recv_timeout(LIFECYCLE_POLL_INTERVAL) {
+            Ok(command) => handle_command(
+                session,
+                command,
+                &events,
+                &receiver_disconnected,
+                &mut termination_requested,
+            ),
+            Err(RecvTimeoutError::Disconnected) => command_channel_closed = true,
+            Err(RecvTimeoutError::Timeout) => {}
+        }
+
+        match reader_done.try_recv() {
+            Ok(()) | Err(TryRecvError::Disconnected) => reader_finished = true,
+            Err(TryRecvError::Empty) => {}
+        }
+
+        if let PtyLifecycle::Exited(status) = session.lifecycle() {
+            if !exited_emitted {
+                if !send_event(
+                    &events,
+                    PtyWorkerEvent::Output(PtyOutput::Exited(status)),
+                    &receiver_disconnected,
+                ) {
+                    request_termination(
+                        session,
+                        &events,
+                        &receiver_disconnected,
+                        &mut termination_requested,
+                    );
+                }
+                exited_emitted = true;
+            }
+            if reader_finished {
+                break;
+            }
+        }
+    }
+}
+
+fn handle_command<S>(
+    session: &mut S,
+    command: PtyCommand,
+    events: &SyncSender<PtyWorkerEvent>,
+    receiver_disconnected: &AtomicBool,
+    termination_requested: &mut bool,
+) where
+    S: PtySession,
+{
+    let result = if *termination_requested {
+        Err(PtyError::NotRunning)
+    } else {
+        match command {
+            PtyCommand::Write(bytes) => session.write(&bytes),
+            PtyCommand::Resize(size) => session.resize(size),
+            PtyCommand::Terminate => {
+                *termination_requested = true;
+                session.terminate()
+            }
+        }
+    };
+    if let Err(error) = result {
+        let _ = send_event(
+            events,
+            PtyWorkerEvent::Error(PtyWorkerError::Pty(error)),
+            receiver_disconnected,
+        );
+    }
+}
+
+fn request_termination<S>(
+    session: &mut S,
+    events: &SyncSender<PtyWorkerEvent>,
+    receiver_disconnected: &AtomicBool,
+    termination_requested: &mut bool,
+) where
+    S: PtySession,
+{
+    if *termination_requested {
+        return;
+    }
+    *termination_requested = true;
+    if let Err(error) = session.terminate() {
+        let _ = send_event(
+            events,
+            PtyWorkerEvent::Error(PtyWorkerError::Pty(error)),
+            receiver_disconnected,
+        );
+    }
+}
+
+fn send_event(
+    events: &SyncSender<PtyWorkerEvent>,
+    event: PtyWorkerEvent,
+    receiver_disconnected: &AtomicBool,
+) -> bool {
+    if events.send(event).is_ok() {
+        true
+    } else {
+        receiver_disconnected.store(true, Ordering::Release);
+        false
     }
 }

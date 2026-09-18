@@ -2,13 +2,14 @@
 
 ## Next
 
-- [ ] Add deterministic lifecycle, resize, EOF, exit, and termination tests. Local tests and a minimal EOF-on-known-exit correction are complete; leave this roadmap item open until the lifecycle suite passes the native GitHub Actions matrix on Linux x86_64/ARM64, macOS x86_64/ARM64, and Windows x86_64/ARM64. Keep worker/channel orchestration, parser, renderer, input encoding, and shell policy out of this slice.
+- [ ] Connect PTY workers through bounded event-driven communication. Keep parser, renderer, input encoding, and shell policy out of this slice; leave the roadmap item open until this worker suite passes the native GitHub Actions matrix on Linux x86_64/ARM64, macOS x86_64/ARM64, and Windows x86_64/ARM64.
 
 ##...[truncated]
 
 ## Completed in this slice
 
-- [x] Define the project-owned PTY contract and integrate `portable-pty` for Windows, Linux, and macOS behind it; GitHub Actions run 35320057146 passed its native smoke test on Linux x86_64/ARM64, macOS x86_64/ARM64, and Windows x86_64/ARM64.
+- [x] Add deterministic lifecycle, resize, EOF, exit, and termination tests; GitHub Actions run 35329910411 passed the lifecycle suite on all six native runners.
+- [x] Define the project-owned PTY contract and integrate `portable-pty...[truncated]
 - [x] Audit and test Primary/Alternate resize coherence, saved-cursor clamping, shared tab/rendition preservation, mixed-width Primary history, and `?47`/`?1047`/`?1049` resize round trips; close the terminal-core primary/alternate/resize/scrollback roadmap parent.
 - [x] Add bounded Primary-only scrollback capture for whole-screen upward scrolling, exact `Cell` preservation, 10,000-row FIFO eviction, reset clearing, capture-time width retention across resize, and no viewport/reflow behavior.
 - [x] Add DEC `?1049` parser dispatch through dedicated `TerminalState` save-Primary/reset-Alternate/switch/restore-Primary semantics, with idempotent Alternate entry and no new saved fields.

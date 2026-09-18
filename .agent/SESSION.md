@@ -2,16 +2,16 @@
 
 ## Current state
 
-`test/m3-pty-lifecycle-semantics` starts from the accepted portable-pty adapter state. This slice adds deterministic repository-helper lifecycle coverage without PTY workers, event channels, parser dispatch, renderer integration, input encoding, or shell policy.
+`feat/m3-bounded-pty-workers` starts from native-accepted PTY lifecycle coverage. This slice adds deterministic bounded PTY worker communication without parser dispatch, `TerminalState` mutation, renderer integration, input encoding, or shell policy.
 
-`PortablePtySession` now records child exit after both natural completion and a termination request. Verified transitions are `Running -> Exited` for natural exit and `Running -> TerminationRequested -> Exited` when the child has not already exited; a fast backend may be observed as `Exited` immediately after `terminate`. `terminate` remains idempotent and rejects later write/resize operations from its first request. Known exit releases the adapter-owned master PTY, allowing the exclusively transferred reader to drain buffered raw bytes and subsequently observe EOF. EOF and child exit remain distinct project-owned primitives.
+`PtyWorker` owns two std-only threads: a session thread owns the live `PtySession`, the eight-slot command receiver, lifecycle polling, write/resize/terminate handling, and its reader-thread join; a dedicated reader thread owns the exclusive `PtyOutputReader`. The controller owns an eight-slot command sender, eight-slot event receiver, and deterministic worker join. Reader chunks are raw and capped at 1,024 bytes per event. A full event queue blocks the reader rather than dropping bytes, EOF, exit, or errors; a full command queue rejects the newest command with `PtyWorkerError::CommandQueueFull`.
 
-The helper accepts narrowly scoped `exit <code>` and `wait` modes. Tests use finite reads and a five-second deadline to verify numeric natural exit, stable lifecycle polling, post-exit write/resize rejection, idempotent termination, safe running resize and raw-write calls, and marker delivery plus EOF as separate PTY-stream observations without imposing their ordering relative to exit. The raw input write test proves byte acceptance without a user shell; it does not claim a cross-platform raw echo round trip because the helper intentionally does not modify platform TTY line discipline.
+EOF and `Exited` remain separate events with no delivery-order guarantee. Reader EOF is emitted once on `read() == 0`; child exit is emitted once by lifecycle polling at 20 ms intervals. Controller channel loss or event-receiver loss terminates the child; `shutdown_and_join` and controller `Drop` discard unread events, request termination, and join both threads. The worker boundary exposes only project-owned commands, events, and errors; `portable-pty`, channel, parser, terminal-core, renderer, and application types do not leak across it.
 
 ## Validation
 
-Focused lifecycle tests, the complete repository suite, GNU/MSVC target suites, and the structural Graphify refresh all pass locally. Native CI acceptance remains pending after the final edits.
+Focused worker tests and complete local workspace validation are required after final edits, followed by GNU/MSVC target suites. Native CI acceptance for this worker slice remains pending.
 
 ## Next
 
-Keep this branch on the same lifecycle acceptance slice until the full suite and native GitHub Actions matrix pass on Linux x86_64/ARM64, macOS x86_64/ARM64, and Windows x86_64/ARM64. Do not begin PTY workers or bounded event channels yet.
+Keep this branch on bounded PTY worker acceptance until the exact commit passes the full native GitHub Actions matrix on Linux x86_64/ARM64, macOS x86_64/ARM64, and Windows x86_64/ARM64. Do not begin parser/event routing, renderer work, input encoding, or shell policy yet.
