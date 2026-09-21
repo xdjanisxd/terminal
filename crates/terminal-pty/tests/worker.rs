@@ -207,12 +207,19 @@ fn full_command_queue_rejects_the_newest_command_without_dropping_queued_command
     );
 
     gate_sender.send(()).unwrap();
-    worker.shutdown_and_join().unwrap();
-    let writes = &state.lock().unwrap().writes;
     let expected = (0..=PTY_COMMAND_CAPACITY)
         .map(|byte| vec![byte as u8])
         .collect::<Vec<_>>();
-    assert_eq!(writes, &expected);
+    let deadline = Instant::now() + DEADLINE;
+    while state.lock().unwrap().writes.len() != expected.len() {
+        assert!(
+            Instant::now() < deadline,
+            "queued worker commands were not processed before the deadline"
+        );
+        std::thread::yield_now();
+    }
+    assert_eq!(state.lock().unwrap().writes, expected);
+    worker.shutdown_and_join().unwrap();
 }
 
 #[test]
