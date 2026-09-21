@@ -77,8 +77,8 @@ Completion marks require tested acceptance criteria, not code presence alone.
 
 - [x] Create the `winit` application shell and `wgpu` surface lifecycle
   - Native GitHub Actions run 35596742589 for commit `b3e06bb98414e2992da37f3c004ca7c1ecc943c9` passed on Linux x86_64/ARM64, macOS x86_64/ARM64, and Windows x86_64/ARM64.
-- [ ] Implement font discovery, shaping/rasterization, fallback, and bounded glyph caching
-  - Completed sub-slices: renderer-owned system discovery/loading, initial monospace-face selection, selected-face shaping, and CPU alpha-mask rasterization. Fallback execution and bounded glyph caching remain deferred.
+- [x] Implement font discovery, shaping/rasterization, fallback, and bounded glyph caching
+  - Completed sub-slices: renderer-owned system discovery/loading, initial monospace-face selection, selected-face shaping, CPU alpha-mask rasterization, deterministic fallback selection, and bounded LRU glyph caching. Atlas upload remains deferred.
 - [ ] Render terminal backgrounds, glyphs, decorations, and cursor
 - [ ] Add damage-driven redraw and DPI/resize handling
 
