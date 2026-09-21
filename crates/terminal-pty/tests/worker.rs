@@ -209,9 +209,10 @@ fn full_command_queue_rejects_the_newest_command_without_dropping_queued_command
     gate_sender.send(()).unwrap();
     worker.shutdown_and_join().unwrap();
     let writes = &state.lock().unwrap().writes;
-    assert_eq!(writes.len(), PTY_COMMAND_CAPACITY + 1);
-    assert_eq!(writes.first(), Some(&vec![0]));
-    assert_eq!(writes.last(), Some(&vec![PTY_COMMAND_CAPACITY as u8]));
+    let expected = (0..=PTY_COMMAND_CAPACITY)
+        .map(|byte| vec![byte as u8])
+        .collect::<Vec<_>>();
+    assert_eq!(writes, &expected);
 }
 
 #[test]
