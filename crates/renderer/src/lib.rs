@@ -5,7 +5,7 @@
 
 mod font;
 
-pub use font::FontRequest;
+pub use font::{FontProcessingError, FontRequest, GlyphBitmap, ShapedGlyph, ShapedText};
 
 use std::error::Error;
 use std::fmt;
@@ -132,6 +132,24 @@ impl Renderer {
     pub fn resize(&mut self, width: u32, height: u32) -> bool {
         self.size = SurfaceSize::new(width, height);
         self.reconfigure()
+    }
+
+    /// Shapes one terminal text run with the selected initial font face.
+    pub fn shape_text(
+        &mut self,
+        text: &str,
+        pixels_per_em: f32,
+    ) -> Result<ShapedText, FontProcessingError> {
+        self.font_system.shape_text(text, pixels_per_em)
+    }
+
+    /// Rasterizes one shaped glyph into a CPU-side alpha bitmap.
+    pub fn rasterize_glyph(
+        &mut self,
+        glyph: &ShapedGlyph,
+        pixels_per_em: f32,
+    ) -> Result<GlyphBitmap, FontProcessingError> {
+        self.font_system.rasterize_glyph(glyph, pixels_per_em)
     }
 
     /// Acquires and presents an empty frame; terminal drawing is intentionally deferred.
