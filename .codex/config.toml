@@ -1,0 +1,5 @@
+# Project-local Codex configuration.
+#
+# Keep this file intentionally small.
+# Repository behavior belongs in AGENTS.md and .agents/skills/.
+# Add project-specific MCP/tools here only when they provide clear value.
