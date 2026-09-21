@@ -3,6 +3,7 @@
 //! Shaping, fallback execution, rasterization, and glyph caching intentionally
 //! build on this retained database later.
 
+use std::collections::{HashMap, VecDeque};
 use std::error::Error;
 use std::fmt;
 
@@ -17,6 +18,8 @@ use swash::{
 /// Positioned glyph produced from the renderer's selected font face.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ShapedGlyph {
+    face_id: ID,
+    is_fallback: bool,
     glyph_id: u16,
     advance: f32,
     offset_x: f32,
@@ -28,6 +31,11 @@ pub struct ShapedGlyph {
 impl ShapedGlyph {
     pub fn glyph_id(&self) -> u16 {
         self.glyph_id
+    }
+
+    /// Returns whether this glyph uses a discovered fallback face.
+    pub fn uses_fallback(&self) -> bool {
+        self.is_fallback
     }
 
     pub fn advance(&self) -> f32 {
@@ -131,6 +139,59 @@ impl fmt::Display for FontProcessingError {
 
 impl Error for FontProcessingError {}
 
+const GLYPH_CACHE_CAPACITY: usize = 256;
+
+#[derive(Clone, Copy, Eq, Hash, PartialEq)]
+struct GlyphCacheKey {
+    face_id: ID,
+    glyph_id: u16,
+    pixels_per_em: u32,
+}
+
+struct GlyphCache {
+    entries: HashMap<GlyphCacheKey, GlyphBitmap>,
+    lru: VecDeque<GlyphCacheKey>,
+    capacity: usize,
+}
+
+impl GlyphCache {
+    fn new(capacity: usize) -> Self {
+        Self {
+            entries: HashMap::new(),
+            lru: VecDeque::new(),
+            capacity,
+        }
+    }
+
+    fn get(&mut self, key: GlyphCacheKey) -> Option<GlyphBitmap> {
+        let bitmap = self.entries.get(&key)?.clone();
+        self.touch(key);
+        Some(bitmap)
+    }
+
+    fn insert(&mut self, key: GlyphCacheKey, bitmap: GlyphBitmap) {
+        if let std::collections::hash_map::Entry::Occupied(mut entry) = self.entries.entry(key) {
+            entry.insert(bitmap);
+            self.touch(key);
+            return;
+        }
+        if self.entries.len() == self.capacity
+            && let Some(oldest) = self.lru.pop_front()
+        {
+            self.entries.remove(&oldest);
+        }
+        self.entries.insert(key, bitmap);
+        self.lru.push_back(key);
+    }
+
+    fn touch(&mut self, key: GlyphCacheKey) {
+        if let Some(position) = self.lru.iter().position(|candidate| *candidate == key) {
+            self.lru.remove(position);
+        }
+        self.lru.push_back(key);
+    }
+}
+
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub enum FontRequest {
     /// Use the platform's configured monospace family.
@@ -174,6 +235,9 @@ pub(super) struct FontSystem {
     primary_face: ID,
     shape_context: ShapeContext,
     scale_context: ScaleContext,
+    fallback_candidates: Vec<ID>,
+    fallback_by_character: HashMap<char, Option<ID>>,
+    glyph_cache: GlyphCache,
 }
 
 impl FontSystem {
@@ -186,11 +250,31 @@ impl FontSystem {
 
     fn from_database(database: Database, request: FontRequest) -> Result<Self, FontLoadError> {
         let primary_face = select_primary_face(&database, &request)?;
+        Self::with_primary_face(database, primary_face, GLYPH_CACHE_CAPACITY)
+    }
+
+    fn with_primary_face(
+        database: Database,
+        primary_face: ID,
+        cache_capacity: usize,
+    ) -> Result<Self, FontLoadError> {
+        let mut fallback_candidates: Vec<_> = database
+            .faces()
+            .filter(|face| face.id != primary_face)
+            .map(|face| face.id)
+            .collect();
+        fallback_candidates.sort_by_key(|id| {
+            let face = database.face(*id).unwrap();
+            (face.post_script_name.clone(), face.id.to_string())
+        });
         Ok(Self {
             database,
             primary_face,
             shape_context: ShapeContext::new(),
             scale_context: ScaleContext::new(),
+            fallback_candidates,
+            fallback_by_character: HashMap::new(),
+            glyph_cache: GlyphCache::new(cache_capacity),
         })
     }
 
@@ -204,28 +288,33 @@ impl FontSystem {
         if text.is_empty() {
             return Ok(ShapedText::default());
         }
-        let primary_face = self.primary_face;
-        let shape_context = &mut self.shape_context;
-        self.database
-            .with_face_data(primary_face, |data, index| {
-                let font = FontRef::from_index(data, index as usize)
-                    .ok_or(FontProcessingError::InvalidFaceData)?;
-                let mut shaper = shape_context.builder(font).size(pixels_per_em).build();
-                shaper.add_str(text);
-                let mut glyphs = Vec::new();
-                shaper.shape_with(|cluster| {
-                    glyphs.extend(cluster.glyphs.iter().map(|glyph| ShapedGlyph {
-                        glyph_id: glyph.id,
-                        advance: glyph.advance,
-                        offset_x: glyph.x,
-                        offset_y: glyph.y,
-                        cluster_start: cluster.source.start,
-                        cluster_end: cluster.source.end,
-                    }));
-                });
-                Ok(ShapedText { glyphs })
-            })
-            .ok_or(FontProcessingError::FaceDataUnavailable)?
+        let mut glyphs = Vec::new();
+        let mut run_start = 0;
+        let mut run_face = None;
+        for (offset, character) in text.char_indices() {
+            let face = self.face_for_character(character);
+            if let Some(previous_face) = run_face
+                && face != previous_face
+            {
+                self.shape_run(
+                    &text[run_start..offset],
+                    run_start as u32,
+                    previous_face,
+                    pixels_per_em,
+                    &mut glyphs,
+                )?;
+                run_start = offset;
+            }
+            run_face = Some(face);
+        }
+        self.shape_run(
+            &text[run_start..],
+            run_start as u32,
+            run_face.unwrap_or(self.primary_face),
+            pixels_per_em,
+            &mut glyphs,
+        )?;
+        Ok(ShapedText { glyphs })
     }
 
     pub(super) fn rasterize_glyph(
@@ -234,10 +323,18 @@ impl FontSystem {
         pixels_per_em: f32,
     ) -> Result<GlyphBitmap, FontProcessingError> {
         validate_pixels_per_em(pixels_per_em)?;
-        let primary_face = self.primary_face;
+        let key = GlyphCacheKey {
+            face_id: glyph.face_id,
+            glyph_id: glyph.glyph_id,
+            pixels_per_em: pixels_per_em.to_bits(),
+        };
+        if let Some(bitmap) = self.glyph_cache.get(key) {
+            return Ok(bitmap);
+        }
         let scale_context = &mut self.scale_context;
-        self.database
-            .with_face_data(primary_face, |data, index| {
+        let bitmap = self
+            .database
+            .with_face_data(glyph.face_id, |data, index| {
                 let font = FontRef::from_index(data, index as usize)
                     .ok_or(FontProcessingError::InvalidFaceData)?;
                 let mut scaler = scale_context
@@ -259,6 +356,66 @@ impl FontSystem {
                     bearing_y: image.placement.top,
                     advance: glyph.advance,
                 })
+            })
+            .ok_or(FontProcessingError::FaceDataUnavailable)??;
+        self.glyph_cache.insert(key, bitmap.clone());
+        Ok(bitmap)
+    }
+
+    fn face_for_character(&mut self, character: char) -> ID {
+        if self.face_supports(self.primary_face, character) {
+            return self.primary_face;
+        }
+        if let Some(face) = self.fallback_by_character.get(&character) {
+            return face.unwrap_or(self.primary_face);
+        }
+        let fallback = self
+            .fallback_candidates
+            .iter()
+            .copied()
+            .find(|face| self.face_supports(*face, character));
+        self.fallback_by_character.insert(character, fallback);
+        fallback.unwrap_or(self.primary_face)
+    }
+
+    fn face_supports(&self, face_id: ID, character: char) -> bool {
+        self.database
+            .with_face_data(face_id, |data, index| {
+                FontRef::from_index(data, index as usize)
+                    .is_some_and(|font| font.charmap().map(character) != 0)
+            })
+            .unwrap_or(false)
+    }
+
+    fn shape_run(
+        &mut self,
+        text: &str,
+        source_offset: u32,
+        face_id: ID,
+        pixels_per_em: f32,
+        glyphs: &mut Vec<ShapedGlyph>,
+    ) -> Result<(), FontProcessingError> {
+        let primary_face = self.primary_face;
+        let shape_context = &mut self.shape_context;
+        self.database
+            .with_face_data(face_id, |data, index| {
+                let font = FontRef::from_index(data, index as usize)
+                    .ok_or(FontProcessingError::InvalidFaceData)?;
+                let mut shaper = shape_context.builder(font).size(pixels_per_em).build();
+                shaper.add_str(text);
+                shaper.shape_with(|cluster| {
+                    glyphs.extend(cluster.glyphs.iter().map(|glyph| ShapedGlyph {
+                        face_id,
+                        is_fallback: face_id != primary_face,
+                        glyph_id: glyph.id,
+                        advance: glyph.advance,
+                        offset_x: glyph.x,
+                        offset_y: glyph.y,
+                        cluster_start: source_offset + cluster.source.start,
+                        cluster_end: source_offset + cluster.source.end,
+                    }));
+                });
+                Ok(())
             })
             .ok_or(FontProcessingError::FaceDataUnavailable)?
     }
@@ -306,7 +463,8 @@ mod tests {
     use fontdb::{FaceInfo, Language, Source, Stretch, Style, Weight};
 
     use super::{
-        FontLoadError, FontProcessingError, FontRequest, FontSystem, ScaleContext, ShapeContext,
+        FontLoadError, FontProcessingError, FontRequest, FontSystem, GLYPH_CACHE_CAPACITY,
+        GlyphCacheKey,
     };
 
     const TEST_FONT: &[u8] = include_bytes!("../tests/fixtures/Tuffy.ttf");
@@ -331,12 +489,24 @@ mod tests {
         let mut database = fontdb::Database::new();
         database.load_font_data(TEST_FONT.to_vec());
         let primary_face = database.faces().next().unwrap().id;
-        FontSystem {
-            database,
-            primary_face,
-            shape_context: ShapeContext::new(),
-            scale_context: ScaleContext::new(),
-        }
+        FontSystem::with_primary_face(database, primary_face, GLYPH_CACHE_CAPACITY).unwrap()
+    }
+
+    fn fallback_system(cache_capacity: usize) -> FontSystem {
+        let mut database = fontdb::Database::new();
+        database.load_font_data(TEST_FONT.to_vec());
+        let primary_face = database.push_face_info(FaceInfo {
+            id: fontdb::ID::dummy(),
+            source: Source::Binary(Arc::new(vec![1, 2, 3])),
+            index: 0,
+            families: vec![("Missing Glyphs".to_owned(), Language::English_UnitedStates)],
+            post_script_name: "AAA Missing Glyphs".to_owned(),
+            style: Style::Normal,
+            weight: Weight::NORMAL,
+            stretch: Stretch::Normal,
+            monospaced: true,
+        });
+        FontSystem::with_primary_face(database, primary_face, cache_capacity).unwrap()
     }
 
     #[test]
@@ -414,5 +584,57 @@ mod tests {
             system.shape_text("A", 0.0),
             Err(FontProcessingError::InvalidPixelsPerEm)
         );
+    }
+
+    #[test]
+    fn chooses_the_primary_face_when_it_supports_text() {
+        let mut system = fixture_system();
+
+        let shaped = system.shape_text("A", 16.0).unwrap();
+
+        assert!(!shaped.glyphs()[0].uses_fallback());
+    }
+
+    #[test]
+    fn uses_a_stable_fallback_when_the_primary_face_cannot_map_a_character() {
+        let mut system = fallback_system(GLYPH_CACHE_CAPACITY);
+
+        let first = system.shape_text("A", 16.0).unwrap();
+        let second = system.shape_text("A", 16.0).unwrap();
+
+        assert!(first.glyphs()[0].uses_fallback());
+        assert_eq!(first.glyphs(), second.glyphs());
+        assert_eq!(system.fallback_by_character.len(), 1);
+    }
+
+    #[test]
+    fn glyph_cache_reuses_entries_and_evicts_the_least_recently_used() {
+        let mut system = fallback_system(2);
+        let shaped = system.shape_text("ABC", 16.0).unwrap();
+
+        system.rasterize_glyph(&shaped.glyphs()[0], 16.0).unwrap();
+        system.rasterize_glyph(&shaped.glyphs()[1], 16.0).unwrap();
+        let first_key = GlyphCacheKey {
+            face_id: shaped.glyphs()[0].face_id,
+            glyph_id: shaped.glyphs()[0].glyph_id,
+            pixels_per_em: 16.0f32.to_bits(),
+        };
+        system.rasterize_glyph(&shaped.glyphs()[0], 16.0).unwrap();
+        system.rasterize_glyph(&shaped.glyphs()[2], 16.0).unwrap();
+
+        assert_eq!(system.glyph_cache.entries.len(), 2);
+        assert!(system.glyph_cache.entries.contains_key(&first_key));
+        assert_eq!(system.glyph_cache.lru.len(), 2);
+    }
+
+    #[test]
+    fn cache_keys_distinguish_font_size() {
+        let mut system = fixture_system();
+        let glyph = system.shape_text("A", 16.0).unwrap().glyphs()[0].clone();
+
+        system.rasterize_glyph(&glyph, 16.0).unwrap();
+        system.rasterize_glyph(&glyph, 24.0).unwrap();
+
+        assert_eq!(system.glyph_cache.entries.len(), 2);
     }
 }
