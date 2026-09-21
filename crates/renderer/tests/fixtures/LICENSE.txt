@@ -1,0 +1,9 @@
+Tuffy.ttf is public domain. Source attribution from the upstream fontdb test fixture:
+
+We, the copyright holders of this work, hereby release it into the public domain. This applies worldwide.
+
+In case this is not legally possible, we grant any entity the right to use this work for any purpose, without any conditions, unless such conditions are required by law.
+
+Thatcher Ulrich <tu@tulrich.com>
+Karoly Barta bartakarcsi@gmail.com
+Michael Evans http://www.evertype.com
