@@ -3,11 +3,17 @@
 //! This crate owns `wgpu` setup and surface maintenance, but not terminal
 //! semantics or terminal-cell drawing.
 
+mod font;
+
+pub use font::FontRequest;
+
 use std::error::Error;
 use std::fmt;
 use std::sync::Arc;
 
 use winit::window::Window;
+
+use crate::font::FontSystem;
 
 /// A validated physical surface size.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -71,11 +77,24 @@ pub struct Renderer {
     queue: wgpu::Queue,
     configuration: Option<wgpu::SurfaceConfiguration>,
     size: Option<SurfaceSize>,
+    #[allow(dead_code)]
+    font_system: FontSystem,
 }
 
 impl Renderer {
     /// Creates a surface for `window` and configures it when its size is non-zero.
     pub fn new(window: Arc<Window>) -> Result<Self, RendererInitError> {
+        Self::new_with_font_request(window, FontRequest::default())
+    }
+
+    /// Creates a renderer with an explicitly selected initial terminal font.
+    pub fn new_with_font_request(
+        window: Arc<Window>,
+        font_request: FontRequest,
+    ) -> Result<Self, RendererInitError> {
+        let font_system = FontSystem::load_system(font_request).map_err(|error| {
+            RendererInitError::new(format!("could not load terminal font: {error}"))
+        })?;
         let size = SurfaceSize::new(window.inner_size().width, window.inner_size().height);
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
         let surface = instance
@@ -103,6 +122,7 @@ impl Renderer {
             queue,
             configuration: None,
             size,
+            font_system,
         };
         renderer.reconfigure();
         Ok(renderer)
