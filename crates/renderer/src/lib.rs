@@ -1,3 +1,177 @@
-//! Renderer boundary placeholder.
+//! Project-owned GPU surface lifecycle.
 //!
-//! Rendering functionality has not been implemented.
+//! This crate owns `wgpu` setup and surface maintenance, but not terminal
+//! semantics or terminal-cell drawing.
+
+use std::error::Error;
+use std::fmt;
+use std::sync::Arc;
+
+use winit::window::Window;
+
+/// A validated physical surface size.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SurfaceSize {
+    width: u32,
+    height: u32,
+}
+
+impl SurfaceSize {
+    /// Returns a size suitable for surface configuration, or `None` when minimized.
+    pub fn new(width: u32, height: u32) -> Option<Self> {
+        (width != 0 && height != 0).then_some(Self { width, height })
+    }
+
+    pub fn width(self) -> u32 {
+        self.width
+    }
+
+    pub fn height(self) -> u32 {
+        self.height
+    }
+}
+
+/// The outcome of one redraw attempt without exposing `wgpu` types to the app.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RedrawOutcome {
+    Presented,
+    Reconfigured,
+    Skipped,
+    Exit,
+}
+
+/// A project-owned initialization failure for the native GPU surface.
+#[derive(Debug)]
+pub struct RendererInitError {
+    message: String,
+}
+
+impl RendererInitError {
+    fn new(message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+        }
+    }
+}
+
+impl fmt::Display for RendererInitError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(&self.message)
+    }
+}
+
+impl Error for RendererInitError {}
+
+/// `wgpu` device, queue, and native surface lifecycle owned by the renderer.
+pub struct Renderer {
+    window: Arc<Window>,
+    surface: wgpu::Surface<'static>,
+    adapter: wgpu::Adapter,
+    device: wgpu::Device,
+    queue: wgpu::Queue,
+    configuration: Option<wgpu::SurfaceConfiguration>,
+    size: Option<SurfaceSize>,
+}
+
+impl Renderer {
+    /// Creates a surface for `window` and configures it when its size is non-zero.
+    pub fn new(window: Arc<Window>) -> Result<Self, RendererInitError> {
+        let size = SurfaceSize::new(window.inner_size().width, window.inner_size().height);
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
+        let surface = instance
+            .create_surface(Arc::clone(&window))
+            .map_err(|error| {
+                RendererInitError::new(format!("could not create surface: {error}"))
+            })?;
+        let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+            power_preference: wgpu::PowerPreference::default(),
+            force_fallback_adapter: false,
+            compatible_surface: Some(&surface),
+        }))
+        .map_err(|error| RendererInitError::new(format!("could not find adapter: {error}")))?;
+        let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
+            label: Some("terminal renderer device"),
+            ..Default::default()
+        }))
+        .map_err(|error| RendererInitError::new(format!("could not create device: {error}")))?;
+
+        let mut renderer = Self {
+            window,
+            surface,
+            adapter,
+            device,
+            queue,
+            configuration: None,
+            size,
+        };
+        renderer.reconfigure();
+        Ok(renderer)
+    }
+
+    /// Updates the desired surface size and configures only non-zero dimensions.
+    pub fn resize(&mut self, width: u32, height: u32) -> bool {
+        self.size = SurfaceSize::new(width, height);
+        self.reconfigure()
+    }
+
+    /// Acquires and presents an empty frame; terminal drawing is intentionally deferred.
+    pub fn redraw(&mut self) -> RedrawOutcome {
+        if self.configuration.is_none() {
+            return RedrawOutcome::Skipped;
+        }
+
+        match self.surface.get_current_texture() {
+            Ok(frame) => {
+                self.queue.submit(std::iter::empty());
+                self.window.pre_present_notify();
+                frame.present();
+                RedrawOutcome::Presented
+            }
+            Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
+                if self.reconfigure() {
+                    RedrawOutcome::Reconfigured
+                } else {
+                    RedrawOutcome::Skipped
+                }
+            }
+            Err(wgpu::SurfaceError::Timeout) => RedrawOutcome::Skipped,
+            Err(wgpu::SurfaceError::OutOfMemory) => RedrawOutcome::Exit,
+            Err(wgpu::SurfaceError::Other) => RedrawOutcome::Skipped,
+        }
+    }
+
+    fn reconfigure(&mut self) -> bool {
+        let Some(size) = self.size else {
+            self.configuration = None;
+            return false;
+        };
+        let Some(configuration) =
+            self.surface
+                .get_default_config(&self.adapter, size.width(), size.height())
+        else {
+            self.configuration = None;
+            return false;
+        };
+        self.surface.configure(&self.device, &configuration);
+        self.configuration = Some(configuration);
+        true
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::SurfaceSize;
+
+    #[test]
+    fn surface_size_rejects_minimized_dimensions() {
+        assert_eq!(SurfaceSize::new(0, 1), None);
+        assert_eq!(SurfaceSize::new(1, 0), None);
+        assert_eq!(SurfaceSize::new(0, 0), None);
+    }
+
+    #[test]
+    fn surface_size_retains_nonzero_dimensions() {
+        let size = SurfaceSize::new(800, 600).unwrap();
+        assert_eq!((size.width(), size.height()), (800, 600));
+    }
+}
