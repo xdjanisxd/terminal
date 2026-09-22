@@ -1783,6 +1783,7 @@ dependencies = [
 name = "terminal-app"
 version = "0.0.0"
 dependencies = [
+ "terminal-core",
  "terminal-renderer",
  "winit",
 ]
@@ -1814,9 +1815,11 @@ dependencies = [
 name = "terminal-renderer"
 version = "0.0.0"
 dependencies = [
+ "bytemuck",
  "fontdb",
  "pollster",
  "swash",
+ "terminal-core",
  "wgpu",
  "winit",
 ]

@@ -2,16 +2,27 @@
 
 use std::sync::Arc;
 
+use terminal_core::{TerminalDimensions, TerminalState};
 use terminal_renderer::{RedrawOutcome, Renderer};
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::window::{Window, WindowId};
 
-#[derive(Default)]
 struct Application {
     window: Option<Arc<Window>>,
     renderer: Option<Renderer>,
+    terminal: TerminalState,
+}
+
+impl Default for Application {
+    fn default() -> Self {
+        Self {
+            window: None,
+            renderer: None,
+            terminal: TerminalState::new(TerminalDimensions::new(80, 24).expect("valid default")),
+        }
+    }
 }
 
 impl Application {
@@ -81,7 +92,7 @@ impl ApplicationHandler for Application {
                 let Some(renderer) = self.renderer.as_mut() else {
                     return;
                 };
-                match renderer.redraw() {
+                match renderer.redraw_terminal(&self.terminal) {
                     RedrawOutcome::Reconfigured => window.request_redraw(),
                     RedrawOutcome::Exit => event_loop.exit(),
                     RedrawOutcome::Presented | RedrawOutcome::Skipped => {}
