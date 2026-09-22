@@ -567,7 +567,8 @@ mod tests {
             .expect("map callback")
             .expect("readback map");
         let bytes = slice.get_mapped_range();
-        let pixels: Vec<_> = bytes.chunks_exact(4).collect();
+        let (pixels, remainder) = bytes.as_chunks::<4>();
+        assert!(remainder.is_empty(), "RGBA readback must have whole pixels");
         assert!(pixels.iter().any(|pixel| pixel[2] > 80));
         assert!(
             pixels
