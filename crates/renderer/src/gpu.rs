@@ -169,6 +169,21 @@ pub(super) struct DrawResources {
     glyph_atlas: GlyphAtlas,
 }
 
+/// Per-frame draw inputs retained only for concise lifecycle diagnostics.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct RenderInstanceCounts {
+    pub(super) backgrounds: usize,
+    pub(super) glyphs: usize,
+    pub(super) decorations: usize,
+    pub(super) cursor: usize,
+}
+
+pub(super) struct FrameContext<'a> {
+    pub(super) target: &'a wgpu::TextureView,
+    pub(super) surface_size: crate::SurfaceSize,
+    pub(super) cell_metrics: crate::CellMetrics,
+}
+
 impl DrawResources {
     pub(super) fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Self {
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -227,13 +242,12 @@ impl DrawResources {
         &mut self,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
-        target: &wgpu::TextureView,
+        frame: FrameContext<'_>,
         data: &TerminalRenderData,
         font_system: &mut FontSystem,
-        surface_size: crate::SurfaceSize,
-    ) {
-        let cell_width = surface_size.width() as f32 / data.columns.max(1) as f32;
-        let cell_height = surface_size.height() as f32 / data.rows.max(1) as f32;
+    ) -> RenderInstanceCounts {
+        let cell_width = frame.cell_metrics.width() as f32;
+        let cell_height = frame.cell_metrics.height() as f32;
         let mut rectangles = Vec::with_capacity(data.cells.len() + data.cells.len() / 4 + 1);
         let mut glyphs = Vec::new();
         for cell in &data.cells {
@@ -241,19 +255,19 @@ impl DrawResources {
             let y = cell.row as f32 * cell_height;
             let width = cell.width as f32 * cell_width;
             rectangles.push(RectInstance {
-                rect: to_clip_rect(x, y, width, cell_height, surface_size),
+                rect: to_clip_rect(x, y, width, cell_height, frame.surface_size),
                 color: cell.background.0,
             });
             if cell.underline {
                 rectangles.push(RectInstance {
-                    rect: to_clip_rect(x, y + cell_height - 1.0, width, 1.0, surface_size),
+                    rect: to_clip_rect(x, y + cell_height - 1.0, width, 1.0, frame.surface_size),
                     color: cell.foreground.0,
                 });
             }
             if cell.character == ' ' || cell.character == '\0' {
                 continue;
             }
-            let pixels_per_em = cell_height.max(1.0);
+            let pixels_per_em = frame.cell_metrics.pixels_per_em();
             let Ok(shaped) = font_system.shape_text(&cell.text, pixels_per_em) else {
                 continue;
             };
@@ -273,19 +287,26 @@ impl DrawResources {
                 let slot_y = (entry.slot as u32 / ATLAS_COLUMNS) * ATLAS_SLOT_SIZE;
                 let glyph_x = x + bitmap.bearing_x() as f32 + shaped_glyph.offset_x();
                 let glyph_y = y + cell_height - bitmap.bearing_y() as f32 - shaped_glyph.offset_y();
+                let Some((clipped_x, clipped_y, clipped_width, clipped_height)) = clip_rect_to_cell(
+                    [glyph_x, glyph_y, entry.width as f32, entry.height as f32],
+                    [x, y, width, cell_height],
+                ) else {
+                    continue;
+                };
                 glyphs.push(GlyphInstance {
                     rect: to_clip_rect(
-                        glyph_x,
-                        glyph_y,
-                        entry.width as f32,
-                        entry.height as f32,
-                        surface_size,
+                        clipped_x,
+                        clipped_y,
+                        clipped_width,
+                        clipped_height,
+                        frame.surface_size,
                     ),
                     uv: [
-                        slot_x as f32 / ATLAS_WIDTH as f32,
-                        slot_y as f32 / ATLAS_HEIGHT as f32,
-                        (slot_x + entry.width) as f32 / ATLAS_WIDTH as f32,
-                        (slot_y + entry.height) as f32 / ATLAS_HEIGHT as f32,
+                        (slot_x as f32 + clipped_x - glyph_x) / ATLAS_WIDTH as f32,
+                        (slot_y as f32 + clipped_y - glyph_y) / ATLAS_HEIGHT as f32,
+                        (slot_x as f32 + clipped_x - glyph_x + clipped_width) / ATLAS_WIDTH as f32,
+                        (slot_y as f32 + clipped_y - glyph_y + clipped_height)
+                            / ATLAS_HEIGHT as f32,
                     ],
                     color: cell.foreground.0,
                 });
@@ -297,7 +318,7 @@ impl DrawResources {
                 cursor.row as f32 * cell_height,
                 cell_width,
                 cell_height,
-                surface_size,
+                frame.surface_size,
             ),
             color: [0.8, 0.8, 0.8, 0.45],
         });
@@ -312,7 +333,7 @@ impl DrawResources {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("terminal render pass"),
                 color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: target,
+                    view: frame.target,
                     resolve_target: None,
                     ops: wgpu::Operations {
                         load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
@@ -341,6 +362,12 @@ impl DrawResources {
             }
         }
         queue.submit(Some(encoder.finish()));
+        RenderInstanceCounts {
+            backgrounds: data.cells.len(),
+            glyphs: glyphs.len(),
+            decorations: rectangles.len() - data.cells.len(),
+            cursor: usize::from(cursor.is_some()),
+        }
     }
 }
 
@@ -428,9 +455,19 @@ fn to_clip_rect(x: f32, y: f32, width: f32, height: f32, surface: crate::Surface
     ]
 }
 
+fn clip_rect_to_cell(rect: [f32; 4], cell: [f32; 4]) -> Option<(f32, f32, f32, f32)> {
+    let [x, y, width, height] = rect;
+    let [cell_x, cell_y, cell_width, cell_height] = cell;
+    let left = x.max(cell_x);
+    let top = y.max(cell_y);
+    let right = (x + width).min(cell_x + cell_width);
+    let bottom = (y + height).min(cell_y + cell_height);
+    (left < right && top < bottom).then_some((left, top, right - left, bottom - top))
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{DrawResources, GpuGlyphKey, to_clip_rect};
+    use super::{DrawResources, FrameContext, GpuGlyphKey, clip_rect_to_cell, to_clip_rect};
     use crate::{FontRequest, FontSystem, SurfaceSize, TerminalRenderData};
     use terminal_core::{CellColor, TerminalDimensions, TerminalState, UnderlineStyle};
 
@@ -439,6 +476,18 @@ mod tests {
         assert_eq!(
             to_clip_rect(0.0, 0.0, 50.0, 25.0, SurfaceSize::new(100, 50).unwrap()),
             [-1.0, 1.0, 1.0, 1.0]
+        );
+    }
+
+    #[test]
+    fn glyph_rectangles_are_clipped_to_their_own_cell_bounds() {
+        assert_eq!(
+            clip_rect_to_cell([8.0, -2.0, 10.0, 20.0], [10.0, 0.0, 8.0, 12.0]),
+            Some((10.0, 0.0, 8.0, 12.0))
+        );
+        assert_eq!(
+            clip_rect_to_cell([20.0, 0.0, 3.0, 3.0], [10.0, 0.0, 8.0, 12.0]),
+            None
         );
     }
 
@@ -563,10 +612,13 @@ mod tests {
         resources.draw(
             &device,
             &queue,
-            &view,
+            FrameContext {
+                target: &view,
+                surface_size: SurfaceSize::new(WIDTH, HEIGHT).unwrap(),
+                cell_metrics: crate::CellMetrics::from_physical(96, 25, 25.0),
+            },
             &data,
             &mut fonts,
-            SurfaceSize::new(WIDTH, HEIGHT).unwrap(),
         );
 
         let readback = device.create_buffer(&wgpu::BufferDescriptor {
