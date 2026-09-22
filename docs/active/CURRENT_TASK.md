@@ -1,3 +1,3 @@
 # Current Task
 
-M4 terminal rendering: deterministic snapshot conversion and the bounded GPU draw path for backgrounds, glyph alpha masks, underlines, and cursor are implemented and pass workspace validation. The ignored `native_gpu_validates_terminal_pipelines` and `native_gpu_renders_backgrounds_glyphs_underlines_and_cursor` tests pass against the available native adapter; the latter reads back GPU pixels for styled text, underline, background, cursor, and wide/combining input. The remaining acceptance evidence is a native visual check on an observable display/GPU-capable runner, including window resize/minimize behavior; keep damage-driven redraw deferred.
+No active task.

@@ -641,4 +641,20 @@ mod tests {
 
         assert_eq!(system.glyph_cache.entries.len(), 2);
     }
+
+    #[test]
+    #[ignore = "requires the native system font database"]
+    fn native_system_font_shapes_and_rasterizes_the_visual_smoke_wide_character() {
+        let mut system = FontSystem::load_system(FontRequest::default()).unwrap();
+
+        let shaped = system.shape_text("界", 32.0).unwrap();
+
+        assert!(!shaped.glyphs().is_empty());
+        assert!(shaped.glyphs().iter().any(|glyph| glyph.uses_fallback()));
+        assert!(shaped.glyphs().iter().any(|glyph| {
+            system
+                .rasterize_glyph(glyph, 32.0)
+                .is_ok_and(|bitmap| bitmap.width() > 0 && bitmap.height() > 0)
+        }));
+    }
 }

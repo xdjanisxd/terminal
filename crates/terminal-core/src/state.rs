@@ -466,6 +466,8 @@ impl TerminalState {
             self.screen.move_cursor(0, 1);
             self.screen
                 .set_wrap_pending(self.terminal_modes.auto_wrap() == AutoWrapMode::Enabled);
+        } else if width == PrintableWidth::Two {
+            self.screen.move_cursor(0, 2);
         } else if cursor.column() < final_column {
             self.screen.move_cursor(0, 1);
         } else {

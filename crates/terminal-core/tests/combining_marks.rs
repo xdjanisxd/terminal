@@ -88,7 +88,7 @@ fn wide_base_owns_marks_and_continuation_remains_metadata_only() {
         CellOccupancy::WideContinuation
     );
     assert!(marks(&state, 0, 1).is_empty());
-    assert_eq!((state.cursor().row(), state.cursor().column()), (0, 1));
+    assert_eq!((state.cursor().row(), state.cursor().column()), (0, 2));
     assert_valid_cells(&state);
 }
 

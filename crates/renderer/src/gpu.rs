@@ -430,7 +430,7 @@ fn to_clip_rect(x: f32, y: f32, width: f32, height: f32, surface: crate::Surface
 
 #[cfg(test)]
 mod tests {
-    use super::{DrawResources, to_clip_rect};
+    use super::{DrawResources, GpuGlyphKey, to_clip_rect};
     use crate::{FontRequest, FontSystem, SurfaceSize, TerminalRenderData};
     use terminal_core::{CellColor, TerminalDimensions, TerminalState, UnderlineStyle};
 
@@ -463,8 +463,8 @@ mod tests {
     #[test]
     #[ignore = "requires a native GPU adapter and system monospace font"]
     fn native_gpu_renders_backgrounds_glyphs_underlines_and_cursor() {
-        const WIDTH: u32 = 640;
-        const HEIGHT: u32 = 160;
+        const WIDTH: u32 = 768;
+        const HEIGHT: u32 = 600;
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
         let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
             compatible_surface: None,
@@ -491,7 +491,7 @@ mod tests {
             view_formats: &[],
         });
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-        let mut terminal = TerminalState::new(TerminalDimensions::new(8, 2).unwrap());
+        let mut terminal = TerminalState::new(TerminalDimensions::new(8, 24).unwrap());
         terminal.set_background_color(CellColor::Rgb {
             red: 15,
             green: 45,
@@ -511,15 +511,55 @@ mod tests {
         terminal.set_underline_style(UnderlineStyle::Enabled);
         terminal.print_character('B').unwrap();
         terminal.set_underline_style(UnderlineStyle::Disabled);
+        terminal.set_foreground_color(CellColor::Rgb {
+            red: 230,
+            green: 30,
+            blue: 230,
+        });
         terminal.print_character('界').unwrap();
+        terminal.set_foreground_color(CellColor::Rgb {
+            red: 230,
+            green: 200,
+            blue: 40,
+        });
         terminal.print_character('e').unwrap();
         terminal.print_character('\u{301}').unwrap();
         terminal.line_feed();
         terminal.carriage_return();
+        assert_eq!(terminal.screen().cell(0, 2).unwrap().character(), '界');
         let data = TerminalRenderData::from_terminal(&terminal);
+        let wide_cell = data
+            .cells
+            .iter()
+            .find(|cell| cell.character == '界')
+            .expect("wide lead cell");
+        assert_eq!(wide_cell.width, 2);
+        assert_eq!(
+            wide_cell.foreground.0,
+            [230.0 / 255.0, 30.0 / 255.0, 230.0 / 255.0, 1.0]
+        );
         let mut resources = DrawResources::new(&device, wgpu::TextureFormat::Rgba8Unorm);
         let mut fonts =
             FontSystem::load_system(FontRequest::default()).expect("system monospace font");
+        let pixels_per_em = HEIGHT as f32 / data.rows as f32;
+        let wide_shaped = fonts.shape_text("界", pixels_per_em).unwrap();
+        let wide_glyph = wide_shaped.glyphs().first().expect("wide shaped glyph");
+        let wide_bitmap = fonts.rasterize_glyph(wide_glyph, pixels_per_em).unwrap();
+        assert!(wide_bitmap.width() <= 64 && wide_bitmap.height() <= 64);
+        assert!(
+            resources
+                .glyph_atlas
+                .get_or_insert(
+                    &queue,
+                    GpuGlyphKey {
+                        face: wide_glyph.face_cache_identity(),
+                        glyph_id: wide_bitmap.glyph_id(),
+                        pixels_per_em: pixels_per_em.to_bits(),
+                    },
+                    &wide_bitmap,
+                )
+                .is_some()
+        );
         resources.draw(
             &device,
             &queue,
@@ -587,6 +627,11 @@ mod tests {
                 && (pixel[0] as i16 - pixel[1] as i16).abs() < 20
                 && (pixel[1] as i16 - pixel[2] as i16).abs() < 20
         }));
+        assert!(
+            pixels
+                .iter()
+                .any(|pixel| pixel[0] > 150 && pixel[1] < 100 && pixel[2] > 150)
+        );
         drop(bytes);
         readback.unmap();
     }
