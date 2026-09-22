@@ -29,6 +29,10 @@ pub struct ShapedGlyph {
 }
 
 impl ShapedGlyph {
+    pub(crate) fn face_cache_identity(&self) -> String {
+        self.face_id.to_string()
+    }
+
     pub fn glyph_id(&self) -> u16 {
         self.glyph_id
     }

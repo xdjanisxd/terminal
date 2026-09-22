@@ -1,11 +1,14 @@
 //! Project-owned GPU surface lifecycle.
 //!
-//! This crate owns `wgpu` setup and surface maintenance, but not terminal
-//! semantics or terminal-cell drawing.
+//! This crate owns GPU setup and terminal-state rendering, but never terminal
+//! protocol semantics.
 
 mod font;
+mod gpu;
+mod snapshot;
 
 pub use font::{FontProcessingError, FontRequest, GlyphBitmap, ShapedGlyph, ShapedText};
+pub use snapshot::{CursorRenderData, RenderCell, Rgba, TerminalRenderData};
 
 use std::error::Error;
 use std::fmt;
@@ -14,6 +17,7 @@ use std::sync::Arc;
 use winit::window::Window;
 
 use crate::font::FontSystem;
+use crate::gpu::DrawResources;
 
 /// A validated physical surface size.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -79,6 +83,7 @@ pub struct Renderer {
     size: Option<SurfaceSize>,
     #[allow(dead_code)]
     font_system: FontSystem,
+    draw_resources: Option<DrawResources>,
 }
 
 impl Renderer {
@@ -123,6 +128,7 @@ impl Renderer {
             configuration: None,
             size,
             font_system,
+            draw_resources: None,
         };
         renderer.reconfigure();
         Ok(renderer)
@@ -152,15 +158,44 @@ impl Renderer {
         self.font_system.rasterize_glyph(glyph, pixels_per_em)
     }
 
-    /// Acquires and presents an empty frame; terminal drawing is intentionally deferred.
+    /// Acquires and presents an empty frame.
     pub fn redraw(&mut self) -> RedrawOutcome {
+        self.redraw_data(None)
+    }
+
+    /// Converts terminal-core's resolved state and presents it without owning its semantics.
+    pub fn redraw_terminal(&mut self, state: &terminal_core::TerminalState) -> RedrawOutcome {
+        let data = TerminalRenderData::from_terminal(state);
+        self.redraw_data(Some(&data))
+    }
+
+    fn redraw_data(&mut self, data: Option<&TerminalRenderData>) -> RedrawOutcome {
         if self.configuration.is_none() {
             return RedrawOutcome::Skipped;
         }
 
         match self.surface.get_current_texture() {
             Ok(frame) => {
-                self.queue.submit(std::iter::empty());
+                if let (Some(data), Some(size), Some(configuration)) =
+                    (data, self.size, self.configuration.as_ref())
+                {
+                    let resources = self.draw_resources.get_or_insert_with(|| {
+                        DrawResources::new(&self.device, configuration.format)
+                    });
+                    let view = frame
+                        .texture
+                        .create_view(&wgpu::TextureViewDescriptor::default());
+                    resources.draw(
+                        &self.device,
+                        &self.queue,
+                        &view,
+                        data,
+                        &mut self.font_system,
+                        size,
+                    );
+                } else {
+                    self.queue.submit(std::iter::empty());
+                }
                 self.window.pre_present_notify();
                 frame.present();
                 RedrawOutcome::Presented
@@ -191,6 +226,7 @@ impl Renderer {
             return false;
         };
         self.surface.configure(&self.device, &configuration);
+        self.draw_resources = None;
         self.configuration = Some(configuration);
         true
     }
