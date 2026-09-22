@@ -48,7 +48,7 @@ fn wide_printable_uses_a_lead_and_continuation_with_rendition_snapshot() {
         state.screen().cell(0, 3).unwrap().occupancy(),
         CellOccupancy::WideContinuation
     );
-    assert_eq!(state.cursor().column(), 3);
+    assert_eq!(state.cursor().column(), 4);
     assert_valid_wide_cells(&state);
 }
 
@@ -65,7 +65,7 @@ fn wide_character_at_final_column_wraps_only_when_auto_wrap_is_enabled() {
         enabled.screen().cell(1, 1).unwrap().occupancy(),
         CellOccupancy::WideContinuation
     );
-    assert_eq!((enabled.cursor().row(), enabled.cursor().column()), (1, 1));
+    assert_eq!((enabled.cursor().row(), enabled.cursor().column()), (1, 2));
     assert_valid_wide_cells(&enabled);
 
     let mut disabled = state(4, 2);
@@ -106,6 +106,24 @@ fn wide_write_repairs_overwritten_halves_and_delayed_wrap_before_writing() {
         state.screen().cell(1, 0).unwrap().occupancy(),
         CellOccupancy::WideLead
     );
+    assert_valid_wide_cells(&state);
+}
+
+#[test]
+fn printing_after_a_wide_cell_does_not_overwrite_its_continuation() {
+    let mut state = state(6, 1);
+    state.set_cursor_position(0, 2).unwrap();
+
+    state.print_character('界').unwrap();
+    state.print_character('x').unwrap();
+
+    assert_eq!(state.screen().cell(0, 2).unwrap().character(), '界');
+    assert_eq!(
+        state.screen().cell(0, 3).unwrap().occupancy(),
+        CellOccupancy::WideContinuation
+    );
+    assert_eq!(state.screen().cell(0, 4).unwrap().character(), 'x');
+    assert_eq!(state.cursor().column(), 5);
     assert_valid_wide_cells(&state);
 }
 

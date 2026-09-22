@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use terminal_core::{TerminalDimensions, TerminalState};
+use terminal_core::{CellColor, TerminalDimensions, TerminalState, UnderlineStyle};
 use terminal_renderer::{RedrawOutcome, Renderer};
 use winit::application::ApplicationHandler;
 use winit::event::WindowEvent;
@@ -17,11 +17,65 @@ struct Application {
 
 impl Default for Application {
     fn default() -> Self {
+        let mut terminal =
+            TerminalState::new(TerminalDimensions::new(80, 24).expect("valid default"));
+        if std::env::var_os("TERMINAL_RENDERER_VISUAL_SMOKE").is_some_and(|value| value == "1") {
+            populate_visual_smoke_state(&mut terminal);
+        }
         Self {
             window: None,
             renderer: None,
-            terminal: TerminalState::new(TerminalDimensions::new(80, 24).expect("valid default")),
+            terminal,
         }
+    }
+}
+
+/// Creates deterministic content for manual renderer acceptance checks only.
+fn populate_visual_smoke_state(terminal: &mut TerminalState) {
+    terminal.set_background_color(CellColor::Rgb {
+        red: 20,
+        green: 55,
+        blue: 120,
+    });
+    terminal.set_foreground_color(CellColor::Rgb {
+        red: 245,
+        green: 245,
+        blue: 245,
+    });
+    print_smoke_text(terminal, "GLYPHS  background");
+    terminal.line_feed();
+    terminal.carriage_return();
+
+    terminal.set_background_color(CellColor::Rgb {
+        red: 85,
+        green: 25,
+        blue: 100,
+    });
+    terminal.set_foreground_color(CellColor::Rgb {
+        red: 40,
+        green: 235,
+        blue: 100,
+    });
+    terminal.set_underline_style(UnderlineStyle::Enabled);
+    print_smoke_text(terminal, "UNDERLINE  decoration");
+    terminal.set_underline_style(UnderlineStyle::Disabled);
+    terminal.line_feed();
+    terminal.carriage_return();
+
+    terminal.set_background_color(CellColor::Default);
+    terminal.set_foreground_color(CellColor::Rgb {
+        red: 240,
+        green: 200,
+        blue: 80,
+    });
+    print_smoke_text(terminal, "wide: 界   combining: e\u{301}");
+}
+
+fn print_smoke_text(terminal: &mut TerminalState, text: &str) {
+    for character in text.chars() {
+        terminal
+            .print_character(character)
+            .expect("visual smoke text is printable");
     }
 }
 
