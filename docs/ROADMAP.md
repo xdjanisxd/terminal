@@ -81,7 +81,8 @@ Completion marks require tested acceptance criteria, not code presence alone.
   - Completed sub-slices: renderer-owned system discovery/loading, initial monospace-face selection, selected-face shaping, CPU alpha-mask rasterization, deterministic fallback selection, and bounded LRU glyph caching. The later rendering slice supplies bounded GPU atlas upload.
 - [x] Render terminal backgrounds, glyphs, decorations, and cursor
   - `terminal-renderer` converts resolved terminal state into renderer-owned backgrounds, glyph alpha-mask quads, underlines, and cursor primitives, using a bounded GPU atlas and existing font fallback/cache pipeline. Windows visual smoke validation confirmed normal/wide/combining glyphs, non-default backgrounds, underlines, cursor, resize, and minimize/restore without corruption. Native GitHub Actions run 35699195505 passed the six-runner baseline; focused validation covers the subsequent wide-cell cursor-advance regression fix.
-- [ ] Add damage-driven redraw and DPI/resize handling
+- [x] Add damage-driven redraw and DPI/resize handling
+  - `terminal-app` coalesces invalidation and synchronizes the terminal grid to DPI-aware drawable size. Restore, fullscreen, and surface-recovery paths use one event-driven successor frame after the initial successful recovery present; diagnostics and Windows manual acceptance verify the recovery remains finite.
 
 ## Early integration checkpoint
 

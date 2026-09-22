@@ -7,17 +7,42 @@ mod font;
 mod gpu;
 mod snapshot;
 
-pub use font::{FontProcessingError, FontRequest, GlyphBitmap, ShapedGlyph, ShapedText};
+pub use font::{
+    CellMetrics, FontProcessingError, FontRequest, GlyphBitmap, ShapedGlyph, ShapedText,
+};
 pub use snapshot::{CursorRenderData, RenderCell, Rgba, TerminalRenderData};
 
 use std::error::Error;
 use std::fmt;
-use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, OnceLock};
 
 use winit::window::Window;
 
 use crate::font::FontSystem;
-use crate::gpu::DrawResources;
+use crate::gpu::{DrawResources, FrameContext};
+
+static DIAGNOSTICS_ENABLED: OnceLock<bool> = OnceLock::new();
+static DIAGNOSTIC_SEQUENCE: AtomicU64 = AtomicU64::new(1);
+static DIAGNOSTIC_FRAME_SEQUENCE: AtomicU64 = AtomicU64::new(1);
+
+/// Whether native lifecycle diagnostics were explicitly enabled for this process.
+pub fn diagnostics_enabled() -> bool {
+    *DIAGNOSTICS_ENABLED.get_or_init(|| {
+        std::env::var_os("TERMINAL_RENDERER_DIAGNOSTICS").is_some_and(|value| value == "1")
+    })
+}
+
+/// Emits one ordered, opt-in native lifecycle diagnostic line.
+///
+/// This is intentionally renderer-owned so app and GPU lifecycle observations
+/// share one sequence number without exposing `wgpu` details to the app.
+pub fn emit_diagnostic(message: fmt::Arguments<'_>) {
+    if diagnostics_enabled() {
+        let sequence = DIAGNOSTIC_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+        eprintln!("terminal-diagnostic seq={sequence} {message}");
+    }
+}
 
 /// A validated physical surface size.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -48,6 +73,23 @@ pub enum RedrawOutcome {
     Reconfigured,
     Skipped,
     Exit,
+}
+
+/// Renderer-owned surface state safe to include in native lifecycle diagnostics.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RendererDiagnosticState {
+    desired_size: Option<SurfaceSize>,
+    configured_size: Option<SurfaceSize>,
+}
+
+impl RendererDiagnosticState {
+    pub fn desired_size(self) -> Option<SurfaceSize> {
+        self.desired_size
+    }
+
+    pub fn configured_size(self) -> Option<SurfaceSize> {
+        self.configured_size
+    }
 }
 
 /// A project-owned initialization failure for the native GPU surface.
@@ -83,6 +125,7 @@ pub struct Renderer {
     size: Option<SurfaceSize>,
     #[allow(dead_code)]
     font_system: FontSystem,
+    cell_metrics: CellMetrics,
     draw_resources: Option<DrawResources>,
 }
 
@@ -100,6 +143,11 @@ impl Renderer {
         let font_system = FontSystem::load_system(font_request).map_err(|error| {
             RendererInitError::new(format!("could not load terminal font: {error}"))
         })?;
+        let cell_metrics = font_system
+            .cell_metrics(window.scale_factor())
+            .map_err(|error| {
+                RendererInitError::new(format!("could not derive terminal cell metrics: {error}"))
+            })?;
         let size = SurfaceSize::new(window.inner_size().width, window.inner_size().height);
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
         let surface = instance
@@ -128,16 +176,65 @@ impl Renderer {
             configuration: None,
             size,
             font_system,
+            cell_metrics,
             draw_resources: None,
         };
         renderer.reconfigure();
+        emit_diagnostic(format_args!(
+            "renderer event=created scale_factor={} cell_metrics={:?} state={:?}",
+            renderer.window.scale_factor(),
+            renderer.cell_metrics,
+            renderer.diagnostic_state()
+        ));
         Ok(renderer)
     }
 
     /// Updates the desired surface size and configures only non-zero dimensions.
     pub fn resize(&mut self, width: u32, height: u32) -> bool {
-        self.size = SurfaceSize::new(width, height);
-        self.reconfigure()
+        let size = SurfaceSize::new(width, height);
+        if !needs_reconfigure(self.size, self.configuration.is_some(), size) {
+            emit_diagnostic(format_args!(
+                "renderer event=resize-skipped requested={width}x{height} state={:?}",
+                self.diagnostic_state()
+            ));
+            return false;
+        }
+        emit_diagnostic(format_args!(
+            "renderer event=resize requested={width}x{height} previous={:?}",
+            self.diagnostic_state()
+        ));
+        self.size = size;
+        let reconfigured = self.reconfigure();
+        emit_diagnostic(format_args!(
+            "renderer event=resize-complete reconfigured={reconfigured} state={:?}",
+            self.diagnostic_state()
+        ));
+        reconfigured
+    }
+
+    /// Returns stable physical cell metrics for the current DPI scale.
+    pub fn cell_metrics(&self) -> CellMetrics {
+        self.cell_metrics
+    }
+
+    /// Returns only project-owned surface state for opt-in lifecycle diagnostics.
+    pub fn diagnostic_state(&self) -> RendererDiagnosticState {
+        RendererDiagnosticState {
+            desired_size: self.size,
+            configured_size: self.configuration.as_ref().and_then(|configuration| {
+                SurfaceSize::new(configuration.width, configuration.height)
+            }),
+        }
+    }
+
+    /// Updates DPI-derived cell metrics without coupling font size to window size.
+    pub fn set_scale_factor(&mut self, scale_factor: f64) -> Result<bool, FontProcessingError> {
+        let metrics = self.font_system.cell_metrics(scale_factor)?;
+        if self.cell_metrics == metrics {
+            return Ok(false);
+        }
+        self.cell_metrics = metrics;
+        Ok(true)
     }
 
     /// Shapes one terminal text run with the selected initial font face.
@@ -170,12 +267,38 @@ impl Renderer {
     }
 
     fn redraw_data(&mut self, data: Option<&TerminalRenderData>) -> RedrawOutcome {
+        let frame_id = DIAGNOSTIC_FRAME_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+        emit_diagnostic(format_args!(
+            "renderer frame={frame_id} event=frame-start state={:?}",
+            self.diagnostic_state()
+        ));
         if self.configuration.is_none() {
+            let size = self.window.inner_size();
+            emit_diagnostic(format_args!(
+                "renderer frame={frame_id} event=frame-unconfigured window_size={}x{} state={:?}",
+                size.width,
+                size.height,
+                self.diagnostic_state()
+            ));
+            if self.resize(size.width, size.height) {
+                emit_diagnostic(format_args!(
+                    "renderer frame={frame_id} event=frame-skipped reason=reconfigured"
+                ));
+                return RedrawOutcome::Reconfigured;
+            }
+            emit_diagnostic(format_args!(
+                "renderer frame={frame_id} event=frame-skipped reason=unconfigured-no-drawable-size"
+            ));
             return RedrawOutcome::Skipped;
         }
 
         match self.surface.get_current_texture() {
             Ok(frame) => {
+                let suboptimal = frame.suboptimal;
+                emit_diagnostic(format_args!(
+                    "renderer frame={frame_id} event=surface-acquire result=ok suboptimal={suboptimal} state={:?}",
+                    self.diagnostic_state()
+                ));
                 if let (Some(data), Some(size), Some(configuration)) =
                     (data, self.size, self.configuration.as_ref())
                 {
@@ -185,37 +308,84 @@ impl Renderer {
                     let view = frame
                         .texture
                         .create_view(&wgpu::TextureViewDescriptor::default());
-                    resources.draw(
+                    let instance_counts = resources.draw(
                         &self.device,
                         &self.queue,
-                        &view,
+                        FrameContext {
+                            target: &view,
+                            surface_size: size,
+                            cell_metrics: self.cell_metrics,
+                        },
                         data,
                         &mut self.font_system,
-                        size,
                     );
+                    emit_diagnostic(format_args!(
+                        "renderer frame={frame_id} event=frame-rendered terminal_data=true cells={} instances={instance_counts:?}",
+                        data.cells.len(),
+                    ));
                 } else {
                     self.queue.submit(std::iter::empty());
+                    emit_diagnostic(format_args!(
+                        "renderer frame={frame_id} event=frame-rendered terminal_data=false"
+                    ));
                 }
                 self.window.pre_present_notify();
                 frame.present();
-                RedrawOutcome::Presented
-            }
-            Err(wgpu::SurfaceError::Lost | wgpu::SurfaceError::Outdated) => {
-                if self.reconfigure() {
+                if suboptimal && self.reconfigure() {
+                    emit_diagnostic(format_args!(
+                        "renderer frame={frame_id} event=frame-presented suboptimal=true outcome=reconfigured state={:?}",
+                        self.diagnostic_state()
+                    ));
                     RedrawOutcome::Reconfigured
                 } else {
+                    emit_diagnostic(format_args!(
+                        "renderer frame={frame_id} event=frame-presented suboptimal={suboptimal} outcome=presented"
+                    ));
+                    RedrawOutcome::Presented
+                }
+            }
+            Err(
+                error @ (wgpu::SurfaceError::Lost
+                | wgpu::SurfaceError::Outdated
+                | wgpu::SurfaceError::Other),
+            ) => {
+                emit_diagnostic(format_args!(
+                    "renderer frame={frame_id} event=surface-acquire result=error error={error:?} state={:?}",
+                    self.diagnostic_state()
+                ));
+                if self.reconfigure() {
+                    emit_diagnostic(format_args!(
+                        "renderer frame={frame_id} event=surface-recovery-scheduled"
+                    ));
+                    RedrawOutcome::Reconfigured
+                } else {
+                    emit_diagnostic(format_args!(
+                        "renderer frame={frame_id} event=frame-skipped reason=surface-unconfigured"
+                    ));
                     RedrawOutcome::Skipped
                 }
             }
-            Err(wgpu::SurfaceError::Timeout) => RedrawOutcome::Skipped,
-            Err(wgpu::SurfaceError::OutOfMemory) => RedrawOutcome::Exit,
-            Err(wgpu::SurfaceError::Other) => RedrawOutcome::Skipped,
+            Err(wgpu::SurfaceError::Timeout) => {
+                emit_diagnostic(format_args!(
+                    "renderer frame={frame_id} event=surface-acquire result=error error=Timeout outcome=skipped"
+                ));
+                RedrawOutcome::Skipped
+            }
+            Err(wgpu::SurfaceError::OutOfMemory) => {
+                emit_diagnostic(format_args!(
+                    "renderer frame={frame_id} event=surface-acquire result=error error=OutOfMemory outcome=exit"
+                ));
+                RedrawOutcome::Exit
+            }
         }
     }
 
     fn reconfigure(&mut self) -> bool {
         let Some(size) = self.size else {
             self.configuration = None;
+            emit_diagnostic(format_args!(
+                "renderer event=reconfigure result=skipped reason=zero-sized"
+            ));
             return false;
         };
         let Some(configuration) =
@@ -223,18 +393,35 @@ impl Renderer {
                 .get_default_config(&self.adapter, size.width(), size.height())
         else {
             self.configuration = None;
+            emit_diagnostic(format_args!(
+                "renderer event=reconfigure result=skipped reason=no-default-config size={}x{}",
+                size.width(),
+                size.height()
+            ));
             return false;
         };
         self.surface.configure(&self.device, &configuration);
         self.draw_resources = None;
         self.configuration = Some(configuration);
+        emit_diagnostic(format_args!(
+            "renderer event=reconfigure result=configured state={:?}",
+            self.diagnostic_state()
+        ));
         true
     }
 }
 
+fn needs_reconfigure(
+    current_size: Option<SurfaceSize>,
+    configured: bool,
+    next_size: Option<SurfaceSize>,
+) -> bool {
+    current_size != next_size || (next_size.is_some() && !configured)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::SurfaceSize;
+    use super::{SurfaceSize, needs_reconfigure};
 
     #[test]
     fn surface_size_rejects_minimized_dimensions() {
@@ -247,5 +434,15 @@ mod tests {
     fn surface_size_retains_nonzero_dimensions() {
         let size = SurfaceSize::new(800, 600).unwrap();
         assert_eq!((size.width(), size.height()), (800, 600));
+    }
+
+    #[test]
+    fn unconfigured_nonzero_surface_is_reconfigured_even_at_the_same_size() {
+        let size = SurfaceSize::new(800, 600);
+
+        assert!(needs_reconfigure(size, false, size));
+        assert!(!needs_reconfigure(size, true, size));
+        assert!(needs_reconfigure(None, false, size));
+        assert!(!needs_reconfigure(None, false, None));
     }
 }

@@ -15,6 +15,36 @@ use swash::{
     zeno::Format,
 };
 
+pub const DEFAULT_LOGICAL_FONT_SIZE: f32 = 16.0;
+
+/// Stable physical terminal cell metrics for one logical font size and DPI scale.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct CellMetrics {
+    width: u32,
+    height: u32,
+    pixels_per_em: u32,
+}
+
+impl CellMetrics {
+    /// Constructs already-validated physical metrics for deterministic consumers/tests.
+    pub const fn from_physical(width: u32, height: u32, pixels_per_em: f32) -> Self {
+        Self {
+            width,
+            height,
+            pixels_per_em: pixels_per_em.to_bits(),
+        }
+    }
+    pub fn width(self) -> u32 {
+        self.width
+    }
+    pub fn height(self) -> u32 {
+        self.height
+    }
+    pub fn pixels_per_em(self) -> f32 {
+        f32::from_bits(self.pixels_per_em)
+    }
+}
+
 /// Positioned glyph produced from the renderer's selected font face.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ShapedGlyph {
@@ -245,6 +275,29 @@ pub(super) struct FontSystem {
 }
 
 impl FontSystem {
+    pub(super) fn cell_metrics(
+        &self,
+        scale_factor: f64,
+    ) -> Result<CellMetrics, FontProcessingError> {
+        let pixels_per_em = DEFAULT_LOGICAL_FONT_SIZE * scale_factor as f32;
+        validate_pixels_per_em(pixels_per_em)?;
+        self.database
+            .with_face_data(self.primary_face, |data, index| {
+                let font = FontRef::from_index(data, index as usize)
+                    .ok_or(FontProcessingError::InvalidFaceData)?;
+                let metrics = font.metrics(&[]).scale(pixels_per_em);
+                let width = metrics.max_width.max(metrics.average_width).ceil().max(1.0) as u32;
+                let height = (metrics.ascent - metrics.descent + metrics.leading)
+                    .ceil()
+                    .max(1.0) as u32;
+                Ok(CellMetrics {
+                    width,
+                    height,
+                    pixels_per_em: pixels_per_em.to_bits(),
+                })
+            })
+            .ok_or(FontProcessingError::FaceDataUnavailable)?
+    }
     /// Discovers platform fonts and selects an initial terminal face.
     pub(super) fn load_system(request: FontRequest) -> Result<Self, FontLoadError> {
         let mut database = Database::new();
@@ -467,8 +520,8 @@ mod tests {
     use fontdb::{FaceInfo, Language, Source, Stretch, Style, Weight};
 
     use super::{
-        FontLoadError, FontProcessingError, FontRequest, FontSystem, GLYPH_CACHE_CAPACITY,
-        GlyphCacheKey,
+        DEFAULT_LOGICAL_FONT_SIZE, FontLoadError, FontProcessingError, FontRequest, FontSystem,
+        GLYPH_CACHE_CAPACITY, GlyphCacheKey,
     };
 
     const TEST_FONT: &[u8] = include_bytes!("../tests/fixtures/Tuffy.ttf");
@@ -560,6 +613,18 @@ mod tests {
         assert_eq!(shaped.glyphs()[0].cluster_range(), 0..1);
         assert_eq!(shaped.glyphs()[1].cluster_range(), 1..2);
         assert_eq!(shaped.glyphs()[2].cluster_range(), 2..3);
+    }
+
+    #[test]
+    fn cell_metrics_change_with_dpi_but_not_window_size() {
+        let system = fixture_system();
+        let one_x = system.cell_metrics(1.0).unwrap();
+        let two_x = system.cell_metrics(2.0).unwrap();
+
+        assert!(one_x.width() > 0 && one_x.height() > 0);
+        assert!(two_x.width() >= one_x.width() && two_x.height() >= one_x.height());
+        assert_eq!(one_x.pixels_per_em(), DEFAULT_LOGICAL_FONT_SIZE);
+        assert_eq!(two_x.pixels_per_em(), DEFAULT_LOGICAL_FONT_SIZE * 2.0);
     }
 
     #[test]
