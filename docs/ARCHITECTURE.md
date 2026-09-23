@@ -112,4 +112,4 @@ Configuration and runtime state remain separate. Invalid hot-reloaded configurat
 
 ## Resource and trust boundaries
 
-Bound scrollback, parser string payloads, channels, terminal dimensions, and glyph caches. Treat terminal output, OSC/DCS/APC data, hyperlinks, titles, clipboard requests, and startup commands as untrusted input. OSC 52 and clickable targets require explicit policy. Spawn programs with executable and argument fields, not interpolated command strings.
+Bound scrollback, parser string payloads, channels, terminal dimensions, and glyph caches. Treat terminal output, OSC/DCS/APC data, hyperlinks, titles, clipboard requests, and startup commands as untrusted input. OSC 52 writes require an explicit parser policy and a bounded decoded payload; the app currently denies them. Clickable targets require parsed metadata plus explicit activation policy, so plain terminal text is never inferred as a link. Spawn programs with executable and argument fields, not interpolated command strings.

@@ -6,9 +6,9 @@ use std::time::Duration;
 
 use terminal_core::{
     CellColor, CursorKey, MAX_COLUMNS, MAX_GRID_CELLS, MAX_ROWS,
-    MouseButton as TerminalMouseButton, MouseEvent, MouseModifiers, MouseTracking,
+    MouseButton as TerminalMouseButton, MouseEvent, MouseModifiers, MouseTracking, Osc52Policy,
     TerminalDimensions, TerminalParser, TerminalState, UnderlineStyle, encode_cursor_key,
-    encode_focus, encode_mouse,
+    encode_focus, encode_mouse, encode_paste,
 };
 use terminal_pty::{
     PortablePtyBackend, PtyBackend, PtyOutput, PtySize, PtySpawnConfig, PtyWorker, PtyWorkerEvent,
@@ -42,6 +42,7 @@ struct Application {
     mouse_wheel_remainder: f64,
     pointer_position: Option<PhysicalPosition<f64>>,
     pressed_mouse_button: Option<TerminalMouseButton>,
+    selection_dragging: bool,
     modifiers: ModifiersState,
 }
 
@@ -304,7 +305,7 @@ impl Default for Application {
         Self {
             window: None,
             renderer: None,
-            parser: TerminalParser::new(),
+            parser: TerminalParser::with_osc52_policy(Osc52Policy::Deny),
             terminal,
             pty: None,
             pty_wake_proxy: None,
@@ -319,6 +320,7 @@ impl Default for Application {
             mouse_wheel_remainder: 0.0,
             pointer_position: None,
             pressed_mouse_button: None,
+            selection_dragging: false,
             modifiers: ModifiersState::empty(),
         }
     }
@@ -597,7 +599,14 @@ impl Application {
     fn handle_pty_event(&mut self, event: PtyWorkerEvent) {
         match event {
             PtyWorkerEvent::Output(PtyOutput::Bytes(bytes)) => {
+                self.terminal.clear_selection();
                 let replies = parse_terminal_output(&mut self.parser, &mut self.terminal, &bytes);
+                if let Some(text) = self.terminal.take_osc52_write()
+                    && let Err(error) =
+                        terminal_platform::write_clipboard(&text, self.window.as_deref())
+                {
+                    eprintln!("could not write OSC 52 clipboard text: {error}");
+                }
                 for reply in replies {
                     self.write_to_pty(reply);
                 }
@@ -774,6 +783,7 @@ impl ApplicationHandler<PtyWake> for Application {
                 if !focused {
                     self.pressed_mouse_button = None;
                     self.pointer_position = None;
+                    self.selection_dragging = false;
                 }
             }
             WindowEvent::ModifiersChanged(modifiers) => {
@@ -782,9 +792,40 @@ impl ApplicationHandler<PtyWake> for Application {
             WindowEvent::CursorLeft { .. } => self.pointer_position = None,
             WindowEvent::CursorMoved { position, .. } => {
                 self.pointer_position = Some(position);
-                self.send_mouse_event(MouseEvent::Move(self.pressed_mouse_button));
+                if self.selection_dragging {
+                    if let Some((column, row)) = self.renderer.as_ref().and_then(|renderer| {
+                        terminal_cell_at(
+                            position,
+                            renderer.cell_metrics(),
+                            self.terminal.dimensions(),
+                        )
+                    }) && self.terminal.extend_selection(row, column)
+                    {
+                        self.invalidate_frame();
+                    }
+                } else {
+                    self.send_mouse_event(MouseEvent::Move(self.pressed_mouse_button));
+                }
             }
             WindowEvent::MouseInput { state, button, .. } => {
+                if button == MouseButton::Left
+                    && (self.selection_dragging
+                        || self.terminal.input_modes().mouse_tracking() == MouseTracking::Off
+                        || self.modifiers.shift_key())
+                {
+                    if state == ElementState::Pressed {
+                        if let Some((column, row)) = self.pointer_position.and_then(|position| {
+                            let metrics = self.renderer.as_ref()?.cell_metrics();
+                            terminal_cell_at(position, metrics, self.terminal.dimensions())
+                        }) {
+                            self.selection_dragging = self.terminal.begin_selection(row, column);
+                            self.invalidate_frame();
+                        }
+                    } else {
+                        self.selection_dragging = false;
+                    }
+                    return;
+                }
                 if let Some(button) = terminal_mouse_button(button) {
                     if state == ElementState::Pressed {
                         self.pressed_mouse_button = Some(button);
@@ -828,7 +869,29 @@ impl ApplicationHandler<PtyWake> for Application {
                 }
             }
             WindowEvent::KeyboardInput { event, .. } if event.state == ElementState::Pressed => {
-                if let Some(navigation) = viewport_navigation_from_logical_key(&event.logical_key) {
+                if self.modifiers.control_key()
+                    && self.modifiers.shift_key()
+                    && event.physical_key == PhysicalKey::Code(KeyCode::KeyC)
+                {
+                    if let Some(text) = self.terminal.selected_text()
+                        && let Err(error) =
+                            terminal_platform::write_clipboard(&text, self.window.as_deref())
+                    {
+                        eprintln!("could not copy selected text: {error}");
+                    }
+                } else if self.modifiers.control_key()
+                    && self.modifiers.shift_key()
+                    && event.physical_key == PhysicalKey::Code(KeyCode::KeyV)
+                {
+                    match terminal_platform::read_clipboard(2 * 1024 * 1024) {
+                        Ok(text) => {
+                            self.write_to_pty(encode_paste(*self.terminal.input_modes(), &text));
+                        }
+                        Err(error) => eprintln!("could not paste clipboard text: {error}"),
+                    }
+                } else if let Some(navigation) =
+                    viewport_navigation_from_logical_key(&event.logical_key)
+                {
                     let changed = match navigation {
                         ViewportNavigation::PageUp => self.terminal.page_up(),
                         ViewportNavigation::PageDown => self.terminal.page_down(),

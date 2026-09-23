@@ -64,6 +64,13 @@ impl TerminalRenderData {
                 if attributes.inverse() == InverseVideo::Enabled {
                     std::mem::swap(&mut foreground, &mut background);
                 }
+                if state.is_selected(row, column)
+                    || (cell.occupancy() == CellOccupancy::WideLead
+                        && state.is_selected(row, column + 1))
+                {
+                    foreground = Rgba([1.0, 1.0, 1.0, 1.0]);
+                    background = Rgba([0.18, 0.35, 0.65, 1.0]);
+                }
                 cells.push(RenderCell {
                     row,
                     column,
@@ -175,6 +182,17 @@ mod tests {
         CellColor, CursorVisibility, InverseVideo, TerminalDimensions, TerminalState,
         UnderlineStyle,
     };
+
+    #[test]
+    fn selection_highlights_snapshot_without_changing_terminal_cells() {
+        let mut state = TerminalState::new(TerminalDimensions::new(2, 1).unwrap());
+        state.print_character('x').unwrap();
+        assert!(state.begin_selection(0, 0));
+        assert!(state.extend_selection(0, 1));
+        let snapshot = TerminalRenderData::from_terminal(&state);
+        assert_eq!(snapshot.cells[0].background, Rgba([0.18, 0.35, 0.65, 1.0]));
+        assert_eq!(state.screen().cell(0, 0).unwrap().character(), 'x');
+    }
 
     #[test]
     fn converts_resolved_cells_and_cursor_without_semantic_mutation() {
