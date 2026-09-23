@@ -17,6 +17,16 @@ fn visible_row_text(state: &TerminalState, row: usize) -> String {
         .collect()
 }
 
+fn viewport_row_text(state: &TerminalState, row: usize) -> String {
+    (0..state.dimensions().columns())
+        .map(|column| {
+            state
+                .viewport_cell(row, column)
+                .map_or(' ', |cell| cell.character())
+        })
+        .collect()
+}
+
 fn write_row(state: &mut TerminalState, row: usize, text: &str) {
     state.set_cursor_position(row, 0).unwrap();
     for character in text.chars() {
@@ -214,4 +224,82 @@ fn reset_clears_primary_history_and_resize_retains_capture_time_widths() {
 
     state.reset();
     assert_eq!(state.scrollback_len(), 0);
+}
+
+#[test]
+fn page_navigation_projects_history_and_returns_to_following_bottom() {
+    let mut state = state(3, 2);
+    write_row(&mut state, 0, "top");
+    write_row(&mut state, 1, "bot");
+    state.set_cursor_position(1, 0).unwrap();
+    state.index();
+
+    assert_eq!(state.viewport_offset(), 0);
+    assert!(!state.page_down());
+    assert!(state.page_up());
+    assert_eq!(state.viewport_offset(), 1);
+    assert_eq!(viewport_row_text(&state, 0), "top");
+    assert_eq!(viewport_row_text(&state, 1), "bot");
+
+    assert!(state.page_down());
+    assert_eq!(state.viewport_offset(), 0);
+    assert_eq!(viewport_row_text(&state, 0), "bot");
+    assert_eq!(viewport_row_text(&state, 1), "   ");
+}
+
+#[test]
+fn output_preserves_a_scrolled_back_viewport_and_offset_is_bounded() {
+    let mut state = state(3, 2);
+    write_row(&mut state, 0, "one");
+    write_row(&mut state, 1, "two");
+    state.set_cursor_position(1, 0).unwrap();
+    state.index();
+    assert!(state.page_up());
+    assert_eq!(viewport_row_text(&state, 0), "one");
+    assert_eq!(viewport_row_text(&state, 1), "two");
+
+    state.index();
+
+    assert_eq!(state.scrollback_len(), 2);
+    assert_eq!(state.viewport_offset(), 2);
+    assert_eq!(viewport_row_text(&state, 0), "one");
+    assert_eq!(viewport_row_text(&state, 1), "two");
+    assert!(!state.page_up());
+}
+
+#[test]
+fn resize_clamps_the_offset_and_reset_returns_the_viewport_to_bottom() {
+    let mut state = state(2, 2);
+    write_row(&mut state, 0, "aa");
+    write_row(&mut state, 1, "bb");
+    state.set_cursor_position(1, 0).unwrap();
+    state.index();
+    assert!(state.page_up());
+
+    state.resize(TerminalDimensions::new(1, 3).unwrap());
+    assert_eq!(state.viewport_offset(), 1);
+    assert_eq!(state.viewport_cell(0, 0).unwrap().character(), 'a');
+    assert_eq!(state.viewport_cell(0, 1), None);
+
+    state.reset();
+    assert_eq!(state.scrollback_len(), 0);
+    assert_eq!(state.viewport_offset(), 0);
+}
+
+#[test]
+fn alternate_screen_cannot_navigate_primary_history() {
+    let mut state = state(2, 2);
+    write_row(&mut state, 0, "aa");
+    write_row(&mut state, 1, "bb");
+    state.set_cursor_position(1, 0).unwrap();
+    state.index();
+    assert!(state.page_up());
+    assert_eq!(state.viewport_offset(), 1);
+
+    state.switch_to_alternate_screen();
+    assert_eq!(state.viewport_offset(), 0);
+    assert!(!state.page_up());
+    state.switch_to_primary_screen();
+    assert_eq!(state.viewport_offset(), 1);
+    assert_eq!(viewport_row_text(&state, 0), "aa");
 }
