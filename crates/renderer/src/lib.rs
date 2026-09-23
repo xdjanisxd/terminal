@@ -302,13 +302,14 @@ impl Renderer {
                 if let (Some(data), Some(size), Some(configuration)) =
                     (data, self.size, self.configuration.as_ref())
                 {
+                    let draw_resources_created = self.draw_resources.is_none();
                     let resources = self.draw_resources.get_or_insert_with(|| {
                         DrawResources::new(&self.device, configuration.format)
                     });
                     let view = frame
                         .texture
                         .create_view(&wgpu::TextureViewDescriptor::default());
-                    let instance_counts = resources.draw(
+                    let work = resources.draw(
                         &self.device,
                         &self.queue,
                         FrameContext {
@@ -320,8 +321,13 @@ impl Renderer {
                         &mut self.font_system,
                     );
                     emit_diagnostic(format_args!(
-                        "renderer frame={frame_id} event=frame-rendered terminal_data=true cells={} instances={instance_counts:?}",
+                        "renderer frame={frame_id} event=frame-rendered terminal_data=true cells={} instances={:?} draw_resources_created={} buffer_allocations={} buffer_writes={} queue_submissions={}",
                         data.cells.len(),
+                        work.instances,
+                        draw_resources_created,
+                        work.buffer_allocations,
+                        work.buffer_writes,
+                        work.queue_submissions,
                     ));
                 } else {
                     self.queue.submit(std::iter::empty());
@@ -400,12 +406,19 @@ impl Renderer {
             ));
             return false;
         };
+        let draw_resources_reset = needs_draw_resource_rebuild(
+            self.configuration.as_ref().map(|current| current.format),
+            configuration.format,
+        );
+        let present_mode = configuration.present_mode;
         self.surface.configure(&self.device, &configuration);
-        self.draw_resources = None;
+        if draw_resources_reset {
+            self.draw_resources = None;
+        }
         self.configuration = Some(configuration);
         emit_diagnostic(format_args!(
-            "renderer event=reconfigure result=configured state={:?}",
-            self.diagnostic_state()
+            "renderer event=reconfigure result=configured present_mode={present_mode:?} draw_resources_reset={draw_resources_reset} state={:?}",
+            self.diagnostic_state(),
         ));
         true
     }
@@ -419,9 +432,16 @@ fn needs_reconfigure(
     current_size != next_size || (next_size.is_some() && !configured)
 }
 
+fn needs_draw_resource_rebuild(
+    current_format: Option<wgpu::TextureFormat>,
+    next_format: wgpu::TextureFormat,
+) -> bool {
+    current_format != Some(next_format)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{SurfaceSize, needs_reconfigure};
+    use super::{SurfaceSize, needs_draw_resource_rebuild, needs_reconfigure};
 
     #[test]
     fn surface_size_rejects_minimized_dimensions() {
@@ -444,5 +464,21 @@ mod tests {
         assert!(!needs_reconfigure(size, true, size));
         assert!(needs_reconfigure(None, false, size));
         assert!(!needs_reconfigure(None, false, None));
+    }
+
+    #[test]
+    fn resizing_with_the_same_surface_format_keeps_draw_resources() {
+        assert!(!needs_draw_resource_rebuild(
+            Some(wgpu::TextureFormat::Bgra8UnormSrgb),
+            wgpu::TextureFormat::Bgra8UnormSrgb
+        ));
+        assert!(needs_draw_resource_rebuild(
+            None,
+            wgpu::TextureFormat::Bgra8UnormSrgb
+        ));
+        assert!(needs_draw_resource_rebuild(
+            Some(wgpu::TextureFormat::Rgba8UnormSrgb),
+            wgpu::TextureFormat::Bgra8UnormSrgb
+        ));
     }
 }

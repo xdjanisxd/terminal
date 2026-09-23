@@ -22,7 +22,11 @@ pub const DEFAULT_LOGICAL_FONT_SIZE: f32 = 16.0;
 pub struct CellMetrics {
     width: u32,
     height: u32,
+    baseline: u32,
     pixels_per_em: u32,
+    ascent: u32,
+    descent: u32,
+    leading: u32,
 }
 
 impl CellMetrics {
@@ -31,7 +35,11 @@ impl CellMetrics {
         Self {
             width,
             height,
+            baseline: height,
             pixels_per_em: pixels_per_em.to_bits(),
+            ascent: (height as f32).to_bits(),
+            descent: 0.0_f32.to_bits(),
+            leading: 0.0_f32.to_bits(),
         }
     }
     pub fn width(self) -> u32 {
@@ -40,8 +48,24 @@ impl CellMetrics {
     pub fn height(self) -> u32 {
         self.height
     }
+    /// Physical distance from the top of the cell to the font baseline.
+    pub fn baseline(self) -> u32 {
+        self.baseline
+    }
     pub fn pixels_per_em(self) -> f32 {
         f32::from_bits(self.pixels_per_em)
+    }
+    /// Physical ascent from baseline to the top of the font alignment box.
+    pub fn ascent(self) -> f32 {
+        f32::from_bits(self.ascent)
+    }
+    /// Physical descent from baseline to the bottom of the font alignment box.
+    pub fn descent(self) -> f32 {
+        f32::from_bits(self.descent)
+    }
+    /// Physical inter-line leading recommended by the font.
+    pub fn leading(self) -> f32 {
+        f32::from_bits(self.leading)
     }
 }
 
@@ -286,15 +310,14 @@ impl FontSystem {
                 let font = FontRef::from_index(data, index as usize)
                     .ok_or(FontProcessingError::InvalidFaceData)?;
                 let metrics = font.metrics(&[]).scale(pixels_per_em);
-                let width = metrics.max_width.max(metrics.average_width).ceil().max(1.0) as u32;
-                let height = (metrics.ascent - metrics.descent + metrics.leading)
-                    .ceil()
-                    .max(1.0) as u32;
-                Ok(CellMetrics {
-                    width,
-                    height,
-                    pixels_per_em: pixels_per_em.to_bits(),
-                })
+                Ok(cell_metrics_from_scaled_values(
+                    metrics.max_width,
+                    metrics.average_width,
+                    metrics.ascent,
+                    metrics.descent,
+                    metrics.leading,
+                    pixels_per_em,
+                ))
             })
             .ok_or(FontProcessingError::FaceDataUnavailable)?
     }
@@ -478,6 +501,30 @@ impl FontSystem {
     }
 }
 
+fn cell_metrics_from_scaled_values(
+    max_width: f32,
+    average_width: f32,
+    ascent: f32,
+    descent: f32,
+    leading: f32,
+    pixels_per_em: f32,
+) -> CellMetrics {
+    let width = max_width.max(average_width).ceil().max(1.0) as u32;
+    // Swash defines both ascent and descent as positive distances from the
+    // baseline, so the alignment box spans their sum, not their difference.
+    let height = (ascent + descent + leading).ceil().max(1.0) as u32;
+    let baseline = ascent.ceil().clamp(1.0, height as f32) as u32;
+    CellMetrics {
+        width,
+        height,
+        baseline,
+        pixels_per_em: pixels_per_em.to_bits(),
+        ascent: ascent.to_bits(),
+        descent: descent.to_bits(),
+        leading: leading.to_bits(),
+    }
+}
+
 fn validate_pixels_per_em(pixels_per_em: f32) -> Result<(), FontProcessingError> {
     if pixels_per_em.is_finite() && pixels_per_em > 0.0 {
         Ok(())
@@ -521,7 +568,7 @@ mod tests {
 
     use super::{
         DEFAULT_LOGICAL_FONT_SIZE, FontLoadError, FontProcessingError, FontRequest, FontSystem,
-        GLYPH_CACHE_CAPACITY, GlyphCacheKey,
+        GLYPH_CACHE_CAPACITY, GlyphCacheKey, cell_metrics_from_scaled_values,
     };
 
     const TEST_FONT: &[u8] = include_bytes!("../tests/fixtures/Tuffy.ttf");
@@ -622,9 +669,56 @@ mod tests {
         let two_x = system.cell_metrics(2.0).unwrap();
 
         assert!(one_x.width() > 0 && one_x.height() > 0);
+        assert!(one_x.baseline() > 0 && one_x.baseline() <= one_x.height());
+        assert!(two_x.baseline() > 0 && two_x.baseline() <= two_x.height());
         assert!(two_x.width() >= one_x.width() && two_x.height() >= one_x.height());
         assert_eq!(one_x.pixels_per_em(), DEFAULT_LOGICAL_FONT_SIZE);
         assert_eq!(two_x.pixels_per_em(), DEFAULT_LOGICAL_FONT_SIZE * 2.0);
+    }
+
+    #[test]
+    fn cell_height_includes_the_positive_descent_below_the_baseline() {
+        let metrics = cell_metrics_from_scaled_values(8.0, 8.0, 12.0, 4.0, 0.0, 16.0);
+
+        assert_eq!(metrics.height(), 16);
+        assert_eq!(metrics.baseline(), 12);
+        assert_eq!(metrics.ascent(), 12.0);
+        assert_eq!(metrics.descent(), 4.0);
+        assert_eq!(metrics.leading(), 0.0);
+    }
+
+    #[test]
+    #[ignore = "requires selected native control fonts"]
+    fn native_monospace_control_fonts_report_complete_line_metrics() {
+        let families = ["Cascadia Mono", "Consolas", "JetBrains Mono Nerd Font"];
+        let metrics = families
+            .iter()
+            .filter_map(|family| {
+                FontSystem::load_system(FontRequest::Family((*family).to_owned()))
+                    .ok()
+                    .and_then(|font| font.cell_metrics(1.0).ok())
+                    .map(|metrics| (*family, metrics))
+            })
+            .collect::<Vec<_>>();
+
+        assert!(
+            !metrics.is_empty(),
+            "at least one installed monospace control font is required"
+        );
+
+        for (family, metrics) in metrics {
+            eprintln!(
+                "{family}: width={} height={} ascent={} descent={} baseline={}",
+                metrics.width(),
+                metrics.height(),
+                metrics.ascent(),
+                metrics.descent(),
+                metrics.baseline()
+            );
+            assert!(metrics.ascent() > 0.0);
+            assert!(metrics.descent() > 0.0);
+            assert!(metrics.height() >= metrics.baseline());
+        }
     }
 
     #[test]

@@ -93,11 +93,17 @@ PTY -> parser -> TerminalState -> primitive renderer
 keyboard -> PTY
 ```
 
-- [ ] Open a basic local shell
-- [ ] Display shell text through the complete output path
-- [ ] Send keyboard input to the shell
-- [ ] Execute simple commands and render their output
-- [ ] Keep later terminal compatibility, workspace, configuration, and UI features out of this checkpoint
+- [x] Open a basic local shell
+- [x] Display shell text through the complete output path
+- [x] Send keyboard input to the shell
+- [x] Execute simple commands and render their output
+- [x] Keep later terminal compatibility, workspace, configuration, and UI features out of this checkpoint
+
+Completed on `feat/integration-basic-shell`: Windows manual acceptance covered
+PowerShell, basic shell input/output, `echo`/`dir`, and structurally usable
+Vim/Neovim rendering. Live resize is acceptable for this checkpoint, but
+trails the pointer and temporarily scales text during a drag; retain that as
+later performance/polish work.
 
 ## M5: Input and configuration
 
@@ -111,4 +117,5 @@ keyboard -> PTY
 - [ ] Add tabs, panes, layout, and reproducible workspace definitions
 - [ ] Add project roots, startup commands, command palette, and basic CLI control
 - [ ] Establish compatibility, fuzzing, and performance baselines
+- [ ] Improve live-resize smoothness and eliminate temporary text scaling during drag
 - [ ] Package and validate supported Windows, Linux, and macOS releases
