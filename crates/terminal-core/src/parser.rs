@@ -10,6 +10,14 @@ use crate::{
 // ArrayVec instead of an unbounded Vec. Unsupported OSC data beyond this limit
 // is discarded by vte and never reaches terminal semantics.
 const MAX_OSC_BYTES: usize = 1024;
+pub const MAX_OSC52_DECODED_BYTES: usize = 512;
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum Osc52Policy {
+    #[default]
+    Deny,
+    AllowWrite,
+}
 const APPLICATION_CURSOR_KEYS_MODE: u16 = 1;
 const ALTERNATE_SCREEN_MODE: u16 = 47;
 const ALTERNATE_SCREEN_CLEAR_MODE: u16 = 1047;
@@ -45,13 +53,22 @@ enum ExtendedColorChannel {
 /// ignored.
 pub struct TerminalParser {
     parser: vte::Parser<MAX_OSC_BYTES>,
+    osc52_policy: Osc52Policy,
 }
 
 impl TerminalParser {
+    pub fn with_osc52_policy(policy: Osc52Policy) -> Self {
+        Self {
+            parser: vte::Parser::new_with_size(),
+            osc52_policy: policy,
+        }
+    }
+
     /// Creates a parser in its initial ground state.
     pub fn new() -> Self {
         Self {
             parser: vte::Parser::new_with_size(),
+            osc52_policy: Osc52Policy::Deny,
         }
     }
 
@@ -68,7 +85,7 @@ impl TerminalParser {
         terminal: &mut TerminalState,
         bytes: &[u8],
     ) -> Result<(), TerminalParserError> {
-        let mut performer = SemanticPerformer::new(terminal);
+        let mut performer = SemanticPerformer::new(terminal, self.osc52_policy);
 
         for (index, byte) in bytes.iter().enumerate() {
             let consumed = self
@@ -133,13 +150,15 @@ impl Error for TerminalParserError {
 struct SemanticPerformer<'a> {
     terminal: &'a mut TerminalState,
     semantic_error: Option<PrintError>,
+    osc52_policy: Osc52Policy,
 }
 
 impl<'a> SemanticPerformer<'a> {
-    fn new(terminal: &'a mut TerminalState) -> Self {
+    fn new(terminal: &'a mut TerminalState, osc52_policy: Osc52Policy) -> Self {
         Self {
             terminal,
             semantic_error: None,
+            osc52_policy,
         }
     }
 
@@ -365,6 +384,34 @@ impl<'a> SemanticPerformer<'a> {
 }
 
 impl vte::Perform for SemanticPerformer<'_> {
+    fn osc_dispatch(&mut self, params: &[&[u8]], _bell_terminated: bool) {
+        use base64::Engine;
+        if self.osc52_policy != Osc52Policy::AllowWrite
+            || params.len() != 3
+            || params[0] != b"52"
+            || params[1] != b"c"
+        {
+            return;
+        }
+        let encoded = params[2];
+        if encoded.is_empty()
+            || encoded == b"?"
+            || encoded.len() > 4 * MAX_OSC52_DECODED_BYTES / 3 + 4
+        {
+            return;
+        }
+        let Ok(decoded) = base64::engine::general_purpose::STANDARD.decode(encoded) else {
+            return;
+        };
+        if decoded.len() > MAX_OSC52_DECODED_BYTES || decoded.contains(&0) {
+            return;
+        }
+        let Ok(text) = String::from_utf8(decoded) else {
+            return;
+        };
+        self.terminal.queue_osc52_write(text);
+    }
+
     fn print(&mut self, character: char) {
         if self.semantic_error.is_none() {
             self.semantic_error = self.terminal.print_character(character).err();

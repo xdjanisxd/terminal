@@ -6,3 +6,7 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
+raw-window-handle = "0.6"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_System_DataExchange", "Win32_System_Memory"] }

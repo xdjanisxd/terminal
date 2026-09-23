@@ -143,9 +143,20 @@ pub struct TerminalState {
     current_rendition: CellAttributes,
     horizontal_tab_stops: HorizontalTabStops,
     pending_replies: PendingReplies,
+    pub(crate) selection: Option<crate::selection::Selection>,
+    pending_osc52_write: Option<String>,
 }
 
 impl TerminalState {
+    pub(crate) fn queue_osc52_write(&mut self, text: String) {
+        self.pending_osc52_write = Some(text);
+    }
+
+    /// Returns a policy-approved OSC 52 write for the app to send through the platform boundary.
+    pub fn take_osc52_write(&mut self) -> Option<String> {
+        self.pending_osc52_write.take()
+    }
+
     /// Creates a terminal in its documented default state.
     pub fn new(dimensions: TerminalDimensions) -> Self {
         Self {
@@ -155,6 +166,8 @@ impl TerminalState {
             current_rendition: CellAttributes::default(),
             horizontal_tab_stops: HorizontalTabStops::new(dimensions.columns()),
             pending_replies: PendingReplies::default(),
+            selection: None,
+            pending_osc52_write: None,
         }
     }
 
@@ -197,7 +210,11 @@ impl TerminalState {
     /// Returns whether the visible rows changed. Alternate has no scrollback, so this is
     /// a no-op there.
     pub fn page_up(&mut self) -> bool {
-        self.screen.page_up()
+        let changed = self.screen.page_up();
+        if changed {
+            self.selection = None;
+        }
+        changed
     }
 
     /// Moves the Primary viewport one terminal page toward the live bottom.
@@ -205,7 +222,11 @@ impl TerminalState {
     /// Returns whether the visible rows changed. Reaching the bottom resumes following
     /// normal output.
     pub fn page_down(&mut self) -> bool {
-        self.screen.page_down()
+        let changed = self.screen.page_down();
+        if changed {
+            self.selection = None;
+        }
+        changed
     }
 
     /// Moves the active viewport by signed rows: positive toward older history.
@@ -213,7 +234,11 @@ impl TerminalState {
     /// Movement is clamped to retained Primary history and the live bottom.
     /// Alternate has no history, so movement there is a no-op.
     pub fn scroll_viewport_rows(&mut self, rows: i32) -> bool {
-        self.screen.scroll_viewport_rows(rows)
+        let changed = self.screen.scroll_viewport_rows(rows);
+        if changed {
+            self.selection = None;
+        }
+        changed
     }
 
     /// Returns a cell from the current viewport projection.
@@ -236,11 +261,13 @@ impl TerminalState {
 
     /// Activates the independent primary screen without modifying either screen.
     pub fn switch_to_primary_screen(&mut self) {
+        self.clear_selection();
         self.screen.switch_to(ScreenKind::Primary);
     }
 
     /// Activates the independent alternate screen without modifying either screen.
     pub fn switch_to_alternate_screen(&mut self) {
+        self.clear_selection();
         self.screen.switch_to(ScreenKind::Alternate);
     }
 
@@ -271,11 +298,13 @@ impl TerminalState {
     /// This resets only alternate grid/cursor, vertical scrolling margins, delayed-wrap,
     /// and saved-cursor state. Terminal-global state is not modified.
     pub fn enter_alternate_screen_1047(&mut self) {
+        self.clear_selection();
         self.screen.enter_alternate_screen_1047();
     }
 
     /// Activates the primary screen for DEC private mode 1047 without restoring saved state.
     pub fn leave_alternate_screen_1047(&mut self) {
+        self.clear_selection();
         self.screen.leave_alternate_screen_1047();
     }
 
@@ -286,6 +315,7 @@ impl TerminalState {
     /// existing cursor/rendition before applying the established 1047 Alternate reset.
     pub fn enter_alternate_screen_1049(&mut self) {
         if self.active_screen() == ScreenKind::Primary {
+            self.clear_selection();
             self.save_cursor();
             self.screen.enter_alternate_screen_1047();
         }
@@ -297,6 +327,7 @@ impl TerminalState {
     /// dimensions, rendition is restored, delayed wrap is cancelled, and an empty
     /// Primary slot is a safe no-op.
     pub fn leave_alternate_screen_1049(&mut self) {
+        self.clear_selection();
         self.screen.leave_alternate_screen_1047();
         self.restore_cursor();
     }
@@ -759,6 +790,7 @@ impl TerminalState {
     /// conventional default stops. Each screen retains current grid resize
     /// semantics and resets its own margins and delayed-wrap state.
     pub fn resize(&mut self, dimensions: TerminalDimensions) {
+        self.clear_selection();
         self.screen.resize_all(dimensions);
         self.horizontal_tab_stops.resize(dimensions.columns());
     }

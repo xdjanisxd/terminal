@@ -8,6 +8,9 @@
 - Zero-based checked cell access, default-cell clearing, bounded inclusive region-scroll primitives, and top-left-preserving resize with cursor clamping
 - Typed terminal-global modes for cursor visibility, auto-wrap, and insert/replace behavior
 - Separate typed input-related state for normal/application cursor keys, focus reporting, bracketed paste, mouse tracking, and mouse encoding
+- `TerminalState` owns a viewport selection anchored to the active screen and scroll offset. App pointer events start/extend it when terminal mouse tracking is off or Shift overrides reporting; output, viewport movement, screen changes, and resize clear it. Renderer highlights selected cells; copy extracts projected viewport text, including wide and combining cells, with trailing spaces trimmed per row.
+- On Windows, Ctrl+Shift+C copies selection to the Unicode system clipboard through `terminal-platform`, using the app window as clipboard owner. Ctrl+Shift+V reads at most 2 MiB of UTF-16 clipboard data and feeds the existing mode-aware `encode_paste` output to the PTY. Other platforms currently return an unsupported clipboard error.
+- OSC 52 accepts only `52;c;<base64>` writes with explicit `AllowWrite` parser policy, valid UTF-8, no NUL, and at most 512 decoded bytes. The app uses `Deny`; queries and other selectors produce no reply or clipboard mutation. The parser's OSC buffer remains fixed at 1024 bytes. Parsed cells carry no hyperlink or other clickable-target metadata, so clicks never open terminal-supplied targets.
 - Parser-independent `TerminalState` owns independent primary/alternate screen buffers selected through typed operations, current rendition, terminal/input modes, bounded tab stops, and a fixed-capacity FIFO of project-owned pending replies for DA1, DA2, ANSI DSR status, and captured ANSI CPR responses
 - Controlled state operations for bounded CUU/CUD/CUF/CUB, CNL/CPL, CHA, VPA, CUP/HVP cursor movement; margin-aware SU/SD, IND/RI, and NEL; horizontal tabs and tab-stop mutation; vertical scrolling-margin updates; current rendition; bounded DA1; fixed ANSI DSR status; and absolute ANSI CPR reply generation with FIFO consumption, clearing, resizing, supported mode changes, and a project-owned reset
 - Project-owned typed cursor movement and inclusive erase-region operations, with all absolute and relative movement clamped to the active screen
@@ -45,5 +48,5 @@
 ## Missing
 
 - Remaining CSI/SGR style semantics and modes, colon-form color semantics, OSC/DCS semantics, secondary/tertiary DA replies, other DSR/CPR forms, origin mode, and additional alternate-screen semantics
-- Clipboard paste ingress, selection, OSC 52, config, keybindings, command palette, workspace, and broader PTY/application integration behavior remain deferred
+- Clipboard support outside Windows, parsed clickable-target metadata and activation, config, keybindings, command palette, workspace, and broader PTY/application integration behavior remain deferred
 - Compatibility/performance baselines; a dedicated later performance task must investigate delayed typing/input, janky Backspace/delete, non-smooth PageUp/PageDown, live resize trailing the pointer and temporarily scaling text during drag, and overall UI/frame pacing relative to mature terminals such as Alacritty

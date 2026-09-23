@@ -11,6 +11,7 @@ mod reply;
 mod screens;
 mod scrollback;
 mod scrolling;
+mod selection;
 mod state;
 mod tabs;
 
@@ -29,7 +30,7 @@ pub use modes::{
     AutoWrapMode, CharacterInsertionMode, CursorKeyMode, CursorVisibility, InputModes,
     MouseEncoding, MouseTracking, TerminalModes,
 };
-pub use parser::{TerminalParser, TerminalParserError};
+pub use parser::{MAX_OSC52_DECODED_BYTES, Osc52Policy, TerminalParser, TerminalParserError};
 pub use reply::{MAX_PENDING_REPLIES, TerminalReply, TerminalReplyBytes};
 pub use screens::ScreenKind;
 pub use scrollback::MAX_SCROLLBACK_ROWS;

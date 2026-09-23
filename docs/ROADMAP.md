@@ -115,7 +115,8 @@ later performance/polish work.
 ## M5: Input and configuration
 
 - [x] Add the first mode-aware input slice: cursor keys, focus, bracketed-paste encoding, and terminal mouse reporting (paste source remains for the clipboard task)
-- [ ] Add selection, clipboard, OSC 52 policy, and safe clickable targets
+- [x] Add viewport selection, Windows clipboard copy/paste, and bounded OSC 52 write policy (denied by default)
+- [ ] Add clickable activation after parsed target metadata and an explicit trust policy exist; current cells expose no targets
 - [ ] Add typed TOML config, validation, themes, keybindings, and partial hot reload
 - [ ] Route keybindings and command palette through centralized commands
 

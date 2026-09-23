@@ -7,6 +7,7 @@ publish.workspace = true
 
 [dependencies]
 terminal-core = { path = "../terminal-core" }
+terminal-platform = { path = "../platform" }
 terminal-pty = { path = "../terminal-pty" }
 terminal-renderer = { path = "../renderer" }
 winit = "0.30.13"
