@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
+use terminal_config::{Action, Config, Rgb};
 
 use terminal_core::{
     CellColor, CursorKey, MAX_COLUMNS, MAX_GRID_CELLS, MAX_ROWS,
@@ -15,8 +16,8 @@ use terminal_pty::{
     PortablePtyBackend, PtyBackend, PtyOutput, PtySize, PtySpawnConfig, PtyWorker, PtyWorkerEvent,
 };
 use terminal_renderer::{
-    CellMetrics, RedrawOutcome, Renderer, RendererDiagnosticState, diagnostics_enabled,
-    emit_diagnostic,
+    CellMetrics, RedrawOutcome, RenderTheme, Renderer, RendererDiagnosticState, Rgba,
+    diagnostics_enabled, emit_diagnostic,
 };
 use winit::application::ApplicationHandler;
 use winit::dpi::{PhysicalPosition, PhysicalSize};
@@ -46,12 +47,15 @@ struct Application {
     pressed_mouse_button: Option<TerminalMouseButton>,
     selection_dragging: bool,
     modifiers: ModifiersState,
+    config: Config,
+    config_path: PathBuf,
 }
 
-/// App-local notification that PTY worker output is ready to drain.
+/// App-local notifications delivered through the winit event loop.
 #[derive(Clone, Copy, Debug)]
 enum PtyWake {
     OutputAvailable,
+    ConfigChanged,
 }
 
 /// The minimal key subset needed to drive a line-oriented local shell.
@@ -61,13 +65,6 @@ enum BasicKey {
     Backspace,
     Tab,
     Escape,
-}
-
-/// App-owned mapping for viewport commands that never enter the PTY input stream.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum ViewportNavigation {
-    PageUp,
-    PageDown,
 }
 
 /// Windows-only shell-selection sources, retained so the policy is testable
@@ -325,6 +322,8 @@ impl Default for Application {
             pressed_mouse_button: None,
             selection_dragging: false,
             modifiers: ModifiersState::empty(),
+            config: Config::default(),
+            config_path: config_path(),
         }
     }
 }
@@ -380,9 +379,74 @@ fn print_smoke_text(terminal: &mut TerminalState, text: &str) {
 
 impl Application {
     fn with_pty_wake_proxy(pty_wake_proxy: EventLoopProxy<PtyWake>) -> Self {
-        Self {
-            pty_wake_proxy: Some(pty_wake_proxy),
+        let mut app = Self {
+            pty_wake_proxy: Some(pty_wake_proxy.clone()),
             ..Self::default()
+        };
+        app.reload_config();
+        let path = app.config_path.clone();
+        std::thread::spawn(move || {
+            let mut previous = config_fingerprint(&path);
+            loop {
+                std::thread::sleep(Duration::from_millis(500));
+                let current = config_fingerprint(&path);
+                if current != previous {
+                    previous = current;
+                    if pty_wake_proxy.send_event(PtyWake::ConfigChanged).is_err() {
+                        break;
+                    }
+                }
+            }
+        });
+        app
+    }
+
+    fn reload_config(&mut self) {
+        let next = if self.config_path.exists() {
+            Config::load(&self.config_path)
+        } else {
+            Ok(Config::default())
+        };
+        match next {
+            Ok(config) => {
+                if config.theme != self.config.theme {
+                    if let Some(renderer) = self.renderer.as_mut() {
+                        renderer.set_theme(render_theme(&config.theme));
+                    }
+                    self.invalidate_frame();
+                }
+                self.config = config;
+            }
+            Err(error) => eprintln!("config reload rejected; keeping last valid config: {error}"),
+        }
+    }
+
+    fn execute_action(&mut self, action: Action) {
+        match action {
+            Action::Copy => {
+                if let Some(text) = self.terminal.selected_text()
+                    && let Err(error) =
+                        terminal_platform::write_clipboard(&text, self.window.as_deref())
+                {
+                    eprintln!("could not copy selected text: {error}");
+                }
+            }
+            Action::Paste => match terminal_platform::read_clipboard(2 * 1024 * 1024) {
+                Ok(text) => {
+                    self.write_to_pty(encode_paste(*self.terminal.input_modes(), &text));
+                }
+                Err(error) => eprintln!("could not paste clipboard text: {error}"),
+            },
+            Action::PageUp | Action::PageDown => {
+                let changed = if action == Action::PageUp {
+                    self.terminal.page_up()
+                } else {
+                    self.terminal.page_down()
+                };
+                if changed {
+                    self.invalidate_frame();
+                }
+            }
         }
     }
 
@@ -431,7 +495,8 @@ impl Application {
 
         let window = self.window.as_ref().unwrap();
         match Renderer::new(Arc::clone(window)) {
-            Ok(renderer) => {
+            Ok(mut renderer) => {
+                renderer.set_theme(render_theme(&self.config.theme));
                 self.renderer = Some(renderer);
                 self.fullscreen.observe(window.fullscreen().is_some());
                 if recreating_surface {
@@ -906,39 +971,10 @@ impl ApplicationHandler<PtyWake> for Application {
                     "app event=keyboard logical={:?} physical={:?} text={:?}",
                     event.logical_key, event.physical_key, event.text
                 ));
-                if self.modifiers.control_key()
-                    && self.modifiers.shift_key()
-                    && event.physical_key == PhysicalKey::Code(KeyCode::KeyC)
+                if let Some(action) =
+                    configured_action(&self.config, event.physical_key, self.modifiers)
                 {
-                    if let Some(text) = self.terminal.selected_text()
-                        && let Err(error) =
-                            terminal_platform::write_clipboard(&text, self.window.as_deref())
-                    {
-                        eprintln!("could not copy selected text: {error}");
-                    }
-                } else if self.modifiers.control_key()
-                    && self.modifiers.shift_key()
-                    && event.physical_key == PhysicalKey::Code(KeyCode::KeyV)
-                {
-                    match terminal_platform::read_clipboard(2 * 1024 * 1024) {
-                        Ok(text) => {
-                            self.write_to_pty(encode_paste(*self.terminal.input_modes(), &text));
-                        }
-                        Err(error) => eprintln!("could not paste clipboard text: {error}"),
-                    }
-                } else if let Some(navigation) =
-                    viewport_navigation_from_logical_key(&event.logical_key)
-                {
-                    emit_diagnostic(format_args!(
-                        "app event=viewport-navigation direction={navigation:?}"
-                    ));
-                    let changed = match navigation {
-                        ViewportNavigation::PageUp => self.terminal.page_up(),
-                        ViewportNavigation::PageDown => self.terminal.page_down(),
-                    };
-                    if changed {
-                        self.invalidate_frame();
-                    }
+                    self.execute_action(action);
                 } else if let Some(cursor_key) = cursor_key_from_logical_key(&event.logical_key) {
                     self.write_to_pty(
                         encode_cursor_key(*self.terminal.input_modes(), cursor_key).to_vec(),
@@ -1009,6 +1045,7 @@ impl ApplicationHandler<PtyWake> for Application {
                 emit_diagnostic(format_args!("app event=pty-wake"));
                 self.drain_pty_events();
             }
+            PtyWake::ConfigChanged => self.reload_config(),
         }
     }
 }
@@ -1103,14 +1140,6 @@ fn terminal_cell_at(
     let column = (position.x / f64::from(metrics.width())) as usize;
     let row = (position.y / f64::from(metrics.height())) as usize;
     (column < dimensions.columns() && row < dimensions.rows()).then_some((column, row))
-}
-
-fn viewport_navigation_from_logical_key(key: &Key) -> Option<ViewportNavigation> {
-    match key {
-        Key::Named(NamedKey::PageUp) => Some(ViewportNavigation::PageUp),
-        Key::Named(NamedKey::PageDown) => Some(ViewportNavigation::PageDown),
-        _ => None,
-    }
 }
 
 /// Routes wheel motion through the primary-screen viewport only.
@@ -1227,6 +1256,72 @@ fn terminal_dimensions_for_viewport(
     TerminalDimensions::new(columns, rows).ok()
 }
 
+fn config_path() -> PathBuf {
+    if let Some(path) = std::env::var_os("TERMINAL_CONFIG") {
+        return PathBuf::from(path);
+    }
+    let directory = if cfg!(windows) {
+        std::env::var_os("APPDATA").map(PathBuf::from)
+    } else {
+        std::env::var_os("XDG_CONFIG_HOME")
+            .map(PathBuf::from)
+            .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".config")))
+    };
+    directory
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("terminal")
+        .join("config.toml")
+}
+
+fn config_fingerprint(path: &std::path::Path) -> Option<u64> {
+    use std::hash::{Hash, Hasher};
+    let bytes = std::fs::read(path).ok()?;
+    let mut hasher = std::collections::hash_map::DefaultHasher::new();
+    bytes.hash(&mut hasher);
+    Some(hasher.finish())
+}
+
+fn render_theme(theme: &terminal_config::Theme) -> RenderTheme {
+    let rgba = |color: Rgb, alpha: f32| {
+        Rgba([
+            color.0 as f32 / 255.0,
+            color.1 as f32 / 255.0,
+            color.2 as f32 / 255.0,
+            alpha,
+        ])
+    };
+    RenderTheme {
+        foreground: rgba(theme.foreground, 1.0),
+        background: rgba(theme.background, 1.0),
+        cursor: rgba(theme.cursor, 0.45),
+        selection_foreground: rgba(theme.selection_foreground, 1.0),
+        selection_background: rgba(theme.selection_background, 1.0),
+        ansi: theme.ansi.map(|color| rgba(color, 1.0)),
+    }
+}
+
+fn configured_action(
+    config: &Config,
+    physical_key: PhysicalKey,
+    modifiers: ModifiersState,
+) -> Option<Action> {
+    let PhysicalKey::Code(code) = physical_key else {
+        return None;
+    };
+    let key = format!("{code:?}");
+    config
+        .bindings
+        .iter()
+        .find(|binding| {
+            binding.key.key == key
+                && binding.key.control == modifiers.control_key()
+                && binding.key.shift == modifiers.shift_key()
+                && binding.key.alt == modifiers.alt_key()
+                && !modifiers.super_key()
+        })
+        .map(|binding| binding.action)
+}
+
 fn main() {
     let event_loop = EventLoop::<PtyWake>::with_user_event()
         .build()
@@ -1240,20 +1335,23 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
     use std::path::PathBuf;
+    use std::time::{SystemTime, UNIX_EPOCH};
 
     use super::{
-        BasicKey, FrameState, PendingResize, PhysicalSizeSync, RecoveryRedraw, SurfaceRestore,
-        ViewportNavigation, WindowsShellSource, basic_backspace_byte_for_platform, basic_key_input,
-        cursor_key_from_logical_key, parse_terminal_output, pty_size_for_terminal,
-        scroll_terminal_for_wheel, select_windows_shell, terminal_cell_at,
-        terminal_dimensions_for_viewport, viewport_navigation_from_logical_key, wheel_scroll_rows,
+        Application, BasicKey, FrameState, PendingResize, PhysicalSizeSync, RecoveryRedraw,
+        SurfaceRestore, WindowsShellSource, basic_backspace_byte_for_platform, basic_key_input,
+        configured_action, cursor_key_from_logical_key, parse_terminal_output,
+        pty_size_for_terminal, scroll_terminal_for_wheel, select_windows_shell, terminal_cell_at,
+        terminal_dimensions_for_viewport, wheel_scroll_rows,
     };
+    use terminal_config::{Action, Config, Rgb};
     use terminal_core::{CursorKey, TerminalDimensions, TerminalParser, TerminalState};
     use terminal_renderer::CellMetrics;
     use winit::dpi::{PhysicalPosition, PhysicalSize};
     use winit::event::MouseScrollDelta;
-    use winit::keyboard::{Key, NamedKey};
+    use winit::keyboard::{Key, KeyCode, ModifiersState, NamedKey, PhysicalKey};
 
     #[test]
     fn invalidation_coalesces_requests_until_redraw_consumes_the_damage() {
@@ -1334,14 +1432,79 @@ mod tests {
     #[test]
     fn page_navigation_is_app_local_and_not_basic_pty_input() {
         assert_eq!(
-            viewport_navigation_from_logical_key(&Key::Named(NamedKey::PageUp)),
-            Some(ViewportNavigation::PageUp)
+            configured_action(
+                &Config::default(),
+                PhysicalKey::Code(KeyCode::PageUp),
+                ModifiersState::empty()
+            ),
+            Some(Action::PageUp)
         );
         assert_eq!(
-            viewport_navigation_from_logical_key(&Key::Named(NamedKey::PageDown)),
-            Some(ViewportNavigation::PageDown)
+            configured_action(
+                &Config::default(),
+                PhysicalKey::Code(KeyCode::PageDown),
+                ModifiersState::empty()
+            ),
+            Some(Action::PageDown)
         );
         assert_eq!(basic_key_input(None, None), None);
+    }
+
+    #[test]
+    fn configured_bindings_replace_defaults_and_require_exact_modifiers() {
+        let config =
+            Config::parse("[[bindings]]\nkey = 'Alt+PageUp'\naction = 'page_down'").unwrap();
+        assert_eq!(
+            configured_action(
+                &config,
+                PhysicalKey::Code(KeyCode::PageUp),
+                ModifiersState::ALT
+            ),
+            Some(Action::PageDown)
+        );
+        assert_eq!(
+            configured_action(
+                &config,
+                PhysicalKey::Code(KeyCode::PageUp),
+                ModifiersState::empty()
+            ),
+            None
+        );
+        assert_eq!(
+            configured_action(
+                &config,
+                PhysicalKey::Code(KeyCode::PageUp),
+                ModifiersState::ALT | ModifiersState::SHIFT
+            ),
+            None
+        );
+    }
+
+    #[test]
+    fn reload_keeps_last_valid_config_and_restores_defaults_when_removed() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "terminal-config-{}-{nonce}.toml",
+            std::process::id()
+        ));
+        let mut app = Application {
+            config_path: path.clone(),
+            ..Application::default()
+        };
+        fs::write(&path, "[theme]\nbackground = '#123456'").unwrap();
+        app.reload_config();
+        assert_eq!(app.config.theme.background, Rgb(0x12, 0x34, 0x56));
+
+        fs::write(&path, "[theme]\nbackground = 'invalid'").unwrap();
+        app.reload_config();
+        assert_eq!(app.config.theme.background, Rgb(0x12, 0x34, 0x56));
+
+        fs::remove_file(path).unwrap();
+        app.reload_config();
+        assert_eq!(app.config, Config::default());
     }
 
     #[test]

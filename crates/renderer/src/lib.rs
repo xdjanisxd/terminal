@@ -10,7 +10,9 @@ mod snapshot;
 pub use font::{
     CellMetrics, FontProcessingError, FontRequest, GlyphBitmap, ShapedGlyph, ShapedText,
 };
-pub use snapshot::{CursorRenderData, RenderCell, Rgba, ScrollbarRenderData, TerminalRenderData};
+pub use snapshot::{
+    CursorRenderData, RenderCell, RenderTheme, Rgba, ScrollbarRenderData, TerminalRenderData,
+};
 
 use std::error::Error;
 use std::fmt;
@@ -128,6 +130,7 @@ pub struct Renderer {
     font_system: FontSystem,
     cell_metrics: CellMetrics,
     draw_resources: Option<DrawResources>,
+    theme: RenderTheme,
 }
 
 impl Renderer {
@@ -179,6 +182,7 @@ impl Renderer {
             font_system,
             cell_metrics,
             draw_resources: None,
+            theme: RenderTheme::default(),
         };
         renderer.reconfigure();
         emit_diagnostic(format_args!(
@@ -264,13 +268,17 @@ impl Renderer {
     /// Converts terminal-core's resolved state and presents it without owning its semantics.
     pub fn redraw_terminal(&mut self, state: &terminal_core::TerminalState) -> RedrawOutcome {
         let projection_start = Instant::now();
-        let data = TerminalRenderData::from_terminal(state);
+        let data = TerminalRenderData::from_terminal_with_theme(state, &self.theme);
         emit_diagnostic(format_args!(
             "renderer event=projection cells={} elapsed_us={}",
             data.cells.len(),
             projection_start.elapsed().as_micros()
         ));
         self.redraw_data(Some(&data))
+    }
+
+    pub fn set_theme(&mut self, theme: RenderTheme) {
+        self.theme = theme;
     }
 
     fn redraw_data(&mut self, data: Option<&TerminalRenderData>) -> RedrawOutcome {

@@ -6,6 +6,7 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
+terminal-config = { path = "../config" }
 terminal-core = { path = "../terminal-core" }
 terminal-platform = { path = "../platform" }
 terminal-pty = { path = "../terminal-pty" }

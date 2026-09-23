@@ -523,7 +523,7 @@ impl DrawResources {
                     cell_height,
                     frame.surface_size,
                 ),
-                color: [0.8, 0.8, 0.8, 0.45],
+                color: data.cursor_color.0,
             });
         }
         if let Some(scrollbar) = data.scrollbar
@@ -579,7 +579,12 @@ impl DrawResources {
                     view: frame.target,
                     resolve_target: None,
                     ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                        load: wgpu::LoadOp::Clear(wgpu::Color {
+                            r: data.surface_background.0[0] as f64,
+                            g: data.surface_background.0[1] as f64,
+                            b: data.surface_background.0[2] as f64,
+                            a: data.surface_background.0[3] as f64,
+                        }),
                         store: wgpu::StoreOp::Store,
                     },
                 })],
