@@ -54,6 +54,7 @@ pub enum Command {
     PageUp,
     PageDown,
     OpenPalette,
+    OpenTarget,
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]

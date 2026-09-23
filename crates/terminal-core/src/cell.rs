@@ -140,6 +140,7 @@ pub const MAX_COMBINING_MARKS: usize = 8;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Cell {
     character: char,
+    target_id: Option<u64>,
     attributes: CellAttributes,
     occupancy: CellOccupancy,
     has_printable_base: bool,
@@ -152,6 +153,7 @@ impl Cell {
     pub const fn new(character: char, attributes: CellAttributes) -> Self {
         Self {
             character,
+            target_id: None,
             attributes,
             occupancy: CellOccupancy::Single,
             has_printable_base: true,
@@ -162,6 +164,14 @@ impl Cell {
 
     pub const fn character(self) -> char {
         self.character
+    }
+
+    pub const fn target_id(self) -> Option<u64> {
+        self.target_id
+    }
+
+    pub(crate) fn set_target_id(&mut self, target_id: Option<u64>) {
+        self.target_id = target_id;
     }
 
     pub const fn attributes(&self) -> &CellAttributes {
@@ -188,6 +198,7 @@ impl Cell {
     pub(crate) const fn wide_lead(character: char, attributes: CellAttributes) -> Self {
         Self {
             character,
+            target_id: None,
             attributes,
             occupancy: CellOccupancy::WideLead,
             has_printable_base: true,
@@ -199,6 +210,7 @@ impl Cell {
     pub(crate) fn wide_continuation() -> Self {
         Self {
             character: ' ',
+            target_id: None,
             attributes: CellAttributes::default(),
             occupancy: CellOccupancy::WideContinuation,
             has_printable_base: false,
@@ -225,6 +237,7 @@ impl Default for Cell {
     fn default() -> Self {
         Self {
             character: ' ',
+            target_id: None,
             attributes: CellAttributes::default(),
             occupancy: CellOccupancy::Single,
             has_printable_base: false,

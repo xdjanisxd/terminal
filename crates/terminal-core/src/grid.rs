@@ -97,6 +97,11 @@ impl ScreenGrid {
         self.cells.fill(Cell::default());
     }
 
+    pub(crate) fn cell_mut_for_target(&mut self, row: usize, column: usize) -> Option<&mut Cell> {
+        let index = self.index_of(row, column)?;
+        self.cells.get_mut(index)
+    }
+
     pub(crate) fn append_combining_mark(
         &mut self,
         row: usize,

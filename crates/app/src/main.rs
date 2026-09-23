@@ -49,6 +49,8 @@ struct Application {
     pointer_position: Option<PhysicalPosition<f64>>,
     pressed_mouse_button: Option<TerminalMouseButton>,
     selection_dragging: bool,
+    target_click_held: bool,
+    pending_target: Option<String>,
     modifiers: ModifiersState,
     config: Config,
     config_path: PathBuf,
@@ -325,6 +327,8 @@ impl Default for Application {
             pointer_position: None,
             pressed_mouse_button: None,
             selection_dragging: false,
+            target_click_held: false,
+            pending_target: None,
             modifiers: ModifiersState::empty(),
             config: Config::default(),
             config_path: config_path(),
@@ -455,6 +459,14 @@ impl Application {
             Command::OpenPalette => {
                 self.palette = Some(Palette::default());
                 self.invalidate_frame();
+            }
+            Command::OpenTarget => {
+                if let Some(uri) = self.pending_target.take()
+                    && commands::allowed_target(&uri)
+                    && let Err(error) = terminal_platform::open_url(&uri)
+                {
+                    eprintln!("could not open terminal target: {error}");
+                }
             }
         }
     }
@@ -973,6 +985,26 @@ impl ApplicationHandler<PtyWake> for Application {
                 }
             }
             WindowEvent::MouseInput { state, button, .. } => {
+                if button == MouseButton::Left && self.target_click_held {
+                    if state == ElementState::Released {
+                        self.target_click_held = false;
+                    }
+                    return;
+                }
+                if button == MouseButton::Left
+                    && state == ElementState::Pressed
+                    && !self.selection_dragging
+                    && self.modifiers.control_key()
+                    && self.modifiers.shift_key()
+                {
+                    self.target_click_held = true;
+                    self.pending_target = self.pointer_position.and_then(|position| {
+                        let metrics = self.renderer.as_ref()?.cell_metrics();
+                        target_at_pointer(&self.terminal, position, metrics).map(str::to_owned)
+                    });
+                    self.dispatch_command(Command::OpenTarget);
+                    return;
+                }
                 if button == MouseButton::Left
                     && (self.selection_dragging
                         || self.terminal.input_modes().mouse_tracking() == MouseTracking::Off
@@ -1218,6 +1250,15 @@ fn terminal_cell_at(
     (column < dimensions.columns() && row < dimensions.rows()).then_some((column, row))
 }
 
+fn target_at_pointer(
+    terminal: &TerminalState,
+    position: PhysicalPosition<f64>,
+    metrics: CellMetrics,
+) -> Option<&str> {
+    let (column, row) = terminal_cell_at(position, metrics, terminal.dimensions())?;
+    terminal.target_at_viewport(row, column)
+}
+
 /// Routes wheel motion through the primary-screen viewport only.
 fn scroll_terminal_for_wheel(
     terminal: &mut TerminalState,
@@ -1419,8 +1460,8 @@ mod tests {
         Application, BasicKey, FrameState, PendingResize, PhysicalSizeSync, RecoveryRedraw,
         SurfaceRestore, WindowsShellSource, basic_backspace_byte_for_platform, basic_key_input,
         configured_command, cursor_key_from_logical_key, parse_terminal_output,
-        pty_size_for_terminal, scroll_terminal_for_wheel, select_windows_shell, terminal_cell_at,
-        terminal_dimensions_for_viewport, wheel_scroll_rows,
+        pty_size_for_terminal, scroll_terminal_for_wheel, select_windows_shell, target_at_pointer,
+        terminal_cell_at, terminal_dimensions_for_viewport, wheel_scroll_rows,
     };
     use terminal_config::{Command, Config, Rgb};
     use terminal_core::{CursorKey, TerminalDimensions, TerminalParser, TerminalState};
@@ -1663,6 +1704,36 @@ mod tests {
         );
         assert_eq!(
             terminal_cell_at(PhysicalPosition::new(-1.0, 10.0), metrics, dimensions),
+            None
+        );
+    }
+
+    #[test]
+    fn target_hit_testing_uses_the_scrolled_viewport_and_cell_metrics() {
+        let mut terminal = TerminalState::new(TerminalDimensions::new(2, 2).unwrap());
+        let mut parser = TerminalParser::new();
+        parser
+            .advance(
+                &mut terminal,
+                b"\x1b]8;;https://example.org\x07A\x1b]8;;\x07\r\n\r\n",
+            )
+            .unwrap();
+        let metrics = CellMetrics::from_physical(10, 20, 12.0);
+        assert_eq!(
+            target_at_pointer(&terminal, PhysicalPosition::new(5.0, 5.0), metrics),
+            None
+        );
+        terminal.page_up();
+        assert_eq!(
+            target_at_pointer(&terminal, PhysicalPosition::new(5.0, 5.0), metrics),
+            Some("https://example.org")
+        );
+        assert_eq!(
+            target_at_pointer(&terminal, PhysicalPosition::new(15.0, 5.0), metrics),
+            None
+        );
+        assert_eq!(
+            target_at_pointer(&terminal, PhysicalPosition::new(25.0, 5.0), metrics),
             None
         );
     }

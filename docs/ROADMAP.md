@@ -116,7 +116,7 @@ later performance/polish work.
 
 - [x] Add the first mode-aware input slice: cursor keys, focus, bracketed-paste encoding, and terminal mouse reporting (paste source remains for the clipboard task)
 - [x] Add viewport selection, Windows clipboard copy/paste, and bounded OSC 52 write policy (denied by default)
-- [ ] Add clickable activation after parsed target metadata and an explicit trust policy exist; current cells expose no targets
+- [x] Add OSC 8 clickable targets with terminal-owned cell metadata, viewport hit testing, explicit Ctrl+Shift+click activation, and an HTTP(S) allowlist
 - [x] Add typed TOML config, validation, themes, keybindings, and partial hot reload
 - [x] Route keybindings and a basic command palette through centralized commands
 
