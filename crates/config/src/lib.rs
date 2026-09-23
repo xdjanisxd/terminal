@@ -48,11 +48,12 @@ impl Default for Theme {
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "snake_case")]
-pub enum Action {
+pub enum Command {
     Copy,
     Paste,
     PageUp,
     PageDown,
+    OpenPalette,
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -67,7 +68,7 @@ pub struct KeyChord {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Binding {
     pub key: KeyChord,
-    pub action: Action,
+    pub command: Command,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -81,15 +82,16 @@ impl Default for Config {
         Self {
             theme: Theme::default(),
             bindings: [
-                ("Ctrl+Shift+C", Action::Copy),
-                ("Ctrl+Shift+V", Action::Paste),
-                ("PageUp", Action::PageUp),
-                ("PageDown", Action::PageDown),
+                ("Ctrl+Shift+C", Command::Copy),
+                ("Ctrl+Shift+V", Command::Paste),
+                ("PageUp", Command::PageUp),
+                ("PageDown", Command::PageDown),
+                ("Ctrl+Shift+P", Command::OpenPalette),
             ]
             .into_iter()
-            .map(|(key, action)| Binding {
+            .map(|(key, command)| Binding {
                 key: parse_chord(key).expect("valid default key"),
-                action,
+                command,
             })
             .collect(),
         }
@@ -157,7 +159,7 @@ impl Config {
                 }
                 config.bindings.push(Binding {
                     key,
-                    action: binding.action,
+                    command: binding.command,
                 });
             }
         }
@@ -202,7 +204,8 @@ struct RawTheme {
 #[serde(deny_unknown_fields)]
 struct RawBinding {
     key: String,
-    action: Action,
+    #[serde(alias = "action")]
+    command: Command,
 }
 
 fn parse_color(value: &str) -> Result<Rgb, String> {
@@ -281,7 +284,16 @@ mod tests {
         let config = Config::parse("[[bindings]]\nkey = 'Alt+PageUp'\naction = 'page_up'").unwrap();
         assert_eq!(config.bindings.len(), 1);
         assert_eq!(config.bindings[0].key.key, "PageUp");
-        assert_eq!(config.bindings[0].action, Action::PageUp);
+        assert_eq!(config.bindings[0].command, Command::PageUp);
+        let config =
+            Config::parse("[[bindings]]\nkey = 'Ctrl+P'\ncommand = 'open_palette'").unwrap();
+        assert_eq!(config.bindings[0].command, Command::OpenPalette);
+        assert!(
+            Config::default()
+                .bindings
+                .iter()
+                .any(|binding| binding.command == Command::OpenPalette)
+        );
     }
     #[test]
     fn validation_names_the_bad_field() {

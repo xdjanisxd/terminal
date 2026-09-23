@@ -118,12 +118,12 @@ later performance/polish work.
 - [x] Add viewport selection, Windows clipboard copy/paste, and bounded OSC 52 write policy (denied by default)
 - [ ] Add clickable activation after parsed target metadata and an explicit trust policy exist; current cells expose no targets
 - [x] Add typed TOML config, validation, themes, keybindings, and partial hot reload
-- [ ] Route keybindings and command palette through centralized commands
+- [x] Route keybindings and a basic command palette through centralized commands
 
 ## M6: Workspaces and release readiness
 
 - [ ] Add tabs, panes, layout, and reproducible workspace definitions
-- [ ] Add project roots, startup commands, command palette, and basic CLI control
+- [ ] Add project roots, startup commands, expanded command palette features, and basic CLI control
 - [ ] Establish compatibility, fuzzing, and performance baselines
 - [ ] Dedicated input and frame-pacing performance task: investigate delayed typing/input, janky Backspace/delete, non-smooth PageUp/PageDown, live resize trailing the pointer (including temporary text scaling), and overall UI/frame pacing relative to mature terminals such as Alacritty
 - [ ] Package and validate supported Windows, Linux, and macOS releases
