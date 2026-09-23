@@ -36,6 +36,52 @@ pub fn read_clipboard(max_utf16_bytes: usize) -> io::Result<String> {
     }
 }
 
+/// Opens an already policy-approved URL through the host's URL handler.
+pub fn open_url(uri: &str) -> io::Result<()> {
+    #[cfg(windows)]
+    {
+        use std::os::windows::ffi::OsStrExt;
+        use windows_sys::Win32::UI::Shell::ShellExecuteW;
+        let verb: Vec<u16> = std::ffi::OsStr::new("open")
+            .encode_wide()
+            .chain(std::iter::once(0))
+            .collect();
+        let target: Vec<u16> = std::ffi::OsStr::new(uri)
+            .encode_wide()
+            .chain(std::iter::once(0))
+            .collect();
+        let result = unsafe {
+            ShellExecuteW(
+                std::ptr::null_mut(),
+                verb.as_ptr(),
+                target.as_ptr(),
+                std::ptr::null(),
+                std::ptr::null(),
+                1,
+            )
+        };
+        if result as isize <= 32 {
+            Err(io::Error::other(format!(
+                "URL handler returned code {}",
+                result as isize
+            )))
+        } else {
+            Ok(())
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        #[cfg(target_os = "macos")]
+        let program = "open";
+        #[cfg(not(target_os = "macos"))]
+        let program = "xdg-open";
+        std::process::Command::new(program)
+            .arg(uri)
+            .spawn()
+            .map(|_| ())
+    }
+}
+
 #[cfg(windows)]
 mod windows {
     use raw_window_handle::{HasWindowHandle, RawWindowHandle};

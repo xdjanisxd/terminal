@@ -35,7 +35,33 @@ pub const COMMANDS: &[CommandInfo] = &[
         name: "Command Palette",
         in_palette: false,
     },
+    CommandInfo {
+        command: Command::OpenTarget,
+        name: "Open Target",
+        in_palette: false,
+    },
 ];
+
+/// Terminal output is untrusted. Only an explicit user gesture may pass an
+/// OSC 8 target to the OS, and only web URLs are eligible.
+pub fn allowed_target(uri: &str) -> bool {
+    let Some((scheme, rest)) = uri.split_once("://") else {
+        return false;
+    };
+    if !matches!(scheme, "http" | "https")
+        || rest.is_empty()
+        || uri
+            .chars()
+            .any(|ch| ch.is_control() || ch.is_whitespace() || matches!(ch, '\\' | '"' | '\''))
+    {
+        return false;
+    }
+    let authority = rest.split(['/', '?', '#']).next().unwrap_or_default();
+    !authority.is_empty()
+        && authority
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || b".-:[]".contains(&byte))
+}
 
 #[derive(Debug, Default)]
 pub struct Palette {
@@ -106,5 +132,24 @@ mod tests {
         assert_eq!(palette.selected(), 0);
         palette.push_text("zzzz");
         assert_eq!(palette.chosen(), None);
+    }
+
+    #[test]
+    fn untrusted_targets_have_a_narrow_web_url_allowlist() {
+        assert!(allowed_target("https://example.org/path?q=1"));
+        assert!(allowed_target("http://localhost:8080/"));
+        for uri in [
+            "file:///etc/passwd",
+            "javascript:alert(1)",
+            "https://",
+            "https://user@example.org/",
+            "https://example.org/\rcommand",
+            "https://example.org\\bad",
+            "https://example.org\"/bad",
+            "https://evil.example@trusted.example/",
+            "HTTPS://example.org",
+        ] {
+            assert!(!allowed_target(uri), "{uri}");
+        }
     }
 }

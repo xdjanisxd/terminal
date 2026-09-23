@@ -145,9 +145,45 @@ pub struct TerminalState {
     pending_replies: PendingReplies,
     pub(crate) selection: Option<crate::selection::Selection>,
     pending_osc52_write: Option<String>,
+    targets: std::collections::HashMap<u64, String>,
+    current_target: Option<u64>,
+    next_target_id: u64,
 }
 
 impl TerminalState {
+    /// Starts or ends an OSC 8 span. The URI is untrusted terminal data.
+    pub(crate) fn set_hyperlink(&mut self, uri: Option<String>) {
+        self.current_target = None;
+        let Some(uri) = uri else { return };
+        if uri.is_empty() || uri.len() > 1024 || uri.chars().any(char::is_control) {
+            return;
+        }
+        if self.targets.len() >= 1024 {
+            let live = self.screen.target_ids();
+            self.targets.retain(|id, _| live.contains(id));
+            if self.targets.len() >= 1024 {
+                return;
+            }
+        }
+        let Some(id) = self.next_target_id.checked_add(1) else {
+            return;
+        };
+        self.next_target_id = id;
+        self.targets.insert(id, uri);
+        self.current_target = Some(id);
+    }
+
+    /// Looks up only parsed metadata on the currently visible viewport cell.
+    pub fn target_at_viewport(&self, row: usize, column: usize) -> Option<&str> {
+        let cell = self.viewport_cell(row, column)?;
+        let id = if cell.is_wide_continuation() {
+            self.viewport_cell(row, column.checked_sub(1)?)?
+                .target_id()?
+        } else {
+            cell.target_id()?
+        };
+        self.targets.get(&id).map(String::as_str)
+    }
     pub(crate) fn queue_osc52_write(&mut self, text: String) {
         self.pending_osc52_write = Some(text);
     }
@@ -168,6 +204,9 @@ impl TerminalState {
             pending_replies: PendingReplies::default(),
             selection: None,
             pending_osc52_write: None,
+            targets: std::collections::HashMap::new(),
+            current_target: None,
+            next_target_id: 0,
         }
     }
 
@@ -531,6 +570,12 @@ impl TerminalState {
                 self.current_rendition,
             ),
             (_, PrintableWidth::Zero) => unreachable!("width-zero output returns before writing"),
+        }
+        if let Some(cell) = self
+            .screen
+            .cell_mut_for_target(cursor.row(), cursor.column())
+        {
+            cell.set_target_id(self.current_target);
         }
 
         let final_column = columns - 1;

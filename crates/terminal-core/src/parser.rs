@@ -385,6 +385,23 @@ impl<'a> SemanticPerformer<'a> {
 
 impl vte::Perform for SemanticPerformer<'_> {
     fn osc_dispatch(&mut self, params: &[&[u8]], _bell_terminated: bool) {
+        if self.semantic_error.is_some() {
+            return;
+        }
+        if params.len() >= 3 && params[0] == b"8" {
+            let mut uri = Vec::new();
+            for (index, part) in params[2..].iter().enumerate() {
+                if index != 0 {
+                    uri.push(b';');
+                }
+                uri.extend_from_slice(part);
+            }
+            if let Ok(uri) = String::from_utf8(uri) {
+                self.terminal
+                    .set_hyperlink(if uri.is_empty() { None } else { Some(uri) });
+            }
+            return;
+        }
         use base64::Engine;
         if self.osc52_policy != Osc52Policy::AllowWrite
             || params.len() != 3

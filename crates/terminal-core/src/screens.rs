@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::ops::{Deref, DerefMut};
 
 use crate::{
@@ -162,6 +163,24 @@ pub(crate) struct ScreenSet {
 }
 
 impl ScreenSet {
+    pub(crate) fn target_ids(&self) -> HashSet<u64> {
+        let mut ids = HashSet::new();
+        for screen in [&self.primary, &self.alternate] {
+            for row in 0..screen.grid.dimensions().rows() {
+                if let Some(cells) = screen.grid.row(row) {
+                    ids.extend(cells.iter().filter_map(|cell| cell.target_id()));
+                }
+            }
+            if let Some(history) = &screen.scrollback {
+                for row in 0..history.len() {
+                    if let Some(cells) = history.row(row) {
+                        ids.extend(cells.iter().filter_map(|cell| cell.target_id()));
+                    }
+                }
+            }
+        }
+        ids
+    }
     pub(crate) fn new(dimensions: TerminalDimensions) -> Self {
         Self {
             primary: ScreenState::new(dimensions, true),
