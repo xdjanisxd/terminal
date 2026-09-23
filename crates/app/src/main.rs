@@ -2,6 +2,7 @@
 
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use terminal_core::{
@@ -31,6 +32,7 @@ struct Application {
     terminal: TerminalState,
     pty: Option<PtyWorker>,
     pty_wake_proxy: Option<EventLoopProxy<PtyWake>>,
+    pty_wake_pending: Arc<AtomicBool>,
     frame: FrameState,
     dpi_size_sync: PhysicalSizeSync,
     pending_resize: PendingResize,
@@ -309,6 +311,7 @@ impl Default for Application {
             terminal,
             pty: None,
             pty_wake_proxy: None,
+            pty_wake_pending: Arc::new(AtomicBool::new(false)),
             frame: FrameState::default(),
             dpi_size_sync: PhysicalSizeSync::default(),
             pending_resize: PendingResize::default(),
@@ -547,6 +550,7 @@ impl Application {
         let Some(proxy) = self.pty_wake_proxy.clone() else {
             return;
         };
+        let wake_pending = Arc::clone(&self.pty_wake_pending);
         let size = pty_size_for_terminal(self.terminal.dimensions());
         let backend = PortablePtyBackend::new();
         let session = match backend.spawn(local_shell_spawn_config(size)) {
@@ -557,7 +561,11 @@ impl Application {
             }
         };
         match PtyWorker::start_with_notifier(session, move || {
-            let _ = proxy.send_event(PtyWake::OutputAvailable);
+            if !wake_pending.swap(true, Ordering::AcqRel)
+                && proxy.send_event(PtyWake::OutputAvailable).is_err()
+            {
+                wake_pending.store(false, Ordering::Release);
+            }
         }) {
             Ok(worker) => self.pty = Some(worker),
             Err(error) => eprintln!("could not start local shell worker: {error}"),
@@ -583,6 +591,9 @@ impl Application {
     }
 
     fn drain_pty_events(&mut self) {
+        let started = std::time::Instant::now();
+        let mut events = 0;
+        let mut bytes = 0;
         while let Some(pty) = self.pty.as_ref() {
             let event = match pty.recv_timeout(Duration::ZERO) {
                 Ok(Some(event)) => event,
@@ -592,15 +603,29 @@ impl Application {
                     break;
                 }
             };
+            events += 1;
+            if let PtyWorkerEvent::Output(PtyOutput::Bytes(chunk)) = &event {
+                bytes += chunk.len();
+            }
             self.handle_pty_event(event);
         }
+        emit_diagnostic(format_args!(
+            "app event=pty-drain events={events} bytes={bytes} elapsed_us={}",
+            started.elapsed().as_micros()
+        ));
     }
 
     fn handle_pty_event(&mut self, event: PtyWorkerEvent) {
         match event {
             PtyWorkerEvent::Output(PtyOutput::Bytes(bytes)) => {
+                let parse_started = std::time::Instant::now();
                 self.terminal.clear_selection();
                 let replies = parse_terminal_output(&mut self.parser, &mut self.terminal, &bytes);
+                emit_diagnostic(format_args!(
+                    "app event=parser-feed bytes={} elapsed_us={}",
+                    bytes.len(),
+                    parse_started.elapsed().as_micros()
+                ));
                 if let Some(text) = self.terminal.take_osc52_write()
                     && let Err(error) =
                         terminal_platform::write_clipboard(&text, self.window.as_deref())
@@ -791,6 +816,9 @@ impl ApplicationHandler<PtyWake> for Application {
             }
             WindowEvent::CursorLeft { .. } => self.pointer_position = None,
             WindowEvent::CursorMoved { position, .. } => {
+                if self.selection_dragging {
+                    emit_diagnostic(format_args!("app event=selection-move"));
+                }
                 self.pointer_position = Some(position);
                 if self.selection_dragging {
                     if let Some((column, row)) = self.renderer.as_ref().and_then(|renderer| {
@@ -818,11 +846,16 @@ impl ApplicationHandler<PtyWake> for Application {
                             let metrics = self.renderer.as_ref()?.cell_metrics();
                             terminal_cell_at(position, metrics, self.terminal.dimensions())
                         }) {
+                            let previous_selection = self.terminal.clear_selection();
                             self.selection_dragging = self.terminal.begin_selection(row, column);
-                            self.invalidate_frame();
+                            emit_diagnostic(format_args!("app event=selection-start"));
+                            if previous_selection {
+                                self.invalidate_frame();
+                            }
                         }
                     } else {
                         self.selection_dragging = false;
+                        emit_diagnostic(format_args!("app event=selection-end"));
                     }
                     return;
                 }
@@ -869,6 +902,10 @@ impl ApplicationHandler<PtyWake> for Application {
                 }
             }
             WindowEvent::KeyboardInput { event, .. } if event.state == ElementState::Pressed => {
+                emit_diagnostic(format_args!(
+                    "app event=keyboard logical={:?} physical={:?} text={:?}",
+                    event.logical_key, event.physical_key, event.text
+                ));
                 if self.modifiers.control_key()
                     && self.modifiers.shift_key()
                     && event.physical_key == PhysicalKey::Code(KeyCode::KeyC)
@@ -892,6 +929,9 @@ impl ApplicationHandler<PtyWake> for Application {
                 } else if let Some(navigation) =
                     viewport_navigation_from_logical_key(&event.logical_key)
                 {
+                    emit_diagnostic(format_args!(
+                        "app event=viewport-navigation direction={navigation:?}"
+                    ));
                     let changed = match navigation {
                         ViewportNavigation::PageUp => self.terminal.page_up(),
                         ViewportNavigation::PageDown => self.terminal.page_down(),
@@ -906,6 +946,7 @@ impl ApplicationHandler<PtyWake> for Application {
                 } else {
                     let key = basic_key_from_logical_key(&event.logical_key);
                     if let Some(bytes) = basic_key_input(event.text.as_deref(), key) {
+                        emit_diagnostic(format_args!("app event=key-input bytes={}", bytes.len()));
                         let is_backspace = key == Some(BasicKey::Backspace)
                             || event.physical_key == PhysicalKey::Code(KeyCode::Backspace);
                         let pty_write_queued = self.write_to_pty(bytes.clone());
@@ -926,6 +967,11 @@ impl ApplicationHandler<PtyWake> for Application {
             WindowEvent::RedrawRequested => {
                 emit_diagnostic(format_args!("app event=redraw-requested"));
                 self.diagnose("redraw-requested-received");
+                // During a live resize, redraws can arrive before about_to_wait.
+                // Apply the latest queued size before acquiring a surface frame;
+                // otherwise a suboptimal present can reconfigure the old size
+                // repeatedly while newer Resized events wait in the queue.
+                self.apply_pending_resize();
                 self.frame.begin_redraw();
                 let Some(renderer) = self.renderer.as_mut() else {
                     return;
@@ -956,7 +1002,13 @@ impl ApplicationHandler<PtyWake> for Application {
 
     fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: PtyWake) {
         match event {
-            PtyWake::OutputAvailable => self.drain_pty_events(),
+            PtyWake::OutputAvailable => {
+                // Clear before draining: output queued during the drain can arm a
+                // successor wake, so no worker event is stranded by a race.
+                self.pty_wake_pending.store(false, Ordering::Release);
+                emit_diagnostic(format_args!("app event=pty-wake"));
+                self.drain_pty_events();
+            }
         }
     }
 }
