@@ -53,6 +53,13 @@ enum BasicKey {
     Escape,
 }
 
+/// App-owned mapping for viewport commands that never enter the PTY input stream.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ViewportNavigation {
+    PageUp,
+    PageDown,
+}
+
 /// Windows-only shell-selection sources, retained so the policy is testable
 /// without reading the host environment.
 #[cfg(any(windows, test))]
@@ -730,21 +737,31 @@ impl ApplicationHandler<PtyWake> for Application {
                 self.diagnose("occluded-true-handled");
             }
             WindowEvent::KeyboardInput { event, .. } if event.state == ElementState::Pressed => {
-                let key = basic_key_from_logical_key(&event.logical_key);
-                if let Some(bytes) = basic_key_input(event.text.as_deref(), key) {
-                    let is_backspace = key == Some(BasicKey::Backspace)
-                        || event.physical_key == PhysicalKey::Code(KeyCode::Backspace);
-                    let pty_write_queued = self.write_to_pty(bytes.clone());
-                    if is_backspace {
-                        emit_diagnostic(format_args!(
-                            "app event=backspace-input state={:?} repeat={} logical={:?} physical={:?} committed_text={:?} committed_bytes={:?} selected_bytes={bytes:?} pty_write_requests=1 pty_write_queued={pty_write_queued}",
-                            event.state,
-                            event.repeat,
-                            event.logical_key,
-                            event.physical_key,
-                            event.text,
-                            event.text.as_deref().map(str::as_bytes),
-                        ));
+                if let Some(navigation) = viewport_navigation_from_logical_key(&event.logical_key) {
+                    let changed = match navigation {
+                        ViewportNavigation::PageUp => self.terminal.page_up(),
+                        ViewportNavigation::PageDown => self.terminal.page_down(),
+                    };
+                    if changed {
+                        self.invalidate_frame();
+                    }
+                } else {
+                    let key = basic_key_from_logical_key(&event.logical_key);
+                    if let Some(bytes) = basic_key_input(event.text.as_deref(), key) {
+                        let is_backspace = key == Some(BasicKey::Backspace)
+                            || event.physical_key == PhysicalKey::Code(KeyCode::Backspace);
+                        let pty_write_queued = self.write_to_pty(bytes.clone());
+                        if is_backspace {
+                            emit_diagnostic(format_args!(
+                                "app event=backspace-input state={:?} repeat={} logical={:?} physical={:?} committed_text={:?} committed_bytes={:?} selected_bytes={bytes:?} pty_write_requests=1 pty_write_queued={pty_write_queued}",
+                                event.state,
+                                event.repeat,
+                                event.logical_key,
+                                event.physical_key,
+                                event.text,
+                                event.text.as_deref().map(str::as_bytes),
+                            ));
+                        }
                     }
                 }
             }
@@ -842,6 +859,14 @@ fn basic_key_from_logical_key(key: &Key) -> Option<BasicKey> {
         Key::Named(NamedKey::Backspace) => Some(BasicKey::Backspace),
         Key::Named(NamedKey::Tab) => Some(BasicKey::Tab),
         Key::Named(NamedKey::Escape) => Some(BasicKey::Escape),
+        _ => None,
+    }
+}
+
+fn viewport_navigation_from_logical_key(key: &Key) -> Option<ViewportNavigation> {
+    match key {
+        Key::Named(NamedKey::PageUp) => Some(ViewportNavigation::PageUp),
+        Key::Named(NamedKey::PageDown) => Some(ViewportNavigation::PageDown),
         _ => None,
     }
 }
@@ -945,13 +970,14 @@ mod tests {
 
     use super::{
         BasicKey, FrameState, PendingResize, PhysicalSizeSync, RecoveryRedraw, SurfaceRestore,
-        WindowsShellSource, basic_backspace_byte_for_platform, basic_key_input,
+        ViewportNavigation, WindowsShellSource, basic_backspace_byte_for_platform, basic_key_input,
         parse_terminal_output, pty_size_for_terminal, select_windows_shell,
-        terminal_dimensions_for_viewport,
+        terminal_dimensions_for_viewport, viewport_navigation_from_logical_key,
     };
     use terminal_core::{TerminalDimensions, TerminalParser, TerminalState};
     use terminal_renderer::CellMetrics;
     use winit::dpi::PhysicalSize;
+    use winit::keyboard::{Key, NamedKey};
 
     #[test]
     fn invalidation_coalesces_requests_until_redraw_consumes_the_damage() {
@@ -1027,6 +1053,19 @@ mod tests {
             basic_key_input(Some("\u{17}"), Some(BasicKey::Backspace)),
             Some(vec![basic_backspace_byte_for_platform(cfg!(windows))])
         );
+    }
+
+    #[test]
+    fn page_navigation_is_app_local_and_not_basic_pty_input() {
+        assert_eq!(
+            viewport_navigation_from_logical_key(&Key::Named(NamedKey::PageUp)),
+            Some(ViewportNavigation::PageUp)
+        );
+        assert_eq!(
+            viewport_navigation_from_logical_key(&Key::Named(NamedKey::PageDown)),
+            Some(ViewportNavigation::PageDown)
+        );
+        assert_eq!(basic_key_input(None, None), None);
     }
 
     #[test]

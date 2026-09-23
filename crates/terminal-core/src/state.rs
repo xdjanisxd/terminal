@@ -183,6 +183,38 @@ impl TerminalState {
         self.screen.primary_scrollback_row(index)
     }
 
+    /// Returns the number of historical rows between the viewport and the live bottom.
+    ///
+    /// The offset is zero while following normal output. It is nonzero only after
+    /// viewport navigation on Primary; Alternate has no history and always reports zero.
+    pub fn viewport_offset(&self) -> usize {
+        self.screen.viewport_offset()
+    }
+
+    /// Moves the Primary viewport one terminal page toward older history.
+    ///
+    /// Returns whether the visible rows changed. Alternate has no scrollback, so this is
+    /// a no-op there.
+    pub fn page_up(&mut self) -> bool {
+        self.screen.page_up()
+    }
+
+    /// Moves the Primary viewport one terminal page toward the live bottom.
+    ///
+    /// Returns whether the visible rows changed. Reaching the bottom resumes following
+    /// normal output.
+    pub fn page_down(&mut self) -> bool {
+        self.screen.page_down()
+    }
+
+    /// Returns a cell from the current viewport projection.
+    ///
+    /// Historical rows retain their capture-time widths. A column outside a historical
+    /// row's captured width is represented as a default blank by returning `None`.
+    pub fn viewport_cell(&self, row: usize, column: usize) -> Option<&Cell> {
+        self.screen.viewport_cell(row, column)
+    }
+
     /// Returns the active screen's bounded cursor.
     pub fn cursor(&self) -> Cursor {
         self.screen.cursor()

@@ -40,10 +40,9 @@ impl TerminalRenderData {
         let mut cells = Vec::with_capacity(dimensions.cell_count());
         for row in 0..dimensions.rows() {
             for column in 0..dimensions.columns() {
-                let cell = state
-                    .screen()
-                    .cell(row, column)
-                    .expect("validated dimensions");
+                let Some(cell) = state.viewport_cell(row, column) else {
+                    continue;
+                };
                 if cell.occupancy() == CellOccupancy::WideContinuation {
                     continue;
                 }
@@ -69,7 +68,8 @@ impl TerminalRenderData {
                 });
             }
         }
-        let cursor = (state.terminal_modes().cursor_visibility() == CursorVisibility::Visible)
+        let cursor = (state.viewport_offset() == 0
+            && state.terminal_modes().cursor_visibility() == CursorVisibility::Visible)
             .then(|| {
                 let cursor = state.cursor();
                 CursorRenderData {
@@ -186,6 +186,28 @@ mod tests {
         assert_eq!(data.cells.len(), 2);
         assert_eq!(data.cells[0].width, 2);
         assert_eq!(data.cursor, None);
+    }
+
+    #[test]
+    fn projects_core_viewport_rows_and_hides_the_live_cursor_while_scrolled_back() {
+        let mut state = TerminalState::new(TerminalDimensions::new(2, 2).unwrap());
+        for character in "old".chars() {
+            state.print_character(character).unwrap();
+        }
+        state.set_cursor_position(1, 0).unwrap();
+        state.index();
+        assert!(state.page_up());
+
+        let data = TerminalRenderData::from_terminal(&state);
+        assert_eq!(data.cursor, None);
+        assert_eq!(
+            data.cells
+                .iter()
+                .filter(|cell| cell.row == 0)
+                .map(|cell| cell.character)
+                .collect::<Vec<_>>(),
+            vec!['o', 'l']
+        );
     }
 
     #[test]

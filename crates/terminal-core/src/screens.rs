@@ -28,6 +28,7 @@ struct ScreenState {
     wrap_pending: bool,
     saved_cursor: Option<SavedCursor>,
     scrollback: Option<Scrollback>,
+    viewport_offset: usize,
 }
 
 impl ScreenState {
@@ -38,6 +39,7 @@ impl ScreenState {
             wrap_pending: false,
             saved_cursor: None,
             scrollback: owns_scrollback.then(Scrollback::new),
+            viewport_offset: 0,
         }
     }
 
@@ -69,6 +71,7 @@ impl ScreenState {
         self.grid.resize(dimensions);
         self.vertical_scrolling_margins = VerticalScrollingMargins::full_screen(dimensions.rows());
         self.wrap_pending = false;
+        self.viewport_offset = self.viewport_offset.min(self.scrollback_len());
     }
 
     fn scroll_region_up(&mut self, margins: VerticalScrollingMargins, rows: usize) {
@@ -88,6 +91,15 @@ impl ScreenState {
                     .expect("scrolling margin row is always in bounds");
                 scrollback.push(displaced);
             }
+            // History is inserted immediately above the live grid. Keeping the
+            // same rows in view therefore requires moving the viewport away from
+            // bottom by each captured row, including after oldest-row eviction.
+            if self.viewport_offset != 0 {
+                self.viewport_offset = self
+                    .viewport_offset
+                    .saturating_add(rows)
+                    .min(scrollback.len());
+            }
         }
 
         self.grid.scroll_region_up(margins, rows);
@@ -99,6 +111,39 @@ impl ScreenState {
 
     fn scrollback_row(&self, index: usize) -> Option<&[Cell]> {
         self.scrollback.as_ref()?.row(index)
+    }
+
+    fn viewport_offset(&self) -> usize {
+        self.viewport_offset
+    }
+
+    fn page_up(&mut self) -> bool {
+        let previous = self.viewport_offset;
+        self.viewport_offset = self
+            .viewport_offset
+            .saturating_add(self.grid.dimensions().rows())
+            .min(self.scrollback_len());
+        self.viewport_offset != previous
+    }
+
+    fn page_down(&mut self) -> bool {
+        let previous = self.viewport_offset;
+        self.viewport_offset = self
+            .viewport_offset
+            .saturating_sub(self.grid.dimensions().rows());
+        self.viewport_offset != previous
+    }
+
+    fn viewport_cell(&self, row: usize, column: usize) -> Option<&Cell> {
+        let dimensions = self.grid.dimensions();
+        if row >= dimensions.rows() || column >= dimensions.columns() {
+            return None;
+        }
+        let source_row = self.scrollback_len() + row - self.viewport_offset;
+        if source_row < self.scrollback_len() {
+            return self.scrollback_row(source_row)?.get(column);
+        }
+        self.grid.cell(source_row - self.scrollback_len(), column)
     }
 }
 
@@ -183,6 +228,22 @@ impl ScreenSet {
 
     pub(crate) fn primary_scrollback_row(&self, index: usize) -> Option<&[Cell]> {
         self.primary.scrollback_row(index)
+    }
+
+    pub(crate) fn viewport_offset(&self) -> usize {
+        self.active_state().viewport_offset()
+    }
+
+    pub(crate) fn page_up(&mut self) -> bool {
+        self.active_state_mut().page_up()
+    }
+
+    pub(crate) fn page_down(&mut self) -> bool {
+        self.active_state_mut().page_down()
+    }
+
+    pub(crate) fn viewport_cell(&self, row: usize, column: usize) -> Option<&Cell> {
+        self.active_state().viewport_cell(row, column)
     }
 
     fn active_state(&self) -> &ScreenState {

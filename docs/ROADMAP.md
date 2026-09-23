@@ -83,6 +83,11 @@ Completion marks require tested acceptance criteria, not code presence alone.
   - `terminal-renderer` converts resolved terminal state into renderer-owned backgrounds, glyph alpha-mask quads, underlines, and cursor primitives, using a bounded GPU atlas and existing font fallback/cache pipeline. Windows visual smoke validation confirmed normal/wide/combining glyphs, non-default backgrounds, underlines, cursor, resize, and minimize/restore without corruption. Native GitHub Actions run 35699195505 passed the six-runner baseline; focused validation covers the subsequent wide-cell cursor-advance regression fix.
 - [x] Add damage-driven redraw and DPI/resize handling
   - `terminal-app` coalesces invalidation and synchronizes the terminal grid to DPI-aware drawable size. Restore, fullscreen, and surface-recovery paths use one event-driven successor frame after the initial successful recovery present; diagnostics and Windows manual acceptance verify the recovery remains finite.
+- [x] Add bounded scrollback viewport navigation
+  - `terminal-core` owns the Primary-only history/viewport projection and bounds.
+  - App-local PageUp/PageDown navigation never writes navigation keys to the PTY.
+  - The renderer projects the selected viewport and hides the live cursor while scrolled back.
+  - No visual scrollbar, mouse, configuration, or clipboard scope was added.
 
 ## Early integration checkpoint
 
