@@ -7,7 +7,13 @@ use std::collections::{HashMap, VecDeque};
 use std::error::Error;
 use std::fmt;
 
+#[cfg(any(target_os = "linux", test))]
+use fontdb::Source as FontSource;
 use fontdb::{Database, Family, ID, Query};
+#[cfg(any(target_os = "linux", test))]
+use std::path::Path;
+#[cfg(target_os = "linux")]
+use std::process::Command;
 use swash::{
     FontRef,
     scale::{Render, ScaleContext, Source},
@@ -329,6 +335,15 @@ impl FontSystem {
     pub(super) fn load_system(request: FontRequest) -> Result<Self, FontLoadError> {
         let mut database = Database::new();
         database.load_system_fonts();
+        #[cfg(target_os = "linux")]
+        if matches!(&request, FontRequest::SystemMonospace) {
+            if let Some(id) = fontconfig_monospace_face(&mut database) {
+                return Self::with_primary_face(database, id, GLYPH_CACHE_CAPACITY);
+            }
+            let primary_face = select_discovered_monospace_face(&database)
+                .ok_or(FontLoadError::NoSystemMonospaceFace)?;
+            return Self::with_primary_face(database, primary_face, GLYPH_CACHE_CAPACITY);
+        }
         Self::from_database(database, request)
     }
 
@@ -605,6 +620,89 @@ fn select_primary_face(database: &Database, request: &FontRequest) -> Result<ID,
     }
 }
 
+// fontdb's generic-family query only checks one configured alias. It does not
+// perform fontconfig's substitutions, which can resolve "monospace" to a face
+// with a completely different family name.
+#[cfg(target_os = "linux")]
+fn fontconfig_monospace_face(database: &mut Database) -> Option<ID> {
+    let output = Command::new("fc-match")
+        .args(["-f", "%{file}\n%{index}\n%{spacing}\n", "monospace"])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let result = String::from_utf8(output.stdout).ok()?;
+    resolve_fontconfig_face(database, &result)
+}
+
+#[cfg(any(target_os = "linux", test))]
+fn resolve_fontconfig_face(database: &mut Database, result: &str) -> Option<ID> {
+    let mut fields = result.lines();
+    let path = Path::new(fields.next()?);
+    let index = fields.next()?.parse::<u32>().ok()?;
+    let spacing = fields.next()?.parse::<u32>().ok()?;
+    if !path.is_absolute() || spacing < 100 {
+        return None;
+    }
+
+    // fontdb's directory scan can miss a fontconfig-visible file. Loading the
+    // resolved file also keeps its bytes in the same database used for shaping.
+    if !database
+        .faces()
+        .any(|face| face.index == index && face_source_is_path(&face.source, path))
+    {
+        database.load_font_file(path).ok()?;
+    }
+    database
+        .faces()
+        .find(|face| face.index == index && face_source_is_path(&face.source, path))
+        .and_then(|face| usable_face(database, face.id).then_some(face.id))
+}
+
+#[cfg(any(target_os = "linux", test))]
+fn face_source_is_path(source: &FontSource, path: &Path) -> bool {
+    match source {
+        FontSource::File(file) | FontSource::SharedFile(file, _) => file == path,
+        FontSource::Binary(_) => false,
+    }
+}
+
+#[cfg(any(target_os = "linux", test))]
+fn usable_face(database: &Database, id: ID) -> bool {
+    database
+        .with_face_data(id, |data, index| {
+            FontRef::from_index(data, index as usize).is_some()
+        })
+        .unwrap_or(false)
+}
+
+#[cfg(any(target_os = "linux", test))]
+fn select_discovered_monospace_face(database: &Database) -> Option<ID> {
+    let preferred = database.query(&Query {
+        families: &[Family::Monospace],
+        ..Default::default()
+    });
+    preferred
+        .filter(|id| {
+            database.face(*id).is_some_and(|face| face.monospaced) && usable_face(database, *id)
+        })
+        .or_else(|| {
+            let mut candidates: Vec<_> = database.faces().filter(|face| face.monospaced).collect();
+            candidates.sort_by(|left, right| {
+                left.families
+                    .first()
+                    .map(|family| &family.0)
+                    .cmp(&right.families.first().map(|family| &family.0))
+                    .then_with(|| left.post_script_name.cmp(&right.post_script_name))
+            });
+            candidates
+                .into_iter()
+                .find(|face| usable_face(database, face.id))
+                .map(|face| face.id)
+        })
+}
+
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
@@ -614,7 +712,8 @@ mod tests {
     use super::{
         DEFAULT_LOGICAL_FONT_SIZE, FontLoadError, FontProcessingError, FontRequest, FontSystem,
         GLYPH_CACHE_CAPACITY, GlyphCacheKey, SHAPED_TEXT_CACHE_CAPACITY,
-        cell_metrics_from_scaled_values,
+        cell_metrics_from_scaled_values, resolve_fontconfig_face, select_discovered_monospace_face,
+        select_primary_face,
     };
 
     const TEST_FONT: &[u8] = include_bytes!("../tests/fixtures/Tuffy.ttf");
@@ -673,6 +772,63 @@ mod tests {
             FontSystem::from_database(fontdb::Database::new(), FontRequest::default()),
             Err(FontLoadError::NoSystemMonospaceFace)
         ));
+    }
+
+    #[test]
+    fn discovered_monospace_fallback_skips_unusable_faces_and_ignores_generic_alias() {
+        let mut database = database_with_face("Proportional Alias", false);
+        database.set_monospace_family("Proportional Alias");
+        database.push_face_info(FaceInfo {
+            id: fontdb::ID::dummy(),
+            source: Source::Binary(Arc::new(vec![1, 2, 3])),
+            index: 0,
+            families: vec![("A Broken Mono".to_owned(), Language::English_UnitedStates)],
+            post_script_name: "A-Broken-Mono".to_owned(),
+            style: Style::Normal,
+            weight: Weight::NORMAL,
+            stretch: Stretch::Normal,
+            monospaced: true,
+        });
+        let usable = database.push_face_info(FaceInfo {
+            id: fontdb::ID::dummy(),
+            source: Source::Binary(Arc::new(TEST_FONT.to_vec())),
+            index: 0,
+            families: vec![("Z Valid Mono".to_owned(), Language::English_UnitedStates)],
+            post_script_name: "Z-Valid-Mono".to_owned(),
+            style: Style::Normal,
+            weight: Weight::NORMAL,
+            stretch: Stretch::Normal,
+            monospaced: true,
+        });
+
+        assert!(matches!(
+            select_primary_face(&database, &FontRequest::SystemMonospace),
+            Err(FontLoadError::NoSystemMonospaceFace)
+        ));
+        assert_eq!(select_discovered_monospace_face(&database), Some(usable));
+    }
+
+    #[test]
+    fn discovered_monospace_fallback_requires_a_loadable_monospace_face() {
+        let database = database_with_face("Proportional", false);
+        assert_eq!(select_discovered_monospace_face(&database), None);
+    }
+
+    #[test]
+    fn fontconfig_match_loads_the_resolved_file_and_rejects_proportional_spacing() {
+        let path =
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/Tuffy.ttf");
+        let mut database = fontdb::Database::new();
+        let result = format!("{}\n0\n100\n", path.display());
+        let selected = resolve_fontconfig_face(&mut database, &result).unwrap();
+        assert!(database.face(selected).is_some());
+        assert_eq!(
+            resolve_fontconfig_face(&mut database, &result),
+            Some(selected)
+        );
+
+        let proportional = format!("{}\n0\n0\n", path.display());
+        assert_eq!(resolve_fontconfig_face(&mut database, &proportional), None);
     }
 
     #[test]
