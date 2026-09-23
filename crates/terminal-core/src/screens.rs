@@ -118,19 +118,25 @@ impl ScreenState {
     }
 
     fn page_up(&mut self) -> bool {
-        let previous = self.viewport_offset;
-        self.viewport_offset = self
-            .viewport_offset
-            .saturating_add(self.grid.dimensions().rows())
-            .min(self.scrollback_len());
-        self.viewport_offset != previous
+        self.scroll_viewport_rows(self.grid.dimensions().rows() as i32)
     }
 
     fn page_down(&mut self) -> bool {
+        self.scroll_viewport_rows(-(self.grid.dimensions().rows() as i32))
+    }
+
+    fn scroll_viewport_rows(&mut self, rows: i32) -> bool {
         let previous = self.viewport_offset;
-        self.viewport_offset = self
-            .viewport_offset
-            .saturating_sub(self.grid.dimensions().rows());
+        if rows >= 0 {
+            self.viewport_offset = self
+                .viewport_offset
+                .saturating_add(rows as usize)
+                .min(self.scrollback_len());
+        } else {
+            self.viewport_offset = self
+                .viewport_offset
+                .saturating_sub(rows.unsigned_abs() as usize);
+        }
         self.viewport_offset != previous
     }
 
@@ -240,6 +246,10 @@ impl ScreenSet {
 
     pub(crate) fn page_down(&mut self) -> bool {
         self.active_state_mut().page_down()
+    }
+
+    pub(crate) fn scroll_viewport_rows(&mut self, rows: i32) -> bool {
+        self.active_state_mut().scroll_viewport_rows(rows)
     }
 
     pub(crate) fn viewport_cell(&self, row: usize, column: usize) -> Option<&Cell> {

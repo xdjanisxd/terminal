@@ -207,6 +207,14 @@ impl TerminalState {
         self.screen.page_down()
     }
 
+    /// Moves the active viewport by signed rows: positive toward older history.
+    ///
+    /// Movement is clamped to retained Primary history and the live bottom.
+    /// Alternate has no history, so movement there is a no-op.
+    pub fn scroll_viewport_rows(&mut self, rows: i32) -> bool {
+        self.screen.scroll_viewport_rows(rows)
+    }
+
     /// Returns a cell from the current viewport projection.
     ///
     /// Historical rows retain their capture-time widths. A column outside a historical

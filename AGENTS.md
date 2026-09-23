@@ -147,3 +147,32 @@ Prefer targeted Graphify queries over reading generated graph files.
 Repository docs define intended architecture.
 
 Graphify describes implemented architecture.
+
+## Model delegation
+
+Use only GPT-6 Sol and GPT-6 Luna.
+
+GPT-6 Sol is the primary agent. Keep architecture decisions, planning,
+implementation, complex debugging, cross-crate reasoning, and final
+integration in Sol.
+
+Prefer GPT-6 Luna for bounded auxiliary work such as:
+
+- targeted searches and source inspection;
+- focused and completion validation;
+- test execution, `cargo check`, `cargo clippy`, and formatting checks;
+- status, diff statistics, and scoped diff inspection;
+- checking explicit acceptance criteria.
+
+Do not delegate trivial work when transferring context would cost more
+than doing it directly.
+
+Give Luna only the context required for its task. Luna must not make
+architecture or ownership decisions.
+
+If Luna encounters a non-trivial failure, architectural ambiguity, or
+a change requiring broader reasoning, return the relevant findings to
+Sol instead of attempting speculative fixes.
+
+Sol remains responsible for interpreting delegated results and deciding
+whether the task is complete.

@@ -17,7 +17,7 @@ use terminal_renderer::{
 };
 use winit::application::ApplicationHandler;
 use winit::dpi::PhysicalSize;
-use winit::event::{ElementState, WindowEvent};
+use winit::event::{ElementState, MouseScrollDelta, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopProxy};
 use winit::keyboard::{Key, KeyCode, NamedKey, PhysicalKey};
 use winit::window::{Window, WindowId};
@@ -36,6 +36,7 @@ struct Application {
     recovery_redraw: RecoveryRedraw,
     fullscreen: FullscreenTransition,
     last_diagnostic_state: Option<AppDiagnosticState>,
+    wheel_remainder: f64,
 }
 
 /// App-local notification that PTY worker output is ready to drain.
@@ -308,6 +309,7 @@ impl Default for Application {
             recovery_redraw: RecoveryRedraw::default(),
             fullscreen: FullscreenTransition::default(),
             last_diagnostic_state: None,
+            wheel_remainder: 0.0,
         }
     }
 }
@@ -736,6 +738,18 @@ impl ApplicationHandler<PtyWake> for Application {
                 self.surface_restore.defer();
                 self.diagnose("occluded-true-handled");
             }
+            WindowEvent::MouseWheel { delta, .. } => {
+                if let Some(metrics) = self.renderer.as_ref().map(Renderer::cell_metrics)
+                    && scroll_terminal_for_wheel(
+                        &mut self.terminal,
+                        delta,
+                        metrics.height(),
+                        &mut self.wheel_remainder,
+                    )
+                {
+                    self.invalidate_frame();
+                }
+            }
             WindowEvent::KeyboardInput { event, .. } if event.state == ElementState::Pressed => {
                 if let Some(navigation) = viewport_navigation_from_logical_key(&event.logical_key) {
                     let changed = match navigation {
@@ -871,6 +885,38 @@ fn viewport_navigation_from_logical_key(key: &Key) -> Option<ViewportNavigation>
     }
 }
 
+/// Routes wheel motion through the primary-screen viewport only.
+fn scroll_terminal_for_wheel(
+    terminal: &mut TerminalState,
+    delta: MouseScrollDelta,
+    cell_height: u32,
+    remainder: &mut f64,
+) -> bool {
+    if terminal.active_screen() != terminal_core::ScreenKind::Primary
+        || terminal.scrollback_len() == 0
+    {
+        *remainder = 0.0;
+        return false;
+    }
+    terminal.scroll_viewport_rows(wheel_scroll_rows(delta, cell_height, remainder))
+}
+
+/// Converts platform line/pixel wheel deltas to whole terminal rows, retaining
+/// sub-row motion so precision wheels and touchpads can eventually move a row.
+fn wheel_scroll_rows(delta: MouseScrollDelta, cell_height: u32, remainder: &mut f64) -> i32 {
+    let rows = match delta {
+        MouseScrollDelta::LineDelta(_, y) => f64::from(y) * 3.0,
+        MouseScrollDelta::PixelDelta(position) => position.y / f64::from(cell_height.max(1)),
+    };
+    if !rows.is_finite() {
+        return 0;
+    }
+    let total = (*remainder + rows).clamp(f64::from(i32::MIN), f64::from(i32::MAX));
+    let whole = total.trunc() as i32;
+    *remainder = total - f64::from(whole);
+    whole
+}
+
 fn basic_key_input(text: Option<&str>, key: Option<BasicKey>) -> Option<Vec<u8>> {
     let named_key = match key {
         Some(BasicKey::Enter) => Some(vec![b'\r']),
@@ -971,12 +1017,14 @@ mod tests {
     use super::{
         BasicKey, FrameState, PendingResize, PhysicalSizeSync, RecoveryRedraw, SurfaceRestore,
         ViewportNavigation, WindowsShellSource, basic_backspace_byte_for_platform, basic_key_input,
-        parse_terminal_output, pty_size_for_terminal, select_windows_shell,
-        terminal_dimensions_for_viewport, viewport_navigation_from_logical_key,
+        parse_terminal_output, pty_size_for_terminal, scroll_terminal_for_wheel,
+        select_windows_shell, terminal_dimensions_for_viewport,
+        viewport_navigation_from_logical_key, wheel_scroll_rows,
     };
     use terminal_core::{TerminalDimensions, TerminalParser, TerminalState};
     use terminal_renderer::CellMetrics;
-    use winit::dpi::PhysicalSize;
+    use winit::dpi::{PhysicalPosition, PhysicalSize};
+    use winit::event::MouseScrollDelta;
     use winit::keyboard::{Key, NamedKey};
 
     #[test]
@@ -1066,6 +1114,86 @@ mod tests {
             Some(ViewportNavigation::PageDown)
         );
         assert_eq!(basic_key_input(None, None), None);
+    }
+
+    #[test]
+    fn wheel_deltas_accumulate_pixel_motion_and_preserve_direction() {
+        let mut remainder = 0.0;
+        assert_eq!(
+            wheel_scroll_rows(MouseScrollDelta::LineDelta(0.0, 1.0), 20, &mut remainder),
+            3
+        );
+        assert_eq!(
+            wheel_scroll_rows(
+                MouseScrollDelta::PixelDelta(PhysicalPosition::new(0.0, 8.0)),
+                20,
+                &mut remainder
+            ),
+            0
+        );
+        assert_eq!(
+            wheel_scroll_rows(
+                MouseScrollDelta::PixelDelta(PhysicalPosition::new(0.0, 14.0)),
+                20,
+                &mut remainder
+            ),
+            1
+        );
+        assert!((remainder - 0.1).abs() < 1e-10);
+        assert_eq!(
+            wheel_scroll_rows(MouseScrollDelta::LineDelta(0.0, -1.0), 20, &mut remainder),
+            -2
+        );
+        assert_eq!(
+            wheel_scroll_rows(
+                MouseScrollDelta::PixelDelta(PhysicalPosition::new(0.0, f64::NAN)),
+                20,
+                &mut remainder
+            ),
+            0
+        );
+    }
+
+    #[test]
+    fn wheel_scrolls_primary_history_but_not_alternate_screen() {
+        let mut terminal = TerminalState::new(TerminalDimensions::new(2, 2).unwrap());
+        terminal.set_cursor_position(1, 0).unwrap();
+        terminal.index();
+        terminal.index();
+        let mut remainder = 0.5;
+
+        assert!(scroll_terminal_for_wheel(
+            &mut terminal,
+            MouseScrollDelta::LineDelta(0.0, 1.0),
+            20,
+            &mut remainder,
+        ));
+        assert_eq!(terminal.viewport_offset(), 2);
+        assert!(!scroll_terminal_for_wheel(
+            &mut terminal,
+            MouseScrollDelta::LineDelta(0.0, 1.0),
+            20,
+            &mut remainder,
+        ));
+
+        terminal.switch_to_alternate_screen();
+        assert!(!scroll_terminal_for_wheel(
+            &mut terminal,
+            MouseScrollDelta::LineDelta(0.0, -1.0),
+            20,
+            &mut remainder,
+        ));
+        assert_eq!(remainder, 0.0);
+        terminal.switch_to_primary_screen();
+        assert_eq!(terminal.viewport_offset(), 2);
+
+        assert!(scroll_terminal_for_wheel(
+            &mut terminal,
+            MouseScrollDelta::LineDelta(0.0, -1.0),
+            20,
+            &mut remainder,
+        ));
+        assert_eq!(terminal.viewport_offset(), 0);
     }
 
     #[test]

@@ -87,7 +87,9 @@ Completion marks require tested acceptance criteria, not code presence alone.
   - `terminal-core` owns the Primary-only history/viewport projection and bounds.
   - App-local PageUp/PageDown navigation never writes navigation keys to the PTY.
   - The renderer projects the selected viewport and hides the live cursor while scrolled back.
-  - No visual scrollbar, mouse, configuration, or clipboard scope was added.
+- [x] Add Primary-history mouse-wheel navigation and a visual scrollbar
+  - The app converts line/pixel wheel motion to bounded row movement through the core viewport API; the renderer derives track/thumb geometry from history length, visible rows, and viewport offset.
+  - Alternate screen has neither scrollback navigation nor scrollbar; thumb dragging, mouse reporting, selection, clipboard, config, and keybindings remain out of scope.
 
 ## Early integration checkpoint
 
@@ -122,5 +124,5 @@ later performance/polish work.
 - [ ] Add tabs, panes, layout, and reproducible workspace definitions
 - [ ] Add project roots, startup commands, command palette, and basic CLI control
 - [ ] Establish compatibility, fuzzing, and performance baselines
-- [ ] Improve live-resize smoothness and eliminate temporary text scaling during drag
+- [ ] Dedicated input and frame-pacing performance task: investigate delayed typing/input, janky Backspace/delete, non-smooth PageUp/PageDown, live resize trailing the pointer (including temporary text scaling), and overall UI/frame pacing relative to mature terminals such as Alacritty
 - [ ] Package and validate supported Windows, Linux, and macOS releases
