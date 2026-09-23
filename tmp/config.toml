@@ -1,0 +1,26 @@
+[theme]
+foreground = "#32d2d2"
+background = "#202040"
+cursor = "#ffcc00"
+selection_foreground = "#000000"
+selection_background = "#00ff88"
+
+[[bindings]]
+key = "Ctrl+Shift+C"
+action = "copy"
+
+[[bindings]]
+key = "Ctrl+Shift+V"
+action = "paste"
+
+[[bindings]]
+key = "PageUp"
+action = "page_up"
+
+[[bindings]]
+key = "PageDown"
+action = "page_down"
+
+[[bindings]]
+key = "Ctrl+Shift+P"
+command = "open_palette"

@@ -11,7 +11,8 @@ pub use font::{
     CellMetrics, FontProcessingError, FontRequest, GlyphBitmap, ShapedGlyph, ShapedText,
 };
 pub use snapshot::{
-    CursorRenderData, RenderCell, RenderTheme, Rgba, ScrollbarRenderData, TerminalRenderData,
+    CursorRenderData, OverlayLine, RenderCell, RenderTheme, Rgba, ScrollbarRenderData,
+    TerminalRenderData, TextOverlay,
 };
 
 use std::error::Error;
@@ -267,8 +268,19 @@ impl Renderer {
 
     /// Converts terminal-core's resolved state and presents it without owning its semantics.
     pub fn redraw_terminal(&mut self, state: &terminal_core::TerminalState) -> RedrawOutcome {
+        self.redraw_terminal_with_overlay(state, None)
+    }
+
+    pub fn redraw_terminal_with_overlay(
+        &mut self,
+        state: &terminal_core::TerminalState,
+        overlay: Option<&TextOverlay>,
+    ) -> RedrawOutcome {
         let projection_start = Instant::now();
-        let data = TerminalRenderData::from_terminal_with_theme(state, &self.theme);
+        let mut data = TerminalRenderData::from_terminal_with_theme(state, &self.theme);
+        if let Some(overlay) = overlay {
+            data.apply_text_overlay(overlay, &self.theme);
+        }
         emit_diagnostic(format_args!(
             "renderer event=projection cells={} elapsed_us={}",
             data.cells.len(),

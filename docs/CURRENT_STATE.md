@@ -2,7 +2,7 @@
 
 ## Working
 
-- `terminal-config` owns typed TOML defaults, theme colors, keybindings, and validation. The app loads the config at startup and after file content changes, retains the last valid values after an invalid edit, dispatches bound actions centrally, and passes theme colors to the renderer. See `docs/CONFIG.md` for the schema and reload boundaries.
+- `terminal-config` owns typed TOML defaults, theme colors, typed command bindings, and validation. The app loads the config at startup and after file content changes, retains the last valid values after an invalid edit, resolves bound keys to commands, executes them in one app dispatcher, and passes theme colors to the renderer. The app command registry also feeds a basic searchable palette opened by Ctrl+Shift+P; palette input stays local, and the renderer draws its text overlay without mutating terminal state. See `docs/CONFIG.md` for the schema and reload boundaries.
 
 - Valid Rust workspace, MIT metadata, and required repository knowledge system
 - Cross-platform GitHub Actions gates verified on Windows, Linux, and macOS for x86_64 and ARM64
@@ -50,5 +50,5 @@
 ## Missing
 
 - Remaining CSI/SGR style semantics and modes, colon-form color semantics, OSC/DCS semantics, secondary/tertiary DA replies, other DSR/CPR forms, origin mode, and additional alternate-screen semantics
-- Clipboard support outside Windows, parsed clickable-target metadata and activation, command palette, workspace, and broader PTY/application integration behavior remain deferred
+- Clipboard support outside Windows, parsed clickable-target metadata and activation, expanded command palette features, workspace, and broader PTY/application integration behavior remain deferred
 - Compatibility/performance baselines; the interactive frame-pacing pass reduced repeated instance uploads and eliminated stale-size surface configuration during live resize. Manual Windows traces still show full-visible-grid projection and CPU instance generation on every present, and PowerShell can produce multiple presents for one key through separate PTY chunks. Damage-aware CPU updates, proof-based suppression of redundant presents, and measured input-to-present latency remain performance debt (see `docs/PERFORMANCE.md`).

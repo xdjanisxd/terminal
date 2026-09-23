@@ -44,6 +44,18 @@ pub struct RenderCell {
     pub underline: bool,
 }
 
+/// App-supplied text drawn over the terminal projection, without changing terminal state.
+#[derive(Clone, Debug, PartialEq)]
+pub struct TextOverlay {
+    pub lines: Vec<OverlayLine>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct OverlayLine {
+    pub text: String,
+    pub selected: bool,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CursorRenderData {
     pub row: usize,
@@ -140,6 +152,37 @@ impl TerminalRenderData {
             scrollbar,
         }
     }
+
+    pub fn apply_text_overlay(&mut self, overlay: &TextOverlay, theme: &RenderTheme) {
+        let line_count = overlay.lines.len().min(self.rows);
+        if line_count == 0 || self.columns == 0 {
+            return;
+        }
+        // Drop entire covered rows so wide terminal cells cannot overlap the panel.
+        self.cells.retain(|cell| cell.row >= line_count);
+        self.cursor = None;
+        for (row, line) in overlay.lines.iter().take(line_count).enumerate() {
+            let (foreground, background) = if line.selected {
+                (theme.selection_foreground, theme.selection_background)
+            } else {
+                (theme.foreground, theme.background)
+            };
+            let mut characters = line.text.chars();
+            for column in 0..self.columns {
+                let character = characters.next().unwrap_or(' ');
+                self.cells.push(RenderCell {
+                    row,
+                    column,
+                    width: 1,
+                    character,
+                    text: character.to_string(),
+                    foreground,
+                    background,
+                    underline: false,
+                });
+            }
+        }
+    }
 }
 
 const DEFAULT_FOREGROUND: Rgba = Rgba([0.9, 0.9, 0.9, 1.0]);
@@ -215,6 +258,40 @@ mod tests {
         UnderlineStyle,
     };
 
+    #[test]
+    fn text_overlay_covers_terminal_rows_without_mutating_core() {
+        let mut state = TerminalState::new(TerminalDimensions::new(3, 2).unwrap());
+        state.print_character('界').unwrap();
+        let theme = RenderTheme::default();
+        let mut data = TerminalRenderData::from_terminal_with_theme(&state, &theme);
+        data.apply_text_overlay(
+            &TextOverlay {
+                lines: vec![OverlayLine {
+                    text: "Go".into(),
+                    selected: true,
+                }],
+            },
+            &theme,
+        );
+        assert_eq!(
+            data.cells
+                .iter()
+                .filter(|cell| cell.row == 0)
+                .map(|cell| cell.character)
+                .collect::<String>(),
+            "Go "
+        );
+        assert_eq!(
+            data.cells
+                .iter()
+                .find(|cell| cell.row == 0)
+                .unwrap()
+                .background,
+            theme.selection_background
+        );
+        assert_eq!(data.cursor, None);
+        assert_eq!(state.screen().cell(0, 0).unwrap().character(), '界');
+    }
     #[test]
     fn selection_highlights_snapshot_without_changing_terminal_cells() {
         let mut state = TerminalState::new(TerminalDimensions::new(2, 1).unwrap());

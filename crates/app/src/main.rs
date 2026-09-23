@@ -1,10 +1,13 @@
 //! Native application lifecycle and component wiring.
 
+mod commands;
+
+use commands::Palette;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
-use terminal_config::{Action, Config, Rgb};
+use terminal_config::{Command, Config, Rgb};
 
 use terminal_core::{
     CellColor, CursorKey, MAX_COLUMNS, MAX_GRID_CELLS, MAX_ROWS,
@@ -16,8 +19,8 @@ use terminal_pty::{
     PortablePtyBackend, PtyBackend, PtyOutput, PtySize, PtySpawnConfig, PtyWorker, PtyWorkerEvent,
 };
 use terminal_renderer::{
-    CellMetrics, RedrawOutcome, RenderTheme, Renderer, RendererDiagnosticState, Rgba,
-    diagnostics_enabled, emit_diagnostic,
+    CellMetrics, OverlayLine, RedrawOutcome, RenderTheme, Renderer, RendererDiagnosticState, Rgba,
+    TextOverlay, diagnostics_enabled, emit_diagnostic,
 };
 use winit::application::ApplicationHandler;
 use winit::dpi::{PhysicalPosition, PhysicalSize};
@@ -49,6 +52,7 @@ struct Application {
     modifiers: ModifiersState,
     config: Config,
     config_path: PathBuf,
+    palette: Option<Palette>,
 }
 
 /// App-local notifications delivered through the winit event loop.
@@ -324,6 +328,7 @@ impl Default for Application {
             modifiers: ModifiersState::empty(),
             config: Config::default(),
             config_path: config_path(),
+            palette: None,
         }
     }
 }
@@ -421,9 +426,9 @@ impl Application {
         }
     }
 
-    fn execute_action(&mut self, action: Action) {
-        match action {
-            Action::Copy => {
+    fn dispatch_command(&mut self, command: Command) {
+        match command {
+            Command::Copy => {
                 if let Some(text) = self.terminal.selected_text()
                     && let Err(error) =
                         terminal_platform::write_clipboard(&text, self.window.as_deref())
@@ -431,14 +436,14 @@ impl Application {
                     eprintln!("could not copy selected text: {error}");
                 }
             }
-            Action::Paste => match terminal_platform::read_clipboard(2 * 1024 * 1024) {
+            Command::Paste => match terminal_platform::read_clipboard(2 * 1024 * 1024) {
                 Ok(text) => {
                     self.write_to_pty(encode_paste(*self.terminal.input_modes(), &text));
                 }
                 Err(error) => eprintln!("could not paste clipboard text: {error}"),
             },
-            Action::PageUp | Action::PageDown => {
-                let changed = if action == Action::PageUp {
+            Command::PageUp | Command::PageDown => {
+                let changed = if command == Command::PageUp {
                     self.terminal.page_up()
                 } else {
                     self.terminal.page_down()
@@ -447,7 +452,74 @@ impl Application {
                     self.invalidate_frame();
                 }
             }
+            Command::OpenPalette => {
+                self.palette = Some(Palette::default());
+                self.invalidate_frame();
+            }
         }
+    }
+
+    fn handle_palette_key(&mut self, key: &Key, text: Option<&str>) {
+        let Some(mut palette) = self.palette.take() else {
+            return;
+        };
+        let mut command = None;
+        let mut close = false;
+        match key {
+            Key::Named(NamedKey::Escape) => close = true,
+            Key::Named(NamedKey::Enter) => {
+                command = palette.chosen();
+                close = command.is_some();
+            }
+            Key::Named(NamedKey::Backspace) => palette.backspace(),
+            Key::Named(NamedKey::ArrowUp) => palette.move_selection(-1),
+            Key::Named(NamedKey::ArrowDown) => palette.move_selection(1),
+            _ if !self.modifiers.control_key()
+                && !self.modifiers.alt_key()
+                && !self.modifiers.super_key() =>
+            {
+                if let Some(text) = text {
+                    palette.push_text(text);
+                }
+            }
+            _ => {}
+        }
+        if !close {
+            self.palette = Some(palette);
+        }
+        self.invalidate_frame();
+        if let Some(command) = command {
+            self.dispatch_command(command);
+        }
+    }
+
+    fn palette_overlay(&self) -> Option<TextOverlay> {
+        let palette = self.palette.as_ref()?;
+        let mut lines = vec![OverlayLine {
+            text: format!(" Command Palette > {}", palette.query()),
+            selected: false,
+        }];
+        let matches = palette.matches();
+        if matches.is_empty() {
+            lines.push(OverlayLine {
+                text: " No matching commands".into(),
+                selected: false,
+            });
+        } else {
+            lines.extend(matches.iter().enumerate().map(|(index, info)| OverlayLine {
+                text: format!(
+                    " {} {}",
+                    if index == palette.selected() {
+                        '>'
+                    } else {
+                        ' '
+                    },
+                    info.name
+                ),
+                selected: index == palette.selected(),
+            }));
+        }
+        Some(TextOverlay { lines })
     }
 
     fn diagnose(&mut self, event: &str) {
@@ -971,10 +1043,12 @@ impl ApplicationHandler<PtyWake> for Application {
                     "app event=keyboard logical={:?} physical={:?} text={:?}",
                     event.logical_key, event.physical_key, event.text
                 ));
-                if let Some(action) =
-                    configured_action(&self.config, event.physical_key, self.modifiers)
+                if self.palette.is_some() {
+                    self.handle_palette_key(&event.logical_key, event.text.as_deref());
+                } else if let Some(command) =
+                    configured_command(&self.config, event.physical_key, self.modifiers)
                 {
-                    self.execute_action(action);
+                    self.dispatch_command(command);
                 } else if let Some(cursor_key) = cursor_key_from_logical_key(&event.logical_key) {
                     self.write_to_pty(
                         encode_cursor_key(*self.terminal.input_modes(), cursor_key).to_vec(),
@@ -1009,10 +1083,12 @@ impl ApplicationHandler<PtyWake> for Application {
                 // repeatedly while newer Resized events wait in the queue.
                 self.apply_pending_resize();
                 self.frame.begin_redraw();
+                let overlay = self.palette_overlay();
                 let Some(renderer) = self.renderer.as_mut() else {
                     return;
                 };
-                let outcome = renderer.redraw_terminal(&self.terminal);
+                let outcome =
+                    renderer.redraw_terminal_with_overlay(&self.terminal, overlay.as_ref());
                 emit_diagnostic(format_args!(
                     "app event=redraw-complete outcome={outcome:?}"
                 ));
@@ -1300,11 +1376,11 @@ fn render_theme(theme: &terminal_config::Theme) -> RenderTheme {
     }
 }
 
-fn configured_action(
+fn configured_command(
     config: &Config,
     physical_key: PhysicalKey,
     modifiers: ModifiersState,
-) -> Option<Action> {
+) -> Option<Command> {
     let PhysicalKey::Code(code) = physical_key else {
         return None;
     };
@@ -1319,7 +1395,7 @@ fn configured_action(
                 && binding.key.alt == modifiers.alt_key()
                 && !modifiers.super_key()
         })
-        .map(|binding| binding.action)
+        .map(|binding| binding.command)
 }
 
 fn main() {
@@ -1342,11 +1418,11 @@ mod tests {
     use super::{
         Application, BasicKey, FrameState, PendingResize, PhysicalSizeSync, RecoveryRedraw,
         SurfaceRestore, WindowsShellSource, basic_backspace_byte_for_platform, basic_key_input,
-        configured_action, cursor_key_from_logical_key, parse_terminal_output,
+        configured_command, cursor_key_from_logical_key, parse_terminal_output,
         pty_size_for_terminal, scroll_terminal_for_wheel, select_windows_shell, terminal_cell_at,
         terminal_dimensions_for_viewport, wheel_scroll_rows,
     };
-    use terminal_config::{Action, Config, Rgb};
+    use terminal_config::{Command, Config, Rgb};
     use terminal_core::{CursorKey, TerminalDimensions, TerminalParser, TerminalState};
     use terminal_renderer::CellMetrics;
     use winit::dpi::{PhysicalPosition, PhysicalSize};
@@ -1432,20 +1508,20 @@ mod tests {
     #[test]
     fn page_navigation_is_app_local_and_not_basic_pty_input() {
         assert_eq!(
-            configured_action(
+            configured_command(
                 &Config::default(),
                 PhysicalKey::Code(KeyCode::PageUp),
                 ModifiersState::empty()
             ),
-            Some(Action::PageUp)
+            Some(Command::PageUp)
         );
         assert_eq!(
-            configured_action(
+            configured_command(
                 &Config::default(),
                 PhysicalKey::Code(KeyCode::PageDown),
                 ModifiersState::empty()
             ),
-            Some(Action::PageDown)
+            Some(Command::PageDown)
         );
         assert_eq!(basic_key_input(None, None), None);
     }
@@ -1455,15 +1531,15 @@ mod tests {
         let config =
             Config::parse("[[bindings]]\nkey = 'Alt+PageUp'\naction = 'page_down'").unwrap();
         assert_eq!(
-            configured_action(
+            configured_command(
                 &config,
                 PhysicalKey::Code(KeyCode::PageUp),
                 ModifiersState::ALT
             ),
-            Some(Action::PageDown)
+            Some(Command::PageDown)
         );
         assert_eq!(
-            configured_action(
+            configured_command(
                 &config,
                 PhysicalKey::Code(KeyCode::PageUp),
                 ModifiersState::empty()
@@ -1471,13 +1547,59 @@ mod tests {
             None
         );
         assert_eq!(
-            configured_action(
+            configured_command(
                 &config,
                 PhysicalKey::Code(KeyCode::PageUp),
                 ModifiersState::ALT | ModifiersState::SHIFT
             ),
             None
         );
+    }
+
+    #[test]
+    fn binding_and_palette_share_the_page_command_dispatcher() {
+        let mut app = Application {
+            terminal: TerminalState::new(TerminalDimensions::new(2, 2).unwrap()),
+            ..Application::default()
+        };
+        app.terminal.set_cursor_position(1, 0).unwrap();
+        app.terminal.index();
+        let bound = configured_command(
+            &app.config,
+            PhysicalKey::Code(KeyCode::PageUp),
+            ModifiersState::empty(),
+        )
+        .unwrap();
+        app.dispatch_command(bound);
+        assert_eq!(app.terminal.viewport_offset(), 1);
+
+        app.dispatch_command(Command::OpenPalette);
+        assert!(app.palette.is_some());
+        app.handle_palette_key(&Key::Character("page down".into()), Some("page down"));
+        assert_eq!(
+            app.palette.as_ref().unwrap().chosen(),
+            Some(Command::PageDown)
+        );
+        app.handle_palette_key(&Key::Named(NamedKey::Enter), None);
+        assert!(app.palette.is_none());
+        assert_eq!(app.terminal.viewport_offset(), 0);
+    }
+
+    #[test]
+    fn palette_consumes_input_and_escape_closes_it() {
+        let mut app = Application::default();
+        app.dispatch_command(Command::OpenPalette);
+        app.handle_palette_key(&Key::Character("paste".into()), Some("paste"));
+        assert_eq!(app.palette.as_ref().unwrap().chosen(), Some(Command::Paste));
+        assert!(
+            app.palette_overlay()
+                .unwrap()
+                .lines
+                .iter()
+                .any(|line| line.selected)
+        );
+        app.handle_palette_key(&Key::Named(NamedKey::Escape), None);
+        assert!(app.palette.is_none());
     }
 
     #[test]
