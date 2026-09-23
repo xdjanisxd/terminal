@@ -198,6 +198,7 @@ impl fmt::Display for FontProcessingError {
 impl Error for FontProcessingError {}
 
 const GLYPH_CACHE_CAPACITY: usize = 256;
+const SHAPED_TEXT_CACHE_CAPACITY: usize = 512;
 
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
 struct GlyphCacheKey {
@@ -296,6 +297,9 @@ pub(super) struct FontSystem {
     fallback_candidates: Vec<ID>,
     fallback_by_character: HashMap<char, Option<ID>>,
     glyph_cache: GlyphCache,
+    shaped_cache: HashMap<String, ShapedText>,
+    shaped_lru: VecDeque<String>,
+    shaped_pixels_per_em: Option<u32>,
 }
 
 impl FontSystem {
@@ -355,6 +359,9 @@ impl FontSystem {
             fallback_candidates,
             fallback_by_character: HashMap::new(),
             glyph_cache: GlyphCache::new(cache_capacity),
+            shaped_cache: HashMap::new(),
+            shaped_lru: VecDeque::new(),
+            shaped_pixels_per_em: None,
         })
     }
 
@@ -364,10 +371,48 @@ impl FontSystem {
         text: &str,
         pixels_per_em: f32,
     ) -> Result<ShapedText, FontProcessingError> {
+        self.shape_text_cached(text, pixels_per_em)
+            .map(|(shaped, _)| shaped)
+    }
+
+    pub(super) fn shape_text_cached(
+        &mut self,
+        text: &str,
+        pixels_per_em: f32,
+    ) -> Result<(ShapedText, bool), FontProcessingError> {
         validate_pixels_per_em(pixels_per_em)?;
         if text.is_empty() {
-            return Ok(ShapedText::default());
+            return Ok((ShapedText::default(), true));
         }
+        let scale = pixels_per_em.to_bits();
+        if self.shaped_pixels_per_em != Some(scale) {
+            self.shaped_cache.clear();
+            self.shaped_lru.clear();
+            self.shaped_pixels_per_em = Some(scale);
+        }
+        if let Some(shaped) = self.shaped_cache.get(text).cloned() {
+            if let Some(position) = self.shaped_lru.iter().position(|key| key == text) {
+                let key = self.shaped_lru.remove(position).expect("known cache key");
+                self.shaped_lru.push_back(key);
+            }
+            return Ok((shaped, true));
+        }
+        let shaped = self.shape_text_uncached(text, pixels_per_em)?;
+        if self.shaped_cache.len() == SHAPED_TEXT_CACHE_CAPACITY
+            && let Some(oldest) = self.shaped_lru.pop_front()
+        {
+            self.shaped_cache.remove(&oldest);
+        }
+        self.shaped_cache.insert(text.to_owned(), shaped.clone());
+        self.shaped_lru.push_back(text.to_owned());
+        Ok((shaped, false))
+    }
+
+    fn shape_text_uncached(
+        &mut self,
+        text: &str,
+        pixels_per_em: f32,
+    ) -> Result<ShapedText, FontProcessingError> {
         let mut glyphs = Vec::new();
         let mut run_start = 0;
         let mut run_face = None;
@@ -568,7 +613,8 @@ mod tests {
 
     use super::{
         DEFAULT_LOGICAL_FONT_SIZE, FontLoadError, FontProcessingError, FontRequest, FontSystem,
-        GLYPH_CACHE_CAPACITY, GlyphCacheKey, cell_metrics_from_scaled_values,
+        GLYPH_CACHE_CAPACITY, GlyphCacheKey, SHAPED_TEXT_CACHE_CAPACITY,
+        cell_metrics_from_scaled_values,
     };
 
     const TEST_FONT: &[u8] = include_bytes!("../tests/fixtures/Tuffy.ttf");
@@ -660,6 +706,28 @@ mod tests {
         assert_eq!(shaped.glyphs()[0].cluster_range(), 0..1);
         assert_eq!(shaped.glyphs()[1].cluster_range(), 1..2);
         assert_eq!(shaped.glyphs()[2].cluster_range(), 2..3);
+    }
+
+    #[test]
+    fn shape_cache_reuses_text_and_invalidates_on_font_scale_change() {
+        let mut system = fixture_system();
+        assert!(!system.shape_text_cached("ABC", 16.0).unwrap().1);
+        assert!(system.shape_text_cached("ABC", 16.0).unwrap().1);
+        assert!(!system.shape_text_cached("ABC", 17.0).unwrap().1);
+        assert_eq!(system.shaped_cache.len(), 1);
+    }
+
+    #[test]
+    fn shape_cache_evicts_least_recently_used_text() {
+        let mut system = fixture_system();
+        for index in 0..SHAPED_TEXT_CACHE_CAPACITY {
+            system.shape_text_cached(&format!("{index}"), 16.0).unwrap();
+        }
+        assert!(system.shape_text_cached("0", 16.0).unwrap().1);
+        system.shape_text_cached("new", 16.0).unwrap();
+        assert_eq!(system.shaped_cache.len(), SHAPED_TEXT_CACHE_CAPACITY);
+        assert!(system.shape_text_cached("0", 16.0).unwrap().1);
+        assert!(!system.shape_text_cached("1", 16.0).unwrap().1);
     }
 
     #[test]

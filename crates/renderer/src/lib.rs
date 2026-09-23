@@ -16,6 +16,7 @@ use std::error::Error;
 use std::fmt;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, OnceLock};
+use std::time::Instant;
 
 use winit::window::Window;
 
@@ -262,7 +263,13 @@ impl Renderer {
 
     /// Converts terminal-core's resolved state and presents it without owning its semantics.
     pub fn redraw_terminal(&mut self, state: &terminal_core::TerminalState) -> RedrawOutcome {
+        let projection_start = Instant::now();
         let data = TerminalRenderData::from_terminal(state);
+        emit_diagnostic(format_args!(
+            "renderer event=projection cells={} elapsed_us={}",
+            data.cells.len(),
+            projection_start.elapsed().as_micros()
+        ));
         self.redraw_data(Some(&data))
     }
 
@@ -294,6 +301,7 @@ impl Renderer {
 
         match self.surface.get_current_texture() {
             Ok(frame) => {
+                let frame_start = Instant::now();
                 let suboptimal = frame.suboptimal;
                 emit_diagnostic(format_args!(
                     "renderer frame={frame_id} event=surface-acquire result=ok suboptimal={suboptimal} state={:?}",
@@ -321,12 +329,20 @@ impl Renderer {
                         &mut self.font_system,
                     );
                     emit_diagnostic(format_args!(
-                        "renderer frame={frame_id} event=frame-rendered terminal_data=true cells={} instances={:?} draw_resources_created={} buffer_allocations={} buffer_writes={} queue_submissions={}",
+                        "renderer frame={frame_id} event=frame-rendered terminal_data=true cells={} instances={:?} draw_resources_created={} buffer_allocations={} buffer_writes={} buffer_bytes={} shape_calls={} shape_misses={} raster_calls={} atlas_lookups={} generation_us={} upload_us={} submission_us={} queue_submissions={}",
                         data.cells.len(),
                         work.instances,
                         draw_resources_created,
                         work.buffer_allocations,
                         work.buffer_writes,
+                        work.buffer_bytes,
+                        work.shape_calls,
+                        work.shape_misses,
+                        work.raster_calls,
+                        work.atlas_lookups,
+                        work.instance_generation.as_micros(),
+                        work.buffer_upload.as_micros(),
+                        work.submission.as_micros(),
                         work.queue_submissions,
                     ));
                 } else {
@@ -337,6 +353,10 @@ impl Renderer {
                 }
                 self.window.pre_present_notify();
                 frame.present();
+                emit_diagnostic(format_args!(
+                    "renderer frame={frame_id} event=present-complete elapsed_us={}",
+                    frame_start.elapsed().as_micros()
+                ));
                 if suboptimal && self.reconfigure() {
                     emit_diagnostic(format_args!(
                         "renderer frame={frame_id} event=frame-presented suboptimal=true outcome=reconfigured state={:?}",

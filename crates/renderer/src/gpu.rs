@@ -1,4 +1,5 @@
 use std::collections::{HashMap, VecDeque};
+use std::time::{Duration, Instant};
 
 use bytemuck::{Pod, Zeroable};
 
@@ -39,6 +40,8 @@ struct AtlasEntry {
     slot: usize,
     width: u32,
     height: u32,
+    bearing_x: i32,
+    bearing_y: i32,
 }
 
 #[derive(Clone, Copy)]
@@ -64,6 +67,12 @@ struct GlyphAtlas {
 }
 
 impl GlyphAtlas {
+    fn get(&mut self, key: &GpuGlyphKey) -> Option<AtlasEntry> {
+        let entry = self.entries.get(key).copied()?;
+        self.touch(key);
+        Some(entry)
+    }
+
     fn new(device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> Self {
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("terminal glyph atlas"),
@@ -122,8 +131,7 @@ impl GlyphAtlas {
         {
             return None;
         }
-        if let Some(entry) = self.entries.get(&key).copied() {
-            self.touch(&key);
+        if let Some(entry) = self.get(&key) {
             return Some(entry);
         }
         let slot = self.allocate_slot();
@@ -152,6 +160,8 @@ impl GlyphAtlas {
             slot,
             width: bitmap.width(),
             height: bitmap.height(),
+            bearing_x: bitmap.bearing_x(),
+            bearing_y: bitmap.bearing_y(),
         };
         self.entries.insert(key.clone(), entry);
         self.slots[slot] = Some(key.clone());
@@ -210,12 +220,28 @@ pub(super) struct RenderWork {
     pub(super) buffer_allocations: usize,
     pub(super) buffer_writes: usize,
     pub(super) queue_submissions: usize,
+    pub(super) buffer_bytes: usize,
+    pub(super) shape_calls: usize,
+    pub(super) shape_misses: usize,
+    pub(super) raster_calls: usize,
+    pub(super) atlas_lookups: usize,
+    pub(super) instance_generation: Duration,
+    pub(super) buffer_upload: Duration,
+    pub(super) submission: Duration,
 }
 
 struct InstanceBuffer<T> {
     buffer: wgpu::Buffer,
     capacity: usize,
+    previous: Vec<T>,
     marker: std::marker::PhantomData<T>,
+}
+
+#[derive(Default)]
+struct UploadWork {
+    allocated: bool,
+    writes: usize,
+    bytes: usize,
 }
 
 impl<T: Pod> InstanceBuffer<T> {
@@ -225,9 +251,9 @@ impl<T: Pod> InstanceBuffer<T> {
         queue: &wgpu::Queue,
         label: &'static str,
         instances: &[T],
-    ) -> bool {
+    ) -> UploadWork {
         if instances.is_empty() {
-            return false;
+            return UploadWork::default();
         }
         let required = instances.len();
         let allocation_required = instance_buffer_requires_allocation(
@@ -244,15 +270,59 @@ impl<T: Pod> InstanceBuffer<T> {
                     mapped_at_creation: false,
                 }),
                 capacity,
+                previous: Vec::new(),
                 marker: std::marker::PhantomData,
             });
         }
         let buffer = current
-            .as_ref()
+            .as_mut()
             .expect("non-empty instances allocate a buffer");
-        queue.write_buffer(&buffer.buffer, 0, bytemuck::cast_slice(instances));
-        allocation_required
+        let ranges = changed_instance_ranges(&buffer.previous, instances);
+        let mut work = UploadWork {
+            allocated: allocation_required,
+            ..UploadWork::default()
+        };
+        for range in ranges {
+            let bytes = bytemuck::cast_slice(&instances[range.clone()]);
+            queue.write_buffer(
+                &buffer.buffer,
+                (range.start * std::mem::size_of::<T>()) as u64,
+                bytes,
+            );
+            work.writes += 1;
+            work.bytes += bytes.len();
+        }
+        buffer.previous.clear();
+        buffer.previous.extend_from_slice(instances);
+        work
     }
+}
+
+fn changed_instance_ranges<T: Pod>(previous: &[T], current: &[T]) -> Vec<std::ops::Range<usize>> {
+    let mut ranges = Vec::new();
+    let mut start = None;
+    for (index, instance) in current.iter().enumerate() {
+        let changed = previous
+            .get(index)
+            .is_none_or(|old| bytemuck::bytes_of(old) != bytemuck::bytes_of(instance));
+        match (start, changed) {
+            (None, true) => start = Some(index),
+            (Some(begin), false) => {
+                ranges.push(begin..index);
+                start = None;
+            }
+            _ => {}
+        }
+    }
+    if let Some(begin) = start {
+        ranges.push(begin..current.len());
+    }
+    if ranges.len() > 8 {
+        let merged = ranges[0].start..ranges.last().expect("non-empty ranges").end;
+        ranges.clear();
+        ranges.push(merged);
+    }
+    ranges
 }
 
 pub(super) struct FrameContext<'a> {
@@ -328,6 +398,11 @@ impl DrawResources {
         data: &TerminalRenderData,
         font_system: &mut FontSystem,
     ) -> RenderWork {
+        let generation_start = Instant::now();
+        let mut shape_calls = 0;
+        let mut shape_misses = 0;
+        let mut raster_calls = 0;
+        let mut atlas_lookups = 0;
         let cell_width = frame.cell_metrics.width() as f32;
         let cell_height = frame.cell_metrics.height() as f32;
         self.rectangles.clear();
@@ -354,19 +429,29 @@ impl DrawResources {
                 continue;
             }
             let pixels_per_em = frame.cell_metrics.pixels_per_em();
-            let Ok(shaped) = font_system.shape_text(&cell.text, pixels_per_em) else {
+            shape_calls += 1;
+            let Ok((shaped, cache_hit)) = font_system.shape_text_cached(&cell.text, pixels_per_em)
+            else {
                 continue;
             };
+            shape_misses += usize::from(!cache_hit);
             for shaped_glyph in shaped.glyphs() {
-                let Ok(bitmap) = font_system.rasterize_glyph(shaped_glyph, pixels_per_em) else {
-                    continue;
-                };
                 let key = GpuGlyphKey {
                     face: shaped_glyph.face_cache_identity(),
-                    glyph_id: bitmap.glyph_id(),
+                    glyph_id: shaped_glyph.glyph_id(),
                     pixels_per_em: pixels_per_em.to_bits(),
                 };
-                let Some(entry) = self.glyph_atlas.get_or_insert(queue, key, &bitmap) else {
+                atlas_lookups += 1;
+                let entry = if let Some(entry) = self.glyph_atlas.get(&key) {
+                    Some(entry)
+                } else {
+                    raster_calls += 1;
+                    font_system
+                        .rasterize_glyph(shaped_glyph, pixels_per_em)
+                        .ok()
+                        .and_then(|bitmap| self.glyph_atlas.get_or_insert(queue, key, &bitmap))
+                };
+                let Some(entry) = entry else {
                     continue;
                 };
                 let slot_x = (entry.slot as u32 % ATLAS_COLUMNS) * ATLAS_SLOT_SIZE;
@@ -375,8 +460,8 @@ impl DrawResources {
                     x,
                     y,
                     frame.cell_metrics.baseline() as f32,
-                    bitmap.bearing_x(),
-                    bitmap.bearing_y(),
+                    entry.bearing_x,
+                    entry.bearing_y,
                     shaped_glyph.offset_x(),
                     shaped_glyph.offset_y(),
                 );
@@ -411,7 +496,7 @@ impl DrawResources {
                         ascent: frame.cell_metrics.ascent(),
                         descent: frame.cell_metrics.descent(),
                         baseline: frame.cell_metrics.baseline() as f32,
-                        placement_top: bitmap.bearing_y(),
+                        placement_top: entry.bearing_y,
                         bitmap_height: entry.height,
                         quad_y_start: clipped_y,
                         quad_y_end: clipped_y + clipped_height,
@@ -455,22 +540,24 @@ impl DrawResources {
         }
         let rectangle_count = self.rectangles.len();
         let glyph_count = self.glyphs.len();
-        let rectangle_buffer_allocated = InstanceBuffer::upload(
+        let instance_generation = generation_start.elapsed();
+        let upload_start = Instant::now();
+        let rectangle_upload = InstanceBuffer::upload(
             &mut self.rectangle_buffer,
             device,
             queue,
             "terminal rectangle instances",
             &self.rectangles,
         );
-        let glyph_buffer_allocated = InstanceBuffer::upload(
+        let glyph_upload = InstanceBuffer::upload(
             &mut self.glyph_buffer,
             device,
             queue,
             "terminal glyph instances",
             &self.glyphs,
         );
-        let overlay_buffer_allocated = if overlays.is_empty() {
-            false
+        let overlay_upload = if overlays.is_empty() {
+            UploadWork::default()
         } else {
             InstanceBuffer::upload(
                 &mut self.overlay_buffer,
@@ -480,6 +567,8 @@ impl DrawResources {
                 &overlays,
             )
         };
+        let buffer_upload = upload_start.elapsed();
+        let submission_start = Instant::now();
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("terminal frame encoder"),
         });
@@ -537,6 +626,7 @@ impl DrawResources {
             }
         }
         queue.submit(Some(encoder.finish()));
+        let submission = submission_start.elapsed();
         RenderWork {
             instances: RenderInstanceCounts {
                 backgrounds: data.cells.len(),
@@ -545,13 +635,19 @@ impl DrawResources {
                 cursor: usize::from(data.cursor.is_some()),
                 scrollbar: usize::from(data.scrollbar.is_some()) * 2,
             },
-            buffer_allocations: usize::from(rectangle_buffer_allocated)
-                + usize::from(glyph_buffer_allocated)
-                + usize::from(overlay_buffer_allocated),
-            buffer_writes: usize::from(rectangle_count != 0)
-                + usize::from(glyph_count != 0)
-                + usize::from(!overlays.is_empty()),
+            buffer_allocations: usize::from(rectangle_upload.allocated)
+                + usize::from(glyph_upload.allocated)
+                + usize::from(overlay_upload.allocated),
+            buffer_writes: rectangle_upload.writes + glyph_upload.writes + overlay_upload.writes,
             queue_submissions: 1,
+            buffer_bytes: rectangle_upload.bytes + glyph_upload.bytes + overlay_upload.bytes,
+            shape_calls,
+            shape_misses,
+            raster_calls,
+            atlas_lookups,
+            instance_generation,
+            buffer_upload,
+            submission,
         }
     }
 }
@@ -722,9 +818,9 @@ fn clip_rect_to_cell(rect: [f32; 4], cell: [f32; 4]) -> Option<(f32, f32, f32, f
 #[cfg(test)]
 mod tests {
     use super::{
-        DrawResources, FrameContext, GpuGlyphKey, clip_rect_to_cell, glyph_origin,
-        instance_buffer_capacity, instance_buffer_requires_allocation, scrollbar_geometry,
-        to_clip_rect,
+        DrawResources, FrameContext, GpuGlyphKey, changed_instance_ranges, clip_rect_to_cell,
+        glyph_origin, instance_buffer_capacity, instance_buffer_requires_allocation,
+        scrollbar_geometry, to_clip_rect,
     };
     use crate::{FontRequest, FontSystem, ScrollbarRenderData, SurfaceSize, TerminalRenderData};
     use terminal_core::{CellColor, TerminalDimensions, TerminalState, UnderlineStyle};
@@ -812,6 +908,21 @@ mod tests {
         assert!(!instance_buffer_requires_allocation(Some(2_048), 1_920));
         assert!(!instance_buffer_requires_allocation(Some(2_048), 2_048));
         assert!(instance_buffer_requires_allocation(Some(2_048), 2_049));
+    }
+
+    #[test]
+    fn instance_upload_ranges_cover_only_changed_spans_and_new_tail() {
+        let previous = [1_u32, 2, 3, 4, 5];
+        assert!(changed_instance_ranges(&previous, &previous).is_empty());
+        assert_eq!(
+            changed_instance_ranges(&previous, &[1, 9, 8, 4, 5]),
+            vec![1..3]
+        );
+        assert_eq!(
+            changed_instance_ranges(&previous, &[1, 2, 3, 4, 5, 6]),
+            vec![5..6]
+        );
+        assert!(changed_instance_ranges(&previous, &[1, 2, 3]).is_empty());
     }
 
     #[test]
