@@ -1,10 +1,15 @@
 //! Native application lifecycle and component wiring.
 
+use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Duration;
 
 use terminal_core::{
-    CellColor, MAX_COLUMNS, MAX_GRID_CELLS, MAX_ROWS, TerminalDimensions, TerminalState,
-    UnderlineStyle,
+    CellColor, MAX_COLUMNS, MAX_GRID_CELLS, MAX_ROWS, TerminalDimensions, TerminalParser,
+    TerminalState, UnderlineStyle,
+};
+use terminal_pty::{
+    PortablePtyBackend, PtyBackend, PtyOutput, PtySize, PtySpawnConfig, PtyWorker, PtyWorkerEvent,
 };
 use terminal_renderer::{
     CellMetrics, RedrawOutcome, Renderer, RendererDiagnosticState, diagnostics_enabled,
@@ -12,20 +17,51 @@ use terminal_renderer::{
 };
 use winit::application::ApplicationHandler;
 use winit::dpi::PhysicalSize;
-use winit::event::WindowEvent;
-use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
+use winit::event::{ElementState, WindowEvent};
+use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopProxy};
+use winit::keyboard::{Key, KeyCode, NamedKey, PhysicalKey};
 use winit::window::{Window, WindowId};
 
 struct Application {
     window: Option<Arc<Window>>,
     renderer: Option<Renderer>,
+    parser: TerminalParser,
     terminal: TerminalState,
+    pty: Option<PtyWorker>,
+    pty_wake_proxy: Option<EventLoopProxy<PtyWake>>,
     frame: FrameState,
     dpi_size_sync: PhysicalSizeSync,
+    pending_resize: PendingResize,
     surface_restore: SurfaceRestore,
     recovery_redraw: RecoveryRedraw,
     fullscreen: FullscreenTransition,
     last_diagnostic_state: Option<AppDiagnosticState>,
+}
+
+/// App-local notification that PTY worker output is ready to drain.
+#[derive(Clone, Copy, Debug)]
+enum PtyWake {
+    OutputAvailable,
+}
+
+/// The minimal key subset needed to drive a line-oriented local shell.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum BasicKey {
+    Enter,
+    Backspace,
+    Tab,
+    Escape,
+}
+
+/// Windows-only shell-selection sources, retained so the policy is testable
+/// without reading the host environment.
+#[cfg(any(windows, test))]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum WindowsShellSource {
+    PowerShellCore,
+    WindowsPowerShell,
+    ComSpec,
+    Cmd,
 }
 
 /// App-owned redraw coalescing; it has no terminal semantics.
@@ -84,6 +120,48 @@ impl PhysicalSizeSync {
     fn take(&mut self) -> bool {
         std::mem::take(&mut self.pending)
     }
+}
+
+/// Retains the latest authoritative physical size until winit reaches its
+/// event-loop idle boundary. This prevents superseded resize events from
+/// repeatedly reconfiguring the surface and resizing terminal-owned storage.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+struct PendingResize {
+    latest_size: Option<PhysicalSize<u32>>,
+    recovery_required: bool,
+    resized_events: usize,
+}
+
+impl PendingResize {
+    fn record(&mut self, size: PhysicalSize<u32>, recovery_required: bool) {
+        self.latest_size = Some(size);
+        self.recovery_required |= recovery_required;
+        self.resized_events += 1;
+    }
+
+    fn take(&mut self) -> Option<ResizeBatch> {
+        let size = self.latest_size.take()?;
+        Some(ResizeBatch {
+            size,
+            recovery_required: std::mem::take(&mut self.recovery_required),
+            resized_events: std::mem::take(&mut self.resized_events),
+        })
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct ResizeBatch {
+    size: PhysicalSize<u32>,
+    recovery_required: bool,
+    resized_events: usize,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+struct ResizeWork {
+    surface_configures: usize,
+    terminal_grid_resizes: usize,
+    pty_resize_commands: usize,
+    redraw_requests: usize,
 }
 
 /// Defers a recovery frame until the window has a drawable physical size.
@@ -175,9 +253,11 @@ impl FullscreenTransition {
 
 /// A compact app-owned lifecycle snapshot used only to suppress duplicate
 /// opt-in diagnostic lines.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 struct AppDiagnosticState {
     window_size: Option<(u32, u32)>,
+    scale_factor: Option<f64>,
+    cell_metrics: Option<CellMetrics>,
     terminal_grid: (usize, usize),
     frame_dirty: bool,
     redraw_queued: bool,
@@ -210,9 +290,13 @@ impl Default for Application {
         Self {
             window: None,
             renderer: None,
+            parser: TerminalParser::new(),
             terminal,
+            pty: None,
+            pty_wake_proxy: None,
             frame: FrameState::default(),
             dpi_size_sync: PhysicalSizeSync::default(),
+            pending_resize: PendingResize::default(),
             surface_restore: SurfaceRestore::default(),
             recovery_redraw: RecoveryRedraw::default(),
             fullscreen: FullscreenTransition::default(),
@@ -271,6 +355,13 @@ fn print_smoke_text(terminal: &mut TerminalState, text: &str) {
 }
 
 impl Application {
+    fn with_pty_wake_proxy(pty_wake_proxy: EventLoopProxy<PtyWake>) -> Self {
+        Self {
+            pty_wake_proxy: Some(pty_wake_proxy),
+            ..Self::default()
+        }
+    }
+
     fn diagnose(&mut self, event: &str) {
         if !diagnostics_enabled() {
             return;
@@ -281,6 +372,8 @@ impl Application {
                 let size = window.inner_size();
                 (size.width, size.height)
             }),
+            scale_factor: self.window.as_ref().map(|window| window.scale_factor()),
+            cell_metrics: self.renderer.as_ref().map(Renderer::cell_metrics),
             terminal_grid: (dimensions.columns(), dimensions.rows()),
             frame_dirty: self.frame.dirty,
             redraw_queued: self.frame.redraw_requested,
@@ -320,7 +413,11 @@ impl Application {
                 if recreating_surface {
                     self.recovery_redraw.begin();
                 }
-                self.resize_terminal_to_viewport(window.inner_size());
+                let grid_changed = self.resize_terminal_to_viewport(window.inner_size());
+                if grid_changed {
+                    self.resize_pty_to_terminal();
+                }
+                self.start_local_shell();
                 self.invalidate_frame();
                 self.diagnose("renderer-created");
             }
@@ -331,40 +428,69 @@ impl Application {
         }
     }
 
-    fn invalidate_frame(&mut self) {
+    fn invalidate_frame(&mut self) -> bool {
         if self.frame.invalidate()
             && let Some(window) = self.window.as_ref()
         {
             window.request_redraw();
             self.diagnose("redraw-requested");
+            true
         } else {
             self.diagnose("redraw-coalesced");
+            false
         }
     }
 
     /// Requests the one frame needed after a minimized or occluded surface
     /// becomes drawable again. This deliberately replaces a request that the
     /// compositor may have discarded; it is not a continuous retry loop.
-    fn invalidate_after_surface_restore(&mut self) {
+    fn invalidate_after_surface_restore(&mut self) -> bool {
         self.frame.rearm();
-        self.invalidate_frame();
+        self.invalidate_frame()
     }
 
-    /// Configures the renderer from winit's authoritative physical resize event.
-    fn resize_renderer(&mut self, size: PhysicalSize<u32>, force_redraw: bool) {
+    /// Applies the latest authoritative physical size after winit has finished
+    /// dispatching the current event batch.
+    fn apply_pending_resize(&mut self) {
+        let Some(batch) = self.pending_resize.take() else {
+            return;
+        };
+        let work = self.resize_renderer(batch.size, batch.recovery_required);
+        emit_diagnostic(format_args!(
+            "app event=resize-batch resized_events={} latest_size={}x{} surface_configures={} terminal_grid_resizes={} pty_resize_commands={} redraw_requests={}",
+            batch.resized_events,
+            batch.size.width,
+            batch.size.height,
+            work.surface_configures,
+            work.terminal_grid_resizes,
+            work.pty_resize_commands,
+            work.redraw_requests,
+        ));
+    }
+
+    /// Configures the renderer from the latest winit-authoritative physical
+    /// resize. Callers must coalesce superseded sizes through [`PendingResize`].
+    fn resize_renderer(&mut self, size: PhysicalSize<u32>, force_redraw: bool) -> ResizeWork {
+        let mut work = ResizeWork::default();
         self.diagnose("resize-start");
         let surface_changed = self
             .renderer
             .as_mut()
             .is_some_and(|renderer| renderer.resize(size.width, size.height));
+        work.surface_configures = usize::from(surface_changed);
         let grid_changed = self.resize_terminal_to_viewport(size);
+        work.terminal_grid_resizes = usize::from(grid_changed);
+        if grid_changed {
+            work.pty_resize_commands = usize::from(self.resize_pty_to_terminal());
+        }
         if force_redraw {
             self.recovery_redraw.begin();
-            self.invalidate_after_surface_restore();
+            work.redraw_requests = usize::from(self.invalidate_after_surface_restore());
         } else if surface_changed || grid_changed {
-            self.invalidate_frame();
+            work.redraw_requests = usize::from(self.invalidate_frame());
         }
         self.diagnose("resize-complete");
+        work
     }
 
     fn resize_terminal_to_viewport(&mut self, size: PhysicalSize<u32>) -> bool {
@@ -378,30 +504,126 @@ impl Application {
             return false;
         }
         self.terminal.resize(dimensions);
+        emit_diagnostic(format_args!(
+            "app event=terminal-grid-resized drawable={}x{} scale_factor={} cell_metrics={metrics:?} terminal_grid=columns:{} rows:{} pty=columns:{} rows:{}",
+            size.width,
+            size.height,
+            self.window
+                .as_ref()
+                .map_or(1.0, |window| window.scale_factor()),
+            dimensions.columns(),
+            dimensions.rows(),
+            dimensions.columns(),
+            dimensions.rows(),
+        ));
         true
     }
 
-    /// Handles the rare scale-factor path that does not deliver its resulting
-    /// physical size through `Resized` in the same event sequence.
-    fn sync_renderer_to_window_size(&mut self) {
-        let size = self.window.as_ref().map(|window| window.inner_size());
-        if let Some(size) = size {
-            let force_redraw = self.surface_restore.take_if_drawable(size);
-            self.resize_renderer(size, force_redraw);
+    fn start_local_shell(&mut self) {
+        if self.pty.is_some() {
+            return;
+        }
+        let Some(proxy) = self.pty_wake_proxy.clone() else {
+            return;
+        };
+        let size = pty_size_for_terminal(self.terminal.dimensions());
+        let backend = PortablePtyBackend::new();
+        let session = match backend.spawn(local_shell_spawn_config(size)) {
+            Ok(session) => session,
+            Err(error) => {
+                eprintln!("could not start local shell: {error}");
+                return;
+            }
+        };
+        match PtyWorker::start_with_notifier(session, move || {
+            let _ = proxy.send_event(PtyWake::OutputAvailable);
+        }) {
+            Ok(worker) => self.pty = Some(worker),
+            Err(error) => eprintln!("could not start local shell worker: {error}"),
         }
     }
 
-    fn restore_surface_if_drawable(&mut self) {
-        let size = self.window.as_ref().map(|window| window.inner_size());
-        if let Some(size) = size
-            && self.surface_restore.take_if_drawable(size)
-        {
-            self.resize_renderer(size, true);
+    fn resize_pty_to_terminal(&self) -> bool {
+        let Some(pty) = self.pty.as_ref() else {
+            return false;
+        };
+        if let Err(error) = pty.resize(pty_size_for_terminal(self.terminal.dimensions())) {
+            eprintln!("could not resize local shell: {error}");
+            false
+        } else {
+            let dimensions = self.terminal.dimensions();
+            emit_diagnostic(format_args!(
+                "app event=pty-resized columns:{} rows:{}",
+                dimensions.columns(),
+                dimensions.rows(),
+            ));
+            true
         }
+    }
+
+    fn drain_pty_events(&mut self) {
+        while let Some(pty) = self.pty.as_ref() {
+            let event = match pty.recv_timeout(Duration::ZERO) {
+                Ok(Some(event)) => event,
+                Ok(None) => break,
+                Err(error) => {
+                    eprintln!("could not receive local shell output: {error}");
+                    break;
+                }
+            };
+            self.handle_pty_event(event);
+        }
+    }
+
+    fn handle_pty_event(&mut self, event: PtyWorkerEvent) {
+        match event {
+            PtyWorkerEvent::Output(PtyOutput::Bytes(bytes)) => {
+                let replies = parse_terminal_output(&mut self.parser, &mut self.terminal, &bytes);
+                for reply in replies {
+                    self.write_to_pty(reply);
+                }
+                self.invalidate_frame();
+            }
+            PtyWorkerEvent::Output(PtyOutput::Eof) => {
+                emit_diagnostic(format_args!("app pty-output=eof"));
+            }
+            PtyWorkerEvent::Output(PtyOutput::Exited(status)) => {
+                emit_diagnostic(format_args!("app pty-output=exited status={status:?}"));
+            }
+            PtyWorkerEvent::Error(error) => eprintln!("local shell worker error: {error}"),
+        }
+    }
+
+    fn write_to_pty(&self, bytes: Vec<u8>) -> bool {
+        let Some(pty) = self.pty.as_ref() else {
+            return false;
+        };
+        if let Err(error) = pty.write(bytes) {
+            eprintln!("could not write local shell input: {error}");
+            false
+        } else {
+            true
+        }
+    }
+
+    /// Queues the current authoritative window size for the same bounded batch
+    /// as ordinary resize events. This also covers expose/occlusion recovery
+    /// that has no accompanying `Resized` event.
+    fn queue_window_size(&mut self) {
+        let size = self.window.as_ref().map(|window| window.inner_size());
+        if let Some(size) = size {
+            let recovery_required = self.surface_restore.take_if_drawable(size);
+            self.pending_resize.record(size, recovery_required);
+        }
+    }
+
+    fn queue_resize_event(&mut self, size: PhysicalSize<u32>, fullscreen_changed: bool) {
+        let recovery_required = self.surface_restore.take_if_drawable(size) || fullscreen_changed;
+        self.pending_resize.record(size, recovery_required);
     }
 }
 
-impl ApplicationHandler for Application {
+impl ApplicationHandler<PtyWake> for Application {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         emit_diagnostic(format_args!("app event=resumed"));
         self.diagnose("resumed");
@@ -416,6 +638,7 @@ impl ApplicationHandler for Application {
         self.renderer = None;
         self.frame.suspend();
         self.dpi_size_sync = PhysicalSizeSync::default();
+        self.pending_resize = PendingResize::default();
         self.surface_restore = SurfaceRestore::default();
         self.recovery_redraw = RecoveryRedraw::default();
         self.fullscreen = FullscreenTransition::default();
@@ -424,9 +647,17 @@ impl ApplicationHandler for Application {
 
     fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
         if self.dpi_size_sync.take() {
-            self.sync_renderer_to_window_size();
+            self.queue_window_size();
         }
-        self.restore_surface_if_drawable();
+        if self.surface_restore.pending
+            && self.window.as_ref().is_some_and(|window| {
+                let size = window.inner_size();
+                size.width > 0 && size.height > 0
+            })
+        {
+            self.queue_window_size();
+        }
+        self.apply_pending_resize();
         self.diagnose("about-to-wait");
     }
 
@@ -463,9 +694,7 @@ impl ApplicationHandler for Application {
                     .as_ref()
                     .is_some_and(|window| window.fullscreen().is_some());
                 let fullscreen_changed = self.fullscreen.observe(fullscreen);
-                let force_redraw =
-                    self.surface_restore.take_if_drawable(size) || fullscreen_changed;
-                self.resize_renderer(size, force_redraw);
+                self.queue_resize_event(size, fullscreen_changed);
                 self.diagnose("resized-handled");
             }
             // Winit applies the OS-suggested physical size by default and emits a
@@ -483,13 +712,8 @@ impl ApplicationHandler for Application {
                     scale_factor
                 ));
                 self.diagnose("scale-factor-changed-received");
-                if let Some(renderer) = self.renderer.as_mut()
-                    && renderer.set_scale_factor(scale_factor).unwrap_or(false)
-                {
-                    let size = self.window.as_ref().map(|window| window.inner_size());
-                    if let Some(size) = size {
-                        self.resize_terminal_to_viewport(size);
-                    }
+                if let Some(renderer) = self.renderer.as_mut() {
+                    let _ = renderer.set_scale_factor(scale_factor);
                 }
                 self.dpi_size_sync.schedule();
                 self.invalidate_frame();
@@ -504,6 +728,25 @@ impl ApplicationHandler for Application {
                 self.diagnose("occluded-true-received");
                 self.surface_restore.defer();
                 self.diagnose("occluded-true-handled");
+            }
+            WindowEvent::KeyboardInput { event, .. } if event.state == ElementState::Pressed => {
+                let key = basic_key_from_logical_key(&event.logical_key);
+                if let Some(bytes) = basic_key_input(event.text.as_deref(), key) {
+                    let is_backspace = key == Some(BasicKey::Backspace)
+                        || event.physical_key == PhysicalKey::Code(KeyCode::Backspace);
+                    let pty_write_queued = self.write_to_pty(bytes.clone());
+                    if is_backspace {
+                        emit_diagnostic(format_args!(
+                            "app event=backspace-input state={:?} repeat={} logical={:?} physical={:?} committed_text={:?} committed_bytes={:?} selected_bytes={bytes:?} pty_write_requests=1 pty_write_queued={pty_write_queued}",
+                            event.state,
+                            event.repeat,
+                            event.logical_key,
+                            event.physical_key,
+                            event.text,
+                            event.text.as_deref().map(str::as_bytes),
+                        ));
+                    }
+                }
             }
             WindowEvent::RedrawRequested => {
                 emit_diagnostic(format_args!("app event=redraw-requested"));
@@ -535,6 +778,140 @@ impl ApplicationHandler for Application {
             _ => {}
         }
     }
+
+    fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: PtyWake) {
+        match event {
+            PtyWake::OutputAvailable => self.drain_pty_events(),
+        }
+    }
+}
+
+fn pty_size_for_terminal(dimensions: TerminalDimensions) -> PtySize {
+    PtySize::new(
+        u16::try_from(dimensions.rows()).expect("terminal row limit fits PTY size"),
+        u16::try_from(dimensions.columns()).expect("terminal column limit fits PTY size"),
+    )
+    .expect("terminal dimensions are nonzero")
+}
+
+fn local_shell_spawn_config(size: PtySize) -> PtySpawnConfig {
+    #[cfg(windows)]
+    let (program, source) = windows_shell_program();
+    #[cfg(windows)]
+    emit_diagnostic(format_args!(
+        "app event=local-shell-selected source={source:?} program={}",
+        program.display()
+    ));
+    #[cfg(not(windows))]
+    let program = std::env::var_os("SHELL")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("/bin/sh"));
+
+    PtySpawnConfig::new(program, size)
+}
+
+fn parse_terminal_output(
+    parser: &mut TerminalParser,
+    terminal: &mut TerminalState,
+    bytes: &[u8],
+) -> Vec<Vec<u8>> {
+    let mut remaining = bytes;
+    while !remaining.is_empty() {
+        match parser.advance(terminal, remaining) {
+            Ok(()) => break,
+            Err(error) => {
+                eprintln!("could not apply local shell output: {error}");
+                let consumed = error.bytes_consumed();
+                if consumed == 0 {
+                    break;
+                }
+                remaining = &remaining[consumed..];
+            }
+        }
+    }
+    let mut replies = Vec::new();
+    while let Some(reply) = terminal.take_reply() {
+        replies.push(reply.as_bytes().as_slice().to_vec());
+    }
+    replies
+}
+
+fn basic_key_from_logical_key(key: &Key) -> Option<BasicKey> {
+    match key {
+        Key::Named(NamedKey::Enter) => Some(BasicKey::Enter),
+        Key::Named(NamedKey::Backspace) => Some(BasicKey::Backspace),
+        Key::Named(NamedKey::Tab) => Some(BasicKey::Tab),
+        Key::Named(NamedKey::Escape) => Some(BasicKey::Escape),
+        _ => None,
+    }
+}
+
+fn basic_key_input(text: Option<&str>, key: Option<BasicKey>) -> Option<Vec<u8>> {
+    let named_key = match key {
+        Some(BasicKey::Enter) => Some(vec![b'\r']),
+        Some(BasicKey::Backspace) => Some(vec![basic_backspace_byte_for_platform(cfg!(windows))]),
+        Some(BasicKey::Tab) => Some(vec![b'\t']),
+        Some(BasicKey::Escape) => Some(vec![0x1b]),
+        None => None,
+    };
+    named_key.or_else(|| {
+        text.filter(|text| !text.is_empty())
+            .map(|text| text.as_bytes().to_vec())
+    })
+}
+
+fn basic_backspace_byte_for_platform(_windows: bool) -> u8 {
+    0x7f
+}
+
+#[cfg(any(windows, test))]
+fn select_windows_shell(
+    pwsh: Option<PathBuf>,
+    windows_powershell: Option<PathBuf>,
+    comspec: Option<PathBuf>,
+) -> (PathBuf, WindowsShellSource) {
+    if let Some(program) = pwsh {
+        (program, WindowsShellSource::PowerShellCore)
+    } else if let Some(program) = windows_powershell {
+        (program, WindowsShellSource::WindowsPowerShell)
+    } else if let Some(program) = comspec {
+        (program, WindowsShellSource::ComSpec)
+    } else {
+        (PathBuf::from("cmd.exe"), WindowsShellSource::Cmd)
+    }
+}
+
+#[cfg(windows)]
+fn windows_shell_program() -> (PathBuf, WindowsShellSource) {
+    let pwsh = executable_on_path("pwsh.exe");
+    let windows_powershell = std::env::var_os("SystemRoot")
+        .map(PathBuf::from)
+        .map(|root| {
+            root.join("System32")
+                .join("WindowsPowerShell")
+                .join("v1.0")
+                .join("powershell.exe")
+        })
+        .filter(|program| program.is_file())
+        .or_else(|| executable_on_path("powershell.exe"));
+    let comspec = std::env::var_os("COMSPEC")
+        .map(PathBuf::from)
+        .filter(|program| program.is_file())
+        .or_else(|| {
+            std::env::var_os("SystemRoot")
+                .map(PathBuf::from)
+                .map(|root| root.join("System32").join("cmd.exe"))
+                .filter(|program| program.is_file())
+        });
+    select_windows_shell(pwsh, windows_powershell, comspec)
+}
+
+#[cfg(windows)]
+fn executable_on_path(executable: &str) -> Option<PathBuf> {
+    let path = std::env::var_os("PATH")?;
+    std::env::split_paths(&path)
+        .map(|directory| directory.join(executable))
+        .find(|program| program.is_file())
 }
 
 fn terminal_dimensions_for_viewport(
@@ -552,19 +929,27 @@ fn terminal_dimensions_for_viewport(
 }
 
 fn main() {
-    let event_loop = EventLoop::new().expect("could not create terminal event loop");
+    let event_loop = EventLoop::<PtyWake>::with_user_event()
+        .build()
+        .expect("could not create terminal event loop");
     event_loop.set_control_flow(ControlFlow::Wait);
+    let pty_wake_proxy = event_loop.create_proxy();
     event_loop
-        .run_app(&mut Application::default())
+        .run_app(&mut Application::with_pty_wake_proxy(pty_wake_proxy))
         .expect("terminal event loop failed");
 }
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
+
     use super::{
-        FrameState, PhysicalSizeSync, RecoveryRedraw, SurfaceRestore,
+        BasicKey, FrameState, PendingResize, PhysicalSizeSync, RecoveryRedraw, SurfaceRestore,
+        WindowsShellSource, basic_backspace_byte_for_platform, basic_key_input,
+        parse_terminal_output, pty_size_for_terminal, select_windows_shell,
         terminal_dimensions_for_viewport,
     };
+    use terminal_core::{TerminalDimensions, TerminalParser, TerminalState};
     use terminal_renderer::CellMetrics;
     use winit::dpi::PhysicalSize;
 
@@ -578,6 +963,181 @@ mod tests {
         assert!(!frame.dirty);
         assert!(!frame.redraw_requested);
         assert!(frame.invalidate());
+    }
+
+    #[test]
+    fn pty_output_flows_through_the_parser_into_terminal_state() {
+        let mut parser = TerminalParser::new();
+        let mut terminal = TerminalState::new(TerminalDimensions::new(8, 2).unwrap());
+
+        let replies = parse_terminal_output(&mut parser, &mut terminal, b"echo ok\r\nok");
+
+        assert!(replies.is_empty());
+        assert_eq!(terminal.screen().cell(0, 0).unwrap().character(), 'e');
+        assert_eq!(terminal.screen().cell(1, 0).unwrap().character(), 'o');
+        assert_eq!(terminal.screen().cell(1, 1).unwrap().character(), 'k');
+    }
+
+    #[test]
+    fn terminal_replies_are_returned_to_the_pty_transport() {
+        let mut parser = TerminalParser::new();
+        let mut terminal = TerminalState::new(TerminalDimensions::new(8, 2).unwrap());
+
+        let replies = parse_terminal_output(&mut parser, &mut terminal, b"\x1b[5n");
+
+        assert_eq!(replies, vec![b"\x1b[0n".to_vec()]);
+    }
+
+    #[test]
+    fn terminal_grid_dimensions_preserve_their_row_column_order_for_the_pty() {
+        let dimensions = TerminalDimensions::new(132, 43).unwrap();
+
+        assert_eq!(pty_size_for_terminal(dimensions).rows(), 43);
+        assert_eq!(pty_size_for_terminal(dimensions).columns(), 132);
+    }
+
+    #[test]
+    fn basic_keyboard_text_and_line_editing_keys_encode_for_the_pty() {
+        assert_eq!(
+            basic_key_input(Some("echo ok"), None),
+            Some(b"echo ok".to_vec())
+        );
+        assert_eq!(
+            basic_key_input(None, Some(BasicKey::Enter)),
+            Some(vec![b'\r'])
+        );
+        assert_eq!(
+            basic_key_input(None, Some(BasicKey::Backspace)),
+            Some(vec![basic_backspace_byte_for_platform(cfg!(windows))])
+        );
+        assert_eq!(
+            basic_key_input(None, Some(BasicKey::Tab)),
+            Some(vec![b'\t'])
+        );
+        assert_eq!(
+            basic_key_input(None, Some(BasicKey::Escape)),
+            Some(vec![0x1b])
+        );
+        assert_eq!(basic_key_input(None, None), None);
+    }
+
+    #[test]
+    fn named_backspace_takes_precedence_over_committed_control_text() {
+        assert_eq!(
+            basic_key_input(Some("\u{17}"), Some(BasicKey::Backspace)),
+            Some(vec![basic_backspace_byte_for_platform(cfg!(windows))])
+        );
+    }
+
+    #[test]
+    fn basic_backspace_policy_uses_del_for_windows_conpty_and_elsewhere() {
+        assert_eq!(basic_backspace_byte_for_platform(true), 0x7f);
+        assert_eq!(basic_backspace_byte_for_platform(false), 0x7f);
+    }
+
+    #[test]
+    fn multiple_resize_events_coalesce_to_the_latest_authoritative_size() {
+        let mut pending = PendingResize::default();
+
+        pending.record(PhysicalSize::new(800, 600), false);
+        pending.record(PhysicalSize::new(801, 600), false);
+        pending.record(PhysicalSize::new(802, 601), false);
+
+        assert_eq!(
+            pending.take(),
+            Some(super::ResizeBatch {
+                size: PhysicalSize::new(802, 601),
+                recovery_required: false,
+                resized_events: 3,
+            })
+        );
+        assert_eq!(pending.take(), None);
+    }
+
+    #[test]
+    fn coalesced_resize_preserves_latest_terminal_and_pty_dimensions() {
+        let mut pending = PendingResize::default();
+        let metrics = CellMetrics::from_physical(10, 20, 16.0);
+
+        pending.record(PhysicalSize::new(800, 600), false);
+        pending.record(PhysicalSize::new(1_203, 619), false);
+
+        let batch = pending.take().expect("latest resize is retained");
+        let dimensions = terminal_dimensions_for_viewport(batch.size, metrics)
+            .expect("nonzero viewport and metrics produce terminal dimensions");
+
+        assert_eq!(batch.resized_events, 2);
+        assert_eq!(batch.size, PhysicalSize::new(1_203, 619));
+        assert_eq!(dimensions.columns(), 120);
+        assert_eq!(dimensions.rows(), 30);
+        assert_eq!(pty_size_for_terminal(dimensions).columns(), 120);
+        assert_eq!(pty_size_for_terminal(dimensions).rows(), 30);
+    }
+
+    #[test]
+    fn one_resize_event_is_applied_without_coalescing_away_its_size() {
+        let mut pending = PendingResize::default();
+        let size = PhysicalSize::new(801, 601);
+
+        pending.record(size, false);
+
+        assert_eq!(
+            pending.take(),
+            Some(super::ResizeBatch {
+                size,
+                recovery_required: false,
+                resized_events: 1,
+            })
+        );
+    }
+
+    #[test]
+    fn restore_recovery_survives_coalescing_to_a_later_nonzero_size() {
+        let mut restore = SurfaceRestore::default();
+        let mut pending = PendingResize::default();
+
+        restore.defer();
+        pending.record(PhysicalSize::new(0, 0), false);
+        let restored = PhysicalSize::new(800, 600);
+        pending.record(restored, restore.take_if_drawable(restored));
+        pending.record(PhysicalSize::new(810, 610), false);
+
+        assert_eq!(
+            pending.take(),
+            Some(super::ResizeBatch {
+                size: PhysicalSize::new(810, 610),
+                recovery_required: true,
+                resized_events: 3,
+            })
+        );
+    }
+
+    #[test]
+    fn windows_shell_selection_prefers_pwsh_then_windows_powershell_then_cmd() {
+        let pwsh = PathBuf::from("pwsh.exe");
+        let powershell = PathBuf::from("powershell.exe");
+        let comspec = PathBuf::from("cmd-from-comspec.exe");
+
+        assert_eq!(
+            select_windows_shell(
+                Some(pwsh.clone()),
+                Some(powershell.clone()),
+                Some(comspec.clone())
+            ),
+            (pwsh, WindowsShellSource::PowerShellCore)
+        );
+        assert_eq!(
+            select_windows_shell(None, Some(powershell.clone()), Some(comspec.clone())),
+            (powershell, WindowsShellSource::WindowsPowerShell)
+        );
+        assert_eq!(
+            select_windows_shell(None, None, Some(comspec.clone())),
+            (comspec, WindowsShellSource::ComSpec)
+        );
+        assert_eq!(
+            select_windows_shell(None, None, None),
+            (PathBuf::from("cmd.exe"), WindowsShellSource::Cmd)
+        );
     }
 
     #[test]

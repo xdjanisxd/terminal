@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 use std::ffi::OsString;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{self, Receiver, SyncSender};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -179,6 +180,44 @@ fn bounded_event_queue_backpressures_without_dropping_terminal_events() {
     assert_eq!(eof_count, 1);
     assert_eq!(exit_count, 1);
     worker.join().unwrap();
+}
+
+#[test]
+fn worker_notifies_the_controller_after_queueing_each_event() {
+    let state = Arc::new(Mutex::new(TestState {
+        lifecycle: PtyLifecycle::Exited(PtyExitStatus::code(7)),
+        ..TestState::default()
+    }));
+    let session = TestSession {
+        state: Arc::clone(&state),
+        reader: Some(Box::new(ScriptedReader {
+            chunks: [b"raw".to_vec()].into(),
+        })),
+        first_write_started: None,
+        first_write_gate: None,
+    };
+    let notifications = Arc::new(AtomicUsize::new(0));
+    let notifier = Arc::clone(&notifications);
+    let mut worker = PtyWorker::start_with_notifier(session, move || {
+        notifier.fetch_add(1, Ordering::Relaxed);
+    })
+    .unwrap();
+
+    let deadline = Instant::now() + DEADLINE;
+    let mut event_count = 0;
+    while event_count < 3 {
+        assert!(Instant::now() < deadline, "worker event deadline elapsed");
+        if worker
+            .recv_timeout(Duration::from_millis(50))
+            .unwrap()
+            .is_some()
+        {
+            event_count += 1;
+        }
+    }
+    worker.join().unwrap();
+
+    assert_eq!(notifications.load(Ordering::Relaxed), event_count);
 }
 
 #[test]

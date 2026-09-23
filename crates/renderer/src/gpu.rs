@@ -2,7 +2,7 @@ use std::collections::{HashMap, VecDeque};
 
 use bytemuck::{Pod, Zeroable};
 
-use crate::{FontSystem, TerminalRenderData};
+use crate::{FontSystem, TerminalRenderData, diagnostics_enabled, emit_diagnostic};
 
 const ATLAS_WIDTH: u32 = 1024;
 const ATLAS_HEIGHT: u32 = 1024;
@@ -37,6 +37,20 @@ struct AtlasEntry {
     slot: usize,
     width: u32,
     height: u32,
+}
+
+#[derive(Clone, Copy)]
+struct GlyphGeometrySample {
+    row: u32,
+    cell_y: f32,
+    cell_height: f32,
+    ascent: f32,
+    descent: f32,
+    baseline: f32,
+    placement_top: i32,
+    bitmap_height: u32,
+    quad_y_start: f32,
+    quad_y_end: f32,
 }
 
 struct GlyphAtlas {
@@ -167,6 +181,11 @@ pub(super) struct DrawResources {
     rect_pipeline: wgpu::RenderPipeline,
     glyph_pipeline: wgpu::RenderPipeline,
     glyph_atlas: GlyphAtlas,
+    rectangles: Vec<RectInstance>,
+    glyphs: Vec<GlyphInstance>,
+    rectangle_buffer: Option<InstanceBuffer<RectInstance>>,
+    glyph_buffer: Option<InstanceBuffer<GlyphInstance>>,
+    cursor_buffer: Option<InstanceBuffer<RectInstance>>,
 }
 
 /// Per-frame draw inputs retained only for concise lifecycle diagnostics.
@@ -176,6 +195,61 @@ pub(super) struct RenderInstanceCounts {
     pub(super) glyphs: usize,
     pub(super) decorations: usize,
     pub(super) cursor: usize,
+}
+
+/// GPU work performed for one submitted terminal frame.
+///
+/// These counts deliberately describe resource churn rather than terminal
+/// contents so a resize gesture can be diagnosed without retaining frames.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct RenderWork {
+    pub(super) instances: RenderInstanceCounts,
+    pub(super) buffer_allocations: usize,
+    pub(super) buffer_writes: usize,
+    pub(super) queue_submissions: usize,
+}
+
+struct InstanceBuffer<T> {
+    buffer: wgpu::Buffer,
+    capacity: usize,
+    marker: std::marker::PhantomData<T>,
+}
+
+impl<T: Pod> InstanceBuffer<T> {
+    fn upload(
+        current: &mut Option<Self>,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        label: &'static str,
+        instances: &[T],
+    ) -> bool {
+        if instances.is_empty() {
+            return false;
+        }
+        let required = instances.len();
+        let allocation_required = instance_buffer_requires_allocation(
+            current.as_ref().map(|buffer| buffer.capacity),
+            required,
+        );
+        if allocation_required {
+            let capacity = instance_buffer_capacity(required);
+            *current = Some(Self {
+                buffer: device.create_buffer(&wgpu::BufferDescriptor {
+                    label: Some(label),
+                    size: (capacity * std::mem::size_of::<T>()) as u64,
+                    usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
+                    mapped_at_creation: false,
+                }),
+                capacity,
+                marker: std::marker::PhantomData,
+            });
+        }
+        let buffer = current
+            .as_ref()
+            .expect("non-empty instances allocate a buffer");
+        queue.write_buffer(&buffer.buffer, 0, bytemuck::cast_slice(instances));
+        allocation_required
+    }
 }
 
 pub(super) struct FrameContext<'a> {
@@ -235,6 +309,11 @@ impl DrawResources {
             rect_pipeline,
             glyph_pipeline,
             glyph_atlas,
+            rectangles: Vec::new(),
+            glyphs: Vec::new(),
+            rectangle_buffer: None,
+            glyph_buffer: None,
+            cursor_buffer: None,
         }
     }
 
@@ -245,21 +324,25 @@ impl DrawResources {
         frame: FrameContext<'_>,
         data: &TerminalRenderData,
         font_system: &mut FontSystem,
-    ) -> RenderInstanceCounts {
+    ) -> RenderWork {
         let cell_width = frame.cell_metrics.width() as f32;
         let cell_height = frame.cell_metrics.height() as f32;
-        let mut rectangles = Vec::with_capacity(data.cells.len() + data.cells.len() / 4 + 1);
-        let mut glyphs = Vec::new();
+        self.rectangles.clear();
+        self.glyphs.clear();
+        self.rectangles
+            .reserve(data.cells.len().saturating_sub(self.rectangles.capacity()));
+        let mut previous_geometry: Option<GlyphGeometrySample> = None;
+        let mut geometry_pair_logged = false;
         for cell in &data.cells {
             let x = cell.column as f32 * cell_width;
             let y = cell.row as f32 * cell_height;
             let width = cell.width as f32 * cell_width;
-            rectangles.push(RectInstance {
+            self.rectangles.push(RectInstance {
                 rect: to_clip_rect(x, y, width, cell_height, frame.surface_size),
                 color: cell.background.0,
             });
             if cell.underline {
-                rectangles.push(RectInstance {
+                self.rectangles.push(RectInstance {
                     rect: to_clip_rect(x, y + cell_height - 1.0, width, 1.0, frame.surface_size),
                     color: cell.foreground.0,
                 });
@@ -285,15 +368,22 @@ impl DrawResources {
                 };
                 let slot_x = (entry.slot as u32 % ATLAS_COLUMNS) * ATLAS_SLOT_SIZE;
                 let slot_y = (entry.slot as u32 / ATLAS_COLUMNS) * ATLAS_SLOT_SIZE;
-                let glyph_x = x + bitmap.bearing_x() as f32 + shaped_glyph.offset_x();
-                let glyph_y = y + cell_height - bitmap.bearing_y() as f32 - shaped_glyph.offset_y();
+                let [glyph_x, glyph_y] = glyph_origin(
+                    x,
+                    y,
+                    frame.cell_metrics.baseline() as f32,
+                    bitmap.bearing_x(),
+                    bitmap.bearing_y(),
+                    shaped_glyph.offset_x(),
+                    shaped_glyph.offset_y(),
+                );
                 let Some((clipped_x, clipped_y, clipped_width, clipped_height)) = clip_rect_to_cell(
                     [glyph_x, glyph_y, entry.width as f32, entry.height as f32],
                     [x, y, width, cell_height],
                 ) else {
                     continue;
                 };
-                glyphs.push(GlyphInstance {
+                self.glyphs.push(GlyphInstance {
                     rect: to_clip_rect(
                         clipped_x,
                         clipped_y,
@@ -310,6 +400,29 @@ impl DrawResources {
                     ],
                     color: cell.foreground.0,
                 });
+                if diagnostics_enabled() && !geometry_pair_logged {
+                    let sample = GlyphGeometrySample {
+                        row: cell.row as u32,
+                        cell_y: y,
+                        cell_height,
+                        ascent: frame.cell_metrics.ascent(),
+                        descent: frame.cell_metrics.descent(),
+                        baseline: frame.cell_metrics.baseline() as f32,
+                        placement_top: bitmap.bearing_y(),
+                        bitmap_height: entry.height,
+                        quad_y_start: clipped_y,
+                        quad_y_end: clipped_y + clipped_height,
+                    };
+                    if let Some(previous) = previous_geometry
+                        && sample.row == previous.row + 1
+                    {
+                        emit_glyph_geometry_sample(previous);
+                        emit_glyph_geometry_sample(sample);
+                        geometry_pair_logged = true;
+                    } else if previous_geometry.is_none_or(|previous| previous.row != sample.row) {
+                        previous_geometry = Some(sample);
+                    }
+                }
             }
         }
         let cursor = data.cursor.map(|cursor| RectInstance {
@@ -322,10 +435,32 @@ impl DrawResources {
             ),
             color: [0.8, 0.8, 0.8, 0.45],
         });
-        let rect_buffer = buffer(device, "terminal rectangle instances", &rectangles);
-        let glyph_buffer = buffer(device, "terminal glyph instances", &glyphs);
-        let cursor_buffer =
-            cursor.map(|cursor| buffer(device, "terminal cursor instance", &[cursor]));
+        let rectangle_count = self.rectangles.len();
+        let glyph_count = self.glyphs.len();
+        let rectangle_buffer_allocated = InstanceBuffer::upload(
+            &mut self.rectangle_buffer,
+            device,
+            queue,
+            "terminal rectangle instances",
+            &self.rectangles,
+        );
+        let glyph_buffer_allocated = InstanceBuffer::upload(
+            &mut self.glyph_buffer,
+            device,
+            queue,
+            "terminal glyph instances",
+            &self.glyphs,
+        );
+        let cursor_buffer_allocated = match cursor {
+            Some(cursor) => InstanceBuffer::upload(
+                &mut self.cursor_buffer,
+                device,
+                queue,
+                "terminal cursor instance",
+                &[cursor],
+            ),
+            None => false,
+        };
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("terminal frame encoder"),
         });
@@ -344,40 +479,88 @@ impl DrawResources {
                 timestamp_writes: None,
                 occlusion_query_set: None,
             });
-            if !rectangles.is_empty() {
+            if rectangle_count != 0 {
                 pass.set_pipeline(&self.rect_pipeline);
-                pass.set_vertex_buffer(0, rect_buffer.slice(..));
-                pass.draw(0..6, 0..rectangles.len() as u32);
+                pass.set_vertex_buffer(
+                    0,
+                    self.rectangle_buffer
+                        .as_ref()
+                        .expect("rectangle instances have a buffer")
+                        .buffer
+                        .slice(..),
+                );
+                pass.draw(0..6, 0..rectangle_count as u32);
             }
-            if !glyphs.is_empty() {
+            if glyph_count != 0 {
                 pass.set_pipeline(&self.glyph_pipeline);
                 pass.set_bind_group(0, &self.glyph_atlas.bind_group, &[]);
-                pass.set_vertex_buffer(0, glyph_buffer.slice(..));
-                pass.draw(0..6, 0..glyphs.len() as u32);
+                pass.set_vertex_buffer(
+                    0,
+                    self.glyph_buffer
+                        .as_ref()
+                        .expect("glyph instances have a buffer")
+                        .buffer
+                        .slice(..),
+                );
+                pass.draw(0..6, 0..glyph_count as u32);
             }
-            if let Some(cursor_buffer) = &cursor_buffer {
+            if cursor.is_some() {
                 pass.set_pipeline(&self.rect_pipeline);
-                pass.set_vertex_buffer(0, cursor_buffer.slice(..));
+                pass.set_vertex_buffer(
+                    0,
+                    self.cursor_buffer
+                        .as_ref()
+                        .expect("cursor instance has a buffer")
+                        .buffer
+                        .slice(..),
+                );
                 pass.draw(0..6, 0..1);
             }
         }
         queue.submit(Some(encoder.finish()));
-        RenderInstanceCounts {
-            backgrounds: data.cells.len(),
-            glyphs: glyphs.len(),
-            decorations: rectangles.len() - data.cells.len(),
-            cursor: usize::from(cursor.is_some()),
+        RenderWork {
+            instances: RenderInstanceCounts {
+                backgrounds: data.cells.len(),
+                glyphs: glyph_count,
+                decorations: rectangle_count - data.cells.len(),
+                cursor: usize::from(cursor.is_some()),
+            },
+            buffer_allocations: usize::from(rectangle_buffer_allocated)
+                + usize::from(glyph_buffer_allocated)
+                + usize::from(cursor_buffer_allocated),
+            buffer_writes: usize::from(rectangle_count != 0)
+                + usize::from(glyph_count != 0)
+                + usize::from(cursor.is_some()),
+            queue_submissions: 1,
         }
     }
 }
 
-fn buffer<T: Pod>(device: &wgpu::Device, label: &'static str, data: &[T]) -> wgpu::Buffer {
-    use wgpu::util::DeviceExt;
-    device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-        label: Some(label),
-        contents: bytemuck::cast_slice(data),
-        usage: wgpu::BufferUsages::VERTEX,
-    })
+fn emit_glyph_geometry_sample(sample: GlyphGeometrySample) {
+    emit_diagnostic(format_args!(
+        "renderer event=glyph-geometry row={} cell_y={} cell_height={} ascent={} descent={} baseline={} placement_top={} bitmap_height={} quad_y_start={} quad_y_end={}",
+        sample.row,
+        sample.cell_y,
+        sample.cell_height,
+        sample.ascent,
+        sample.descent,
+        sample.baseline,
+        sample.placement_top,
+        sample.bitmap_height,
+        sample.quad_y_start,
+        sample.quad_y_end,
+    ));
+}
+
+fn instance_buffer_capacity(required: usize) -> usize {
+    required
+        .max(1)
+        .checked_next_power_of_two()
+        .unwrap_or(required)
+}
+
+fn instance_buffer_requires_allocation(current_capacity: Option<usize>, required: usize) -> bool {
+    required != 0 && current_capacity.is_none_or(|capacity| capacity < required)
 }
 
 fn rect_layout() -> wgpu::VertexBufferLayout<'static> {
@@ -455,6 +638,21 @@ fn to_clip_rect(x: f32, y: f32, width: f32, height: f32, surface: crate::Surface
     ]
 }
 
+fn glyph_origin(
+    cell_x: f32,
+    cell_y: f32,
+    baseline: f32,
+    placement_left: i32,
+    placement_top: i32,
+    offset_x: f32,
+    offset_y: f32,
+) -> [f32; 2] {
+    [
+        cell_x + placement_left as f32 + offset_x,
+        cell_y + baseline - placement_top as f32 - offset_y,
+    ]
+}
+
 fn clip_rect_to_cell(rect: [f32; 4], cell: [f32; 4]) -> Option<(f32, f32, f32, f32)> {
     let [x, y, width, height] = rect;
     let [cell_x, cell_y, cell_width, cell_height] = cell;
@@ -467,7 +665,10 @@ fn clip_rect_to_cell(rect: [f32; 4], cell: [f32; 4]) -> Option<(f32, f32, f32, f
 
 #[cfg(test)]
 mod tests {
-    use super::{DrawResources, FrameContext, GpuGlyphKey, clip_rect_to_cell, to_clip_rect};
+    use super::{
+        DrawResources, FrameContext, GpuGlyphKey, clip_rect_to_cell, glyph_origin,
+        instance_buffer_capacity, instance_buffer_requires_allocation, to_clip_rect,
+    };
     use crate::{FontRequest, FontSystem, SurfaceSize, TerminalRenderData};
     use terminal_core::{CellColor, TerminalDimensions, TerminalState, UnderlineStyle};
 
@@ -489,6 +690,42 @@ mod tests {
             clip_rect_to_cell([20.0, 0.0, 3.0, 3.0], [10.0, 0.0, 8.0, 12.0]),
             None
         );
+    }
+
+    #[test]
+    fn glyph_origin_uses_the_font_baseline_instead_of_the_cell_bottom() {
+        assert_eq!(glyph_origin(4.0, 20.0, 15.0, 2, 11, 0.5, 0.0), [6.5, 24.0]);
+    }
+
+    #[test]
+    fn glyph_origins_keep_terminal_rows_one_cell_height_apart() {
+        let first = glyph_origin(0.0, 0.0, 15.0, 0, 11, 0.0, 0.0);
+        let second = glyph_origin(0.0, 20.0, 15.0, 0, 11, 0.0, 0.0);
+        assert_eq!(second[1] - first[1], 20.0);
+    }
+
+    #[test]
+    fn adjacent_row_glyph_quads_remain_in_their_respective_cell_bounds() {
+        let first = clip_rect_to_cell([0.0, -3.0, 8.0, 24.0], [0.0, 0.0, 8.0, 20.0]).unwrap();
+        let second = clip_rect_to_cell([0.0, 17.0, 8.0, 24.0], [0.0, 20.0, 8.0, 20.0]).unwrap();
+
+        assert_eq!(first.1 + first.3, 20.0);
+        assert_eq!(second.1, 20.0);
+        assert!(first.1 + first.3 <= second.1);
+    }
+
+    #[test]
+    fn reusable_instance_buffers_grow_geometrically_instead_of_per_frame() {
+        assert_eq!(instance_buffer_capacity(1), 1);
+        assert_eq!(instance_buffer_capacity(1_920), 2_048);
+        assert_eq!(instance_buffer_capacity(2_048), 2_048);
+        assert_eq!(instance_buffer_capacity(2_049), 4_096);
+
+        assert!(!instance_buffer_requires_allocation(None, 0));
+        assert!(instance_buffer_requires_allocation(None, 1_920));
+        assert!(!instance_buffer_requires_allocation(Some(2_048), 1_920));
+        assert!(!instance_buffer_requires_allocation(Some(2_048), 2_048));
+        assert!(instance_buffer_requires_allocation(Some(2_048), 2_049));
     }
 
     #[test]

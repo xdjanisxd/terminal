@@ -1784,6 +1784,7 @@ name = "terminal-app"
 version = "0.0.0"
 dependencies = [
  "terminal-core",
+ "terminal-pty",
  "terminal-renderer",
  "winit",
 ]

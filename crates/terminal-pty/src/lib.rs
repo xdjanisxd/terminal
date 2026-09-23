@@ -427,9 +427,22 @@ pub struct PtyWorker {
 
 impl PtyWorker {
     /// Starts one session thread and one blocking-reader thread.
-    pub fn start<S>(mut session: S) -> Result<Self, PtyWorkerError>
+    pub fn start<S>(session: S) -> Result<Self, PtyWorkerError>
     where
         S: PtySession + Send + 'static,
+    {
+        Self::start_with_notifier(session, || {})
+    }
+
+    /// Starts one session thread and one blocking-reader thread, notifying the
+    /// controller after each event is successfully queued.
+    ///
+    /// The notifier is intentionally transport-agnostic so the PTY crate does
+    /// not acquire a dependency on any particular application event loop.
+    pub fn start_with_notifier<S, N>(mut session: S, notifier: N) -> Result<Self, PtyWorkerError>
+    where
+        S: PtySession + Send + 'static,
+        N: Fn() + Send + Sync + 'static,
     {
         let reader = session.take_output_reader().map_err(PtyWorkerError::Pty)?;
         let (command_sender, command_receiver) = mpsc::sync_channel(PTY_COMMAND_CAPACITY);
@@ -437,9 +450,11 @@ impl PtyWorker {
         let (reader_done_sender, reader_done_receiver) = mpsc::sync_channel(1);
         let receiver_disconnected = Arc::new(AtomicBool::new(false));
         let reader_failed = Arc::new(AtomicBool::new(false));
+        let notifier: Arc<dyn Fn() + Send + Sync> = Arc::new(notifier);
         let reader_events = event_sender.clone();
         let reader_disconnected = Arc::clone(&receiver_disconnected);
         let reader_failed_flag = Arc::clone(&reader_failed);
+        let reader_notifier = Arc::clone(&notifier);
 
         let join = thread::spawn(move || {
             let reader_join = thread::spawn(move || {
@@ -449,6 +464,7 @@ impl PtyWorker {
                     reader_done_sender,
                     reader_disconnected,
                     reader_failed_flag,
+                    reader_notifier,
                 );
             });
             run_session(
@@ -458,6 +474,7 @@ impl PtyWorker {
                 reader_done_receiver,
                 receiver_disconnected,
                 reader_failed,
+                notifier,
             );
             let _ = reader_join.join();
         });
@@ -537,6 +554,7 @@ fn run_reader(
     done: SyncSender<()>,
     receiver_disconnected: Arc<AtomicBool>,
     reader_failed: Arc<AtomicBool>,
+    notifier: Arc<dyn Fn() + Send + Sync>,
 ) {
     let mut bytes = [0_u8; PTY_READ_CHUNK_SIZE];
     loop {
@@ -546,6 +564,7 @@ fn run_reader(
                     &events,
                     PtyWorkerEvent::Output(PtyOutput::Eof),
                     &receiver_disconnected,
+                    &notifier,
                 ) {
                     break;
                 }
@@ -557,6 +576,7 @@ fn run_reader(
                     &events,
                     PtyWorkerEvent::Output(event),
                     &receiver_disconnected,
+                    &notifier,
                 ) {
                     break;
                 }
@@ -567,6 +587,7 @@ fn run_reader(
                     &events,
                     PtyWorkerEvent::Error(PtyWorkerError::Pty(error)),
                     &receiver_disconnected,
+                    &notifier,
                 );
                 break;
             }
@@ -582,6 +603,7 @@ fn run_session<S>(
     reader_done: Receiver<()>,
     receiver_disconnected: Arc<AtomicBool>,
     reader_failed: Arc<AtomicBool>,
+    notifier: Arc<dyn Fn() + Send + Sync>,
 ) where
     S: PtySession,
 {
@@ -600,6 +622,7 @@ fn run_session<S>(
                 &events,
                 &receiver_disconnected,
                 &mut termination_requested,
+                &notifier,
             );
         }
 
@@ -610,6 +633,7 @@ fn run_session<S>(
                 &events,
                 &receiver_disconnected,
                 &mut termination_requested,
+                &notifier,
             ),
             Err(RecvTimeoutError::Disconnected) => command_channel_closed = true,
             Err(RecvTimeoutError::Timeout) => {}
@@ -626,12 +650,14 @@ fn run_session<S>(
                     &events,
                     PtyWorkerEvent::Output(PtyOutput::Exited(status)),
                     &receiver_disconnected,
+                    &notifier,
                 ) {
                     request_termination(
                         session,
                         &events,
                         &receiver_disconnected,
                         &mut termination_requested,
+                        &notifier,
                     );
                 }
                 exited_emitted = true;
@@ -649,6 +675,7 @@ fn handle_command<S>(
     events: &SyncSender<PtyWorkerEvent>,
     receiver_disconnected: &AtomicBool,
     termination_requested: &mut bool,
+    notifier: &Arc<dyn Fn() + Send + Sync>,
 ) where
     S: PtySession,
 {
@@ -656,7 +683,13 @@ fn handle_command<S>(
         Err(PtyError::NotRunning)
     } else {
         match command {
-            PtyCommand::Write(bytes) => session.write(&bytes),
+            PtyCommand::Write(bytes) => {
+                let result = session.write(&bytes);
+                if result.is_ok() && std::env::var_os("TERMINAL_RENDERER_DIAGNOSTICS").is_some() {
+                    eprintln!("terminal-pty event=write-submitted bytes={bytes:?}");
+                }
+                result
+            }
             PtyCommand::Resize(size) => session.resize(size),
             PtyCommand::Terminate => {
                 *termination_requested = true;
@@ -669,6 +702,7 @@ fn handle_command<S>(
             events,
             PtyWorkerEvent::Error(PtyWorkerError::Pty(error)),
             receiver_disconnected,
+            notifier,
         );
     }
 }
@@ -678,6 +712,7 @@ fn request_termination<S>(
     events: &SyncSender<PtyWorkerEvent>,
     receiver_disconnected: &AtomicBool,
     termination_requested: &mut bool,
+    notifier: &Arc<dyn Fn() + Send + Sync>,
 ) where
     S: PtySession,
 {
@@ -690,6 +725,7 @@ fn request_termination<S>(
             events,
             PtyWorkerEvent::Error(PtyWorkerError::Pty(error)),
             receiver_disconnected,
+            notifier,
         );
     }
 }
@@ -698,8 +734,10 @@ fn send_event(
     events: &SyncSender<PtyWorkerEvent>,
     event: PtyWorkerEvent,
     receiver_disconnected: &AtomicBool,
+    notifier: &Arc<dyn Fn() + Send + Sync>,
 ) -> bool {
     if events.send(event).is_ok() {
+        notifier();
         true
     } else {
         receiver_disconnected.store(true, Ordering::Release);
