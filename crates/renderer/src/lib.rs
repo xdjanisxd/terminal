@@ -10,7 +10,7 @@ mod snapshot;
 pub use font::{
     CellMetrics, FontProcessingError, FontRequest, GlyphBitmap, ShapedGlyph, ShapedText,
 };
-pub use snapshot::{CursorRenderData, RenderCell, Rgba, TerminalRenderData};
+pub use snapshot::{CursorRenderData, RenderCell, Rgba, ScrollbarRenderData, TerminalRenderData};
 
 use std::error::Error;
 use std::fmt;

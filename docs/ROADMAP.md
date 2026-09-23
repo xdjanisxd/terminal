@@ -41,7 +41,7 @@ Completion marks require tested acceptance criteria, not code presence alone.
   - [x] Add ANSI cursor-position DSR (`CSI 6 n`) and bounded absolute CPR replies through `TerminalState`
   - [x] Add ANSI DSR terminal-status query (`CSI 5 n`) and bounded `CSI 0 n` reply
   - [x] Add semicolon-form truecolor foreground/background SGR through the existing project-owned rendition model
-  - [x] Add DECCKM parser dispatch to the existing typed application/normal cursor-key mode without input encoding
+  - [x] Add DECCKM parser dispatch to the existing typed application/normal cursor-key mode
   - [x] Add bounded IL/DL line insertion/deletion within the cursor-to-bottom portion of the active scrolling region
   - [x] Add bounded ICH cell insertion on the current row through project-owned grid/state operations
   - [x] Add bounded DCH cell deletion on the current row through project-owned grid/state operations
@@ -87,7 +87,9 @@ Completion marks require tested acceptance criteria, not code presence alone.
   - `terminal-core` owns the Primary-only history/viewport projection and bounds.
   - App-local PageUp/PageDown navigation never writes navigation keys to the PTY.
   - The renderer projects the selected viewport and hides the live cursor while scrolled back.
-  - No visual scrollbar, mouse, configuration, or clipboard scope was added.
+- [x] Add Primary-history mouse-wheel navigation and a visual scrollbar
+  - The app converts line/pixel wheel motion to bounded row movement through the core viewport API; the renderer derives track/thumb geometry from history length, visible rows, and viewport offset.
+  - Alternate screen has neither scrollback navigation nor scrollbar; thumb dragging, mouse reporting, selection, clipboard, config, and keybindings remain out of scope.
 
 ## Early integration checkpoint
 
@@ -112,7 +114,7 @@ later performance/polish work.
 
 ## M5: Input and configuration
 
-- [ ] Add mode-aware keyboard, mouse, focus, and paste encoding
+- [x] Add the first mode-aware input slice: cursor keys, focus, bracketed-paste encoding, and terminal mouse reporting (paste source remains for the clipboard task)
 - [ ] Add selection, clipboard, OSC 52 policy, and safe clickable targets
 - [ ] Add typed TOML config, validation, themes, keybindings, and partial hot reload
 - [ ] Route keybindings and command palette through centralized commands
@@ -122,5 +124,5 @@ later performance/polish work.
 - [ ] Add tabs, panes, layout, and reproducible workspace definitions
 - [ ] Add project roots, startup commands, command palette, and basic CLI control
 - [ ] Establish compatibility, fuzzing, and performance baselines
-- [ ] Improve live-resize smoothness and eliminate temporary text scaling during drag
+- [ ] Dedicated input and frame-pacing performance task: investigate delayed typing/input, janky Backspace/delete, non-smooth PageUp/PageDown, live resize trailing the pointer (including temporary text scaling), and overall UI/frame pacing relative to mature terminals such as Alacritty
 - [ ] Package and validate supported Windows, Linux, and macOS releases

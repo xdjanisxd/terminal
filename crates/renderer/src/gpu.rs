@@ -2,7 +2,9 @@ use std::collections::{HashMap, VecDeque};
 
 use bytemuck::{Pod, Zeroable};
 
-use crate::{FontSystem, TerminalRenderData, diagnostics_enabled, emit_diagnostic};
+use crate::{
+    FontSystem, ScrollbarRenderData, TerminalRenderData, diagnostics_enabled, emit_diagnostic,
+};
 
 const ATLAS_WIDTH: u32 = 1024;
 const ATLAS_HEIGHT: u32 = 1024;
@@ -185,7 +187,7 @@ pub(super) struct DrawResources {
     glyphs: Vec<GlyphInstance>,
     rectangle_buffer: Option<InstanceBuffer<RectInstance>>,
     glyph_buffer: Option<InstanceBuffer<GlyphInstance>>,
-    cursor_buffer: Option<InstanceBuffer<RectInstance>>,
+    overlay_buffer: Option<InstanceBuffer<RectInstance>>,
 }
 
 /// Per-frame draw inputs retained only for concise lifecycle diagnostics.
@@ -195,6 +197,7 @@ pub(super) struct RenderInstanceCounts {
     pub(super) glyphs: usize,
     pub(super) decorations: usize,
     pub(super) cursor: usize,
+    pub(super) scrollbar: usize,
 }
 
 /// GPU work performed for one submitted terminal frame.
@@ -313,7 +316,7 @@ impl DrawResources {
             glyphs: Vec::new(),
             rectangle_buffer: None,
             glyph_buffer: None,
-            cursor_buffer: None,
+            overlay_buffer: None,
         }
     }
 
@@ -425,16 +428,31 @@ impl DrawResources {
                 }
             }
         }
-        let cursor = data.cursor.map(|cursor| RectInstance {
-            rect: to_clip_rect(
-                cursor.column as f32 * cell_width,
-                cursor.row as f32 * cell_height,
-                cell_width,
-                cell_height,
-                frame.surface_size,
-            ),
-            color: [0.8, 0.8, 0.8, 0.45],
-        });
+        let mut overlays = Vec::with_capacity(3);
+        if let Some(cursor) = data.cursor {
+            overlays.push(RectInstance {
+                rect: to_clip_rect(
+                    cursor.column as f32 * cell_width,
+                    cursor.row as f32 * cell_height,
+                    cell_width,
+                    cell_height,
+                    frame.surface_size,
+                ),
+                color: [0.8, 0.8, 0.8, 0.45],
+            });
+        }
+        if let Some(scrollbar) = data.scrollbar
+            && let Some(geometry) = scrollbar_geometry(scrollbar, frame.surface_size, cell_height)
+        {
+            overlays.push(RectInstance {
+                rect: to_clip_rect_from_pixels(geometry.track, frame.surface_size),
+                color: [0.25, 0.25, 0.25, 0.65],
+            });
+            overlays.push(RectInstance {
+                rect: to_clip_rect_from_pixels(geometry.thumb, frame.surface_size),
+                color: [0.7, 0.7, 0.7, 0.9],
+            });
+        }
         let rectangle_count = self.rectangles.len();
         let glyph_count = self.glyphs.len();
         let rectangle_buffer_allocated = InstanceBuffer::upload(
@@ -451,15 +469,16 @@ impl DrawResources {
             "terminal glyph instances",
             &self.glyphs,
         );
-        let cursor_buffer_allocated = match cursor {
-            Some(cursor) => InstanceBuffer::upload(
-                &mut self.cursor_buffer,
+        let overlay_buffer_allocated = if overlays.is_empty() {
+            false
+        } else {
+            InstanceBuffer::upload(
+                &mut self.overlay_buffer,
                 device,
                 queue,
-                "terminal cursor instance",
-                &[cursor],
-            ),
-            None => false,
+                "terminal overlay instances",
+                &overlays,
+            )
         };
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("terminal frame encoder"),
@@ -504,17 +523,17 @@ impl DrawResources {
                 );
                 pass.draw(0..6, 0..glyph_count as u32);
             }
-            if cursor.is_some() {
+            if !overlays.is_empty() {
                 pass.set_pipeline(&self.rect_pipeline);
                 pass.set_vertex_buffer(
                     0,
-                    self.cursor_buffer
+                    self.overlay_buffer
                         .as_ref()
-                        .expect("cursor instance has a buffer")
+                        .expect("overlay instances have a buffer")
                         .buffer
                         .slice(..),
                 );
-                pass.draw(0..6, 0..1);
+                pass.draw(0..6, 0..overlays.len() as u32);
             }
         }
         queue.submit(Some(encoder.finish()));
@@ -523,14 +542,15 @@ impl DrawResources {
                 backgrounds: data.cells.len(),
                 glyphs: glyph_count,
                 decorations: rectangle_count - data.cells.len(),
-                cursor: usize::from(cursor.is_some()),
+                cursor: usize::from(data.cursor.is_some()),
+                scrollbar: usize::from(data.scrollbar.is_some()) * 2,
             },
             buffer_allocations: usize::from(rectangle_buffer_allocated)
                 + usize::from(glyph_buffer_allocated)
-                + usize::from(cursor_buffer_allocated),
+                + usize::from(overlay_buffer_allocated),
             buffer_writes: usize::from(rectangle_count != 0)
                 + usize::from(glyph_count != 0)
-                + usize::from(cursor.is_some()),
+                + usize::from(!overlays.is_empty()),
             queue_submissions: 1,
         }
     }
@@ -638,6 +658,42 @@ fn to_clip_rect(x: f32, y: f32, width: f32, height: f32, surface: crate::Surface
     ]
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+struct ScrollbarGeometry {
+    track: [f32; 4],
+    thumb: [f32; 4],
+}
+
+fn scrollbar_geometry(
+    data: ScrollbarRenderData,
+    surface: crate::SurfaceSize,
+    cell_height: f32,
+) -> Option<ScrollbarGeometry> {
+    if data.history_rows == 0 || data.visible_rows == 0 || cell_height <= 0.0 {
+        return None;
+    }
+    let surface_width = surface.width() as f32;
+    let grid_height = (data.visible_rows as f32 * cell_height).min(surface.height() as f32);
+    let inset = if grid_height > 4.0 { 2.0 } else { 0.0 };
+    let track_height = grid_height - 2.0 * inset;
+    let track_width = surface_width.min(6.0);
+    let x = surface_width - track_width - (surface_width - track_width).min(2.0);
+    let track = [x, inset, track_width, track_height];
+    let total_rows = data.history_rows.saturating_add(data.visible_rows);
+    let thumb_height = (track_height * data.visible_rows as f32 / total_rows as f32)
+        .max(18.0)
+        .min(track_height);
+    let travel = track_height - thumb_height;
+    let position =
+        data.history_rows.saturating_sub(data.viewport_offset) as f32 / data.history_rows as f32;
+    let thumb = [x, inset + travel * position, track_width, thumb_height];
+    Some(ScrollbarGeometry { track, thumb })
+}
+
+fn to_clip_rect_from_pixels(rect: [f32; 4], surface: crate::SurfaceSize) -> [f32; 4] {
+    to_clip_rect(rect[0], rect[1], rect[2], rect[3], surface)
+}
+
 fn glyph_origin(
     cell_x: f32,
     cell_y: f32,
@@ -667,10 +723,40 @@ fn clip_rect_to_cell(rect: [f32; 4], cell: [f32; 4]) -> Option<(f32, f32, f32, f
 mod tests {
     use super::{
         DrawResources, FrameContext, GpuGlyphKey, clip_rect_to_cell, glyph_origin,
-        instance_buffer_capacity, instance_buffer_requires_allocation, to_clip_rect,
+        instance_buffer_capacity, instance_buffer_requires_allocation, scrollbar_geometry,
+        to_clip_rect,
     };
-    use crate::{FontRequest, FontSystem, SurfaceSize, TerminalRenderData};
+    use crate::{FontRequest, FontSystem, ScrollbarRenderData, SurfaceSize, TerminalRenderData};
     use terminal_core::{CellColor, TerminalDimensions, TerminalState, UnderlineStyle};
+
+    #[test]
+    fn scrollbar_geometry_tracks_history_position_growth_and_resize() {
+        let surface = SurfaceSize::new(100, 100).unwrap();
+        let mut data = ScrollbarRenderData {
+            history_rows: 5,
+            visible_rows: 5,
+            viewport_offset: 0,
+        };
+        let bottom = scrollbar_geometry(data, surface, 20.0).unwrap();
+        assert_eq!(bottom.track, [92.0, 2.0, 6.0, 96.0]);
+        assert_eq!(bottom.thumb, [92.0, 50.0, 6.0, 48.0]);
+        data.viewport_offset = 5;
+        let top = scrollbar_geometry(data, surface, 20.0).unwrap();
+        assert_eq!(top.thumb[1], 2.0);
+        data.viewport_offset = 2;
+        let middle = scrollbar_geometry(data, surface, 20.0).unwrap();
+        assert!(top.thumb[1] < middle.thumb[1] && middle.thumb[1] < bottom.thumb[1]);
+
+        data.history_rows = 15;
+        let grown = scrollbar_geometry(data, surface, 20.0).unwrap();
+        assert!(grown.thumb[3] < middle.thumb[3]);
+        data.visible_rows = 3;
+        let resized = scrollbar_geometry(data, SurfaceSize::new(100, 60).unwrap(), 20.0).unwrap();
+        assert!(resized.thumb[1] + resized.thumb[3] <= 60.0);
+        assert!(resized.thumb[3] >= 18.0);
+        data.history_rows = 0;
+        assert_eq!(scrollbar_geometry(data, surface, 20.0), None);
+    }
 
     #[test]
     fn clips_cell_rectangles_to_surface_coordinates() {

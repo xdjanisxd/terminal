@@ -68,7 +68,7 @@ impl TerminalModes {
     }
 }
 
-/// Controls how cursor-key presses will be encoded by a future input encoder.
+/// Controls how cursor-key presses are encoded.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum CursorKeyMode {
     /// Cursor keys use their normal encoding. This is the terminal default.
@@ -78,10 +78,34 @@ pub enum CursorKeyMode {
     Application,
 }
 
+/// Which pointer events the terminal application requests.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum MouseTracking {
+    #[default]
+    Off,
+    Press,
+    Drag,
+    Any,
+}
+
+/// Mouse coordinate and release wire format.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum MouseEncoding {
+    #[default]
+    Legacy,
+    Sgr,
+}
+
 /// Input-related modes produced by terminal output and consumed by input encoding.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct InputModes {
     cursor_keys: CursorKeyMode,
+    focus_reporting: bool,
+    bracketed_paste: bool,
+    mouse_press: bool,
+    mouse_drag: bool,
+    mouse_any: bool,
+    mouse_encoding: MouseEncoding,
 }
 
 impl InputModes {
@@ -93,5 +117,44 @@ impl InputModes {
     /// Sets the cursor-key encoding mode.
     pub fn set_cursor_keys(&mut self, cursor_keys: CursorKeyMode) {
         self.cursor_keys = cursor_keys;
+    }
+
+    pub const fn focus_reporting(self) -> bool {
+        self.focus_reporting
+    }
+    pub fn set_focus_reporting(&mut self, enabled: bool) {
+        self.focus_reporting = enabled;
+    }
+    pub const fn bracketed_paste(self) -> bool {
+        self.bracketed_paste
+    }
+    pub fn set_bracketed_paste(&mut self, enabled: bool) {
+        self.bracketed_paste = enabled;
+    }
+    pub const fn mouse_tracking(self) -> MouseTracking {
+        if self.mouse_any {
+            MouseTracking::Any
+        } else if self.mouse_drag {
+            MouseTracking::Drag
+        } else if self.mouse_press {
+            MouseTracking::Press
+        } else {
+            MouseTracking::Off
+        }
+    }
+    pub fn set_mouse_press(&mut self, enabled: bool) {
+        self.mouse_press = enabled;
+    }
+    pub fn set_mouse_drag(&mut self, enabled: bool) {
+        self.mouse_drag = enabled;
+    }
+    pub fn set_mouse_any(&mut self, enabled: bool) {
+        self.mouse_any = enabled;
+    }
+    pub const fn mouse_encoding(self) -> MouseEncoding {
+        self.mouse_encoding
+    }
+    pub fn set_mouse_encoding(&mut self, encoding: MouseEncoding) {
+        self.mouse_encoding = encoding;
     }
 }

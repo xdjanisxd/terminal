@@ -303,3 +303,35 @@ fn alternate_screen_cannot_navigate_primary_history() {
     assert_eq!(state.viewport_offset(), 1);
     assert_eq!(viewport_row_text(&state, 0), "aa");
 }
+
+#[test]
+fn row_scrolling_is_bounded_and_resumes_following_at_bottom() {
+    let mut state = state(2, 2);
+    write_row(&mut state, 0, "aa");
+    write_row(&mut state, 1, "bb");
+    state.set_cursor_position(1, 0).unwrap();
+    state.index();
+    state.index();
+    assert_eq!(state.scrollback_len(), 2);
+
+    assert!(state.scroll_viewport_rows(1));
+    assert_eq!(state.viewport_offset(), 1);
+    assert_eq!(viewport_row_text(&state, 0), "bb");
+    assert!(state.scroll_viewport_rows(i32::MAX));
+    assert_eq!(state.viewport_offset(), 2);
+    assert!(!state.scroll_viewport_rows(1));
+
+    state.index();
+    assert_eq!(state.viewport_offset(), 3);
+    assert!(state.scroll_viewport_rows(i32::MIN));
+    assert_eq!(state.viewport_offset(), 0);
+    assert!(!state.scroll_viewport_rows(-1));
+    state.index();
+    assert_eq!(state.viewport_offset(), 0);
+
+    state.switch_to_alternate_screen();
+    assert!(!state.scroll_viewport_rows(3));
+    assert_eq!(state.viewport_offset(), 0);
+    state.switch_to_primary_screen();
+    assert_eq!(state.viewport_offset(), 0);
+}

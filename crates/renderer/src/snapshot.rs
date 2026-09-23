@@ -1,7 +1,8 @@
 //! Renderer-owned conversion of already-resolved terminal state into draw data.
 
 use terminal_core::{
-    CellColor, CellOccupancy, CursorVisibility, InverseVideo, TerminalState, UnderlineStyle,
+    CellColor, CellOccupancy, CursorVisibility, InverseVideo, ScreenKind, TerminalState,
+    UnderlineStyle,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -26,12 +27,21 @@ pub struct CursorRenderData {
     pub column: usize,
 }
 
+/// Renderer-facing scrollbar inputs; terminal-core retains the actual viewport.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ScrollbarRenderData {
+    pub history_rows: usize,
+    pub visible_rows: usize,
+    pub viewport_offset: usize,
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct TerminalRenderData {
     pub rows: usize,
     pub columns: usize,
     pub cells: Vec<RenderCell>,
     pub cursor: Option<CursorRenderData>,
+    pub scrollbar: Option<ScrollbarRenderData>,
 }
 
 impl TerminalRenderData {
@@ -77,11 +87,19 @@ impl TerminalRenderData {
                     column: cursor.column(),
                 }
             });
+        let scrollbar = (state.active_screen() == ScreenKind::Primary
+            && state.scrollback_len() > 0)
+            .then(|| ScrollbarRenderData {
+                history_rows: state.scrollback_len(),
+                visible_rows: dimensions.rows(),
+                viewport_offset: state.viewport_offset(),
+            });
         Self {
             rows: dimensions.rows(),
             columns: dimensions.columns(),
             cells,
             cursor,
+            scrollbar,
         }
     }
 }
@@ -201,6 +219,14 @@ mod tests {
         let data = TerminalRenderData::from_terminal(&state);
         assert_eq!(data.cursor, None);
         assert_eq!(
+            data.scrollbar,
+            Some(ScrollbarRenderData {
+                history_rows: 1,
+                visible_rows: 2,
+                viewport_offset: 1
+            })
+        );
+        assert_eq!(
             data.cells
                 .iter()
                 .filter(|cell| cell.row == 0)
@@ -208,6 +234,43 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec!['o', 'l']
         );
+    }
+
+    #[test]
+    fn scrollbar_follows_primary_history_and_disappears_on_alternate_and_reset() {
+        let mut state = TerminalState::new(TerminalDimensions::new(2, 2).unwrap());
+        assert_eq!(TerminalRenderData::from_terminal(&state).scrollbar, None);
+        state.set_cursor_position(1, 0).unwrap();
+        state.index();
+        assert_eq!(
+            TerminalRenderData::from_terminal(&state)
+                .scrollbar
+                .unwrap()
+                .viewport_offset,
+            0
+        );
+        assert!(state.scroll_viewport_rows(1));
+        state.resize(TerminalDimensions::new(2, 3).unwrap());
+        assert_eq!(
+            TerminalRenderData::from_terminal(&state).scrollbar,
+            Some(ScrollbarRenderData {
+                history_rows: 1,
+                visible_rows: 3,
+                viewport_offset: 1
+            })
+        );
+        state.switch_to_alternate_screen();
+        assert_eq!(TerminalRenderData::from_terminal(&state).scrollbar, None);
+        state.switch_to_primary_screen();
+        assert_eq!(
+            TerminalRenderData::from_terminal(&state)
+                .scrollbar
+                .unwrap()
+                .viewport_offset,
+            1
+        );
+        state.reset();
+        assert_eq!(TerminalRenderData::from_terminal(&state).scrollbar, None);
     }
 
     #[test]

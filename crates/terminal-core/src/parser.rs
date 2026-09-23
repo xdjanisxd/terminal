@@ -2,8 +2,8 @@ use std::{error::Error, fmt};
 
 use crate::{
     AutoWrapMode, CellColor, CharacterInsertionMode, CursorKeyMode, CursorMovement,
-    CursorVisibility, EraseDirection, EraseRegion, InverseVideo, ItalicStyle, PrintError,
-    TerminalState, TextIntensity, UnderlineStyle,
+    CursorVisibility, EraseDirection, EraseRegion, InverseVideo, ItalicStyle, MouseEncoding,
+    PrintError, TerminalState, TextIntensity, UnderlineStyle,
 };
 
 // Compile vte without its std feature so OSC buffering uses its fixed-capacity
@@ -17,6 +17,12 @@ const ALTERNATE_SCREEN_SAVE_RESTORE_MODE: u16 = 1049;
 const INSERT_REPLACE_MODE: u16 = 4;
 const AUTO_WRAP_MODE: u16 = 7;
 const CURSOR_VISIBILITY_MODE: u16 = 25;
+const MOUSE_PRESS_MODE: u16 = 1000;
+const MOUSE_DRAG_MODE: u16 = 1002;
+const MOUSE_ANY_MODE: u16 = 1003;
+const FOCUS_REPORTING_MODE: u16 = 1004;
+const SGR_MOUSE_MODE: u16 = 1006;
+const BRACKETED_PASTE_MODE: u16 = 2004;
 const CLEAR_CURRENT_TAB_STOP: u16 = 0;
 const CLEAR_ALL_TAB_STOPS: u16 = 3;
 
@@ -144,6 +150,16 @@ impl<'a> SemanticPerformer<'a> {
             };
 
             match (private, *mode) {
+                (true, MOUSE_PRESS_MODE) => self.terminal.set_mouse_press_tracking(enabled),
+                (true, MOUSE_DRAG_MODE) => self.terminal.set_mouse_drag_tracking(enabled),
+                (true, MOUSE_ANY_MODE) => self.terminal.set_mouse_any_tracking(enabled),
+                (true, FOCUS_REPORTING_MODE) => self.terminal.set_focus_reporting(enabled),
+                (true, SGR_MOUSE_MODE) => self.terminal.set_mouse_encoding(if enabled {
+                    MouseEncoding::Sgr
+                } else {
+                    MouseEncoding::Legacy
+                }),
+                (true, BRACKETED_PASTE_MODE) => self.terminal.set_bracketed_paste(enabled),
                 (true, APPLICATION_CURSOR_KEYS_MODE) => {
                     let cursor_keys = if enabled {
                         CursorKeyMode::Application
