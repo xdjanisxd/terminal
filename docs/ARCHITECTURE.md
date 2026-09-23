@@ -11,7 +11,7 @@ This document defines intended boundaries. The repository currently contains a p
 - `terminal-pty`: PTY abstraction, child lifecycle, and input/output communication
 - `renderer`: `wgpu` resources, terminal drawing, fonts, shaping/rasterization, and bounded glyph atlas/cache
 - `workspace`: tabs, panes, layout tree, workspace definitions, and startup commands
-- `config`: TOML loading, defaults, validation, keybindings, themes, and partial hot reload
+- `config`: typed TOML loading, defaults, validation, keybindings, and themes; `app` watches for changes and applies supported fields
 - `platform`: clipboard, paths, and narrowly scoped operating-system behavior
 
 The current internal packages are `terminal-app`, `terminal-core`, `terminal-pty`, `terminal-renderer`, `terminal-workspace`, `terminal-config`, and `terminal-platform`. These internal names are retained while public branding remains undecided; public naming does not block development.

@@ -9,6 +9,29 @@ use terminal_core::{
 pub struct Rgba(pub [f32; 4]);
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct RenderTheme {
+    pub foreground: Rgba,
+    pub background: Rgba,
+    pub cursor: Rgba,
+    pub selection_foreground: Rgba,
+    pub selection_background: Rgba,
+    pub ansi: [Rgba; 16],
+}
+
+impl Default for RenderTheme {
+    fn default() -> Self {
+        Self {
+            foreground: DEFAULT_FOREGROUND,
+            background: DEFAULT_BACKGROUND,
+            cursor: Rgba([0.8, 0.8, 0.8, 0.45]),
+            selection_foreground: Rgba([1.0, 1.0, 1.0, 1.0]),
+            selection_background: Rgba([0.18, 0.35, 0.65, 1.0]),
+            ansi: std::array::from_fn(|index| indexed_color(index as u8)),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct RenderCell {
     pub row: usize,
     pub column: usize,
@@ -41,11 +64,17 @@ pub struct TerminalRenderData {
     pub columns: usize,
     pub cells: Vec<RenderCell>,
     pub cursor: Option<CursorRenderData>,
+    pub cursor_color: Rgba,
+    pub surface_background: Rgba,
     pub scrollbar: Option<ScrollbarRenderData>,
 }
 
 impl TerminalRenderData {
     pub fn from_terminal(state: &TerminalState) -> Self {
+        Self::from_terminal_with_theme(state, &RenderTheme::default())
+    }
+
+    pub fn from_terminal_with_theme(state: &TerminalState, theme: &RenderTheme) -> Self {
         let dimensions = state.dimensions();
         let mut cells = Vec::with_capacity(dimensions.cell_count());
         for row in 0..dimensions.rows() {
@@ -58,8 +87,8 @@ impl TerminalRenderData {
                 }
                 let attributes = cell.attributes();
                 let (mut foreground, mut background) = (
-                    color(attributes.foreground(), DEFAULT_FOREGROUND),
-                    color(attributes.background(), DEFAULT_BACKGROUND),
+                    color(attributes.foreground(), theme.foreground, theme),
+                    color(attributes.background(), theme.background, theme),
                 );
                 if attributes.inverse() == InverseVideo::Enabled {
                     std::mem::swap(&mut foreground, &mut background);
@@ -68,8 +97,8 @@ impl TerminalRenderData {
                     || (cell.occupancy() == CellOccupancy::WideLead
                         && state.is_selected(row, column + 1))
                 {
-                    foreground = Rgba([1.0, 1.0, 1.0, 1.0]);
-                    background = Rgba([0.18, 0.35, 0.65, 1.0]);
+                    foreground = theme.selection_foreground;
+                    background = theme.selection_background;
                 }
                 cells.push(RenderCell {
                     row,
@@ -106,6 +135,8 @@ impl TerminalRenderData {
             columns: dimensions.columns(),
             cells,
             cursor,
+            cursor_color: theme.cursor,
+            surface_background: theme.background,
             scrollbar,
         }
     }
@@ -114,7 +145,7 @@ impl TerminalRenderData {
 const DEFAULT_FOREGROUND: Rgba = Rgba([0.9, 0.9, 0.9, 1.0]);
 const DEFAULT_BACKGROUND: Rgba = Rgba([0.0, 0.0, 0.0, 1.0]);
 
-fn color(color: CellColor, default: Rgba) -> Rgba {
+fn color(color: CellColor, default: Rgba, theme: &RenderTheme) -> Rgba {
     match color {
         CellColor::Default => default,
         CellColor::Rgb { red, green, blue } => Rgba([
@@ -123,6 +154,7 @@ fn color(color: CellColor, default: Rgba) -> Rgba {
             blue as f32 / 255.0,
             1.0,
         ]),
+        CellColor::Indexed(index) if index < 16 => theme.ansi[index as usize],
         CellColor::Indexed(index) => indexed_color(index),
     }
 }
@@ -192,6 +224,26 @@ mod tests {
         let snapshot = TerminalRenderData::from_terminal(&state);
         assert_eq!(snapshot.cells[0].background, Rgba([0.18, 0.35, 0.65, 1.0]));
         assert_eq!(state.screen().cell(0, 0).unwrap().character(), 'x');
+    }
+
+    #[test]
+    fn custom_theme_changes_projection_without_mutating_core() {
+        let mut state = TerminalState::new(TerminalDimensions::new(2, 1).unwrap());
+        state.set_foreground_color(CellColor::Indexed(1));
+        state.print_character('x').unwrap();
+        let mut theme = RenderTheme::default();
+        theme.ansi[1] = Rgba([0.1, 0.2, 0.3, 1.0]);
+        theme.background = Rgba([0.4, 0.5, 0.6, 1.0]);
+        theme.cursor = Rgba([0.7, 0.8, 0.9, 0.45]);
+        let projection = TerminalRenderData::from_terminal_with_theme(&state, &theme);
+        assert_eq!(projection.cells[0].foreground, theme.ansi[1]);
+        assert_eq!(projection.cells[0].background, theme.background);
+        assert_eq!(projection.cursor_color, theme.cursor);
+        assert_eq!(projection.surface_background, theme.background);
+        assert_eq!(
+            state.screen().cell(0, 0).unwrap().attributes().foreground(),
+            CellColor::Indexed(1)
+        );
     }
 
     #[test]
