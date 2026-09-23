@@ -8,8 +8,9 @@ use crate::screens::{ScreenKind, ScreenSet};
 use crate::tabs::HorizontalTabStops;
 use crate::{
     AutoWrapMode, Cell, CellAttributes, CellColor, CharacterInsertionMode, Cursor, CursorKeyMode,
-    CursorVisibility, InputModes, InverseVideo, ItalicStyle, ScreenGrid, TerminalDimensions,
-    TerminalModes, TerminalReply, TextIntensity, UnderlineStyle, VerticalScrollingMargins,
+    CursorVisibility, InputModes, InverseVideo, ItalicStyle, MouseEncoding, ScreenGrid,
+    TerminalDimensions, TerminalModes, TerminalReply, TextIntensity, UnderlineStyle,
+    VerticalScrollingMargins,
 };
 
 /// Failure to print a character through the terminal semantic boundary.
@@ -833,6 +834,30 @@ impl TerminalState {
     /// Sets how a future input encoder should encode cursor keys.
     pub fn set_cursor_key_mode(&mut self, cursor_keys: CursorKeyMode) {
         self.input_modes.set_cursor_keys(cursor_keys);
+    }
+
+    /// Updates terminal-requested focus reporting.
+    pub fn set_focus_reporting(&mut self, enabled: bool) {
+        self.input_modes.set_focus_reporting(enabled);
+    }
+
+    /// Updates terminal-requested bracketed paste.
+    pub fn set_bracketed_paste(&mut self, enabled: bool) {
+        self.input_modes.set_bracketed_paste(enabled);
+    }
+
+    /// Updates the independent mouse tracking requests.
+    pub fn set_mouse_press_tracking(&mut self, enabled: bool) {
+        self.input_modes.set_mouse_press(enabled);
+    }
+    pub fn set_mouse_drag_tracking(&mut self, enabled: bool) {
+        self.input_modes.set_mouse_drag(enabled);
+    }
+    pub fn set_mouse_any_tracking(&mut self, enabled: bool) {
+        self.input_modes.set_mouse_any(enabled);
+    }
+    pub fn set_mouse_encoding(&mut self, encoding: MouseEncoding) {
+        self.input_modes.set_mouse_encoding(encoding);
     }
 
     /// Restores this project-owned model to its initial state at the current dimensions.

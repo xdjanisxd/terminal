@@ -41,7 +41,7 @@ Completion marks require tested acceptance criteria, not code presence alone.
   - [x] Add ANSI cursor-position DSR (`CSI 6 n`) and bounded absolute CPR replies through `TerminalState`
   - [x] Add ANSI DSR terminal-status query (`CSI 5 n`) and bounded `CSI 0 n` reply
   - [x] Add semicolon-form truecolor foreground/background SGR through the existing project-owned rendition model
-  - [x] Add DECCKM parser dispatch to the existing typed application/normal cursor-key mode without input encoding
+  - [x] Add DECCKM parser dispatch to the existing typed application/normal cursor-key mode
   - [x] Add bounded IL/DL line insertion/deletion within the cursor-to-bottom portion of the active scrolling region
   - [x] Add bounded ICH cell insertion on the current row through project-owned grid/state operations
   - [x] Add bounded DCH cell deletion on the current row through project-owned grid/state operations
@@ -114,7 +114,7 @@ later performance/polish work.
 
 ## M5: Input and configuration
 
-- [ ] Add mode-aware keyboard, mouse, focus, and paste encoding
+- [x] Add the first mode-aware input slice: cursor keys, focus, bracketed-paste encoding, and terminal mouse reporting (paste source remains for the clipboard task)
 - [ ] Add selection, clipboard, OSC 52 policy, and safe clickable targets
 - [ ] Add typed TOML config, validation, themes, keybindings, and partial hot reload
 - [ ] Route keybindings and command palette through centralized commands

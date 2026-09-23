@@ -42,7 +42,7 @@ The renderer consumes terminal snapshots/state and damage information; it does n
 ## Mode ownership
 
 - `TerminalModes` owns values shared across the terminal: cursor visibility, auto-wrap, and insert/replace behavior. Defaults are visible, enabled, and replace.
-- `InputModes` separately owns output-controlled state consumed by future keyboard encoding. Application cursor keys default to normal encoding.
+- `InputModes` separately owns output-controlled cursor-key, focus, bracketed-paste, mouse-tracking, and mouse-encoding state. The parser changes these modes through `TerminalState`; `terminal-core` encodes input from an immutable mode snapshot, and `terminal-app` maps window events to typed input before writing bytes through `PtyWorker`. Cursor keys default to normal encoding; mouse and focus reporting and paste bracketing default off.
 - Cursor, cells, delayed-wrap state, typed vertical scrolling margins, and an optional saved-cursor slot are screen-local state, not mode flags. `TerminalState` keeps separate values in each typed primary/alternate `ScreenKind` buffer; terminal-global and input-related modes remain shared.
 - Origin mode is intentionally deferred. Setting or resetting it must atomically coordinate cursor homing, scrolling margins, saved cursor state, and primary/alternate-screen behavior through `TerminalState`.
 - The parser adapter translates supported protocol parameters into typed project-owned operations. Numeric VT/xterm identifiers are not exposed by the core model.

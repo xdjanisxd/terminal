@@ -5,8 +5,10 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use terminal_core::{
-    CellColor, MAX_COLUMNS, MAX_GRID_CELLS, MAX_ROWS, TerminalDimensions, TerminalParser,
-    TerminalState, UnderlineStyle,
+    CellColor, CursorKey, MAX_COLUMNS, MAX_GRID_CELLS, MAX_ROWS,
+    MouseButton as TerminalMouseButton, MouseEvent, MouseModifiers, MouseTracking,
+    TerminalDimensions, TerminalParser, TerminalState, UnderlineStyle, encode_cursor_key,
+    encode_focus, encode_mouse,
 };
 use terminal_pty::{
     PortablePtyBackend, PtyBackend, PtyOutput, PtySize, PtySpawnConfig, PtyWorker, PtyWorkerEvent,
@@ -16,10 +18,10 @@ use terminal_renderer::{
     emit_diagnostic,
 };
 use winit::application::ApplicationHandler;
-use winit::dpi::PhysicalSize;
-use winit::event::{ElementState, MouseScrollDelta, WindowEvent};
+use winit::dpi::{PhysicalPosition, PhysicalSize};
+use winit::event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop, EventLoopProxy};
-use winit::keyboard::{Key, KeyCode, NamedKey, PhysicalKey};
+use winit::keyboard::{Key, KeyCode, ModifiersState, NamedKey, PhysicalKey};
 use winit::window::{Window, WindowId};
 
 struct Application {
@@ -37,6 +39,10 @@ struct Application {
     fullscreen: FullscreenTransition,
     last_diagnostic_state: Option<AppDiagnosticState>,
     wheel_remainder: f64,
+    mouse_wheel_remainder: f64,
+    pointer_position: Option<PhysicalPosition<f64>>,
+    pressed_mouse_button: Option<TerminalMouseButton>,
+    modifiers: ModifiersState,
 }
 
 /// App-local notification that PTY worker output is ready to drain.
@@ -310,6 +316,10 @@ impl Default for Application {
             fullscreen: FullscreenTransition::default(),
             last_diagnostic_state: None,
             wheel_remainder: 0.0,
+            mouse_wheel_remainder: 0.0,
+            pointer_position: None,
+            pressed_mouse_button: None,
+            modifiers: ModifiersState::empty(),
         }
     }
 }
@@ -615,6 +625,25 @@ impl Application {
         }
     }
 
+    fn send_mouse_event(&self, event: MouseEvent) {
+        let Some((column, row)) = self.pointer_position.and_then(|position| {
+            let metrics = self.renderer.as_ref()?.cell_metrics();
+            terminal_cell_at(position, metrics, self.terminal.dimensions())
+        }) else {
+            return;
+        };
+        let modifiers = MouseModifiers {
+            shift: self.modifiers.shift_key(),
+            alt: self.modifiers.alt_key(),
+            control: self.modifiers.control_key(),
+        };
+        if let Some(bytes) =
+            encode_mouse(*self.terminal.input_modes(), event, column, row, modifiers)
+        {
+            self.write_to_pty(bytes);
+        }
+    }
+
     /// Queues the current authoritative window size for the same bounded batch
     /// as ordinary resize events. This also covers expose/occlusion recovery
     /// that has no accompanying `Resized` event.
@@ -738,16 +767,64 @@ impl ApplicationHandler<PtyWake> for Application {
                 self.surface_restore.defer();
                 self.diagnose("occluded-true-handled");
             }
+            WindowEvent::Focused(focused) => {
+                if let Some(bytes) = encode_focus(*self.terminal.input_modes(), focused) {
+                    self.write_to_pty(bytes.to_vec());
+                }
+                if !focused {
+                    self.pressed_mouse_button = None;
+                    self.pointer_position = None;
+                }
+            }
+            WindowEvent::ModifiersChanged(modifiers) => {
+                self.modifiers = modifiers.state();
+            }
+            WindowEvent::CursorLeft { .. } => self.pointer_position = None,
+            WindowEvent::CursorMoved { position, .. } => {
+                self.pointer_position = Some(position);
+                self.send_mouse_event(MouseEvent::Move(self.pressed_mouse_button));
+            }
+            WindowEvent::MouseInput { state, button, .. } => {
+                if let Some(button) = terminal_mouse_button(button) {
+                    if state == ElementState::Pressed {
+                        self.pressed_mouse_button = Some(button);
+                        self.send_mouse_event(MouseEvent::Press(button));
+                    } else {
+                        self.send_mouse_event(MouseEvent::Release(button));
+                        if self.pressed_mouse_button == Some(button) {
+                            self.pressed_mouse_button = None;
+                        }
+                    }
+                }
+            }
             WindowEvent::MouseWheel { delta, .. } => {
-                if let Some(metrics) = self.renderer.as_ref().map(Renderer::cell_metrics)
-                    && scroll_terminal_for_wheel(
-                        &mut self.terminal,
-                        delta,
-                        metrics.height(),
-                        &mut self.wheel_remainder,
-                    )
-                {
-                    self.invalidate_frame();
+                if let Some(metrics) = self.renderer.as_ref().map(Renderer::cell_metrics) {
+                    if self.terminal.input_modes().mouse_tracking() == MouseTracking::Off {
+                        self.mouse_wheel_remainder = 0.0;
+                        if scroll_terminal_for_wheel(
+                            &mut self.terminal,
+                            delta,
+                            metrics.height(),
+                            &mut self.wheel_remainder,
+                        ) {
+                            self.invalidate_frame();
+                        }
+                    } else {
+                        self.wheel_remainder = 0.0;
+                        let rows = wheel_scroll_rows(
+                            delta,
+                            metrics.height(),
+                            &mut self.mouse_wheel_remainder,
+                        );
+                        let event = if rows > 0 {
+                            MouseEvent::WheelUp
+                        } else {
+                            MouseEvent::WheelDown
+                        };
+                        for _ in 0..rows.unsigned_abs().min(100) {
+                            self.send_mouse_event(event);
+                        }
+                    }
                 }
             }
             WindowEvent::KeyboardInput { event, .. } if event.state == ElementState::Pressed => {
@@ -759,6 +836,10 @@ impl ApplicationHandler<PtyWake> for Application {
                     if changed {
                         self.invalidate_frame();
                     }
+                } else if let Some(cursor_key) = cursor_key_from_logical_key(&event.logical_key) {
+                    self.write_to_pty(
+                        encode_cursor_key(*self.terminal.input_modes(), cursor_key).to_vec(),
+                    );
                 } else {
                     let key = basic_key_from_logical_key(&event.logical_key);
                     if let Some(bytes) = basic_key_input(event.text.as_deref(), key) {
@@ -875,6 +956,38 @@ fn basic_key_from_logical_key(key: &Key) -> Option<BasicKey> {
         Key::Named(NamedKey::Escape) => Some(BasicKey::Escape),
         _ => None,
     }
+}
+
+fn cursor_key_from_logical_key(key: &Key) -> Option<CursorKey> {
+    match key {
+        Key::Named(NamedKey::ArrowUp) => Some(CursorKey::Up),
+        Key::Named(NamedKey::ArrowDown) => Some(CursorKey::Down),
+        Key::Named(NamedKey::ArrowRight) => Some(CursorKey::Right),
+        Key::Named(NamedKey::ArrowLeft) => Some(CursorKey::Left),
+        _ => None,
+    }
+}
+
+fn terminal_mouse_button(button: MouseButton) -> Option<TerminalMouseButton> {
+    match button {
+        MouseButton::Left => Some(TerminalMouseButton::Left),
+        MouseButton::Middle => Some(TerminalMouseButton::Middle),
+        MouseButton::Right => Some(TerminalMouseButton::Right),
+        _ => None,
+    }
+}
+
+fn terminal_cell_at(
+    position: PhysicalPosition<f64>,
+    metrics: CellMetrics,
+    dimensions: TerminalDimensions,
+) -> Option<(usize, usize)> {
+    if !position.x.is_finite() || !position.y.is_finite() || position.x < 0.0 || position.y < 0.0 {
+        return None;
+    }
+    let column = (position.x / f64::from(metrics.width())) as usize;
+    let row = (position.y / f64::from(metrics.height())) as usize;
+    (column < dimensions.columns() && row < dimensions.rows()).then_some((column, row))
 }
 
 fn viewport_navigation_from_logical_key(key: &Key) -> Option<ViewportNavigation> {
@@ -1017,11 +1130,11 @@ mod tests {
     use super::{
         BasicKey, FrameState, PendingResize, PhysicalSizeSync, RecoveryRedraw, SurfaceRestore,
         ViewportNavigation, WindowsShellSource, basic_backspace_byte_for_platform, basic_key_input,
-        parse_terminal_output, pty_size_for_terminal, scroll_terminal_for_wheel,
-        select_windows_shell, terminal_dimensions_for_viewport,
-        viewport_navigation_from_logical_key, wheel_scroll_rows,
+        cursor_key_from_logical_key, parse_terminal_output, pty_size_for_terminal,
+        scroll_terminal_for_wheel, select_windows_shell, terminal_cell_at,
+        terminal_dimensions_for_viewport, viewport_navigation_from_logical_key, wheel_scroll_rows,
     };
-    use terminal_core::{TerminalDimensions, TerminalParser, TerminalState};
+    use terminal_core::{CursorKey, TerminalDimensions, TerminalParser, TerminalState};
     use terminal_renderer::CellMetrics;
     use winit::dpi::{PhysicalPosition, PhysicalSize};
     use winit::event::MouseScrollDelta;
@@ -1114,6 +1227,44 @@ mod tests {
             Some(ViewportNavigation::PageDown)
         );
         assert_eq!(basic_key_input(None, None), None);
+    }
+
+    #[test]
+    fn arrow_keys_map_to_core_cursor_keys() {
+        assert_eq!(
+            cursor_key_from_logical_key(&Key::Named(NamedKey::ArrowUp)),
+            Some(CursorKey::Up)
+        );
+        assert_eq!(
+            cursor_key_from_logical_key(&Key::Named(NamedKey::ArrowDown)),
+            Some(CursorKey::Down)
+        );
+        assert_eq!(
+            cursor_key_from_logical_key(&Key::Named(NamedKey::ArrowRight)),
+            Some(CursorKey::Right)
+        );
+        assert_eq!(
+            cursor_key_from_logical_key(&Key::Named(NamedKey::ArrowLeft)),
+            Some(CursorKey::Left)
+        );
+    }
+
+    #[test]
+    fn pointer_position_maps_only_inside_terminal_cells() {
+        let dimensions = TerminalDimensions::new(2, 2).unwrap();
+        let metrics = CellMetrics::from_physical(10, 20, 12.0);
+        assert_eq!(
+            terminal_cell_at(PhysicalPosition::new(19.0, 39.0), metrics, dimensions),
+            Some((1, 1))
+        );
+        assert_eq!(
+            terminal_cell_at(PhysicalPosition::new(20.0, 10.0), metrics, dimensions),
+            None
+        );
+        assert_eq!(
+            terminal_cell_at(PhysicalPosition::new(-1.0, 10.0), metrics, dimensions),
+            None
+        );
     }
 
     #[test]
