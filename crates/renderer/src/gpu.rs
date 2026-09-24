@@ -331,6 +331,12 @@ pub(super) struct FrameContext<'a> {
     pub(super) cell_metrics: crate::CellMetrics,
 }
 
+pub(super) struct PaneDraw {
+    pub rect: [u32; 4],
+    pub clear: bool,
+    pub focused_border: bool,
+}
+
 impl DrawResources {
     pub(super) fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Self {
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -390,6 +396,7 @@ impl DrawResources {
         }
     }
 
+    #[cfg(test)]
     pub(super) fn draw(
         &mut self,
         device: &wgpu::Device,
@@ -398,6 +405,36 @@ impl DrawResources {
         data: &TerminalRenderData,
         font_system: &mut FontSystem,
     ) -> RenderWork {
+        let pane = [
+            0,
+            0,
+            frame.surface_size.width(),
+            frame.surface_size.height(),
+        ];
+        self.draw_pane(
+            device,
+            queue,
+            frame,
+            data,
+            font_system,
+            PaneDraw {
+                rect: pane,
+                clear: true,
+                focused_border: false,
+            },
+        )
+    }
+
+    pub(super) fn draw_pane(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        frame: FrameContext<'_>,
+        data: &TerminalRenderData,
+        font_system: &mut FontSystem,
+        pane_draw: PaneDraw,
+    ) -> RenderWork {
+        let pane = pane_draw.rect;
         let generation_start = Instant::now();
         let mut shape_calls = 0;
         let mut shape_misses = 0;
@@ -412,8 +449,8 @@ impl DrawResources {
         let mut previous_geometry: Option<GlyphGeometrySample> = None;
         let mut geometry_pair_logged = false;
         for cell in &data.cells {
-            let x = cell.column as f32 * cell_width;
-            let y = cell.row as f32 * cell_height;
+            let x = pane[0] as f32 + cell.column as f32 * cell_width;
+            let y = pane[1] as f32 + cell.row as f32 * cell_height;
             let width = cell.width as f32 * cell_width;
             self.rectangles.push(RectInstance {
                 rect: to_clip_rect(x, y, width, cell_height, frame.surface_size),
@@ -517,8 +554,8 @@ impl DrawResources {
         if let Some(cursor) = data.cursor {
             overlays.push(RectInstance {
                 rect: to_clip_rect(
-                    cursor.column as f32 * cell_width,
-                    cursor.row as f32 * cell_height,
+                    pane[0] as f32 + cursor.column as f32 * cell_width,
+                    pane[1] as f32 + cursor.row as f32 * cell_height,
                     cell_width,
                     cell_height,
                     frame.surface_size,
@@ -527,16 +564,56 @@ impl DrawResources {
             });
         }
         if let Some(scrollbar) = data.scrollbar
-            && let Some(geometry) = scrollbar_geometry(scrollbar, frame.surface_size, cell_height)
+            && let Some(geometry) = scrollbar_geometry(
+                scrollbar,
+                crate::SurfaceSize::new(pane[2], pane[3]).unwrap(),
+                cell_height,
+            )
         {
             overlays.push(RectInstance {
-                rect: to_clip_rect_from_pixels(geometry.track, frame.surface_size),
+                rect: to_clip_rect(
+                    pane[0] as f32 + geometry.track[0],
+                    pane[1] as f32 + geometry.track[1],
+                    geometry.track[2],
+                    geometry.track[3],
+                    frame.surface_size,
+                ),
                 color: [0.25, 0.25, 0.25, 0.65],
             });
             overlays.push(RectInstance {
-                rect: to_clip_rect_from_pixels(geometry.thumb, frame.surface_size),
+                rect: to_clip_rect(
+                    pane[0] as f32 + geometry.thumb[0],
+                    pane[1] as f32 + geometry.thumb[1],
+                    geometry.thumb[2],
+                    geometry.thumb[3],
+                    frame.surface_size,
+                ),
                 color: [0.7, 0.7, 0.7, 0.9],
             });
+        }
+        if pane_draw.focused_border && pane[2] > 1 && pane[3] > 1 {
+            let color = [0.35, 0.65, 1.0, 0.9];
+            for rect in [
+                [pane[0] as f32, pane[1] as f32, pane[2] as f32, 2.0],
+                [
+                    pane[0] as f32,
+                    (pane[1] + pane[3] - 2) as f32,
+                    pane[2] as f32,
+                    2.0,
+                ],
+                [pane[0] as f32, pane[1] as f32, 2.0, pane[3] as f32],
+                [
+                    (pane[0] + pane[2] - 2) as f32,
+                    pane[1] as f32,
+                    2.0,
+                    pane[3] as f32,
+                ],
+            ] {
+                overlays.push(RectInstance {
+                    rect: to_clip_rect_from_pixels(rect, frame.surface_size),
+                    color,
+                });
+            }
         }
         let rectangle_count = self.rectangles.len();
         let glyph_count = self.glyphs.len();
@@ -579,12 +656,16 @@ impl DrawResources {
                     view: frame.target,
                     resolve_target: None,
                     ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color {
-                            r: data.surface_background.0[0] as f64,
-                            g: data.surface_background.0[1] as f64,
-                            b: data.surface_background.0[2] as f64,
-                            a: data.surface_background.0[3] as f64,
-                        }),
+                        load: if pane_draw.clear {
+                            wgpu::LoadOp::Clear(wgpu::Color {
+                                r: data.surface_background.0[0] as f64,
+                                g: data.surface_background.0[1] as f64,
+                                b: data.surface_background.0[2] as f64,
+                                a: data.surface_background.0[3] as f64,
+                            })
+                        } else {
+                            wgpu::LoadOp::Load
+                        },
                         store: wgpu::StoreOp::Store,
                     },
                 })],
@@ -592,6 +673,7 @@ impl DrawResources {
                 timestamp_writes: None,
                 occlusion_query_set: None,
             });
+            pass.set_scissor_rect(pane[0], pane[1], pane[2], pane[3]);
             if rectangle_count != 0 {
                 pass.set_pipeline(&self.rect_pipeline);
                 pass.set_vertex_buffer(
