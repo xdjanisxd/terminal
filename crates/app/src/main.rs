@@ -1465,7 +1465,12 @@ impl ApplicationHandler<PtyWake> for Application {
                     );
                 } else {
                     let key = basic_key_from_logical_key(&event.logical_key);
-                    if let Some(bytes) = basic_key_input(event.text.as_deref(), key) {
+                    if let Some(bytes) = terminal_key_input(
+                        event.text.as_deref(),
+                        key,
+                        event.physical_key,
+                        self.modifiers,
+                    ) {
                         emit_diagnostic(format_args!("app event=key-input bytes={}", bytes.len()));
                         let is_backspace = key == Some(BasicKey::Backspace)
                             || event.physical_key == PhysicalKey::Code(KeyCode::Backspace);
@@ -1802,6 +1807,18 @@ fn basic_key_input(text: Option<&str>, key: Option<BasicKey>) -> Option<Vec<u8>>
     })
 }
 
+fn terminal_key_input(
+    text: Option<&str>,
+    key: Option<BasicKey>,
+    physical_key: PhysicalKey,
+    modifiers: ModifiersState,
+) -> Option<Vec<u8>> {
+    if physical_key == PhysicalKey::Code(KeyCode::KeyC) && modifiers == ModifiersState::CONTROL {
+        return Some(vec![0x03]);
+    }
+    basic_key_input(text, key)
+}
+
 fn basic_backspace_byte_for_platform(_windows: bool) -> u8 {
     0x7f
 }
@@ -1994,7 +2011,7 @@ mod tests {
         basic_backspace_byte_for_platform, basic_key_input, configured_command,
         cursor_key_from_logical_key, pane_dimensions, parse_terminal_output, pty_size_for_terminal,
         scroll_terminal_for_wheel, select_windows_shell, target_at_pointer, terminal_cell_at,
-        terminal_dimensions_for_viewport, wheel_scroll_rows,
+        terminal_dimensions_for_viewport, terminal_key_input, wheel_scroll_rows,
     };
     use terminal_config::{Command, Config, Rgb};
     use terminal_core::{CursorKey, TerminalDimensions, TerminalParser, TerminalState};
@@ -2325,6 +2342,72 @@ mod tests {
             Some(vec![0x1b])
         );
         assert_eq!(basic_key_input(None, None), None);
+    }
+
+    #[test]
+    fn ctrl_c_encodes_etx_instead_of_committed_text() {
+        assert_eq!(
+            terminal_key_input(
+                Some("c"),
+                None,
+                PhysicalKey::Code(KeyCode::KeyC),
+                ModifiersState::CONTROL,
+            ),
+            Some(vec![0x03])
+        );
+        assert_eq!(
+            terminal_key_input(
+                None,
+                None,
+                PhysicalKey::Code(KeyCode::KeyC),
+                ModifiersState::CONTROL,
+            ),
+            Some(vec![0x03])
+        );
+    }
+
+    #[test]
+    fn plain_c_and_other_keys_keep_their_committed_text() {
+        assert_eq!(
+            terminal_key_input(
+                Some("c"),
+                None,
+                PhysicalKey::Code(KeyCode::KeyC),
+                ModifiersState::empty(),
+            ),
+            Some(b"c".to_vec())
+        );
+        assert_eq!(
+            terminal_key_input(
+                Some("x"),
+                None,
+                PhysicalKey::Code(KeyCode::KeyX),
+                ModifiersState::CONTROL,
+            ),
+            Some(b"x".to_vec())
+        );
+    }
+
+    #[test]
+    fn copy_shortcut_and_configured_ctrl_c_keep_command_precedence() {
+        let copy = ModifiersState::CONTROL | ModifiersState::SHIFT;
+        assert_eq!(
+            configured_command(&Config::default(), PhysicalKey::Code(KeyCode::KeyC), copy),
+            Some(Command::Copy)
+        );
+        assert_eq!(
+            terminal_key_input(Some("C"), None, PhysicalKey::Code(KeyCode::KeyC), copy),
+            Some(b"C".to_vec())
+        );
+        let config = Config::parse("[[bindings]]\nkey = 'Ctrl+C'\naction = 'copy'").unwrap();
+        assert_eq!(
+            configured_command(
+                &config,
+                PhysicalKey::Code(KeyCode::KeyC),
+                ModifiersState::CONTROL,
+            ),
+            Some(Command::Copy)
+        );
     }
 
     #[test]
