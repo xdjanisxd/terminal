@@ -1,3 +1,8 @@
+#![cfg_attr(
+    all(target_os = "windows", not(debug_assertions)),
+    windows_subsystem = "windows"
+)]
+
 //! Native application lifecycle and component wiring.
 
 mod commands;
@@ -11,7 +16,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
-use terminal_config::{Command, Config, Rgb};
+use terminal_config::{Command, Config, FontConfig, Rgb};
 
 use terminal_core::{
     CellColor, CursorKey, InputModes, MAX_COLUMNS, MAX_GRID_CELLS, MAX_ROWS,
@@ -23,7 +28,7 @@ use terminal_pty::{
     PortablePtyBackend, PtyBackend, PtyOutput, PtySize, PtySpawnConfig, PtyWorker, PtyWorkerEvent,
 };
 use terminal_renderer::{
-    CellMetrics, OverlayLine, PaneRenderInput, RedrawOutcome, RenderTheme, Renderer,
+    CellMetrics, FontRequest, OverlayLine, PaneRenderInput, RedrawOutcome, RenderTheme, Renderer,
     RendererDiagnosticState, Rgba, TextOverlay, diagnostics_enabled, emit_diagnostic,
 };
 use terminal_workspace::{
@@ -897,7 +902,11 @@ impl Application {
         }
 
         let window = self.window.as_ref().unwrap();
-        match Renderer::new(Arc::clone(window)) {
+        match Renderer::new_with_font_settings(
+            Arc::clone(window),
+            font_request(&self.config.font),
+            f32::from(self.config.font.size),
+        ) {
             Ok(mut renderer) => {
                 renderer.set_theme(render_theme(&self.config.theme));
                 self.renderer = Some(renderer);
@@ -2054,6 +2063,13 @@ fn config_fingerprint(path: &std::path::Path) -> Option<u64> {
     Some(hasher.finish())
 }
 
+fn font_request(font: &FontConfig) -> FontRequest {
+    match &font.family {
+        Some(family) => FontRequest::Family(family.clone()),
+        None => FontRequest::SystemMonospace,
+    }
+}
+
 fn render_theme(theme: &terminal_config::Theme) -> RenderTheme {
     let rgba = |color: Rgb, alpha: f32| {
         Rgba([
@@ -2130,19 +2146,32 @@ mod tests {
         Application, BasicKey, CliOptions, FrameState, PaletteAction, PendingResize,
         PhysicalSizeSync, RecoveryRedraw, SurfaceRestore, WindowsShellSource,
         basic_backspace_byte_for_platform, basic_key_input, configured_command,
-        cursor_key_from_logical_key, pane_dimensions, parse_terminal_output, pty_size_for_terminal,
-        queue_terminal_input, scroll_terminal_for_wheel, select_windows_shell, target_at_pointer,
-        terminal_cell_at, terminal_cursor_key_input, terminal_dimensions_for_viewport,
-        terminal_key_input, wheel_scroll_rows,
+        cursor_key_from_logical_key, font_request, pane_dimensions, parse_terminal_output,
+        pty_size_for_terminal, queue_terminal_input, scroll_terminal_for_wheel,
+        select_windows_shell, target_at_pointer, terminal_cell_at, terminal_cursor_key_input,
+        terminal_dimensions_for_viewport, terminal_key_input, wheel_scroll_rows,
     };
     use terminal_config::{Command, Config, Rgb};
     use terminal_core::{CursorKey, TerminalDimensions, TerminalParser, TerminalState};
     use terminal_pty::{PtyOutput, PtyWorkerEvent};
-    use terminal_renderer::CellMetrics;
+    use terminal_renderer::{CellMetrics, FontRequest};
     use terminal_workspace::{LayoutDefinition, SplitAxis};
     use winit::dpi::{PhysicalPosition, PhysicalSize};
     use winit::event::MouseScrollDelta;
     use winit::keyboard::{Key, KeyCode, ModifiersState, NamedKey, PhysicalKey};
+
+    #[test]
+    fn config_font_family_maps_to_renderer_request() {
+        assert_eq!(
+            font_request(&Config::default().font),
+            FontRequest::SystemMonospace
+        );
+        let configured = Config::parse("[font]\nfamily = 'Cascadia Mono'\nsize = 20").unwrap();
+        assert_eq!(
+            font_request(&configured.font),
+            FontRequest::Family("Cascadia Mono".into())
+        );
+    }
 
     #[test]
     fn invalidation_coalesces_requests_until_redraw_consumes_the_damage() {

@@ -312,8 +312,9 @@ impl FontSystem {
     pub(super) fn cell_metrics(
         &self,
         scale_factor: f64,
+        logical_font_size: f32,
     ) -> Result<CellMetrics, FontProcessingError> {
-        let pixels_per_em = DEFAULT_LOGICAL_FONT_SIZE * scale_factor as f32;
+        let pixels_per_em = logical_font_size * scale_factor as f32;
         validate_pixels_per_em(pixels_per_em)?;
         self.database
             .with_face_data(self.primary_face, |data, index| {
@@ -889,8 +890,10 @@ mod tests {
     #[test]
     fn cell_metrics_change_with_dpi_but_not_window_size() {
         let system = fixture_system();
-        let one_x = system.cell_metrics(1.0).unwrap();
-        let two_x = system.cell_metrics(2.0).unwrap();
+        let one_x = system.cell_metrics(1.0, DEFAULT_LOGICAL_FONT_SIZE).unwrap();
+        let two_x = system.cell_metrics(2.0, DEFAULT_LOGICAL_FONT_SIZE).unwrap();
+        let custom_one_x = system.cell_metrics(1.0, 20.0).unwrap();
+        let custom_two_x = system.cell_metrics(2.0, 20.0).unwrap();
 
         assert!(one_x.width() > 0 && one_x.height() > 0);
         assert!(one_x.baseline() > 0 && one_x.baseline() <= one_x.height());
@@ -898,6 +901,9 @@ mod tests {
         assert!(two_x.width() >= one_x.width() && two_x.height() >= one_x.height());
         assert_eq!(one_x.pixels_per_em(), DEFAULT_LOGICAL_FONT_SIZE);
         assert_eq!(two_x.pixels_per_em(), DEFAULT_LOGICAL_FONT_SIZE * 2.0);
+        assert_eq!(custom_one_x.pixels_per_em(), 20.0);
+        assert_eq!(custom_two_x.pixels_per_em(), 40.0);
+        assert!(custom_one_x.height() >= one_x.height());
     }
 
     #[test]
@@ -920,7 +926,7 @@ mod tests {
             .filter_map(|family| {
                 FontSystem::load_system(FontRequest::Family((*family).to_owned()))
                     .ok()
-                    .and_then(|font| font.cell_metrics(1.0).ok())
+                    .and_then(|font| font.cell_metrics(1.0, DEFAULT_LOGICAL_FONT_SIZE).ok())
                     .map(|metrics| (*family, metrics))
             })
             .collect::<Vec<_>>();
