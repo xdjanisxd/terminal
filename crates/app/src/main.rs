@@ -12,10 +12,10 @@ use std::time::Duration;
 use terminal_config::{Command, Config, Rgb};
 
 use terminal_core::{
-    CellColor, CursorKey, MAX_COLUMNS, MAX_GRID_CELLS, MAX_ROWS,
+    CellColor, CursorKey, InputModes, MAX_COLUMNS, MAX_GRID_CELLS, MAX_ROWS,
     MouseButton as TerminalMouseButton, MouseEvent, MouseModifiers, MouseTracking, Osc52Policy,
-    TerminalDimensions, TerminalParser, TerminalState, UnderlineStyle, encode_cursor_key,
-    encode_focus, encode_mouse, encode_paste,
+    TerminalDimensions, TerminalParser, TerminalState, UnderlineStyle, encode_control_cursor_key,
+    encode_cursor_key, encode_focus, encode_mouse, encode_paste,
 };
 use terminal_pty::{
     PortablePtyBackend, PtyBackend, PtyOutput, PtySize, PtySpawnConfig, PtyWorker, PtyWorkerEvent,
@@ -1487,6 +1487,13 @@ impl ApplicationHandler<PtyWake> for Application {
                 } else if let Some(cursor_key) = cursor_key_from_logical_key(&event.logical_key) {
                     self.write_terminal_input(
                         encode_cursor_key(*self.terminal.input_modes(), cursor_key).to_vec(),
+                    self.write_to_pty(
+                        terminal_cursor_key_input(
+                            *self.terminal.input_modes(),
+                            cursor_key,
+                            self.modifiers,
+                        )
+                        .to_vec(),
                     );
                 } else {
                     let key = basic_key_from_logical_key(&event.logical_key);
@@ -1832,6 +1839,19 @@ fn basic_key_input(text: Option<&str>, key: Option<BasicKey>) -> Option<Vec<u8>>
     })
 }
 
+fn terminal_cursor_key_input(
+    modes: InputModes,
+    key: CursorKey,
+    modifiers: ModifiersState,
+) -> &'static [u8] {
+    if modifiers == ModifiersState::CONTROL
+        && let Some(bytes) = encode_control_cursor_key(key)
+    {
+        return bytes;
+    }
+    encode_cursor_key(modes, key)
+}
+
 fn terminal_key_input(
     text: Option<&str>,
     key: Option<BasicKey>,
@@ -2037,6 +2057,9 @@ mod tests {
         cursor_key_from_logical_key, pane_dimensions, parse_terminal_output, pty_size_for_terminal,
         queue_terminal_input, scroll_terminal_for_wheel, select_windows_shell, target_at_pointer,
         terminal_cell_at, terminal_dimensions_for_viewport, terminal_key_input, wheel_scroll_rows,
+        scroll_terminal_for_wheel, select_windows_shell, target_at_pointer, terminal_cell_at,
+        terminal_cursor_key_input, terminal_dimensions_for_viewport, terminal_key_input,
+        wheel_scroll_rows,
     };
     use terminal_config::{Command, Config, Rgb};
     use terminal_core::{CursorKey, TerminalDimensions, TerminalParser, TerminalState};
@@ -2656,6 +2679,82 @@ mod tests {
         assert_eq!(
             cursor_key_from_logical_key(&Key::Named(NamedKey::ArrowLeft)),
             Some(CursorKey::Left)
+        );
+    }
+
+    #[test]
+    fn control_left_and_right_encode_for_pty_after_command_dispatch() {
+        let (mut parser, mut terminal) = (
+            TerminalParser::new(),
+            TerminalState::new(TerminalDimensions::new(80, 24).unwrap()),
+        );
+        for application_mode in [false, true] {
+            if application_mode {
+                parser.advance(&mut terminal, b"\x1b[?1h").unwrap();
+            }
+            let modes = *terminal.input_modes();
+            let plain_left = if application_mode {
+                b"\x1bOD"
+            } else {
+                b"\x1b[D"
+            };
+            let plain_right = if application_mode {
+                b"\x1bOC"
+            } else {
+                b"\x1b[C"
+            };
+            assert_eq!(
+                terminal_cursor_key_input(modes, CursorKey::Left, ModifiersState::empty()),
+                plain_left
+            );
+            assert_eq!(
+                terminal_cursor_key_input(modes, CursorKey::Right, ModifiersState::empty()),
+                plain_right
+            );
+            assert_eq!(
+                terminal_cursor_key_input(modes, CursorKey::Left, ModifiersState::CONTROL),
+                b"\x1b[1;5D"
+            );
+            assert_eq!(
+                terminal_cursor_key_input(modes, CursorKey::Right, ModifiersState::CONTROL),
+                b"\x1b[1;5C"
+            );
+            assert_eq!(
+                terminal_cursor_key_input(
+                    modes,
+                    CursorKey::Left,
+                    ModifiersState::CONTROL | ModifiersState::SHIFT
+                ),
+                plain_left
+            );
+        }
+
+        let defaults = Config::default();
+        assert_eq!(
+            configured_command(
+                &defaults,
+                PhysicalKey::Code(KeyCode::ArrowRight),
+                ModifiersState::CONTROL | ModifiersState::SHIFT
+            ),
+            Some(Command::NextPane)
+        );
+        assert_eq!(
+            configured_command(
+                &defaults,
+                PhysicalKey::Code(KeyCode::ArrowLeft),
+                ModifiersState::CONTROL | ModifiersState::SHIFT
+            ),
+            Some(Command::PreviousPane)
+        );
+        let custom =
+            Config::parse("[[bindings]]\nkey = 'Ctrl+ArrowLeft'\naction = 'copy'").unwrap();
+        assert_eq!(
+            configured_command(
+                &custom,
+                PhysicalKey::Code(KeyCode::ArrowLeft),
+                ModifiersState::CONTROL
+            ),
+            Some(Command::Copy)
         );
     }
 
