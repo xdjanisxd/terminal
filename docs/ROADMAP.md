@@ -128,7 +128,7 @@ later performance/polish work.
 - [x] Add project roots, startup commands, expanded command palette features, and basic CLI control
 - [x] Establish compatibility, fuzzing, and performance baselines
   - Representative shell/TUI fixtures, deterministic CI input tests, isolated libFuzzer targets, and fixed-workload parser/state/projection benchmarks are documented in `docs/BASELINES.md`. Fuzz execution on a supported host remains to be run.
-- [ ] Dedicated input and frame-pacing performance task: investigate delayed typing/input, janky Backspace/delete, non-smooth PageUp/PageDown, live resize trailing the pointer (including temporary text scaling), and overall UI/frame pacing relative to mature terminals such as Alacritty
+- [x] Dedicated input and frame-pacing performance task: investigate delayed typing/input, janky Backspace/delete, non-smooth PageUp/PageDown, live resize trailing the pointer (including temporary text scaling), and overall UI/frame pacing relative to mature terminals such as Alacritty
 - [ ] Add an in-terminal search UI for Primary-screen scrollback, with next/previous match navigation bounded to terminal-owned history and the visible viewport.
 - [ ] Add directional pane focus commands (left, right, above, below) that follow pane layout geometry rather than pane creation order.
 - [ ] Add directional keyboard shortcuts to grow or shrink the active pane while preserving valid, bounded geometry in the existing split layout.
