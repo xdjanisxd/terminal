@@ -1,7 +1,7 @@
 use terminal_core::{
     CursorKey, CursorKeyMode, MouseButton, MouseEncoding, MouseEvent, MouseModifiers,
-    MouseTracking, TerminalDimensions, TerminalParser, TerminalState, encode_cursor_key,
-    encode_focus, encode_mouse, encode_paste,
+    MouseTracking, TerminalDimensions, TerminalParser, TerminalState, encode_control_cursor_key,
+    encode_cursor_key, encode_focus, encode_mouse, encode_paste,
 };
 
 fn terminal() -> (TerminalParser, TerminalState) {
@@ -39,6 +39,36 @@ fn output_modes_drive_cursor_focus_and_paste_bytes() {
     assert_eq!(encode_cursor_key(modes, CursorKey::Left), b"\x1b[D");
     assert_eq!(encode_focus(modes, false), None);
     assert_eq!(encode_paste(modes, "x"), b"x");
+}
+
+#[test]
+fn control_left_and_right_use_modified_csi_in_both_cursor_key_modes() {
+    let (mut parser, mut terminal) = terminal();
+    for application_mode in [false, true] {
+        if application_mode {
+            assert!(parser.advance(&mut terminal, b"\x1b[?1h").is_ok());
+        }
+        let modes = *terminal.input_modes();
+        assert_eq!(
+            encode_control_cursor_key(CursorKey::Left),
+            Some(b"\x1b[1;5D".as_slice())
+        );
+        assert_eq!(
+            encode_control_cursor_key(CursorKey::Right),
+            Some(b"\x1b[1;5C".as_slice())
+        );
+        assert_eq!(encode_control_cursor_key(CursorKey::Up), None);
+        assert_eq!(encode_control_cursor_key(CursorKey::Down), None);
+        let prefix = if application_mode { b'O' } else { b'[' };
+        assert_eq!(
+            encode_cursor_key(modes, CursorKey::Left),
+            &[0x1b, prefix, b'D']
+        );
+        assert_eq!(
+            encode_cursor_key(modes, CursorKey::Right),
+            &[0x1b, prefix, b'C']
+        );
+    }
 }
 
 #[test]
