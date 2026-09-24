@@ -422,6 +422,12 @@ mod tests {
         assert_eq!(config.bindings, Config::default().bindings);
     }
     #[test]
+    fn repository_example_loads_through_config_file_path() {
+        let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../config.example.toml");
+        let config = Config::load(&path).unwrap();
+        assert_eq!(config, Config::default());
+    }
+    #[test]
     fn bindings_replace_defaults_and_are_typed() {
         let config = Config::parse("[[bindings]]\nkey = 'Alt+PageUp'\naction = 'page_up'").unwrap();
         assert_eq!(config.bindings.len(), 1);

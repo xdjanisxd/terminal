@@ -1,0 +1,110 @@
+# Copy this file to the platform config path described in docs/CONFIG.md.
+# Omitted top-level sections use built-in defaults. Within an explicit workspace,
+# tab titles, layouts, pane sessions, and split children are required.
+# Unknown fields reject the file.
+
+[theme]
+# Colors use #RRGGBB.
+foreground = "#e6e6e6"           # Text color.
+background = "#000000"           # Terminal background.
+cursor = "#e6e6e6"               # Cursor color.
+selection_foreground = "#ffffff" # Selected text.
+selection_background = "#2e59a6" # Selection background.
+# Exactly 16 ANSI colors, indexes 0 through 15.
+ansi = [
+  "#000000", "#cd3131", "#0dbc79", "#e5e510",
+  "#2472c8", "#bc3fbc", "#11a8cd", "#e5e5e5",
+  "#666666", "#f14c4c", "#23d18b", "#f5f543",
+  "#3b8eea", "#d670d6", "#29b8db", "#ffffff",
+]
+
+# Binding entries replace the entire default list; keep any shortcuts you want.
+# A chord uses optional Ctrl, Shift, Alt, then a physical key. Supported keys:
+# A-Z, 0-9, PageUp, PageDown, Home, End, Insert, Delete, Tab,
+# ArrowLeft, ArrowRight. Plain letters and digits require a modifier.
+# Commands: copy, paste, page_up, page_down, open_palette, open_target,
+# new_tab, split_horizontal, split_vertical, next_tab, previous_tab,
+# next_pane, previous_pane, close_pane. "action" aliases "command".
+[[bindings]]
+key = "Ctrl+Shift+C"
+command = "copy"
+
+[[bindings]]
+key = "Ctrl+Shift+V"
+command = "paste"
+
+[[bindings]]
+key = "PageUp"
+command = "page_up"
+
+[[bindings]]
+key = "PageDown"
+command = "page_down"
+
+[[bindings]]
+key = "Ctrl+Shift+P"
+command = "open_palette"
+
+[[bindings]]
+key = "Ctrl+Shift+T"
+command = "new_tab"
+
+[[bindings]]
+key = "Ctrl+Shift+E"
+command = "split_vertical"
+
+[[bindings]]
+key = "Ctrl+Shift+O"
+command = "split_horizontal"
+
+[[bindings]]
+key = "Ctrl+Tab"
+command = "next_tab"
+
+[[bindings]]
+key = "Ctrl+Shift+Tab"
+command = "previous_tab"
+
+[[bindings]]
+key = "Ctrl+Shift+ArrowRight"
+command = "next_pane"
+
+[[bindings]]
+key = "Ctrl+Shift+ArrowLeft"
+command = "previous_pane"
+
+[[bindings]]
+key = "Ctrl+Shift+W"
+command = "close_pane"
+
+[workspace]
+# Default: no project_root. Set a path to choose the working directory for
+# panes without a more specific tab or pane root. Relative paths resolve from
+# the config file directory. Example: project_root = "../my-project"
+active_tab = 0 # Zero-based index of the initially focused tab.
+
+[[workspace.tabs]]
+title = "Terminal 1" # Initial tab title.
+# Default: no tab project_root. It overrides workspace.project_root.
+# Example: project_root = "../my-project"
+active_pane = 0 # Zero-based initial pane index, in layout leaf order.
+
+[workspace.tabs.layout]
+kind = "pane" # "pane" or "split"; a split has axis, first, and second.
+# Default: no pane project_root. It overrides tab and workspace roots.
+# Example: project_root = "../my-project"
+session = "local_shell" # Required for a pane; or use the command table below.
+
+# To start a command in this pane, replace the session line above with:
+# [workspace.tabs.layout.session.command]
+# program = "cargo" # Executable path or name; no shell interpolation.
+# args = ["--version"] # Default: []; arguments passed directly.
+#
+# A split layout can be written inline in a tab instead of the layout table:
+# layout = { kind = "split", axis = "vertical", first = { kind = "pane", session = "local_shell" }, second = { kind = "pane", session = "local_shell" } }
+# axis accepts "vertical" or "horizontal"; each child can itself be a split.
+
+# Optional project palette entry (default: no projects):
+# [[projects]]
+# name = "My project" # Must be nonempty and unique.
+# path = "../my-project" # Nonempty; relative to the config file directory.
