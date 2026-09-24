@@ -1,12 +1,17 @@
 # Configuration
 
-`terminal-config` owns the typed defaults, TOML parsing, and validation. The app loads the file at startup, retains the last valid configuration, resolves configured keys to typed commands, and passes colors to the renderer. Terminal state and command execution remain outside the config crate.
+`terminal-config` owns the typed defaults, TOML parsing, and validation. The app loads the file at startup, retains the last valid configuration, resolves configured keys to typed commands, and passes font settings and colors to the renderer. Terminal state and command execution remain outside the config crate.
 
 The config file is `%APPDATA%\terminal\config.toml` on Windows and `${XDG_CONFIG_HOME:-$HOME/.config}/terminal/config.toml` elsewhere. `TERMINAL_CONFIG` overrides the full path. A missing file uses defaults; the app does not create one.
 
-The complete, ready-to-copy example is [`config.example.toml`](../config.example.toml) at the repository root. Copy it to the config file location above, then edit the values you want. Omitted theme fields use their individual defaults; omitting `[workspace]`, `bindings`, or `projects` uses the default single-pane workspace, default shortcuts, or no projects, respectively. The example lists the actual defaults and valid values in comments.
+The complete, ready-to-copy example is [`config.example.toml`](../config.example.toml) at the repository root. Copy it to the config file location above, then edit the values you want. Omitted font and theme fields use their individual defaults; omitting `[workspace]`, `bindings`, or `projects` uses the default single-pane workspace, default shortcuts, or no projects, respectively. The example lists the actual defaults and valid values in comments.
 
 ```toml
+[font]
+# Omit family to use the platform-selected monospace font.
+# family = "Cascadia Mono"
+size = 16
+
 [theme]
 foreground = "#e6e6e6"
 background = "#000000"
@@ -43,7 +48,11 @@ The palette lists copy, paste, scrollback, and workspace commands from the app c
 
 Unknown fields or commands, malformed TOML, invalid colors, incomplete ANSI palettes, unsupported chords, and duplicate chords reject the whole file. Errors include the file path and either TOML's source location or the field/binding index. On a reload error, the app writes the error to stderr and keeps the last valid config.
 
-The app checks the file contents every 500 ms and posts a change event to its main loop. Theme, keybindings, and project palette entries apply after a valid reload without restarting the PTY. Removing the file restores defaults. A short lived invalid file during editing can produce an error; a later valid save is applied. An open palette retains its query; changed bindings affect the next keypress outside the palette. Workspace definitions require an app restart.
+The app checks the file contents every 500 ms and posts a change event to its main loop. Theme, keybindings, and project palette entries apply after a valid reload without restarting the PTY. Removing the file restores defaults for those live settings. A short lived invalid file during editing can produce an error; a later valid save is applied. An open palette retains its query; changed bindings affect the next keypress outside the palette. Font settings and workspace definitions require an app restart; the renderer keeps its startup font until then.
+
+## Font settings
+
+`font.family` selects an installed monospace family by name. If omitted, the renderer uses its platform monospace selection. A missing or proportional family fails renderer initialization. `font.size` is an integer in logical pixels from 1 to 256; it defaults to 16. The renderer scales that size with window DPI when calculating cell metrics and grid dimensions. Fallback faces are selected automatically and cannot be configured. Font family and size are applied when the renderer starts; restart the app after editing `[font]`.
 
 ## Workspace definitions
 
@@ -88,7 +97,7 @@ Definitions reproduce the tab, split, focus, root, and startup command structure
 
 ## CLI
 
-`terminal-app --project-root DIRECTORY` opens the default workspace in that directory. `terminal-app --workspace FILE.toml` loads a config-shaped TOML file that contains `[workspace]`; it can also include `[[projects]]`, theme, and bindings. The two options can be combined. `--project-root` replaces the workspace-level root from the file, while explicit tab and pane roots retain their precedence. `--help` prints usage. Invalid paths and arguments fail before the window opens. There is no external control of an already-running app.
+`terminal-app --project-root DIRECTORY` opens the default workspace in that directory. `terminal-app --workspace FILE.toml` loads a config-shaped TOML file that contains `[workspace]`; it can also include `[[projects]]`, font, theme, and bindings. The two options can be combined. `--project-root` replaces the workspace-level root from the file, while explicit tab and pane roots retain their precedence. `--help` prints usage. Invalid paths and arguments fail before the window opens. There is no external control of an already-running app.
 
 ## Manual smoke
 

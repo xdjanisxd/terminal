@@ -83,10 +83,27 @@ pub struct Binding {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Config {
+    pub font: FontConfig,
     pub theme: Theme,
     pub bindings: Vec<Binding>,
     pub workspace: WorkspaceDefinition,
     pub projects: Vec<ProjectRoot>,
+}
+
+/// Terminal font selection and size in logical pixels.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FontConfig {
+    pub family: Option<String>,
+    pub size: u16,
+}
+
+impl Default for FontConfig {
+    fn default() -> Self {
+        Self {
+            family: None,
+            size: 16,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Deserialize)]
@@ -99,6 +116,7 @@ pub struct ProjectRoot {
 impl Default for Config {
     fn default() -> Self {
         Self {
+            font: FontConfig::default(),
             theme: Theme::default(),
             workspace: WorkspaceDefinition::default(),
             projects: Vec::new(),
@@ -145,6 +163,24 @@ impl Config {
         let raw: RawConfig =
             toml::from_str(source).map_err(|error| ConfigError(error.to_string()))?;
         let mut config = Self::default();
+        if let Some(font) = raw.font {
+            if let Some(family) = font.family {
+                if family.trim().is_empty() {
+                    return Err(ConfigError(
+                        "font.family: expected a nonempty font family".into(),
+                    ));
+                }
+                config.font.family = Some(family);
+            }
+            if let Some(size) = font.size {
+                if !(1..=256).contains(&size) {
+                    return Err(ConfigError(
+                        "font.size: expected 1..=256 logical pixels".into(),
+                    ));
+                }
+                config.font.size = size as u16;
+            }
+        }
         if let Some(workspace) = raw.workspace {
             Workspace::from_definition(&workspace)
                 .map_err(|error| ConfigError(format!("workspace: {error}")))?;
@@ -279,10 +315,18 @@ impl std::error::Error for ConfigError {}
 #[derive(Deserialize, Default)]
 #[serde(default, deny_unknown_fields)]
 struct RawConfig {
+    font: Option<RawFont>,
     theme: Option<RawTheme>,
     bindings: Option<Vec<RawBinding>>,
     workspace: Option<WorkspaceDefinition>,
     projects: Option<Vec<ProjectRoot>>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default, deny_unknown_fields)]
+struct RawFont {
+    family: Option<String>,
+    size: Option<i64>,
 }
 
 #[derive(Deserialize, Default)]
@@ -427,6 +471,39 @@ mod tests {
         let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../config.example.toml");
         let config = Config::load(&path).unwrap();
         assert_eq!(config, Config::default());
+    }
+    #[test]
+    fn font_defaults_and_partial_settings() {
+        assert_eq!(Config::parse("").unwrap().font, FontConfig::default());
+        let family = Config::parse("[font]\nfamily = 'Cascadia Mono'").unwrap();
+        assert_eq!(family.font.family.as_deref(), Some("Cascadia Mono"));
+        assert_eq!(family.font.size, 16);
+        let size = Config::parse("[font]\nsize = 20").unwrap();
+        assert_eq!(size.font.family, None);
+        assert_eq!(size.font.size, 20);
+    }
+    #[test]
+    fn invalid_font_settings_name_the_field() {
+        for source in [
+            "[font]\nsize = -1",
+            "[font]\nsize = 0",
+            "[font]\nsize = 257",
+        ] {
+            assert!(
+                Config::parse(source)
+                    .unwrap_err()
+                    .to_string()
+                    .contains("font.size")
+            );
+        }
+        assert!(Config::parse("[font]\nsize = 16.5").is_err());
+        assert!(
+            Config::parse("[font]\nfamily = '  '")
+                .unwrap_err()
+                .to_string()
+                .contains("font.family")
+        );
+        assert!(Config::parse("[font]\nfallback = 'Other'").is_err());
     }
     #[test]
     fn bindings_replace_defaults_and_are_typed() {

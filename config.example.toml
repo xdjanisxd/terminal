@@ -3,6 +3,11 @@
 # tab titles, layouts, pane sessions, and split children are required.
 # Unknown fields reject the file.
 
+[font]
+# Omit family to use the platform-selected monospace font (default).
+# family = "Cascadia Mono" # Installed monospace family; restart to apply.
+size = 16 # Logical pixels; integer from 1 to 256. Restart to apply.
+
 [theme]
 # Colors use #RRGGBB.
 foreground = "#e6e6e6"           # Text color.

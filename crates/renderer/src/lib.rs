@@ -136,6 +136,7 @@ pub struct Renderer {
     size: Option<SurfaceSize>,
     #[allow(dead_code)]
     font_system: FontSystem,
+    logical_font_size: f32,
     cell_metrics: CellMetrics,
     draw_resources: Option<DrawResources>,
     theme: RenderTheme,
@@ -152,11 +153,20 @@ impl Renderer {
         window: Arc<Window>,
         font_request: FontRequest,
     ) -> Result<Self, RendererInitError> {
+        Self::new_with_font_settings(window, font_request, font::DEFAULT_LOGICAL_FONT_SIZE)
+    }
+
+    /// Creates a renderer with an initial font family and logical pixel size.
+    pub fn new_with_font_settings(
+        window: Arc<Window>,
+        font_request: FontRequest,
+        logical_font_size: f32,
+    ) -> Result<Self, RendererInitError> {
         let font_system = FontSystem::load_system(font_request).map_err(|error| {
             RendererInitError::new(format!("could not load terminal font: {error}"))
         })?;
         let cell_metrics = font_system
-            .cell_metrics(window.scale_factor())
+            .cell_metrics(window.scale_factor(), logical_font_size)
             .map_err(|error| {
                 RendererInitError::new(format!("could not derive terminal cell metrics: {error}"))
             })?;
@@ -177,6 +187,7 @@ impl Renderer {
             configuration: None,
             size,
             font_system,
+            logical_font_size,
             cell_metrics,
             draw_resources: None,
             theme: RenderTheme::default(),
@@ -231,7 +242,9 @@ impl Renderer {
 
     /// Updates DPI-derived cell metrics without coupling font size to window size.
     pub fn set_scale_factor(&mut self, scale_factor: f64) -> Result<bool, FontProcessingError> {
-        let metrics = self.font_system.cell_metrics(scale_factor)?;
+        let metrics = self
+            .font_system
+            .cell_metrics(scale_factor, self.logical_font_size)?;
         if self.cell_metrics == metrics {
             return Ok(false);
         }
