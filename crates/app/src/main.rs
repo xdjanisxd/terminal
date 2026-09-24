@@ -1,8 +1,10 @@
 //! Native application lifecycle and component wiring.
 
 mod commands;
+mod search;
 
 use commands::{Palette, PaletteAction};
+use search::Search;
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::path::PathBuf;
@@ -65,6 +67,7 @@ struct Application {
     config_path: PathBuf,
     project_root_override: Option<PathBuf>,
     palette: Option<Palette>,
+    search: Option<Search>,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -417,6 +420,7 @@ impl Default for Application {
             config_path: config_path(),
             project_root_override: None,
             palette: None,
+            search: None,
         }
     }
 }
@@ -591,6 +595,7 @@ impl Application {
         if current == next {
             return;
         }
+        self.search = None;
         let next_runtime = self
             .inactive_panes
             .remove(&next)
@@ -788,7 +793,64 @@ impl Application {
                 selected: index == palette.selected(),
             }));
         }
-        Some(TextOverlay { lines })
+        Some(TextOverlay {
+            lines,
+            bottom: false,
+            highlight: None,
+        })
+    }
+
+    fn handle_search_key(&mut self, key: &Key, text: Option<&str>) {
+        let Some(mut search) = self.search.take() else {
+            return;
+        };
+        match key {
+            Key::Named(NamedKey::Escape) => {}
+            Key::Named(NamedKey::Enter) => {
+                search.navigate(
+                    &mut self.terminal,
+                    if self.modifiers.shift_key() { -1 } else { 1 },
+                );
+                self.search = Some(search);
+            }
+            Key::Named(NamedKey::Backspace) => {
+                search.backspace(&mut self.terminal);
+                self.search = Some(search);
+            }
+            _ => {
+                if !self.modifiers.control_key()
+                    && !self.modifiers.alt_key()
+                    && !self.modifiers.super_key()
+                    && let Some(text) = text
+                {
+                    search.push_text(text, &mut self.terminal);
+                }
+                self.search = Some(search);
+            }
+        }
+        self.invalidate_frame();
+    }
+
+    fn search_overlay(&self) -> Option<TextOverlay> {
+        let search = self.search.as_ref()?;
+        let status = match search.position() {
+            Some(position) => format!("{position}/{}", search.count()),
+            None if search.query().is_empty() => "Enter a query".into(),
+            None => "No matches".into(),
+        };
+        Some(TextOverlay {
+            lines: vec![OverlayLine {
+                text: format!(
+                    " Search: {}  [{status}]  Enter next  Shift+Enter previous  Esc close",
+                    search.query()
+                ),
+                selected: true,
+            }],
+            bottom: search
+                .viewport_match(&self.terminal)
+                .is_some_and(|(row, _)| row == 0),
+            highlight: search.viewport_match(&self.terminal),
+        })
     }
 
     fn diagnose(&mut self, event: &str) {
@@ -1075,6 +1137,13 @@ impl Application {
         }
         let output_us = started.elapsed().as_micros();
         let invalidate_started = std::time::Instant::now();
+        if visible_output {
+            if self.terminal.active_screen() != terminal_core::ScreenKind::Primary {
+                self.search = None;
+            } else if let Some(search) = self.search.as_mut() {
+                search.refresh(&mut self.terminal);
+            }
+        }
         if visible_output && request_redraw {
             self.invalidate_frame();
         }
@@ -1478,12 +1547,20 @@ impl ApplicationHandler<PtyWake> for Application {
                     "app event=keyboard logical={:?} physical={:?} text={:?}",
                     event.logical_key, event.physical_key, event.text
                 ));
-                if self.palette.is_some() {
+                if self.search.is_some() {
+                    self.handle_search_key(&event.logical_key, event.text.as_deref());
+                } else if self.palette.is_some() {
                     self.handle_palette_key(&event.logical_key, event.text.as_deref());
                 } else if let Some(command) =
                     configured_command(&self.config, event.physical_key, self.modifiers)
                 {
                     self.dispatch_command(command);
+                } else if event.physical_key == PhysicalKey::Code(KeyCode::KeyF)
+                    && self.modifiers == ModifiersState::CONTROL
+                    && self.terminal.active_screen() == terminal_core::ScreenKind::Primary
+                {
+                    self.search = Some(Search::default());
+                    self.invalidate_frame();
                 } else if let Some(cursor_key) = cursor_key_from_logical_key(&event.logical_key) {
                     self.write_terminal_input(
                         terminal_cursor_key_input(
@@ -1536,7 +1613,7 @@ impl ApplicationHandler<PtyWake> for Application {
                         false
                     };
                 self.frame.begin_redraw();
-                let overlay = self.palette_overlay();
+                let overlay = self.search_overlay().or_else(|| self.palette_overlay());
                 let Some(renderer) = self.renderer.as_mut() else {
                     return;
                 };
@@ -2048,6 +2125,7 @@ mod tests {
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
 
+    use super::Search;
     use super::{
         Application, BasicKey, CliOptions, FrameState, PaletteAction, PendingResize,
         PhysicalSizeSync, RecoveryRedraw, SurfaceRestore, WindowsShellSource,
@@ -2629,6 +2707,37 @@ mod tests {
         );
         app.handle_palette_key(&Key::Named(NamedKey::Escape), None);
         assert!(app.palette.is_none());
+    }
+
+    #[test]
+    fn search_keys_edit_navigate_and_close_without_terminal_input() {
+        let mut app = Application {
+            terminal: TerminalState::new(TerminalDimensions::new(12, 2).unwrap()),
+            ..Application::default()
+        };
+        for line in ["find", "other", "find"] {
+            for character in line.chars() {
+                app.terminal.print_character(character).unwrap();
+            }
+            app.terminal.carriage_return();
+            app.terminal.index();
+        }
+        app.search = Some(Search::default());
+        app.handle_search_key(&Key::Character("find".into()), Some("find"));
+        assert_eq!(app.search.as_ref().unwrap().count(), 2);
+        let first = app.search.as_ref().unwrap().position();
+        app.modifiers = ModifiersState::SHIFT;
+        app.handle_search_key(&Key::Named(NamedKey::Enter), None);
+        assert_ne!(app.search.as_ref().unwrap().position(), first);
+        app.modifiers = ModifiersState::empty();
+        app.handle_search_key(&Key::Named(NamedKey::Enter), None);
+        assert_eq!(app.search.as_ref().unwrap().position(), first);
+        app.handle_search_key(&Key::Named(NamedKey::Backspace), None);
+        assert_eq!(app.search.as_ref().unwrap().query(), "fin");
+        assert!(app.search_overlay().unwrap().highlight.is_some());
+        app.handle_search_key(&Key::Named(NamedKey::Escape), None);
+        assert!(app.search.is_none());
+        assert_eq!(app.terminal.screen().cell(0, 0).unwrap().character(), 'f');
     }
 
     #[test]

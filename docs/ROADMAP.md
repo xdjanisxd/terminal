@@ -129,7 +129,8 @@ later performance/polish work.
 - [x] Establish compatibility, fuzzing, and performance baselines
   - Representative shell/TUI fixtures, deterministic CI input tests, isolated libFuzzer targets, and fixed-workload parser/state/projection benchmarks are documented in `docs/BASELINES.md`. Fuzz execution on a supported host remains to be run.
 - [x] Dedicated input and frame-pacing performance task: investigate delayed typing/input, janky Backspace/delete, non-smooth PageUp/PageDown, live resize trailing the pointer (including temporary text scaling), and overall UI/frame pacing relative to mature terminals such as Alacritty
-- [ ] Add an in-terminal search UI for Primary-screen scrollback, with next/previous match navigation bounded to terminal-owned history and the visible viewport.
+- [x] Add an in-terminal search UI for Primary-screen scrollback, with next/previous match navigation bounded to terminal-owned history and the visible viewport.
+  - Ctrl+F opens app-owned literal search; Enter/Shift+Enter navigate bounded matches, and Escape closes it. The renderer highlights the active match without changing terminal cells or searching Alternate-screen content.
 - [ ] Add directional pane focus commands (left, right, above, below) that follow pane layout geometry rather than pane creation order.
 - [ ] Add directional keyboard shortcuts to grow or shrink the active pane while preserving valid, bounded geometry in the existing split layout.
 - [ ] Allow custom tab titles, keeping user-assigned titles distinct from automatically derived terminal or shell titles if those are supported later.
