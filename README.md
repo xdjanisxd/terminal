@@ -37,6 +37,10 @@ cargo clippy --workspace --all-targets -- -D warnings
 
 See `docs/CURRENT_STATE.md` for implemented reality and `docs/ROADMAP.md` for planned work.
 
+## Configuration
+
+Copy [`config.example.toml`](config.example.toml) to `%APPDATA%\terminal\config.toml` on Windows or `${XDG_CONFIG_HOME:-$HOME/.config}/terminal/config.toml` on Linux and macOS. `TERMINAL_CONFIG` can point to another file. The example contains all supported options and their defaults; omitted fields use built-in defaults. Theme, keybindings, and project palette entries reload after a valid save; workspace definitions take effect on the next app start. See [`docs/CONFIG.md`](docs/CONFIG.md) for details.
+
 ## License
 
 Licensed under the MIT License. See `LICENSE`.

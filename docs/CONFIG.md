@@ -4,6 +4,8 @@
 
 The config file is `%APPDATA%\terminal\config.toml` on Windows and `${XDG_CONFIG_HOME:-$HOME/.config}/terminal/config.toml` elsewhere. `TERMINAL_CONFIG` overrides the full path. A missing file uses defaults; the app does not create one.
 
+The complete, ready-to-copy example is [`config.example.toml`](../config.example.toml) at the repository root. Copy it to the config file location above, then edit the values you want. Omitted theme fields use their individual defaults; omitting `[workspace]`, `bindings`, or `projects` uses the default single-pane workspace, default shortcuts, or no projects, respectively. The example lists the actual defaults and valid values in comments.
+
 ```toml
 [theme]
 foreground = "#e6e6e6"
@@ -41,7 +43,7 @@ The palette lists copy, paste, scrollback, and workspace commands from the app c
 
 Unknown fields or commands, malformed TOML, invalid colors, incomplete ANSI palettes, unsupported chords, and duplicate chords reject the whole file. Errors include the file path and either TOML's source location or the field/binding index. On a reload error, the app writes the error to stderr and keeps the last valid config.
 
-The app checks the file contents every 500 ms and posts a change event to its main loop. Theme and keybindings apply to the next input/redraw without restarting the PTY. Removing the file restores defaults. A short lived invalid file during editing can produce an error; a later valid save is applied. An open palette retains its query; changed bindings affect the next keypress outside the palette.
+The app checks the file contents every 500 ms and posts a change event to its main loop. Theme, keybindings, and project palette entries apply after a valid reload without restarting the PTY. Removing the file restores defaults. A short lived invalid file during editing can produce an error; a later valid save is applied. An open palette retains its query; changed bindings affect the next keypress outside the palette. Workspace definitions require an app restart.
 
 ## Workspace definitions
 
@@ -61,7 +63,7 @@ title = "Notes"
 layout = { kind = "pane", session = "local_shell" }
 ```
 
-An optional `project_root` can be set on `[workspace]`, `[[workspace.tabs]]`, or a `pane` leaf. The pane root takes precedence over the tab root, then the workspace root. Relative roots resolve from the configuration file's directory. A root sets that pane's PTY working directory. Each pane's `session` defaults to `local_shell`; a command starts the specified program directly with its argument array, with no shell interpolation:
+An optional `project_root` can be set on `[workspace]`, `[[workspace.tabs]]`, or a `pane` leaf. The pane root takes precedence over the tab root, then the workspace root. Relative roots resolve from the configuration file's directory. A root sets that pane's PTY working directory. The default workspace uses `local_shell`; each explicit pane requires a `session`. A command session starts the specified program directly with its argument array, with no shell interpolation:
 
 ```toml
 [workspace]
