@@ -126,6 +126,12 @@ impl ScreenState {
         self.scroll_viewport_rows(-(self.grid.dimensions().rows() as i32))
     }
 
+    fn return_to_live_viewport(&mut self) -> bool {
+        let changed = self.viewport_offset != 0;
+        self.viewport_offset = 0;
+        changed
+    }
+
     fn scroll_viewport_rows(&mut self, rows: i32) -> bool {
         let previous = self.viewport_offset;
         if rows >= 0 {
@@ -265,6 +271,10 @@ impl ScreenSet {
 
     pub(crate) fn page_down(&mut self) -> bool {
         self.active_state_mut().page_down()
+    }
+
+    pub(crate) fn return_to_live_viewport(&mut self) -> bool {
+        self.active_state_mut().return_to_live_viewport()
     }
 
     pub(crate) fn scroll_viewport_rows(&mut self, rows: i32) -> bool {

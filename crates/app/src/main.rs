@@ -470,6 +470,29 @@ fn print_smoke_text(terminal: &mut TerminalState, text: &str) {
     }
 }
 
+fn queue_pty_write(pty: Option<&PtyWorker>, bytes: Vec<u8>) -> bool {
+    let Some(pty) = pty else {
+        return false;
+    };
+    if let Err(error) = pty.write(bytes) {
+        eprintln!("could not write local shell input: {error}");
+        false
+    } else {
+        true
+    }
+}
+
+fn queue_terminal_input(
+    terminal: &mut TerminalState,
+    bytes: Vec<u8>,
+    write: impl FnOnce(Vec<u8>) -> bool,
+) -> (bool, bool) {
+    if bytes.is_empty() || !write(bytes) {
+        return (false, false);
+    }
+    (true, terminal.return_to_live_viewport())
+}
+
 impl Application {
     fn with_pty_wake_proxy(pty_wake_proxy: EventLoopProxy<PtyWake>, cli: CliOptions) -> Self {
         let mut app = Self {
@@ -646,7 +669,7 @@ impl Application {
             }
             Command::Paste => match terminal_platform::read_clipboard(2 * 1024 * 1024) {
                 Ok(text) => {
-                    self.write_to_pty(encode_paste(*self.terminal.input_modes(), &text));
+                    self.write_terminal_input(encode_paste(*self.terminal.input_modes(), &text));
                 }
                 Err(error) => eprintln!("could not paste clipboard text: {error}"),
             },
@@ -1101,18 +1124,20 @@ impl Application {
     }
 
     fn write_to_pty(&self, bytes: Vec<u8>) -> bool {
-        let Some(pty) = self.pty.as_ref() else {
-            return false;
-        };
-        if let Err(error) = pty.write(bytes) {
-            eprintln!("could not write local shell input: {error}");
-            false
-        } else {
-            true
-        }
+        queue_pty_write(self.pty.as_ref(), bytes)
     }
 
-    fn send_mouse_event(&self, event: MouseEvent) {
+    fn write_terminal_input(&mut self, bytes: Vec<u8>) -> bool {
+        let (queued, viewport_changed) = queue_terminal_input(&mut self.terminal, bytes, |bytes| {
+            queue_pty_write(self.pty.as_ref(), bytes)
+        });
+        if viewport_changed {
+            self.invalidate_frame();
+        }
+        queued
+    }
+
+    fn send_mouse_event(&mut self, event: MouseEvent) {
         let Some((column, row)) = self.pointer_position.and_then(|position| {
             let metrics = self.renderer.as_ref()?.cell_metrics();
             terminal_cell_at(
@@ -1131,7 +1156,7 @@ impl Application {
         if let Some(bytes) =
             encode_mouse(*self.terminal.input_modes(), event, column, row, modifiers)
         {
-            self.write_to_pty(bytes);
+            self.write_terminal_input(bytes);
         }
     }
 
@@ -1460,6 +1485,8 @@ impl ApplicationHandler<PtyWake> for Application {
                 {
                     self.dispatch_command(command);
                 } else if let Some(cursor_key) = cursor_key_from_logical_key(&event.logical_key) {
+                    self.write_terminal_input(
+                        encode_cursor_key(*self.terminal.input_modes(), cursor_key).to_vec(),
                     self.write_to_pty(
                         terminal_cursor_key_input(
                             *self.terminal.input_modes(),
@@ -1479,7 +1506,7 @@ impl ApplicationHandler<PtyWake> for Application {
                         emit_diagnostic(format_args!("app event=key-input bytes={}", bytes.len()));
                         let is_backspace = key == Some(BasicKey::Backspace)
                             || event.physical_key == PhysicalKey::Code(KeyCode::Backspace);
-                        let pty_write_queued = self.write_to_pty(bytes.clone());
+                        let pty_write_queued = self.write_terminal_input(bytes.clone());
                         if is_backspace {
                             emit_diagnostic(format_args!(
                                 "app event=backspace-input state={:?} repeat={} logical={:?} physical={:?} committed_text={:?} committed_bytes={:?} selected_bytes={bytes:?} pty_write_requests=1 pty_write_queued={pty_write_queued}",
@@ -2028,6 +2055,8 @@ mod tests {
         PhysicalSizeSync, RecoveryRedraw, SurfaceRestore, WindowsShellSource,
         basic_backspace_byte_for_platform, basic_key_input, configured_command,
         cursor_key_from_logical_key, pane_dimensions, parse_terminal_output, pty_size_for_terminal,
+        queue_terminal_input, scroll_terminal_for_wheel, select_windows_shell, target_at_pointer,
+        terminal_cell_at, terminal_dimensions_for_viewport, terminal_key_input, wheel_scroll_rows,
         scroll_terminal_for_wheel, select_windows_shell, target_at_pointer, terminal_cell_at,
         terminal_cursor_key_input, terminal_dimensions_for_viewport, terminal_key_input,
         wheel_scroll_rows,
@@ -2167,6 +2196,75 @@ mod tests {
         assert_eq!(app.frame.requests_armed, 1);
         assert_eq!(app.terminal.screen().cell(0, 0).unwrap().character(), 'A');
         assert_eq!(app.terminal.screen().cell(0, 1).unwrap().character(), 'B');
+    }
+
+    #[test]
+    fn app_only_command_keeps_scrollback_position() {
+        let mut app = Application::default();
+        app.terminal.resize(TerminalDimensions::new(3, 2).unwrap());
+        app.terminal.set_cursor_position(1, 0).unwrap();
+        app.terminal.index();
+        app.dispatch_command(Command::PageUp);
+        assert_eq!(app.terminal.viewport_offset(), 1);
+
+        app.dispatch_command(Command::Copy);
+        assert_eq!(app.terminal.viewport_offset(), 1);
+        assert!(!app.write_terminal_input(b"x".to_vec()));
+        assert_eq!(app.terminal.viewport_offset(), 1);
+    }
+
+    #[test]
+    fn page_up_then_terminal_keys_return_to_live_bottom() {
+        let mut app = Application::default();
+        app.terminal.resize(TerminalDimensions::new(3, 2).unwrap());
+        app.terminal.set_cursor_position(1, 0).unwrap();
+        app.terminal.index();
+
+        let inputs = [
+            terminal_key_input(
+                Some("x"),
+                None,
+                PhysicalKey::Code(KeyCode::KeyX),
+                ModifiersState::empty(),
+            )
+            .unwrap(),
+            terminal_key_input(
+                None,
+                Some(BasicKey::Enter),
+                PhysicalKey::Code(KeyCode::Enter),
+                ModifiersState::empty(),
+            )
+            .unwrap(),
+            terminal_key_input(
+                Some("c"),
+                None,
+                PhysicalKey::Code(KeyCode::KeyC),
+                ModifiersState::CONTROL,
+            )
+            .unwrap(),
+            terminal_key_input(
+                None,
+                Some(BasicKey::Backspace),
+                PhysicalKey::Code(KeyCode::Backspace),
+                ModifiersState::empty(),
+            )
+            .unwrap(),
+            terminal_core::encode_cursor_key(*app.terminal.input_modes(), CursorKey::Left).to_vec(),
+        ];
+        assert_eq!(inputs[2], vec![0x03]);
+
+        for bytes in inputs {
+            app.dispatch_command(Command::PageUp);
+            assert_eq!(app.terminal.viewport_offset(), 1);
+            let expected = bytes.clone();
+            let (queued, changed) = queue_terminal_input(&mut app.terminal, bytes, |written| {
+                assert_eq!(written, expected);
+                true
+            });
+            assert!(queued);
+            assert!(changed);
+            assert_eq!(app.terminal.viewport_offset(), 0);
+        }
     }
 
     #[test]
