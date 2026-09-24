@@ -38,10 +38,34 @@ pub struct RenderCell {
     pub width: usize,
     pub character: char,
     /// Base scalar plus width-zero marks already attached by `terminal-core`.
-    pub text: String,
+    pub text: RenderText,
     pub foreground: Rgba,
     pub background: Rgba,
     pub underline: bool,
+}
+
+/// Most terminal cells contain one scalar. Keep its UTF-8 bytes in the cell
+/// and allocate only when combining marks extend the grapheme.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum RenderText {
+    Scalar { bytes: [u8; 4], len: u8 },
+    Combined(String),
+}
+
+impl RenderText {
+    fn scalar(character: char) -> Self {
+        let mut bytes = [0; 4];
+        let len = character.encode_utf8(&mut bytes).len() as u8;
+        Self::Scalar { bytes, len }
+    }
+
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Scalar { bytes, len } => std::str::from_utf8(&bytes[..usize::from(*len)])
+                .expect("char UTF-8 encoding is valid"),
+            Self::Combined(text) => text,
+        }
+    }
 }
 
 /// App-supplied text drawn over the terminal projection, without changing terminal state.
@@ -88,7 +112,7 @@ impl TerminalRenderData {
 
     pub fn from_terminal_with_theme(state: &TerminalState, theme: &RenderTheme) -> Self {
         let dimensions = state.dimensions();
-        let mut cells = Vec::with_capacity(dimensions.cell_count());
+        let mut cells = Vec::with_capacity(dimensions.cell_count() / 4);
         for row in 0..dimensions.rows() {
             for column in 0..dimensions.columns() {
                 let Some(cell) = state.viewport_cell(row, column) else {
@@ -112,17 +136,31 @@ impl TerminalRenderData {
                     foreground = theme.selection_foreground;
                     background = theme.selection_background;
                 }
+                let underline = attributes.underline() == UnderlineStyle::Enabled;
+                if matches!(cell.character(), ' ' | '\0')
+                    && cell.combining_marks().is_empty()
+                    && background == theme.background
+                    && !underline
+                {
+                    continue;
+                }
                 cells.push(RenderCell {
                     row,
                     column,
                     width: usize::from(cell.occupancy() == CellOccupancy::WideLead) + 1,
                     character: cell.character(),
-                    text: std::iter::once(cell.character())
-                        .chain(cell.combining_marks().iter().copied())
-                        .collect(),
+                    text: if cell.combining_marks().is_empty() {
+                        RenderText::scalar(cell.character())
+                    } else {
+                        RenderText::Combined(
+                            std::iter::once(cell.character())
+                                .chain(cell.combining_marks().iter().copied())
+                                .collect(),
+                        )
+                    },
                     foreground,
                     background,
-                    underline: attributes.underline() == UnderlineStyle::Enabled,
+                    underline,
                 });
             }
         }
@@ -175,7 +213,7 @@ impl TerminalRenderData {
                     column,
                     width: 1,
                     character,
-                    text: character.to_string(),
+                    text: RenderText::scalar(character),
                     foreground,
                     background,
                     underline: false,
@@ -257,6 +295,39 @@ mod tests {
         CellColor, CursorVisibility, InverseVideo, TerminalDimensions, TerminalState,
         UnderlineStyle,
     };
+
+    #[test]
+    fn blank_grid_projects_no_instances_but_colored_blank_remains() {
+        let mut state = TerminalState::new(TerminalDimensions::new(3, 2).unwrap());
+        assert!(TerminalRenderData::from_terminal(&state).cells.is_empty());
+        state.set_background_color(CellColor::Indexed(1));
+        state.print_character(' ').unwrap();
+        let data = TerminalRenderData::from_terminal(&state);
+        assert_eq!(data.cells.len(), 1);
+        assert_eq!((data.cells[0].row, data.cells[0].column), (0, 0));
+        assert_ne!(data.cells[0].background, data.surface_background);
+    }
+
+    #[test]
+    fn selected_blank_remains_visible_in_sparse_projection() {
+        let mut state = TerminalState::new(TerminalDimensions::new(3, 1).unwrap());
+        assert!(state.begin_selection(0, 0));
+        assert!(state.extend_selection(0, 1));
+        let data = TerminalRenderData::from_terminal(&state);
+        assert_eq!(data.cells.len(), 2);
+        assert!(data.cells.iter().all(|cell| cell.character == ' '));
+        assert!(
+            data.cells
+                .iter()
+                .all(|cell| cell.background != data.surface_background)
+        );
+    }
+
+    #[test]
+    fn scalar_text_is_inline_for_ascii_and_unicode() {
+        assert_eq!(RenderText::scalar('A').as_str(), "A");
+        assert_eq!(RenderText::scalar('界').as_str(), "界");
+    }
 
     #[test]
     fn text_overlay_covers_terminal_rows_without_mutating_core() {
@@ -348,7 +419,7 @@ mod tests {
         state.print_character('界').unwrap();
         state.set_cursor_visibility(CursorVisibility::Hidden);
         let data = TerminalRenderData::from_terminal(&state);
-        assert_eq!(data.cells.len(), 2);
+        assert_eq!(data.cells.len(), 1);
         assert_eq!(data.cells[0].width, 2);
         assert_eq!(data.cursor, None);
     }
@@ -442,6 +513,6 @@ mod tests {
         state.print_character('\u{301}').unwrap();
 
         let cell = &TerminalRenderData::from_terminal(&state).cells[0];
-        assert_eq!(cell.text, "e\u{301}");
+        assert_eq!(cell.text.as_str(), "e\u{301}");
     }
 }

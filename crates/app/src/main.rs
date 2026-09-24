@@ -878,12 +878,16 @@ impl Application {
     fn resize_renderer(&mut self, size: PhysicalSize<u32>, force_redraw: bool) -> ResizeWork {
         let mut work = ResizeWork::default();
         self.diagnose("resize-start");
+        let surface_started = std::time::Instant::now();
         let surface_changed = self
             .renderer
             .as_mut()
             .is_some_and(|renderer| renderer.resize(size.width, size.height));
+        let surface_us = surface_started.elapsed().as_micros();
         work.surface_configures = usize::from(surface_changed);
+        let grid_started = std::time::Instant::now();
         let (grid_resizes, pty_resizes) = self.resize_terminal_to_viewport(size);
+        let grid_us = grid_started.elapsed().as_micros();
         work.terminal_grid_resizes = grid_resizes;
         work.pty_resize_commands = pty_resizes;
         if force_redraw {
@@ -892,6 +896,9 @@ impl Application {
         } else if surface_changed || grid_resizes != 0 {
             work.redraw_requests = usize::from(self.invalidate_frame());
         }
+        emit_diagnostic(format_args!(
+            "app event=resize-stages surface_us={surface_us} grid_and_pty_us={grid_us}"
+        ));
         self.diagnose("resize-complete");
         work
     }
@@ -905,28 +912,38 @@ impl Application {
         }
         let mut grid_resizes = 0;
         let mut pty_resizes = 0;
+        let mut terminal_resize_time = std::time::Duration::ZERO;
+        let mut pty_resize_time = std::time::Duration::ZERO;
         for (pane_id, dimensions) in pane_dimensions(&self.workspace, size, metrics) {
             if pane_id == self.active_runtime_pane {
                 if self.terminal.dimensions() != dimensions {
+                    let started = std::time::Instant::now();
                     self.terminal.resize(dimensions);
+                    terminal_resize_time += started.elapsed();
                     grid_resizes += 1;
+                    let started = std::time::Instant::now();
                     pty_resizes += usize::from(self.resize_pty_to_terminal());
+                    pty_resize_time += started.elapsed();
                 }
             } else if let Some(runtime) = self.inactive_panes.get_mut(&pane_id)
                 && runtime.terminal.dimensions() != dimensions
             {
+                let started = std::time::Instant::now();
                 runtime.terminal.resize(dimensions);
+                terminal_resize_time += started.elapsed();
                 grid_resizes += 1;
                 if let Some(pty) = runtime.pty.as_ref() {
+                    let started = std::time::Instant::now();
                     match pty.resize(pty_size_for_terminal(dimensions)) {
                         Ok(()) => pty_resizes += 1,
                         Err(error) => eprintln!("could not resize background shell: {error}"),
                     }
+                    pty_resize_time += started.elapsed();
                 }
             }
         }
         emit_diagnostic(format_args!(
-            "app event=terminal-grid-resized drawable={}x{} scale_factor={} cell_metrics={metrics:?} grids={} pty_resize_commands={}",
+            "app event=terminal-grid-resized drawable={}x{} scale_factor={} cell_metrics={metrics:?} grids={} pty_resize_commands={} terminal_us={} pty_us={}",
             size.width,
             size.height,
             self.window
@@ -934,6 +951,8 @@ impl Application {
                 .map_or(1.0, |window| window.scale_factor()),
             grid_resizes,
             pty_resizes,
+            terminal_resize_time.as_micros(),
+            pty_resize_time.as_micros(),
         ));
         (grid_resizes, pty_resizes)
     }
@@ -986,10 +1005,11 @@ impl Application {
         }
     }
 
-    fn drain_pty_events(&mut self) {
+    fn drain_pty_events(&mut self, request_redraw: bool) -> bool {
         let started = std::time::Instant::now();
         let mut events = 0;
         let mut bytes = 0;
+        let mut visible_output = false;
         while let Some(pty) = self.pty.as_ref() {
             let event = match pty.recv_timeout(Duration::ZERO) {
                 Ok(Some(event)) => event,
@@ -1003,7 +1023,7 @@ impl Application {
             if let PtyWorkerEvent::Output(PtyOutput::Bytes(chunk)) = &event {
                 bytes += chunk.len();
             }
-            self.handle_pty_event(event);
+            visible_output |= self.handle_pty_event(event);
         }
         let visible: Vec<_> = self
             .workspace
@@ -1012,7 +1032,6 @@ impl Application {
             .iter()
             .map(|pane| pane.id)
             .collect();
-        let mut visible_output = false;
         for (pane_id, runtime) in &mut self.inactive_panes {
             while let Some(pty) = runtime.pty.as_ref() {
                 let event = match pty.recv_timeout(Duration::ZERO) {
@@ -1031,16 +1050,20 @@ impl Application {
                 handle_background_pty_event(runtime, event);
             }
         }
-        if visible_output {
+        let output_us = started.elapsed().as_micros();
+        let invalidate_started = std::time::Instant::now();
+        if visible_output && request_redraw {
             self.invalidate_frame();
         }
         emit_diagnostic(format_args!(
-            "app event=pty-drain events={events} bytes={bytes} elapsed_us={}",
-            started.elapsed().as_micros()
+            "app event=pty-drain events={events} bytes={bytes} elapsed_us={} output_us={output_us} invalidate_us={}",
+            started.elapsed().as_micros(),
+            invalidate_started.elapsed().as_micros(),
         ));
+        visible_output
     }
 
-    fn handle_pty_event(&mut self, event: PtyWorkerEvent) {
+    fn handle_pty_event(&mut self, event: PtyWorkerEvent) -> bool {
         match event {
             PtyWorkerEvent::Output(PtyOutput::Bytes(bytes)) => {
                 let parse_started = std::time::Instant::now();
@@ -1060,15 +1083,20 @@ impl Application {
                 for reply in replies {
                     self.write_to_pty(reply);
                 }
-                self.invalidate_frame();
+                true
             }
             PtyWorkerEvent::Output(PtyOutput::Eof) => {
                 emit_diagnostic(format_args!("app pty-output=eof"));
+                false
             }
             PtyWorkerEvent::Output(PtyOutput::Exited(status)) => {
                 emit_diagnostic(format_args!("app pty-output=exited status={status:?}"));
+                false
             }
-            PtyWorkerEvent::Error(error) => eprintln!("local shell worker error: {error}"),
+            PtyWorkerEvent::Error(error) => {
+                eprintln!("local shell worker error: {error}");
+                false
+            }
         }
     }
 
@@ -1464,6 +1492,14 @@ impl ApplicationHandler<PtyWake> for Application {
                 // otherwise a suboptimal present can reconfigure the old size
                 // repeatedly while newer Resized events wait in the queue.
                 self.apply_pending_resize();
+                // A PTY worker may have queued another chunk after its wake was
+                // handled but before this redraw. Include it in this present.
+                let output_drained_before_redraw =
+                    if self.pty_wake_pending.swap(false, Ordering::AcqRel) {
+                        self.drain_pty_events(false)
+                    } else {
+                        false
+                    };
                 self.frame.begin_redraw();
                 let overlay = self.palette_overlay();
                 let Some(renderer) = self.renderer.as_mut() else {
@@ -1504,7 +1540,7 @@ impl ApplicationHandler<PtyWake> for Application {
                 ));
                 match outcome {
                     RedrawOutcome::Reconfigured => {
-                        if self.recovery_redraw.reconfigured() {
+                        if self.recovery_redraw.reconfigured() || output_drained_before_redraw {
                             self.invalidate_frame();
                         }
                     }
@@ -1514,7 +1550,12 @@ impl ApplicationHandler<PtyWake> for Application {
                             self.invalidate_frame();
                         }
                     }
-                    RedrawOutcome::Skipped => self.recovery_redraw.skipped(),
+                    RedrawOutcome::Skipped => {
+                        self.recovery_redraw.skipped();
+                        if output_drained_before_redraw {
+                            self.invalidate_frame();
+                        }
+                    }
                 }
                 self.diagnose("redraw-handled");
             }
@@ -1529,7 +1570,7 @@ impl ApplicationHandler<PtyWake> for Application {
                 // successor wake, so no worker event is stranded by a race.
                 self.pty_wake_pending.store(false, Ordering::Release);
                 emit_diagnostic(format_args!("app event=pty-wake"));
-                self.drain_pty_events();
+                self.drain_pty_events(true);
             }
             PtyWake::ConfigChanged => self.reload_config(),
         }
@@ -2078,6 +2119,18 @@ mod tests {
         assert_eq!(app.workspace.panes().len(), 1);
         app.dispatch_command(Command::ClosePane);
         assert_eq!(app.workspace.panes().len(), 1);
+    }
+
+    #[test]
+    fn consecutive_pty_chunks_can_share_one_requested_frame() {
+        let mut app = Application::default();
+        assert!(app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(b"A".to_vec()))));
+        assert!(app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(b"B".to_vec()))));
+        assert!(!app.frame.redraw_requested);
+        app.invalidate_frame();
+        assert_eq!(app.frame.requests_armed, 1);
+        assert_eq!(app.terminal.screen().cell(0, 0).unwrap().character(), 'A');
+        assert_eq!(app.terminal.screen().cell(0, 1).unwrap().character(), 'B');
     }
 
     #[test]

@@ -126,6 +126,7 @@ later performance/polish work.
   - [x] First structural slice: typed tab/pane/session ownership, recursive split layout, focus and lifecycle commands, startup TOML reproduction, and single-terminal default
   - [x] Show split panes simultaneously with layout geometry and pane focus UI
 - [x] Add project roots, startup commands, expanded command palette features, and basic CLI control
-- [ ] Establish compatibility, fuzzing, and performance baselines
+- [x] Establish compatibility, fuzzing, and performance baselines
+  - Representative shell/TUI fixtures, deterministic CI input tests, isolated libFuzzer targets, and fixed-workload parser/state/projection benchmarks are documented in `docs/BASELINES.md`. Fuzz execution on a supported host remains to be run.
 - [ ] Dedicated input and frame-pacing performance task: investigate delayed typing/input, janky Backspace/delete, non-smooth PageUp/PageDown, live resize trailing the pointer (including temporary text scaling), and overall UI/frame pacing relative to mature terminals such as Alacritty
 - [ ] Package and validate supported Windows, Linux, and macOS releases

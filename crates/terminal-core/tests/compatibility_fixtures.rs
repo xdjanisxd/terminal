@@ -126,3 +126,42 @@ fn multiplexer_fixture_preserves_region_output_modes_and_reply_fifo() {
     );
     assert_eq!(state.take_reply(), None);
 }
+
+#[test]
+fn shell_edit_fixture_handles_carriage_return_backspace_and_erase() {
+    // A shell edits an input line, then replaces it with a completed command and output.
+    let fixture = b"PS C:\\work> git statu\x08s\r\x1b[2KPS C:\\work> git status\r\nOn branch main\r\nPS C:\\work> ";
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(32, 4).unwrap());
+
+    for byte in fixture {
+        parser
+            .advance(&mut state, std::slice::from_ref(byte))
+            .unwrap();
+    }
+
+    assert_row(&state, 0, "PS C:\\work> git status");
+    assert_row(&state, 1, "On branch main");
+    assert_row(&state, 2, "PS C:\\work> ");
+    assert_eq!((state.cursor().row(), state.cursor().column()), (2, 12));
+}
+
+#[test]
+fn tui_progress_fixture_updates_rows_without_damaging_neighbors() {
+    // A progress TUI updates two status rows by cursor addressing and line erasure.
+    let fixture = b"\x1b[?25l\x1b[Hheader\x1b[2;1Hdownload 10%\x1b[3;1Hwaiting\x1b[2;1H\x1b[2Kdownload 100%\x1b[3;1H\x1b[2Kcomplete\x1b[?25h";
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(20, 4).unwrap());
+
+    for chunk in fixture.chunks(3) {
+        parser.advance(&mut state, chunk).unwrap();
+    }
+
+    assert_row(&state, 0, "header");
+    assert_row(&state, 1, "download 100%");
+    assert_row(&state, 2, "complete");
+    assert_eq!(
+        state.terminal_modes().cursor_visibility(),
+        CursorVisibility::Visible
+    );
+}
