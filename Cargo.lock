@@ -1849,6 +1849,7 @@ dependencies = [
  "pollster",
  "swash",
  "terminal-core",
+ "terminal-workspace",
  "wgpu",
  "winit",
 ]

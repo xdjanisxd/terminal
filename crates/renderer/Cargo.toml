@@ -13,3 +13,10 @@ swash = "0.2.10"
 terminal-core = { path = "../terminal-core" }
 wgpu = "25.0.0"
 winit = "0.30.13"
+
+[dev-dependencies]
+terminal-workspace = { path = "../workspace" }
+
+[[bench]]
+name = "projection_baselines"
+harness = false

@@ -1,5 +1,7 @@
 # Performance
 
+The fixed-workload M6 parser/state/projection measurements and reproduction commands are in [BASELINES.md](BASELINES.md). The interactive traces below cover additional app, renderer, and GPU stages.
+
 Correctness and architectural clarity take priority over performance complexity.
 
 ## Initial goals

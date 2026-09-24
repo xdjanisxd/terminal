@@ -1,0 +1,29 @@
+[package]
+name = "terminal-fuzz"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+terminal-core = { path = "../crates/terminal-core" }
+
+[workspace]
+members = ["."]
+
+[[bin]]
+name = "parser_bytes"
+path = "fuzz_targets/parser_bytes.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "state_actions"
+path = "fuzz_targets/state_actions.rs"
+test = false
+doc = false
+bench = false

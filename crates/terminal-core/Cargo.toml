@@ -9,3 +9,7 @@ publish.workspace = true
 base64 = { version = "0.22.1", default-features = false, features = ["alloc"] }
 unicode-width = { version = "0.2.2", default-features = false }
 vte = { version = "0.15.0", default-features = false }
+
+[[bench]]
+name = "state_baselines"
+harness = false
