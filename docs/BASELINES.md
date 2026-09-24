@@ -67,3 +67,5 @@ The stages differ in content and pane dimensions; do not rank them as equivalent
 ## Current performance debt
 
 The prior [PERFORMANCE.md](PERFORMANCE.md) Windows release trace identified full visible-grid projection and CPU instance regeneration on every present, even when instance uploads are empty. PowerShell output may arrive in separate PTY chunks and cause multiple presents for one key. Live resize can still trail the pointer or temporarily scale text; resize-ordering work removed stale-size configurations in one trace but did not establish smooth frame pacing. Damage-aware projection/instance updates, proof-based redraw suppression, and measured input-to-present latency remain future work. This baseline task makes no performance changes and starts no packaging work.
+
+The subsequent [frame-pacing pass](PERFORMANCE.md#sparse-projection-and-pty-wake-follow-through-2026-09-24) reduces projected cells and folds PTY chunks already queued before redraw into that frame. Native Windows release resize smoke passed on an Intel Iris Xe host using the new default DX12 path. Native fuzz execution remains deferred until a suitable host is available.

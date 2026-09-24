@@ -440,6 +440,7 @@ impl DrawResources {
         let mut shape_misses = 0;
         let mut raster_calls = 0;
         let mut atlas_lookups = 0;
+        let mut background_count = 0;
         let cell_width = frame.cell_metrics.width() as f32;
         let cell_height = frame.cell_metrics.height() as f32;
         self.rectangles.clear();
@@ -452,10 +453,13 @@ impl DrawResources {
             let x = pane[0] as f32 + cell.column as f32 * cell_width;
             let y = pane[1] as f32 + cell.row as f32 * cell_height;
             let width = cell.width as f32 * cell_width;
-            self.rectangles.push(RectInstance {
-                rect: to_clip_rect(x, y, width, cell_height, frame.surface_size),
-                color: cell.background.0,
-            });
+            if cell.background != data.surface_background {
+                self.rectangles.push(RectInstance {
+                    rect: to_clip_rect(x, y, width, cell_height, frame.surface_size),
+                    color: cell.background.0,
+                });
+                background_count += 1;
+            }
             if cell.underline {
                 self.rectangles.push(RectInstance {
                     rect: to_clip_rect(x, y + cell_height - 1.0, width, 1.0, frame.surface_size),
@@ -467,7 +471,8 @@ impl DrawResources {
             }
             let pixels_per_em = frame.cell_metrics.pixels_per_em();
             shape_calls += 1;
-            let Ok((shaped, cache_hit)) = font_system.shape_text_cached(&cell.text, pixels_per_em)
+            let Ok((shaped, cache_hit)) =
+                font_system.shape_text_cached(cell.text.as_str(), pixels_per_em)
             else {
                 continue;
             };
@@ -716,9 +721,9 @@ impl DrawResources {
         let submission = submission_start.elapsed();
         RenderWork {
             instances: RenderInstanceCounts {
-                backgrounds: data.cells.len(),
+                backgrounds: background_count,
                 glyphs: glyph_count,
-                decorations: rectangle_count - data.cells.len(),
+                decorations: rectangle_count - background_count,
                 cursor: usize::from(data.cursor.is_some()),
                 scrollbar: usize::from(data.scrollbar.is_some()) * 2,
             },

@@ -11,7 +11,7 @@ pub use font::{
     CellMetrics, FontProcessingError, FontRequest, GlyphBitmap, ShapedGlyph, ShapedText,
 };
 pub use snapshot::{
-    CursorRenderData, OverlayLine, RenderCell, RenderTheme, Rgba, ScrollbarRenderData,
+    CursorRenderData, OverlayLine, RenderCell, RenderText, RenderTheme, Rgba, ScrollbarRenderData,
     TerminalRenderData, TextOverlay,
 };
 
@@ -161,23 +161,12 @@ impl Renderer {
                 RendererInitError::new(format!("could not derive terminal cell metrics: {error}"))
             })?;
         let size = SurfaceSize::new(window.inner_size().width, window.inner_size().height);
-        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
-        let surface = instance
-            .create_surface(Arc::clone(&window))
-            .map_err(|error| {
-                RendererInitError::new(format!("could not create surface: {error}"))
-            })?;
-        let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
-            power_preference: wgpu::PowerPreference::default(),
-            force_fallback_adapter: false,
-            compatible_surface: Some(&surface),
-        }))
-        .map_err(|error| RendererInitError::new(format!("could not find adapter: {error}")))?;
-        let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
-            label: Some("terminal renderer device"),
-            ..Default::default()
-        }))
-        .map_err(|error| RendererInitError::new(format!("could not create device: {error}")))?;
+        let (surface, adapter, device, queue) = initialize_gpu(&window)?;
+        let adapter_info = adapter.get_info();
+        emit_diagnostic(format_args!(
+            "renderer event=adapter backend={:?} name={:?} driver={:?}",
+            adapter_info.backend, adapter_info.name, adapter_info.driver
+        ));
 
         let mut renderer = Self {
             window,
@@ -302,7 +291,16 @@ impl Renderer {
         panes: &[PaneRenderInput<'_>],
         overlay: Option<&TextOverlay>,
     ) -> RedrawOutcome {
+        let projection_start = Instant::now();
         let data = project_panes(panes, overlay, &self.theme);
+        emit_diagnostic(format_args!(
+            "renderer event=pane-projection panes={} cells={} elapsed_us={}",
+            data.len(),
+            data.iter()
+                .map(|(pane, _, _)| pane.cells.len())
+                .sum::<usize>(),
+            projection_start.elapsed().as_micros()
+        ));
         self.redraw_data(Some(&data))
     }
 
@@ -339,7 +337,13 @@ impl Renderer {
             return RedrawOutcome::Skipped;
         }
 
-        match self.surface.get_current_texture() {
+        let acquire_started = Instant::now();
+        let acquired = self.surface.get_current_texture();
+        emit_diagnostic(format_args!(
+            "renderer frame={frame_id} event=surface-acquire-complete elapsed_us={}",
+            acquire_started.elapsed().as_micros()
+        ));
+        match acquired {
             Ok(frame) => {
                 let frame_start = Instant::now();
                 let suboptimal = frame.suboptimal;
@@ -479,17 +483,93 @@ impl Renderer {
             configuration.format,
         );
         let present_mode = configuration.present_mode;
+        let configure_started = Instant::now();
         self.surface.configure(&self.device, &configuration);
+        let configure_us = configure_started.elapsed().as_micros();
         if draw_resources_reset {
             self.draw_resources = None;
         }
         self.configuration = Some(configuration);
         emit_diagnostic(format_args!(
-            "renderer event=reconfigure result=configured present_mode={present_mode:?} draw_resources_reset={draw_resources_reset} state={:?}",
+            "renderer event=reconfigure result=configured present_mode={present_mode:?} draw_resources_reset={draw_resources_reset} configure_us={configure_us} state={:?}",
             self.diagnostic_state(),
         ));
         true
     }
+}
+
+fn gpu_backend_attempts(
+    descriptor: wgpu::InstanceDescriptor,
+    backend_override: bool,
+) -> Vec<wgpu::InstanceDescriptor> {
+    if cfg!(target_os = "windows")
+        && !backend_override
+        && descriptor.backends.contains(wgpu::Backends::DX12)
+    {
+        let mut dx12 = descriptor.clone();
+        dx12.backends = wgpu::Backends::DX12;
+        vec![dx12, descriptor]
+    } else {
+        vec![descriptor]
+    }
+}
+
+fn initialize_gpu(
+    window: &Arc<Window>,
+) -> Result<
+    (
+        wgpu::Surface<'static>,
+        wgpu::Adapter,
+        wgpu::Device,
+        wgpu::Queue,
+    ),
+    RendererInitError,
+> {
+    let descriptor = wgpu::InstanceDescriptor::from_env_or_default();
+    let backend_override = wgpu::Backends::from_env().is_some();
+    let mut last_error = None;
+    for (attempt, descriptor) in gpu_backend_attempts(descriptor, backend_override)
+        .into_iter()
+        .enumerate()
+    {
+        let result = (|| {
+            let instance = wgpu::Instance::new(&descriptor);
+            let surface = instance
+                .create_surface(Arc::clone(window))
+                .map_err(|error| {
+                    RendererInitError::new(format!("could not create surface: {error}"))
+                })?;
+            let adapter =
+                pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
+                    power_preference: wgpu::PowerPreference::default(),
+                    force_fallback_adapter: false,
+                    compatible_surface: Some(&surface),
+                }))
+                .map_err(|error| {
+                    RendererInitError::new(format!("could not find adapter: {error}"))
+                })?;
+            let (device, queue) =
+                pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
+                    label: Some("terminal renderer device"),
+                    ..Default::default()
+                }))
+                .map_err(|error| {
+                    RendererInitError::new(format!("could not create device: {error}"))
+                })?;
+            Ok((surface, adapter, device, queue))
+        })();
+        match result {
+            Ok(gpu) => return Ok(gpu),
+            Err(error) => {
+                emit_diagnostic(format_args!(
+                    "renderer event=adapter-attempt-failed attempt={attempt} backends={:?} error={error}",
+                    descriptor.backends
+                ));
+                last_error = Some(error);
+            }
+        }
+    }
+    Err(last_error.expect("at least one GPU backend is attempted"))
 }
 
 fn project_panes(
@@ -533,8 +613,35 @@ fn needs_draw_resource_rebuild(
 #[cfg(test)]
 mod tests {
     use super::{
-        PaneRenderInput, SurfaceSize, needs_draw_resource_rebuild, needs_reconfigure, project_panes,
+        PaneRenderInput, SurfaceSize, gpu_backend_attempts, needs_draw_resource_rebuild,
+        needs_reconfigure, project_panes,
     };
+
+    #[test]
+    fn default_backend_prefers_dx12_on_windows_with_fallback() {
+        let descriptor = wgpu::InstanceDescriptor::default();
+        let original_backends = descriptor.backends;
+        let attempts = gpu_backend_attempts(descriptor, false);
+        if cfg!(target_os = "windows") && original_backends.contains(wgpu::Backends::DX12) {
+            assert_eq!(attempts.len(), 2);
+            assert_eq!(attempts[0].backends, wgpu::Backends::DX12);
+            assert_eq!(attempts[1].backends, original_backends);
+        } else {
+            assert_eq!(attempts.len(), 1);
+            assert_eq!(attempts[0].backends, original_backends);
+        }
+    }
+
+    #[test]
+    fn explicit_backend_override_is_respected() {
+        let descriptor = wgpu::InstanceDescriptor {
+            backends: wgpu::Backends::VULKAN,
+            ..Default::default()
+        };
+        let attempts = gpu_backend_attempts(descriptor, true);
+        assert_eq!(attempts.len(), 1);
+        assert_eq!(attempts[0].backends, wgpu::Backends::VULKAN);
+    }
 
     #[test]
     fn pane_projection_keeps_both_outputs_and_only_the_focused_cursor() {

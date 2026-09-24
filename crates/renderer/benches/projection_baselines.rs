@@ -37,10 +37,8 @@ fn populated(columns: usize, rows: usize) -> TerminalState {
 
 fn main() {
     let state = populated(COLUMNS, ROWS);
-    assert_eq!(
-        TerminalRenderData::from_terminal(&state).cells.len(),
-        COLUMNS * ROWS
-    );
+    let projected_cells = TerminalRenderData::from_terminal(&state).cells.len();
+    assert!(projected_cells > 0 && projected_cells < COLUMNS * ROWS);
     measure("visible_projection_80x30", ITERATIONS, || {
         let data = TerminalRenderData::from_terminal(black_box(&state));
         black_box(data.cells.len());
