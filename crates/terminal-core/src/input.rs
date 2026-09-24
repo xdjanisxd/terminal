@@ -23,6 +23,14 @@ pub fn encode_cursor_key(modes: InputModes, key: CursorKey) -> &'static [u8] {
     }
 }
 
+pub fn encode_control_cursor_key(key: CursorKey) -> Option<&'static [u8]> {
+    match key {
+        CursorKey::Right => Some(b"\x1b[1;5C"),
+        CursorKey::Left => Some(b"\x1b[1;5D"),
+        CursorKey::Up | CursorKey::Down => None,
+    }
+}
+
 pub fn encode_focus(modes: InputModes, focused: bool) -> Option<&'static [u8]> {
     modes
         .focus_reporting()
