@@ -141,13 +141,19 @@ fn powershell_psreadline_moves_by_words_for_control_arrows() {
     let right = marker("RIGHT", nonce);
     let mut output = PtyOutput::default();
 
+    // The first default prompt is emitted before any test input, so it cannot be
+    // confused with a PSReadLine redraw or an echoed command.
+    let prompt_prefix = wait_for("PS ", 0, &mut output, &receiver, &mut session);
+    wait_for("> ", prompt_prefix, &mut output, &receiver, &mut session);
+
     let ready_command = format!(
         "function prompt {{ {} }}; Write-Output {}\r",
         emit_marker("PROMPT", nonce),
         emit_marker("READY", nonce)
     );
+    let setup_start = output.visible.len();
     session.write(ready_command.as_bytes()).unwrap();
-    let ready_end = wait_for(&ready, 0, &mut output, &receiver, &mut session);
+    let ready_end = wait_for(&ready, setup_start, &mut output, &receiver, &mut session);
     wait_for(&prompt, ready_end, &mut output, &receiver, &mut session);
 
     // Search from the command's output marker so PSReadLine redraws cannot satisfy the result.
