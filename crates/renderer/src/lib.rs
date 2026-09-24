@@ -24,7 +24,7 @@ use std::time::Instant;
 use winit::window::Window;
 
 use crate::font::FontSystem;
-use crate::gpu::{DrawResources, FrameContext};
+use crate::gpu::{DrawResources, FrameContext, PaneDraw};
 
 static DIAGNOSTICS_ENABLED: OnceLock<bool> = OnceLock::new();
 static DIAGNOSTIC_SEQUENCE: AtomicU64 = AtomicU64::new(1);
@@ -77,6 +77,13 @@ pub enum RedrawOutcome {
     Reconfigured,
     Skipped,
     Exit,
+}
+
+/// A terminal and its physical viewport, supplied by the workspace owner.
+pub struct PaneRenderInput<'a> {
+    pub terminal: &'a terminal_core::TerminalState,
+    pub rect: [u32; 4],
+    pub focused: bool,
 }
 
 /// Renderer-owned surface state safe to include in native lifecycle diagnostics.
@@ -286,6 +293,16 @@ impl Renderer {
             data.cells.len(),
             projection_start.elapsed().as_micros()
         ));
+        let size = self.window.inner_size();
+        self.redraw_data(Some(&[(data, [0, 0, size.width, size.height], false)]))
+    }
+
+    pub fn redraw_panes(
+        &mut self,
+        panes: &[PaneRenderInput<'_>],
+        overlay: Option<&TextOverlay>,
+    ) -> RedrawOutcome {
+        let data = project_panes(panes, overlay, &self.theme);
         self.redraw_data(Some(&data))
     }
 
@@ -293,7 +310,10 @@ impl Renderer {
         self.theme = theme;
     }
 
-    fn redraw_data(&mut self, data: Option<&TerminalRenderData>) -> RedrawOutcome {
+    fn redraw_data(
+        &mut self,
+        data: Option<&[(TerminalRenderData, [u32; 4], bool)]>,
+    ) -> RedrawOutcome {
         let frame_id = DIAGNOSTIC_FRAME_SEQUENCE.fetch_add(1, Ordering::Relaxed);
         emit_diagnostic(format_args!(
             "renderer frame={frame_id} event=frame-start state={:?}",
@@ -337,34 +357,42 @@ impl Renderer {
                     let view = frame
                         .texture
                         .create_view(&wgpu::TextureViewDescriptor::default());
-                    let work = resources.draw(
-                        &self.device,
-                        &self.queue,
-                        FrameContext {
-                            target: &view,
-                            surface_size: size,
-                            cell_metrics: self.cell_metrics,
-                        },
-                        data,
-                        &mut self.font_system,
-                    );
-                    emit_diagnostic(format_args!(
-                        "renderer frame={frame_id} event=frame-rendered terminal_data=true cells={} instances={:?} draw_resources_created={} buffer_allocations={} buffer_writes={} buffer_bytes={} shape_calls={} shape_misses={} raster_calls={} atlas_lookups={} generation_us={} upload_us={} submission_us={} queue_submissions={}",
-                        data.cells.len(),
-                        work.instances,
-                        draw_resources_created,
-                        work.buffer_allocations,
-                        work.buffer_writes,
-                        work.buffer_bytes,
-                        work.shape_calls,
-                        work.shape_misses,
-                        work.raster_calls,
-                        work.atlas_lookups,
-                        work.instance_generation.as_micros(),
-                        work.buffer_upload.as_micros(),
-                        work.submission.as_micros(),
-                        work.queue_submissions,
-                    ));
+                    let mut clear_next = true;
+                    for (index, (pane_data, rect, focused)) in data.iter().enumerate() {
+                        let rect = [
+                            rect[0],
+                            rect[1],
+                            rect[2].min(size.width().saturating_sub(rect[0])),
+                            rect[3].min(size.height().saturating_sub(rect[1])),
+                        ];
+                        if rect[2] == 0 || rect[3] == 0 {
+                            continue;
+                        }
+                        let work = resources.draw_pane(
+                            &self.device,
+                            &self.queue,
+                            FrameContext {
+                                target: &view,
+                                surface_size: size,
+                                cell_metrics: self.cell_metrics,
+                            },
+                            pane_data,
+                            &mut self.font_system,
+                            PaneDraw {
+                                rect,
+                                clear: clear_next,
+                                focused_border: *focused,
+                            },
+                        );
+                        clear_next = false;
+                        emit_diagnostic(format_args!(
+                            "renderer frame={frame_id} event=pane-rendered pane={index} cells={} instances={:?} draw_resources_created={} queue_submissions={}",
+                            pane_data.cells.len(),
+                            work.instances,
+                            draw_resources_created,
+                            work.queue_submissions,
+                        ));
+                    }
                 } else {
                     self.queue.submit(std::iter::empty());
                     emit_diagnostic(format_args!(
@@ -464,6 +492,29 @@ impl Renderer {
     }
 }
 
+fn project_panes(
+    panes: &[PaneRenderInput<'_>],
+    overlay: Option<&TextOverlay>,
+    theme: &RenderTheme,
+) -> Vec<(TerminalRenderData, [u32; 4], bool)> {
+    let multiple = panes.len() > 1;
+    panes
+        .iter()
+        .map(|pane| {
+            let mut data = TerminalRenderData::from_terminal_with_theme(pane.terminal, theme);
+            if !pane.focused {
+                data.cursor = None;
+            }
+            if pane.focused
+                && let Some(overlay) = overlay
+            {
+                data.apply_text_overlay(overlay, theme);
+            }
+            (data, pane.rect, multiple && pane.focused)
+        })
+        .collect()
+}
+
 fn needs_reconfigure(
     current_size: Option<SurfaceSize>,
     configured: bool,
@@ -481,7 +532,42 @@ fn needs_draw_resource_rebuild(
 
 #[cfg(test)]
 mod tests {
-    use super::{SurfaceSize, needs_draw_resource_rebuild, needs_reconfigure};
+    use super::{
+        PaneRenderInput, SurfaceSize, needs_draw_resource_rebuild, needs_reconfigure, project_panes,
+    };
+
+    #[test]
+    fn pane_projection_keeps_both_outputs_and_only_the_focused_cursor() {
+        use terminal_core::{TerminalDimensions, TerminalState};
+        let mut left = TerminalState::new(TerminalDimensions::new(3, 2).unwrap());
+        let mut right = TerminalState::new(TerminalDimensions::new(3, 2).unwrap());
+        left.print_character('L').unwrap();
+        right.print_character('R').unwrap();
+        let data = project_panes(
+            &[
+                PaneRenderInput {
+                    terminal: &left,
+                    rect: [0, 0, 30, 40],
+                    focused: false,
+                },
+                PaneRenderInput {
+                    terminal: &right,
+                    rect: [30, 0, 31, 40],
+                    focused: true,
+                },
+            ],
+            None,
+            &Default::default(),
+        );
+        assert_eq!(data.len(), 2);
+        assert_eq!(data[0].1, [0, 0, 30, 40]);
+        assert_eq!(data[1].1, [30, 0, 31, 40]);
+        assert!(data[0].0.cells.iter().any(|cell| cell.character == 'L'));
+        assert!(data[1].0.cells.iter().any(|cell| cell.character == 'R'));
+        assert_eq!(data[0].0.cursor, None);
+        assert!(data[1].0.cursor.is_some());
+        assert!(!data[0].2 && data[1].2);
+    }
 
     #[test]
     fn surface_size_rejects_minimized_dimensions() {

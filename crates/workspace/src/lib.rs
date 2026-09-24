@@ -17,6 +17,21 @@ pub enum SplitAxis {
     Vertical,
 }
 
+/// Physical pixels assigned to a leaf of the split tree.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PaneRect {
+    pub x: u32,
+    pub y: u32,
+    pub width: u32,
+    pub height: u32,
+}
+
+impl PaneRect {
+    pub fn contains(self, x: u32, y: u32) -> bool {
+        x >= self.x && x - self.x < self.width && y >= self.y && y - self.y < self.height
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SessionDefinition {
@@ -83,6 +98,43 @@ pub enum Layout {
     },
 }
 impl Layout {
+    fn pane_rects(&self, rect: PaneRect, output: &mut Vec<(PaneId, PaneRect)>) {
+        match self {
+            Self::Pane(pane) => output.push((pane.id, rect)),
+            Self::Split {
+                axis,
+                first,
+                second,
+            } => {
+                let (first_rect, second_rect) = match axis {
+                    SplitAxis::Vertical => {
+                        let width = rect.width / 2;
+                        (
+                            PaneRect { width, ..rect },
+                            PaneRect {
+                                x: rect.x + width,
+                                width: rect.width - width,
+                                ..rect
+                            },
+                        )
+                    }
+                    SplitAxis::Horizontal => {
+                        let height = rect.height / 2;
+                        (
+                            PaneRect { height, ..rect },
+                            PaneRect {
+                                y: rect.y + height,
+                                height: rect.height - height,
+                                ..rect
+                            },
+                        )
+                    }
+                };
+                first.pane_rects(first_rect, output);
+                second.pane_rects(second_rect, output);
+            }
+        }
+    }
     fn panes(&self, output: &mut Vec<Pane>) {
         match self {
             Self::Pane(pane) => output.push(*pane),
@@ -154,6 +206,11 @@ pub struct Tab {
     pub active_pane: PaneId,
 }
 impl Tab {
+    pub fn pane_rects(&self, rect: PaneRect) -> Vec<(PaneId, PaneRect)> {
+        let mut panes = Vec::new();
+        self.layout.pane_rects(rect, &mut panes);
+        panes
+    }
     pub fn panes(&self) -> Vec<Pane> {
         let mut panes = Vec::new();
         self.layout.panes(&mut panes);
@@ -287,6 +344,14 @@ impl Workspace {
             panes[(current as isize + delta).rem_euclid(panes.len() as isize) as usize].id;
         tab.active_pane
     }
+    pub fn focus_pane_id(&mut self, pane_id: PaneId) -> bool {
+        let tab = &mut self.tabs[self.active_tab];
+        if tab.active_pane == pane_id || !tab.panes().iter().any(|pane| pane.id == pane_id) {
+            return false;
+        }
+        tab.active_pane = pane_id;
+        true
+    }
     pub fn close_active_pane(&mut self) -> Option<PaneId> {
         let active = self.active_pane();
         let tab = &mut self.tabs[self.active_tab];
@@ -380,5 +445,54 @@ mod tests {
         assert_eq!(workspace.close_active_pane(), Some(split));
         assert_eq!(workspace.active_pane(), first);
         assert_eq!(workspace.close_active_pane(), None);
+    }
+    #[test]
+    fn nested_split_rectangles_tile_the_viewport_with_odd_pixels() {
+        let mut workspace = Workspace::default();
+        let first = workspace.active_pane();
+        let right = workspace.split_active(SplitAxis::Vertical);
+        let bottom_right = workspace.split_active(SplitAxis::Horizontal);
+        let rects = workspace.active_tab().pane_rects(PaneRect {
+            x: 3,
+            y: 5,
+            width: 101,
+            height: 51,
+        });
+        assert_eq!(
+            rects,
+            vec![
+                (
+                    first,
+                    PaneRect {
+                        x: 3,
+                        y: 5,
+                        width: 50,
+                        height: 51
+                    }
+                ),
+                (
+                    right,
+                    PaneRect {
+                        x: 53,
+                        y: 5,
+                        width: 51,
+                        height: 25
+                    }
+                ),
+                (
+                    bottom_right,
+                    PaneRect {
+                        x: 53,
+                        y: 30,
+                        width: 51,
+                        height: 26
+                    }
+                ),
+            ]
+        );
+        assert!(rects[2].1.contains(103, 55));
+        assert!(!rects[2].1.contains(104, 55));
+        assert!(workspace.focus_pane_id(first));
+        assert!(!workspace.focus_pane_id(first));
     }
 }

@@ -20,10 +20,10 @@ use terminal_pty::{
     PortablePtyBackend, PtyBackend, PtyOutput, PtySize, PtySpawnConfig, PtyWorker, PtyWorkerEvent,
 };
 use terminal_renderer::{
-    CellMetrics, OverlayLine, RedrawOutcome, RenderTheme, Renderer, RendererDiagnosticState, Rgba,
-    TextOverlay, diagnostics_enabled, emit_diagnostic,
+    CellMetrics, OverlayLine, PaneRenderInput, RedrawOutcome, RenderTheme, Renderer,
+    RendererDiagnosticState, Rgba, TextOverlay, diagnostics_enabled, emit_diagnostic,
 };
-use terminal_workspace::{PaneId, SplitAxis, Workspace, WorkspaceDefinition};
+use terminal_workspace::{PaneId, PaneRect, SplitAxis, Workspace, WorkspaceDefinition};
 use winit::application::ApplicationHandler;
 use winit::dpi::{PhysicalPosition, PhysicalSize};
 use winit::event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent};
@@ -547,6 +547,9 @@ impl Application {
         emit_diagnostic(format_args!(
             "app event=pane-runtime-created pane={new_pane:?}"
         ));
+        if let Some(size) = self.window.as_ref().map(|window| window.inner_size()) {
+            self.resize_terminal_to_viewport(size);
+        }
         self.start_local_shell();
         // Native PTY startup can prevent an earlier queued redraw from being
         // delivered. Request a fresh frame after it finishes.
@@ -563,6 +566,10 @@ impl Application {
             let next = self.workspace.active_pane();
             self.activate_pane(next);
             self.inactive_panes.remove(&closed);
+            if let Some(size) = self.window.as_ref().map(|window| window.inner_size()) {
+                self.resize_terminal_to_viewport(size);
+            }
+            self.invalidate_frame();
         }
     }
 
@@ -742,10 +749,7 @@ impl Application {
                 if recreating_surface {
                     self.recovery_redraw.begin();
                 }
-                let grid_changed = self.resize_terminal_to_viewport(window.inner_size());
-                if grid_changed {
-                    self.resize_pty_to_terminal();
-                }
+                self.resize_terminal_to_viewport(window.inner_size());
                 self.start_local_shell();
                 self.update_workspace_title();
                 self.invalidate_frame();
@@ -808,55 +812,59 @@ impl Application {
             .as_mut()
             .is_some_and(|renderer| renderer.resize(size.width, size.height));
         work.surface_configures = usize::from(surface_changed);
-        let grid_changed = self.resize_terminal_to_viewport(size);
-        work.terminal_grid_resizes = usize::from(grid_changed);
-        if grid_changed {
-            work.pty_resize_commands = usize::from(self.resize_pty_to_terminal());
-        }
+        let (grid_resizes, pty_resizes) = self.resize_terminal_to_viewport(size);
+        work.terminal_grid_resizes = grid_resizes;
+        work.pty_resize_commands = pty_resizes;
         if force_redraw {
             self.recovery_redraw.begin();
             work.redraw_requests = usize::from(self.invalidate_after_surface_restore());
-        } else if surface_changed || grid_changed {
+        } else if surface_changed || grid_resizes != 0 {
             work.redraw_requests = usize::from(self.invalidate_frame());
         }
         self.diagnose("resize-complete");
         work
     }
 
-    fn resize_terminal_to_viewport(&mut self, size: PhysicalSize<u32>) -> bool {
+    fn resize_terminal_to_viewport(&mut self, size: PhysicalSize<u32>) -> (usize, usize) {
         let Some(metrics) = self.renderer.as_ref().map(Renderer::cell_metrics) else {
-            return false;
+            return (0, 0);
         };
-        let Some(dimensions) = terminal_dimensions_for_viewport(size, metrics) else {
-            return false;
-        };
-        if self.terminal.dimensions() == dimensions {
-            return false;
+        if size.width == 0 || size.height == 0 {
+            return (0, 0);
         }
-        self.terminal.resize(dimensions);
-        for runtime in self.inactive_panes.values_mut() {
-            if runtime.terminal.dimensions() != dimensions {
+        let mut grid_resizes = 0;
+        let mut pty_resizes = 0;
+        for (pane_id, dimensions) in pane_dimensions(&self.workspace, size, metrics) {
+            if pane_id == self.active_runtime_pane {
+                if self.terminal.dimensions() != dimensions {
+                    self.terminal.resize(dimensions);
+                    grid_resizes += 1;
+                    pty_resizes += usize::from(self.resize_pty_to_terminal());
+                }
+            } else if let Some(runtime) = self.inactive_panes.get_mut(&pane_id)
+                && runtime.terminal.dimensions() != dimensions
+            {
                 runtime.terminal.resize(dimensions);
-                if let Some(pty) = runtime.pty.as_ref()
-                    && let Err(error) = pty.resize(pty_size_for_terminal(dimensions))
-                {
-                    eprintln!("could not resize background shell: {error}");
+                grid_resizes += 1;
+                if let Some(pty) = runtime.pty.as_ref() {
+                    match pty.resize(pty_size_for_terminal(dimensions)) {
+                        Ok(()) => pty_resizes += 1,
+                        Err(error) => eprintln!("could not resize background shell: {error}"),
+                    }
                 }
             }
         }
         emit_diagnostic(format_args!(
-            "app event=terminal-grid-resized drawable={}x{} scale_factor={} cell_metrics={metrics:?} terminal_grid=columns:{} rows:{} pty=columns:{} rows:{}",
+            "app event=terminal-grid-resized drawable={}x{} scale_factor={} cell_metrics={metrics:?} grids={} pty_resize_commands={}",
             size.width,
             size.height,
             self.window
                 .as_ref()
                 .map_or(1.0, |window| window.scale_factor()),
-            dimensions.columns(),
-            dimensions.rows(),
-            dimensions.columns(),
-            dimensions.rows(),
+            grid_resizes,
+            pty_resizes,
         ));
-        true
+        (grid_resizes, pty_resizes)
     }
 
     fn start_local_shell(&mut self) {
@@ -918,7 +926,15 @@ impl Application {
             }
             self.handle_pty_event(event);
         }
-        for runtime in self.inactive_panes.values_mut() {
+        let visible: Vec<_> = self
+            .workspace
+            .active_tab()
+            .panes()
+            .iter()
+            .map(|pane| pane.id)
+            .collect();
+        let mut visible_output = false;
+        for (pane_id, runtime) in &mut self.inactive_panes {
             while let Some(pty) = runtime.pty.as_ref() {
                 let event = match pty.recv_timeout(Duration::ZERO) {
                     Ok(Some(event)) => event,
@@ -931,9 +947,13 @@ impl Application {
                 events += 1;
                 if let PtyWorkerEvent::Output(PtyOutput::Bytes(chunk)) = &event {
                     bytes += chunk.len();
+                    visible_output |= visible.contains(pane_id);
                 }
                 handle_background_pty_event(runtime, event);
             }
+        }
+        if visible_output {
+            self.invalidate_frame();
         }
         emit_diagnostic(format_args!(
             "app event=pty-drain events={events} bytes={bytes} elapsed_us={}",
@@ -988,7 +1008,11 @@ impl Application {
     fn send_mouse_event(&self, event: MouseEvent) {
         let Some((column, row)) = self.pointer_position.and_then(|position| {
             let metrics = self.renderer.as_ref()?.cell_metrics();
-            terminal_cell_at(position, metrics, self.terminal.dimensions())
+            terminal_cell_at(
+                self.local_pointer_position(position)?,
+                metrics,
+                self.terminal.dimensions(),
+            )
         }) else {
             return;
         };
@@ -1001,6 +1025,63 @@ impl Application {
             encode_mouse(*self.terminal.input_modes(), event, column, row, modifiers)
         {
             self.write_to_pty(bytes);
+        }
+    }
+
+    fn pane_rects(&self) -> Option<Vec<(PaneId, PaneRect)>> {
+        let size = self.window.as_ref()?.inner_size();
+        Some(self.workspace.active_tab().pane_rects(PaneRect {
+            x: 0,
+            y: 0,
+            width: size.width,
+            height: size.height,
+        }))
+    }
+
+    fn local_pointer_position(
+        &self,
+        position: PhysicalPosition<f64>,
+    ) -> Option<PhysicalPosition<f64>> {
+        let (_, rect) = self
+            .pane_rects()?
+            .into_iter()
+            .find(|(pane, _)| *pane == self.workspace.active_pane())?;
+        if !position.x.is_finite()
+            || !position.y.is_finite()
+            || position.x < rect.x as f64
+            || position.y < rect.y as f64
+            || position.x >= (rect.x + rect.width) as f64
+            || position.y >= (rect.y + rect.height) as f64
+        {
+            return None;
+        }
+        Some(PhysicalPosition::new(
+            position.x - rect.x as f64,
+            position.y - rect.y as f64,
+        ))
+    }
+
+    fn focus_pane_at_pointer(&mut self) {
+        let Some(position) = self.pointer_position else {
+            return;
+        };
+        if !position.x.is_finite()
+            || !position.y.is_finite()
+            || position.x < 0.0
+            || position.y < 0.0
+        {
+            return;
+        }
+        let Some(pane) = self.pane_rects().and_then(|rects| {
+            rects
+                .into_iter()
+                .find(|(_, rect)| rect.contains(position.x as u32, position.y as u32))
+                .map(|(pane, _)| pane)
+        }) else {
+            return;
+        };
+        if self.workspace.focus_pane_id(pane) {
+            self.activate_pane(pane);
         }
     }
 
@@ -1149,7 +1230,7 @@ impl ApplicationHandler<PtyWake> for Application {
                 if self.selection_dragging {
                     if let Some((column, row)) = self.renderer.as_ref().and_then(|renderer| {
                         terminal_cell_at(
-                            position,
+                            self.local_pointer_position(position)?,
                             renderer.cell_metrics(),
                             self.terminal.dimensions(),
                         )
@@ -1162,6 +1243,9 @@ impl ApplicationHandler<PtyWake> for Application {
                 }
             }
             WindowEvent::MouseInput { state, button, .. } => {
+                if state == ElementState::Pressed {
+                    self.focus_pane_at_pointer();
+                }
                 if button == MouseButton::Left && self.target_click_held {
                     if state == ElementState::Released {
                         self.target_click_held = false;
@@ -1177,7 +1261,12 @@ impl ApplicationHandler<PtyWake> for Application {
                     self.target_click_held = true;
                     self.pending_target = self.pointer_position.and_then(|position| {
                         let metrics = self.renderer.as_ref()?.cell_metrics();
-                        target_at_pointer(&self.terminal, position, metrics).map(str::to_owned)
+                        target_at_pointer(
+                            &self.terminal,
+                            self.local_pointer_position(position)?,
+                            metrics,
+                        )
+                        .map(str::to_owned)
                     });
                     self.dispatch_command(Command::OpenTarget);
                     return;
@@ -1190,7 +1279,11 @@ impl ApplicationHandler<PtyWake> for Application {
                     if state == ElementState::Pressed {
                         if let Some((column, row)) = self.pointer_position.and_then(|position| {
                             let metrics = self.renderer.as_ref()?.cell_metrics();
-                            terminal_cell_at(position, metrics, self.terminal.dimensions())
+                            terminal_cell_at(
+                                self.local_pointer_position(position)?,
+                                metrics,
+                                self.terminal.dimensions(),
+                            )
                         }) {
                             let previous_selection = self.terminal.clear_selection();
                             self.selection_dragging = self.terminal.begin_selection(row, column);
@@ -1218,6 +1311,7 @@ impl ApplicationHandler<PtyWake> for Application {
                 }
             }
             WindowEvent::MouseWheel { delta, .. } => {
+                self.focus_pane_at_pointer();
                 if let Some(metrics) = self.renderer.as_ref().map(Renderer::cell_metrics) {
                     if self.terminal.input_modes().mouse_tracking() == MouseTracking::Off {
                         self.mouse_wheel_remainder = 0.0;
@@ -1296,8 +1390,36 @@ impl ApplicationHandler<PtyWake> for Application {
                 let Some(renderer) = self.renderer.as_mut() else {
                     return;
                 };
-                let outcome =
-                    renderer.redraw_terminal_with_overlay(&self.terminal, overlay.as_ref());
+                let size = self
+                    .window
+                    .as_ref()
+                    .map(|window| window.inner_size())
+                    .unwrap_or(PhysicalSize::new(0, 0));
+                let surface = PaneRect {
+                    x: 0,
+                    y: 0,
+                    width: size.width,
+                    height: size.height,
+                };
+                let panes: Vec<_> = self
+                    .workspace
+                    .active_tab()
+                    .pane_rects(surface)
+                    .into_iter()
+                    .filter_map(|(pane_id, rect)| {
+                        let terminal = if pane_id == self.active_runtime_pane {
+                            &self.terminal
+                        } else {
+                            &self.inactive_panes.get(&pane_id)?.terminal
+                        };
+                        Some(PaneRenderInput {
+                            terminal,
+                            rect: [rect.x, rect.y, rect.width, rect.height],
+                            focused: pane_id == self.workspace.active_pane(),
+                        })
+                    })
+                    .collect();
+                let outcome = renderer.redraw_panes(&panes, overlay.as_ref());
                 emit_diagnostic(format_args!(
                     "app event=redraw-complete outcome={outcome:?}"
                 ));
@@ -1605,6 +1727,28 @@ fn terminal_dimensions_for_viewport(
     TerminalDimensions::new(columns, rows).ok()
 }
 
+fn pane_dimensions(
+    workspace: &Workspace,
+    size: PhysicalSize<u32>,
+    metrics: CellMetrics,
+) -> Vec<(PaneId, TerminalDimensions)> {
+    let surface = PaneRect {
+        x: 0,
+        y: 0,
+        width: size.width,
+        height: size.height,
+    };
+    workspace
+        .tabs()
+        .iter()
+        .flat_map(|tab| tab.pane_rects(surface))
+        .filter_map(|(pane, rect)| {
+            terminal_dimensions_for_viewport(PhysicalSize::new(rect.width, rect.height), metrics)
+                .map(|dimensions| (pane, dimensions))
+        })
+        .collect()
+}
+
 fn config_path() -> PathBuf {
     if let Some(path) = std::env::var_os("TERMINAL_CONFIG") {
         return PathBuf::from(path);
@@ -1691,7 +1835,7 @@ mod tests {
     use super::{
         Application, BasicKey, FrameState, PendingResize, PhysicalSizeSync, RecoveryRedraw,
         SurfaceRestore, WindowsShellSource, basic_backspace_byte_for_platform, basic_key_input,
-        configured_command, cursor_key_from_logical_key, parse_terminal_output,
+        configured_command, cursor_key_from_logical_key, pane_dimensions, parse_terminal_output,
         pty_size_for_terminal, scroll_terminal_for_wheel, select_windows_shell, target_at_pointer,
         terminal_cell_at, terminal_dimensions_for_viewport, wheel_scroll_rows,
     };
@@ -1752,6 +1896,29 @@ mod tests {
         assert_eq!(app.workspace.panes().len(), 1);
         app.dispatch_command(Command::ClosePane);
         assert_eq!(app.workspace.panes().len(), 1);
+    }
+
+    #[test]
+    fn nested_panes_receive_distinct_grid_sizes_and_hidden_tabs_stay_sized() {
+        let mut workspace = terminal_workspace::Workspace::default();
+        let left = workspace.active_pane();
+        let top_right = workspace.split_active(SplitAxis::Vertical);
+        let bottom_right = workspace.split_active(SplitAxis::Horizontal);
+        let other_tab = workspace.new_tab();
+        let sizes = pane_dimensions(
+            &workspace,
+            PhysicalSize::new(101, 51),
+            CellMetrics::from_physical(10, 10, 10.0),
+        );
+        assert_eq!(
+            sizes,
+            vec![
+                (left, TerminalDimensions::new(5, 5).unwrap()),
+                (top_right, TerminalDimensions::new(5, 2).unwrap()),
+                (bottom_right, TerminalDimensions::new(5, 2).unwrap()),
+                (other_tab, TerminalDimensions::new(10, 5).unwrap()),
+            ]
+        );
     }
 
     #[test]
