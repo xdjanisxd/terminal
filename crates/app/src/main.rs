@@ -2610,6 +2610,35 @@ mod tests {
     }
 
     #[test]
+    fn configured_backspace_binding_precedes_unbound_terminal_input() {
+        let config =
+            Config::parse("[[bindings]]\nkey = 'Ctrl+Shift+Backspace'\ncommand = 'close_pane'")
+                .unwrap();
+        let backspace = PhysicalKey::Code(KeyCode::Backspace);
+        assert_eq!(
+            configured_command(
+                &config,
+                backspace,
+                ModifiersState::CONTROL | ModifiersState::SHIFT,
+            ),
+            Some(Command::ClosePane)
+        );
+        assert_eq!(
+            configured_command(&config, backspace, ModifiersState::empty()),
+            None
+        );
+        assert_eq!(
+            terminal_key_input(
+                None,
+                Some(BasicKey::Backspace),
+                backspace,
+                ModifiersState::empty(),
+            ),
+            Some(vec![basic_backspace_byte_for_platform(cfg!(windows))])
+        );
+    }
+
+    #[test]
     fn page_navigation_is_app_local_and_not_basic_pty_input() {
         assert_eq!(
             configured_command(
