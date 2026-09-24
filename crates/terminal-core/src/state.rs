@@ -268,6 +268,16 @@ impl TerminalState {
         changed
     }
 
+    /// Returns the active viewport to live output after terminal input is sent.
+    /// Alternate has no scrollback, so this is a no-op there.
+    pub fn return_to_live_viewport(&mut self) -> bool {
+        let changed = self.screen.return_to_live_viewport();
+        if changed {
+            self.selection = None;
+        }
+        changed
+    }
+
     /// Moves the active viewport by signed rows: positive toward older history.
     ///
     /// Movement is clamped to retained Primary history and the live bottom.

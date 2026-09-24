@@ -248,6 +248,35 @@ fn page_navigation_projects_history_and_returns_to_following_bottom() {
 }
 
 #[test]
+fn terminal_input_returns_scrolled_primary_to_live_bottom() {
+    let mut state = state(3, 2);
+    write_row(&mut state, 0, "old");
+    write_row(&mut state, 1, "new");
+    state.set_cursor_position(1, 0).unwrap();
+    state.index();
+
+    assert!(state.page_up());
+    assert_eq!(viewport_row_text(&state, 0), "old");
+    assert!(state.return_to_live_viewport());
+    assert_eq!(state.viewport_offset(), 0);
+    assert_eq!(viewport_row_text(&state, 0), "new");
+    assert!(!state.return_to_live_viewport());
+}
+
+#[test]
+fn alternate_input_leaves_primary_scrollback_position_unchanged() {
+    let mut state = state(2, 2);
+    write_row(&mut state, 0, "aa");
+    state.set_cursor_position(1, 0).unwrap();
+    state.index();
+    assert!(state.page_up());
+    state.switch_to_alternate_screen();
+    assert!(!state.return_to_live_viewport());
+    state.switch_to_primary_screen();
+    assert_eq!(state.viewport_offset(), 1);
+}
+
+#[test]
 fn output_preserves_a_scrolled_back_viewport_and_offset_is_bounded() {
     let mut state = state(3, 2);
     write_row(&mut state, 0, "one");
