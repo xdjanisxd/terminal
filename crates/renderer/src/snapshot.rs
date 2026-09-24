@@ -72,6 +72,10 @@ impl RenderText {
 #[derive(Clone, Debug, PartialEq)]
 pub struct TextOverlay {
     pub lines: Vec<OverlayLine>,
+    /// Place the panel at the bottom instead of the top of the viewport.
+    pub bottom: bool,
+    /// Viewport row and column of the active search match.
+    pub highlight: Option<(usize, usize)>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -196,10 +200,25 @@ impl TerminalRenderData {
         if line_count == 0 || self.columns == 0 {
             return;
         }
+        if let Some((row, column)) = overlay.highlight
+            && let Some(cell) = self.cells.iter_mut().find(|cell| {
+                cell.row == row && column >= cell.column && column < cell.column + cell.width
+            })
+        {
+            cell.foreground = theme.selection_foreground;
+            cell.background = theme.selection_background;
+        }
+        let first_row = if overlay.bottom {
+            self.rows - line_count
+        } else {
+            0
+        };
         // Drop entire covered rows so wide terminal cells cannot overlap the panel.
-        self.cells.retain(|cell| cell.row >= line_count);
+        self.cells
+            .retain(|cell| cell.row < first_row || cell.row >= first_row + line_count);
         self.cursor = None;
-        for (row, line) in overlay.lines.iter().take(line_count).enumerate() {
+        for (index, line) in overlay.lines.iter().take(line_count).enumerate() {
+            let row = first_row + index;
             let (foreground, background) = if line.selected {
                 (theme.selection_foreground, theme.selection_background)
             } else {
@@ -341,6 +360,8 @@ mod tests {
                     text: "Go".into(),
                     selected: true,
                 }],
+                bottom: false,
+                highlight: None,
             },
             &theme,
         );
@@ -362,6 +383,37 @@ mod tests {
         );
         assert_eq!(data.cursor, None);
         assert_eq!(state.screen().cell(0, 0).unwrap().character(), '界');
+    }
+
+    #[test]
+    fn search_overlay_highlights_match_and_uses_opposite_edge() {
+        let mut state = TerminalState::new(TerminalDimensions::new(3, 2).unwrap());
+        state.print_character('A').unwrap();
+        let theme = RenderTheme::default();
+        let mut data = TerminalRenderData::from_terminal_with_theme(&state, &theme);
+        data.apply_text_overlay(
+            &TextOverlay {
+                lines: vec![OverlayLine {
+                    text: "Find".into(),
+                    selected: true,
+                }],
+                bottom: true,
+                highlight: Some((0, 0)),
+            },
+            &theme,
+        );
+        let match_cell = data
+            .cells
+            .iter()
+            .find(|cell| cell.row == 0 && cell.column == 0)
+            .unwrap();
+        assert_eq!(match_cell.character, 'A');
+        assert_eq!(match_cell.background, theme.selection_background);
+        assert!(
+            data.cells
+                .iter()
+                .any(|cell| cell.row == 1 && cell.character == 'F')
+        );
     }
     #[test]
     fn selection_highlights_snapshot_without_changing_terminal_cells() {
