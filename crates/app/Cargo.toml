@@ -11,4 +11,5 @@ terminal-core = { path = "../terminal-core" }
 terminal-platform = { path = "../platform" }
 terminal-pty = { path = "../terminal-pty" }
 terminal-renderer = { path = "../renderer" }
+terminal-workspace = { path = "../workspace" }
 winit = "0.30.13"

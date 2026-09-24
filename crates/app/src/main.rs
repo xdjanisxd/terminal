@@ -3,6 +3,7 @@
 mod commands;
 
 use commands::Palette;
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -22,6 +23,7 @@ use terminal_renderer::{
     CellMetrics, OverlayLine, RedrawOutcome, RenderTheme, Renderer, RendererDiagnosticState, Rgba,
     TextOverlay, diagnostics_enabled, emit_diagnostic,
 };
+use terminal_workspace::{PaneId, SplitAxis, Workspace, WorkspaceDefinition};
 use winit::application::ApplicationHandler;
 use winit::dpi::{PhysicalPosition, PhysicalSize};
 use winit::event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent};
@@ -35,6 +37,10 @@ struct Application {
     parser: TerminalParser,
     terminal: TerminalState,
     pty: Option<PtyWorker>,
+    workspace: Workspace,
+    active_runtime_pane: PaneId,
+    inactive_panes: HashMap<PaneId, PaneRuntime>,
+    workspace_loaded: bool,
     pty_wake_proxy: Option<EventLoopProxy<PtyWake>>,
     pty_wake_pending: Arc<AtomicBool>,
     frame: FrameState,
@@ -55,6 +61,23 @@ struct Application {
     config: Config,
     config_path: PathBuf,
     palette: Option<Palette>,
+}
+
+/// App runtime for one workspace-owned pane and its associated session.
+struct PaneRuntime {
+    parser: TerminalParser,
+    terminal: TerminalState,
+    pty: Option<PtyWorker>,
+}
+
+impl PaneRuntime {
+    fn new(dimensions: TerminalDimensions) -> Self {
+        Self {
+            parser: TerminalParser::with_osc52_policy(Osc52Policy::Deny),
+            terminal: TerminalState::new(dimensions),
+            pty: None,
+        }
+    }
 }
 
 /// App-local notifications delivered through the winit event loop.
@@ -89,6 +112,8 @@ enum WindowsShellSource {
 struct FrameState {
     dirty: bool,
     redraw_requested: bool,
+    #[cfg(test)]
+    requests_armed: usize,
 }
 
 impl FrameState {
@@ -99,6 +124,10 @@ impl FrameState {
             false
         } else {
             self.redraw_requested = true;
+            #[cfg(test)]
+            {
+                self.requests_armed += 1;
+            }
             true
         }
     }
@@ -302,6 +331,8 @@ impl SurfaceRestore {
 
 impl Default for Application {
     fn default() -> Self {
+        let workspace = Workspace::default();
+        let active_runtime_pane = workspace.active_pane();
         let mut terminal =
             TerminalState::new(TerminalDimensions::new(80, 24).expect("valid default"));
         if std::env::var_os("TERMINAL_RENDERER_VISUAL_SMOKE").is_some_and(|value| value == "1") {
@@ -313,6 +344,10 @@ impl Default for Application {
             parser: TerminalParser::with_osc52_policy(Osc52Policy::Deny),
             terminal,
             pty: None,
+            workspace,
+            active_runtime_pane,
+            inactive_panes: HashMap::new(),
+            workspace_loaded: false,
             pty_wake_proxy: None,
             pty_wake_pending: Arc::new(AtomicBool::new(false)),
             frame: FrameState::default(),
@@ -418,6 +453,10 @@ impl Application {
         };
         match next {
             Ok(config) => {
+                if !self.workspace_loaded {
+                    self.load_workspace(&config.workspace);
+                    self.workspace_loaded = true;
+                }
                 if config.theme != self.config.theme {
                     if let Some(renderer) = self.renderer.as_mut() {
                         renderer.set_theme(render_theme(&config.theme));
@@ -427,6 +466,103 @@ impl Application {
                 self.config = config;
             }
             Err(error) => eprintln!("config reload rejected; keeping last valid config: {error}"),
+        }
+    }
+
+    fn load_workspace(&mut self, definition: &WorkspaceDefinition) {
+        let workspace = Workspace::from_definition(definition).expect("validated workspace config");
+        let active = workspace.active_pane();
+        let dimensions = self.terminal.dimensions();
+        self.inactive_panes = workspace
+            .panes()
+            .into_iter()
+            .filter(|pane| pane.id != active)
+            .map(|pane| (pane.id, PaneRuntime::new(dimensions)))
+            .collect();
+        self.workspace = workspace;
+        self.active_runtime_pane = active;
+        self.update_workspace_title();
+    }
+
+    fn update_workspace_title(&self) {
+        let Some(window) = self.window.as_ref() else {
+            return;
+        };
+        let tab = self.workspace.active_tab();
+        let panes = tab.panes();
+        if self.workspace.tabs().len() == 1 && panes.len() == 1 {
+            window.set_title("Terminal");
+        } else {
+            let pane_index = panes
+                .iter()
+                .position(|pane| pane.id == tab.active_pane)
+                .unwrap()
+                + 1;
+            window.set_title(&format!(
+                "Terminal — {} ({}/{}) — Pane {}/{}",
+                tab.title,
+                self.workspace.active_tab_index() + 1,
+                self.workspace.tabs().len(),
+                pane_index,
+                panes.len(),
+            ));
+        }
+    }
+
+    fn activate_pane(&mut self, next: PaneId) {
+        let current = self.active_runtime_pane;
+        if current == next {
+            return;
+        }
+        let next_runtime = self
+            .inactive_panes
+            .remove(&next)
+            .expect("workspace pane has runtime");
+        let old = PaneRuntime {
+            parser: std::mem::replace(&mut self.parser, next_runtime.parser),
+            terminal: std::mem::replace(&mut self.terminal, next_runtime.terminal),
+            pty: std::mem::replace(&mut self.pty, next_runtime.pty),
+        };
+        self.inactive_panes.insert(current, old);
+        self.active_runtime_pane = next;
+        self.selection_dragging = false;
+        self.pressed_mouse_button = None;
+        self.wheel_remainder = 0.0;
+        self.mouse_wheel_remainder = 0.0;
+        self.update_workspace_title();
+        self.invalidate_frame();
+    }
+
+    fn create_pane(&mut self, axis: Option<SplitAxis>) {
+        emit_diagnostic(format_args!("app event=pane-create-start axis={axis:?}"));
+        let new_pane = match axis {
+            Some(axis) => self.workspace.split_active(axis),
+            None => self.workspace.new_tab(),
+        };
+        emit_diagnostic(format_args!(
+            "app event=pane-workspace-created pane={new_pane:?}"
+        ));
+        self.inactive_panes
+            .insert(new_pane, PaneRuntime::new(self.terminal.dimensions()));
+        emit_diagnostic(format_args!(
+            "app event=pane-runtime-created pane={new_pane:?}"
+        ));
+        self.start_local_shell();
+        // Native PTY startup can prevent an earlier queued redraw from being
+        // delivered. Request a fresh frame after it finishes.
+        self.frame.rearm();
+        self.activate_pane(new_pane);
+        emit_diagnostic(format_args!("app event=pane-activated pane={new_pane:?}"));
+        emit_diagnostic(format_args!(
+            "app event=pane-create-complete pane={new_pane:?}"
+        ));
+    }
+
+    fn close_pane(&mut self) {
+        if let Some(closed) = self.workspace.close_active_pane() {
+            let next = self.workspace.active_pane();
+            self.activate_pane(next);
+            self.inactive_panes.remove(&closed);
         }
     }
 
@@ -468,6 +604,26 @@ impl Application {
                     eprintln!("could not open terminal target: {error}");
                 }
             }
+            Command::NewTab => self.create_pane(None),
+            Command::SplitHorizontal => self.create_pane(Some(SplitAxis::Horizontal)),
+            Command::SplitVertical => self.create_pane(Some(SplitAxis::Vertical)),
+            Command::NextTab => {
+                let next = self.workspace.focus_tab(1);
+                self.activate_pane(next);
+            }
+            Command::PreviousTab => {
+                let next = self.workspace.focus_tab(-1);
+                self.activate_pane(next);
+            }
+            Command::NextPane => {
+                let next = self.workspace.focus_pane(1);
+                self.activate_pane(next);
+            }
+            Command::PreviousPane => {
+                let next = self.workspace.focus_pane(-1);
+                self.activate_pane(next);
+            }
+            Command::ClosePane => self.close_pane(),
         }
     }
 
@@ -499,10 +655,10 @@ impl Application {
         if !close {
             self.palette = Some(palette);
         }
-        self.invalidate_frame();
         if let Some(command) = command {
             self.dispatch_command(command);
         }
+        self.invalidate_frame();
     }
 
     fn palette_overlay(&self) -> Option<TextOverlay> {
@@ -591,6 +747,7 @@ impl Application {
                     self.resize_pty_to_terminal();
                 }
                 self.start_local_shell();
+                self.update_workspace_title();
                 self.invalidate_frame();
                 self.diagnose("renderer-created");
             }
@@ -677,6 +834,16 @@ impl Application {
             return false;
         }
         self.terminal.resize(dimensions);
+        for runtime in self.inactive_panes.values_mut() {
+            if runtime.terminal.dimensions() != dimensions {
+                runtime.terminal.resize(dimensions);
+                if let Some(pty) = runtime.pty.as_ref()
+                    && let Err(error) = pty.resize(pty_size_for_terminal(dimensions))
+                {
+                    eprintln!("could not resize background shell: {error}");
+                }
+            }
+        }
         emit_diagnostic(format_args!(
             "app event=terminal-grid-resized drawable={}x{} scale_factor={} cell_metrics={metrics:?} terminal_grid=columns:{} rows:{} pty=columns:{} rows:{}",
             size.width,
@@ -693,31 +860,24 @@ impl Application {
     }
 
     fn start_local_shell(&mut self) {
-        if self.pty.is_some() {
-            return;
-        }
         let Some(proxy) = self.pty_wake_proxy.clone() else {
             return;
         };
-        let wake_pending = Arc::clone(&self.pty_wake_pending);
-        let size = pty_size_for_terminal(self.terminal.dimensions());
-        let backend = PortablePtyBackend::new();
-        let session = match backend.spawn(local_shell_spawn_config(size)) {
-            Ok(session) => session,
-            Err(error) => {
-                eprintln!("could not start local shell: {error}");
-                return;
+        if self.pty.is_none() {
+            self.pty = spawn_local_shell(
+                proxy.clone(),
+                Arc::clone(&self.pty_wake_pending),
+                self.terminal.dimensions(),
+            );
+        }
+        for runtime in self.inactive_panes.values_mut() {
+            if runtime.pty.is_none() {
+                runtime.pty = spawn_local_shell(
+                    proxy.clone(),
+                    Arc::clone(&self.pty_wake_pending),
+                    runtime.terminal.dimensions(),
+                );
             }
-        };
-        match PtyWorker::start_with_notifier(session, move || {
-            if !wake_pending.swap(true, Ordering::AcqRel)
-                && proxy.send_event(PtyWake::OutputAvailable).is_err()
-            {
-                wake_pending.store(false, Ordering::Release);
-            }
-        }) {
-            Ok(worker) => self.pty = Some(worker),
-            Err(error) => eprintln!("could not start local shell worker: {error}"),
         }
     }
 
@@ -757,6 +917,23 @@ impl Application {
                 bytes += chunk.len();
             }
             self.handle_pty_event(event);
+        }
+        for runtime in self.inactive_panes.values_mut() {
+            while let Some(pty) = runtime.pty.as_ref() {
+                let event = match pty.recv_timeout(Duration::ZERO) {
+                    Ok(Some(event)) => event,
+                    Ok(None) => break,
+                    Err(error) => {
+                        eprintln!("could not receive background shell output: {error}");
+                        break;
+                    }
+                };
+                events += 1;
+                if let PtyWorkerEvent::Output(PtyOutput::Bytes(chunk)) = &event {
+                    bytes += chunk.len();
+                }
+                handle_background_pty_event(runtime, event);
+            }
         }
         emit_diagnostic(format_args!(
             "app event=pty-drain events={events} bytes={bytes} elapsed_us={}",
@@ -1166,6 +1343,61 @@ fn pty_size_for_terminal(dimensions: TerminalDimensions) -> PtySize {
     .expect("terminal dimensions are nonzero")
 }
 
+fn spawn_local_shell(
+    proxy: EventLoopProxy<PtyWake>,
+    wake_pending: Arc<AtomicBool>,
+    dimensions: TerminalDimensions,
+) -> Option<PtyWorker> {
+    emit_diagnostic(format_args!("app event=pty-backend-start"));
+    let backend = PortablePtyBackend::new();
+    emit_diagnostic(format_args!("app event=pty-session-spawn-start"));
+    let session = match backend.spawn(local_shell_spawn_config(pty_size_for_terminal(dimensions))) {
+        Ok(session) => session,
+        Err(error) => {
+            eprintln!("could not start local shell: {error}");
+            return None;
+        }
+    };
+    emit_diagnostic(format_args!("app event=pty-session-spawn-complete"));
+    emit_diagnostic(format_args!("app event=pty-worker-start"));
+    match PtyWorker::start_with_notifier(session, move || {
+        if !wake_pending.swap(true, Ordering::AcqRel)
+            && proxy.send_event(PtyWake::OutputAvailable).is_err()
+        {
+            wake_pending.store(false, Ordering::Release);
+        }
+    }) {
+        Ok(worker) => {
+            emit_diagnostic(format_args!("app event=pty-worker-start-complete"));
+            Some(worker)
+        }
+        Err(error) => {
+            eprintln!("could not start local shell worker: {error}");
+            None
+        }
+    }
+}
+
+fn handle_background_pty_event(runtime: &mut PaneRuntime, event: PtyWorkerEvent) {
+    match event {
+        PtyWorkerEvent::Output(PtyOutput::Bytes(bytes)) => {
+            runtime.terminal.clear_selection();
+            let replies = parse_terminal_output(&mut runtime.parser, &mut runtime.terminal, &bytes);
+            // OSC 52 is denied by the parser for every pane.
+            runtime.terminal.take_osc52_write();
+            if let Some(pty) = runtime.pty.as_ref() {
+                for reply in replies {
+                    if let Err(error) = pty.write(reply) {
+                        eprintln!("could not reply to background shell: {error}");
+                    }
+                }
+            }
+        }
+        PtyWorkerEvent::Output(PtyOutput::Eof | PtyOutput::Exited(_)) => {}
+        PtyWorkerEvent::Error(error) => eprintln!("background shell worker error: {error}"),
+    }
+}
+
 fn local_shell_spawn_config(size: PtySize) -> PtySpawnConfig {
     #[cfg(windows)]
     let (program, source) = windows_shell_program();
@@ -1465,7 +1697,9 @@ mod tests {
     };
     use terminal_config::{Command, Config, Rgb};
     use terminal_core::{CursorKey, TerminalDimensions, TerminalParser, TerminalState};
+    use terminal_pty::{PtyOutput, PtyWorkerEvent};
     use terminal_renderer::CellMetrics;
+    use terminal_workspace::{LayoutDefinition, SplitAxis};
     use winit::dpi::{PhysicalPosition, PhysicalSize};
     use winit::event::MouseScrollDelta;
     use winit::keyboard::{Key, KeyCode, ModifiersState, NamedKey, PhysicalKey};
@@ -1493,6 +1727,159 @@ mod tests {
         assert_eq!(terminal.screen().cell(0, 0).unwrap().character(), 'e');
         assert_eq!(terminal.screen().cell(1, 0).unwrap().character(), 'o');
         assert_eq!(terminal.screen().cell(1, 1).unwrap().character(), 'k');
+    }
+
+    #[test]
+    fn workspace_commands_keep_pane_output_and_focus_separate() {
+        let mut app = Application::default();
+        let first = app.workspace.active_pane();
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(b"A".to_vec())));
+
+        app.dispatch_command(Command::SplitVertical);
+        let second = app.workspace.active_pane();
+        assert_ne!(first, second);
+        assert_eq!(app.workspace.panes().len(), 2);
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(b"B".to_vec())));
+        assert_eq!(app.terminal.screen().cell(0, 0).unwrap().character(), 'B');
+
+        app.dispatch_command(Command::PreviousPane);
+        assert_eq!(app.active_runtime_pane, first);
+        assert_eq!(app.terminal.screen().cell(0, 0).unwrap().character(), 'A');
+        app.dispatch_command(Command::NextPane);
+        assert_eq!(app.active_runtime_pane, second);
+        app.dispatch_command(Command::ClosePane);
+        assert_eq!(app.active_runtime_pane, first);
+        assert_eq!(app.workspace.panes().len(), 1);
+        app.dispatch_command(Command::ClosePane);
+        assert_eq!(app.workspace.panes().len(), 1);
+    }
+
+    #[test]
+    fn new_tab_keeps_its_own_terminal_session() {
+        let mut app = Application::default();
+        let first = app.workspace.active_pane();
+        app.dispatch_command(Command::NewTab);
+        let second = app.workspace.active_pane();
+        assert_ne!(first, second);
+        assert_eq!(app.workspace.tabs().len(), 2);
+        app.dispatch_command(Command::PreviousTab);
+        assert_eq!(app.active_runtime_pane, first);
+        app.dispatch_command(Command::NextTab);
+        assert_eq!(app.active_runtime_pane, second);
+        assert_eq!(app.workspace.definition().tabs.len(), 2);
+    }
+
+    fn assert_pane_runtimes_match_workspace(app: &Application) {
+        let panes = app.workspace.panes();
+        assert_eq!(app.active_runtime_pane, app.workspace.active_pane());
+        assert_eq!(app.inactive_panes.len() + 1, panes.len());
+        let mut sessions = std::collections::HashSet::new();
+        for pane in panes {
+            assert!(sessions.insert(pane.session));
+            assert_eq!(
+                pane.id == app.active_runtime_pane,
+                !app.inactive_panes.contains_key(&pane.id)
+            );
+        }
+    }
+
+    #[test]
+    fn palette_creates_second_tab_after_a_pending_redraw() {
+        let mut app = Application::default();
+        let first = app.workspace.active_pane();
+        app.dispatch_command(Command::OpenPalette);
+        app.handle_palette_key(&Key::Character("new tab".into()), Some("new tab"));
+        assert!(app.frame.redraw_requested);
+        assert_eq!(app.frame.requests_armed, 1);
+        app.handle_palette_key(&Key::Named(NamedKey::Enter), None);
+
+        assert!(app.palette.is_none());
+        assert_eq!(app.workspace.tabs().len(), 2);
+        assert_ne!(app.workspace.active_pane(), first);
+        assert!(app.frame.redraw_requested);
+        assert_eq!(app.frame.requests_armed, 2);
+        assert_pane_runtimes_match_workspace(&app);
+    }
+
+    fn assert_split_creation(query: &str, axis: SplitAxis) {
+        let mut app = Application::default();
+        let first = app.workspace.active_pane();
+        app.dispatch_command(Command::OpenPalette);
+        app.handle_palette_key(&Key::Character(query.into()), Some(query));
+        assert_eq!(app.frame.requests_armed, 1);
+        app.handle_palette_key(&Key::Named(NamedKey::Enter), None);
+        let second = app.workspace.active_pane();
+
+        assert!(app.palette.is_none());
+        assert_eq!(app.frame.requests_armed, 2);
+        assert_ne!(second, first);
+        assert_eq!(app.workspace.tabs().len(), 1);
+        assert!(matches!(
+            app.workspace.definition().tabs[0].layout,
+            LayoutDefinition::Split { axis: actual, .. } if actual == axis
+        ));
+        assert_pane_runtimes_match_workspace(&app);
+        app.dispatch_command(Command::PreviousPane);
+        assert_eq!(app.active_runtime_pane, first);
+        app.dispatch_command(Command::NextPane);
+        assert_eq!(app.active_runtime_pane, second);
+    }
+
+    #[test]
+    fn horizontal_split_creates_an_independent_pane() {
+        assert_split_creation("split horizontal", SplitAxis::Horizontal);
+    }
+
+    #[test]
+    fn vertical_split_creates_an_independent_pane() {
+        assert_split_creation("split vertical", SplitAxis::Vertical);
+    }
+
+    #[test]
+    fn sequential_creations_keep_every_runtime_and_session_distinct() {
+        let mut app = Application::default();
+        for command in [
+            Command::NewTab,
+            Command::SplitHorizontal,
+            Command::SplitVertical,
+            Command::NewTab,
+            Command::SplitHorizontal,
+        ] {
+            app.dispatch_command(command);
+            assert_pane_runtimes_match_workspace(&app);
+        }
+        assert_eq!(app.workspace.tabs().len(), 3);
+        assert_eq!(app.workspace.panes().len(), 6);
+        app.dispatch_command(Command::PreviousTab);
+        assert_pane_runtimes_match_workspace(&app);
+        app.dispatch_command(Command::NextPane);
+        assert_pane_runtimes_match_workspace(&app);
+    }
+
+    #[test]
+    fn close_after_create_releases_panes_and_keeps_remaining_runtime() {
+        let mut app = Application::default();
+        let first = app.workspace.active_pane();
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(b"A".to_vec())));
+
+        app.dispatch_command(Command::SplitHorizontal);
+        let split = app.workspace.active_pane();
+        app.dispatch_command(Command::ClosePane);
+        assert_eq!(app.workspace.active_pane(), first);
+        assert!(!app.inactive_panes.contains_key(&split));
+        assert_eq!(app.terminal.screen().cell(0, 0).unwrap().character(), 'A');
+        assert_pane_runtimes_match_workspace(&app);
+
+        app.dispatch_command(Command::NewTab);
+        let tab = app.workspace.active_pane();
+        app.dispatch_command(Command::ClosePane);
+        assert_eq!(app.workspace.active_pane(), first);
+        assert!(!app.inactive_panes.contains_key(&tab));
+        assert_eq!(app.workspace.tabs().len(), 1);
+        assert_pane_runtimes_match_workspace(&app);
+
+        app.dispatch_command(Command::SplitVertical);
+        assert_pane_runtimes_match_workspace(&app);
     }
 
     #[test]
