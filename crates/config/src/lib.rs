@@ -340,6 +340,7 @@ fn parse_chord(value: &str) -> Result<KeyChord, String> {
                     "end" => "End".into(),
                     "insert" => "Insert".into(),
                     "delete" => "Delete".into(),
+                    "backspace" => "Backspace".into(),
                     "tab" => "Tab".into(),
                     "arrowright" => "ArrowRight".into(),
                     "arrowleft" => "ArrowLeft".into(),
@@ -442,6 +443,17 @@ mod tests {
                 .iter()
                 .any(|binding| binding.command == Command::OpenPalette)
         );
+    }
+    #[test]
+    fn backspace_is_a_supported_physical_binding_key() {
+        let config =
+            Config::parse("[[bindings]]\nkey = 'Ctrl+Shift+Backspace'\ncommand = 'close_pane'")
+                .unwrap();
+        assert_eq!(config.bindings.len(), 1);
+        assert_eq!(config.bindings[0].key.key, "Backspace");
+        assert!(config.bindings[0].key.control);
+        assert!(config.bindings[0].key.shift);
+        assert_eq!(config.bindings[0].command, Command::ClosePane);
     }
     #[test]
     fn validation_names_the_bad_field() {

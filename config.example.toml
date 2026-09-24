@@ -20,8 +20,9 @@ ansi = [
 
 # Binding entries replace the entire default list; keep any shortcuts you want.
 # A chord uses optional Ctrl, Shift, Alt, then a physical key. Supported keys:
-# A-Z, 0-9, PageUp, PageDown, Home, End, Insert, Delete, Tab,
+# A-Z, 0-9, PageUp, PageDown, Home, End, Insert, Delete, Backspace, Tab,
 # ArrowLeft, ArrowRight. Plain letters and digits require a modifier.
+# Example custom binding: key = "Ctrl+Shift+Backspace", command = "close_pane".
 # Commands: copy, paste, page_up, page_down, open_palette, open_target,
 # new_tab, split_horizontal, split_vertical, next_tab, previous_tab,
 # next_pane, previous_pane, close_pane. "action" aliases "command".

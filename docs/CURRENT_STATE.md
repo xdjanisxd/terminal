@@ -3,6 +3,7 @@
 ## Working
 
 - `terminal-config` owns typed TOML defaults, theme colors, typed command bindings, project roots, workspace definitions, and validation. The app loads the config at startup and after file content changes, retains the last valid values after an invalid edit, resolves bound keys to commands, executes them in one app dispatcher, and passes theme colors to the renderer. The searchable palette opened by Ctrl+Shift+P includes registry commands and configured project tab/split actions; palette input stays local, and the renderer draws its text overlay without mutating terminal state. See `docs/CONFIG.md` for the schema and reload boundaries.
+- Configurable physical key chords include Backspace. A matching app binding takes precedence; unbound Backspace retains its terminal input behavior.
 
 - Valid Rust workspace, MIT metadata, and required repository knowledge system
 - Cross-platform GitHub Actions gates verified on Windows, Linux, and macOS for x86_64 and ARM64
