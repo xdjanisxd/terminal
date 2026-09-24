@@ -1486,8 +1486,6 @@ impl ApplicationHandler<PtyWake> for Application {
                     self.dispatch_command(command);
                 } else if let Some(cursor_key) = cursor_key_from_logical_key(&event.logical_key) {
                     self.write_terminal_input(
-                        encode_cursor_key(*self.terminal.input_modes(), cursor_key).to_vec(),
-                    self.write_to_pty(
                         terminal_cursor_key_input(
                             *self.terminal.input_modes(),
                             cursor_key,
@@ -2056,10 +2054,8 @@ mod tests {
         basic_backspace_byte_for_platform, basic_key_input, configured_command,
         cursor_key_from_logical_key, pane_dimensions, parse_terminal_output, pty_size_for_terminal,
         queue_terminal_input, scroll_terminal_for_wheel, select_windows_shell, target_at_pointer,
-        terminal_cell_at, terminal_dimensions_for_viewport, terminal_key_input, wheel_scroll_rows,
-        scroll_terminal_for_wheel, select_windows_shell, target_at_pointer, terminal_cell_at,
-        terminal_cursor_key_input, terminal_dimensions_for_viewport, terminal_key_input,
-        wheel_scroll_rows,
+        terminal_cell_at, terminal_cursor_key_input, terminal_dimensions_for_viewport,
+        terminal_key_input, wheel_scroll_rows,
     };
     use terminal_config::{Command, Config, Rgb};
     use terminal_core::{CursorKey, TerminalDimensions, TerminalParser, TerminalState};
