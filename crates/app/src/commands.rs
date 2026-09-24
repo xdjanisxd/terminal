@@ -40,6 +40,46 @@ pub const COMMANDS: &[CommandInfo] = &[
         name: "Open Target",
         in_palette: false,
     },
+    CommandInfo {
+        command: Command::NewTab,
+        name: "New Tab",
+        in_palette: true,
+    },
+    CommandInfo {
+        command: Command::SplitHorizontal,
+        name: "Split Horizontal",
+        in_palette: true,
+    },
+    CommandInfo {
+        command: Command::SplitVertical,
+        name: "Split Vertical",
+        in_palette: true,
+    },
+    CommandInfo {
+        command: Command::NextTab,
+        name: "Next Tab",
+        in_palette: true,
+    },
+    CommandInfo {
+        command: Command::PreviousTab,
+        name: "Previous Tab",
+        in_palette: true,
+    },
+    CommandInfo {
+        command: Command::NextPane,
+        name: "Next Pane",
+        in_palette: true,
+    },
+    CommandInfo {
+        command: Command::PreviousPane,
+        name: "Previous Pane",
+        in_palette: true,
+    },
+    CommandInfo {
+        command: Command::ClosePane,
+        name: "Close Pane",
+        in_palette: true,
+    },
 ];
 
 /// Terminal output is untrusted. Only an explicit user gesture may pass an

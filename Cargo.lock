@@ -1803,6 +1803,7 @@ dependencies = [
  "terminal-platform",
  "terminal-pty",
  "terminal-renderer",
+ "terminal-workspace",
  "winit",
 ]
 
@@ -1811,6 +1812,7 @@ name = "terminal-config"
 version = "0.0.0"
 dependencies = [
  "serde",
+ "terminal-workspace",
  "toml",
 ]
 
@@ -1854,6 +1856,9 @@ dependencies = [
 [[package]]
 name = "terminal-workspace"
 version = "0.0.0"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "thiserror"

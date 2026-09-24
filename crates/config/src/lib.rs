@@ -2,6 +2,7 @@
 
 use serde::Deserialize;
 use std::{collections::HashSet, fmt, fs, path::Path};
+use terminal_workspace::{Workspace, WorkspaceDefinition};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Rgb(pub u8, pub u8, pub u8);
@@ -55,6 +56,14 @@ pub enum Command {
     PageDown,
     OpenPalette,
     OpenTarget,
+    NewTab,
+    SplitHorizontal,
+    SplitVertical,
+    NextTab,
+    PreviousTab,
+    NextPane,
+    PreviousPane,
+    ClosePane,
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -76,18 +85,28 @@ pub struct Binding {
 pub struct Config {
     pub theme: Theme,
     pub bindings: Vec<Binding>,
+    pub workspace: WorkspaceDefinition,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             theme: Theme::default(),
+            workspace: WorkspaceDefinition::default(),
             bindings: [
                 ("Ctrl+Shift+C", Command::Copy),
                 ("Ctrl+Shift+V", Command::Paste),
                 ("PageUp", Command::PageUp),
                 ("PageDown", Command::PageDown),
                 ("Ctrl+Shift+P", Command::OpenPalette),
+                ("Ctrl+Shift+T", Command::NewTab),
+                ("Ctrl+Shift+E", Command::SplitVertical),
+                ("Ctrl+Shift+O", Command::SplitHorizontal),
+                ("Ctrl+Tab", Command::NextTab),
+                ("Ctrl+Shift+Tab", Command::PreviousTab),
+                ("Ctrl+Shift+ArrowRight", Command::NextPane),
+                ("Ctrl+Shift+ArrowLeft", Command::PreviousPane),
+                ("Ctrl+Shift+W", Command::ClosePane),
             ]
             .into_iter()
             .map(|(key, command)| Binding {
@@ -104,6 +123,11 @@ impl Config {
         let raw: RawConfig =
             toml::from_str(source).map_err(|error| ConfigError(error.to_string()))?;
         let mut config = Self::default();
+        if let Some(workspace) = raw.workspace {
+            Workspace::from_definition(&workspace)
+                .map_err(|error| ConfigError(format!("workspace: {error}")))?;
+            config.workspace = workspace;
+        }
         if let Some(theme) = raw.theme {
             for (name, value, slot) in [
                 (
@@ -188,6 +212,7 @@ impl std::error::Error for ConfigError {}
 struct RawConfig {
     theme: Option<RawTheme>,
     bindings: Option<Vec<RawBinding>>,
+    workspace: Option<WorkspaceDefinition>,
 }
 
 #[derive(Deserialize, Default)]
@@ -245,6 +270,9 @@ fn parse_chord(value: &str) -> Result<KeyChord, String> {
                     "end" => "End".into(),
                     "insert" => "Insert".into(),
                     "delete" => "Delete".into(),
+                    "tab" => "Tab".into(),
+                    "arrowright" => "ArrowRight".into(),
+                    "arrowleft" => "ArrowLeft".into(),
                     _ if key.len() == 1 && key.bytes().all(|byte| byte.is_ascii_alphabetic()) => {
                         format!("Key{}", key.to_ascii_uppercase())
                     }
@@ -322,5 +350,48 @@ mod tests {
             );
         }
         assert!(Config::parse("[them]\nx = 1").is_err());
+    }
+
+    #[test]
+    fn workspace_definition_parses_and_validates_focus() {
+        let source = "[workspace]\nactive_tab = 0\n[[workspace.tabs]]\ntitle = 'Development'\nactive_pane = 1\nlayout = { kind = 'split', axis = 'vertical', first = { kind = 'pane', session = 'local_shell' }, second = { kind = 'pane', session = 'local_shell' } }";
+        let config = Config::parse(source).unwrap();
+        assert_eq!(
+            Workspace::from_definition(&config.workspace)
+                .unwrap()
+                .panes()
+                .len(),
+            2
+        );
+        assert_eq!(config.workspace.tabs[0].title, "Development");
+        assert!(
+            Config::parse(&source.replace("active_pane = 1", "active_pane = 2"))
+                .unwrap_err()
+                .to_string()
+                .contains("active_pane")
+        );
+    }
+
+    #[test]
+    fn default_workspace_bindings_use_supported_physical_keys() {
+        let config = Config::default();
+        assert_eq!(config.workspace, WorkspaceDefinition::default());
+        for command in [
+            Command::NewTab,
+            Command::SplitHorizontal,
+            Command::SplitVertical,
+            Command::NextTab,
+            Command::PreviousTab,
+            Command::NextPane,
+            Command::PreviousPane,
+            Command::ClosePane,
+        ] {
+            assert!(
+                config
+                    .bindings
+                    .iter()
+                    .any(|binding| binding.command == command)
+            );
+        }
     }
 }
