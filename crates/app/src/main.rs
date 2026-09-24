@@ -1942,10 +1942,45 @@ fn terminal_key_input(
     physical_key: PhysicalKey,
     modifiers: ModifiersState,
 ) -> Option<Vec<u8>> {
-    if physical_key == PhysicalKey::Code(KeyCode::KeyC) && modifiers == ModifiersState::CONTROL {
-        return Some(vec![0x03]);
+    if modifiers == ModifiersState::CONTROL
+        && let PhysicalKey::Code(code) = physical_key
+        && let Some(byte) = control_letter_byte(code)
+    {
+        return Some(vec![byte]);
     }
     basic_key_input(text, key)
+}
+
+fn control_letter_byte(code: KeyCode) -> Option<u8> {
+    Some(match code {
+        KeyCode::KeyA => 0x01,
+        KeyCode::KeyB => 0x02,
+        KeyCode::KeyC => 0x03,
+        KeyCode::KeyD => 0x04,
+        KeyCode::KeyE => 0x05,
+        KeyCode::KeyF => 0x06,
+        KeyCode::KeyG => 0x07,
+        KeyCode::KeyH => 0x08,
+        KeyCode::KeyI => 0x09,
+        KeyCode::KeyJ => 0x0a,
+        KeyCode::KeyK => 0x0b,
+        KeyCode::KeyL => 0x0c,
+        KeyCode::KeyM => 0x0d,
+        KeyCode::KeyN => 0x0e,
+        KeyCode::KeyO => 0x0f,
+        KeyCode::KeyP => 0x10,
+        KeyCode::KeyQ => 0x11,
+        KeyCode::KeyR => 0x12,
+        KeyCode::KeyS => 0x13,
+        KeyCode::KeyT => 0x14,
+        KeyCode::KeyU => 0x15,
+        KeyCode::KeyV => 0x16,
+        KeyCode::KeyW => 0x17,
+        KeyCode::KeyX => 0x18,
+        KeyCode::KeyY => 0x19,
+        KeyCode::KeyZ => 0x1a,
+        _ => return None,
+    })
 }
 
 fn basic_backspace_byte_for_platform(_windows: bool) -> u8 {
@@ -2587,7 +2622,64 @@ mod tests {
     }
 
     #[test]
-    fn plain_c_and_other_keys_keep_their_committed_text() {
+    fn control_letters_encode_ascii_control_bytes_without_committed_text() {
+        for (key, text, byte) in [
+            (KeyCode::KeyA, Some("a"), 0x01),
+            (KeyCode::KeyB, None, 0x02),
+            (KeyCode::KeyF, Some("f"), 0x06),
+            (KeyCode::KeyR, Some("r"), 0x12),
+            (KeyCode::KeyW, Some("w"), 0x17),
+            (KeyCode::KeyZ, Some("z"), 0x1a),
+        ] {
+            assert_eq!(
+                terminal_key_input(text, None, PhysicalKey::Code(key), ModifiersState::CONTROL),
+                Some(vec![byte]),
+                "{key:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn every_control_letter_maps_to_its_ascii_byte() {
+        let letters = [
+            KeyCode::KeyA,
+            KeyCode::KeyB,
+            KeyCode::KeyC,
+            KeyCode::KeyD,
+            KeyCode::KeyE,
+            KeyCode::KeyF,
+            KeyCode::KeyG,
+            KeyCode::KeyH,
+            KeyCode::KeyI,
+            KeyCode::KeyJ,
+            KeyCode::KeyK,
+            KeyCode::KeyL,
+            KeyCode::KeyM,
+            KeyCode::KeyN,
+            KeyCode::KeyO,
+            KeyCode::KeyP,
+            KeyCode::KeyQ,
+            KeyCode::KeyR,
+            KeyCode::KeyS,
+            KeyCode::KeyT,
+            KeyCode::KeyU,
+            KeyCode::KeyV,
+            KeyCode::KeyW,
+            KeyCode::KeyX,
+            KeyCode::KeyY,
+            KeyCode::KeyZ,
+        ];
+        for (index, key) in letters.into_iter().enumerate() {
+            assert_eq!(
+                terminal_key_input(None, None, PhysicalKey::Code(key), ModifiersState::CONTROL),
+                Some(vec![index as u8 + 1]),
+                "{key:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn plain_letters_and_nonletter_keys_keep_their_input() {
         assert_eq!(
             terminal_key_input(
                 Some("c"),
@@ -2604,7 +2696,16 @@ mod tests {
                 PhysicalKey::Code(KeyCode::KeyX),
                 ModifiersState::CONTROL,
             ),
-            Some(b"x".to_vec())
+            Some(vec![0x18])
+        );
+        assert_eq!(
+            terminal_key_input(
+                None,
+                Some(BasicKey::Enter),
+                PhysicalKey::Code(KeyCode::Enter),
+                ModifiersState::CONTROL,
+            ),
+            Some(vec![b'\r'])
         );
     }
 
@@ -2624,6 +2725,15 @@ mod tests {
             configured_command(
                 &config,
                 PhysicalKey::Code(KeyCode::KeyC),
+                ModifiersState::CONTROL,
+            ),
+            Some(Command::Copy)
+        );
+        let config = Config::parse("[[bindings]]\nkey = 'Ctrl+B'\ncommand = 'copy'").unwrap();
+        assert_eq!(
+            configured_command(
+                &config,
+                PhysicalKey::Code(KeyCode::KeyB),
                 ModifiersState::CONTROL,
             ),
             Some(Command::Copy)
