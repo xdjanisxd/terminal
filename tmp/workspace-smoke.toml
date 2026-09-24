@@ -1,0 +1,10 @@
+[workspace]
+project_root = 'C:\Users\gifted\Documents\Projects\terminal\tmp\project-one'
+
+[[workspace.tabs]]
+title = "First"
+layout = { kind = "pane", session = { command = { program = "cmd.exe", args = ["/K", "cd"] } } }
+
+[[projects]]
+name = "Second"
+path = 'C:\Users\gifted\Documents\Projects\terminal\tmp\project-two'

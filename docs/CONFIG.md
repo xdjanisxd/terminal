@@ -37,7 +37,7 @@ command = "open_palette"
 
 All theme fields are optional and independently fall back to defaults. If `bindings` is present, it replaces the entire default list; `bindings = []` disables all shortcuts. The defaults are Ctrl+Shift+C/V for copy/paste, PageUp/PageDown for local scrollback, Ctrl+Shift+P for the command palette, Ctrl+Shift+T for a new tab, Ctrl+Shift+E/O for vertical/horizontal splits, Ctrl+Tab and Ctrl+Shift+Tab for tab switching, Ctrl+Shift+ArrowRight/ArrowLeft for pane switching, and Ctrl+Shift+W for closing a pane. Chords use physical keys: a letter A–Z, digit 0–9, PageUp, PageDown, Home, End, Insert, Delete, Tab, ArrowLeft, or ArrowRight, optionally preceded by Ctrl, Shift, and/or Alt. Modifiers must match exactly. Plain letters and digits need a modifier so ordinary text still reaches the PTY. Commands are `copy`, `paste`, `page_up`, `page_down`, `open_palette`, `new_tab`, `split_horizontal`, `split_vertical`, `next_tab`, `previous_tab`, `next_pane`, `previous_pane`, and `close_pane`. The older `action` field remains accepted as an alias for `command`. The app executes commands in one dispatcher.
 
-The palette lists copy, paste, scrollback, and workspace commands from the app command registry. Type to filter names (case insensitive), use Up/Down to select, Enter to run, or Escape to close. Palette input is consumed locally and does not reach the PTY. `open_palette` is omitted from its own list. The palette is drawn over the top terminal rows without changing terminal contents. If custom bindings replace the defaults, include an `open_palette` binding to retain the shortcut.
+The palette lists copy, paste, scrollback, and workspace commands from the app command registry. Each `[[projects]]` entry also adds **New Tab: NAME**, **Split Horizontal: NAME**, and **Split Vertical: NAME** actions. Type to filter names (case insensitive), use Up/Down to select, Enter to run, or Escape to close. Palette input is consumed locally and does not reach the PTY. `open_palette` is omitted from its own list. The palette is drawn over the top terminal rows without changing terminal contents. If custom bindings replace the defaults, include an `open_palette` binding to retain the shortcut.
 
 Unknown fields or commands, malformed TOML, invalid colors, incomplete ANSI palettes, unsupported chords, and duplicate chords reject the whole file. Errors include the file path and either TOML's source location or the field/binding index. On a reload error, the app writes the error to stderr and keeps the last valid config.
 
@@ -45,7 +45,7 @@ The app checks the file contents every 500 ms and posts a change event to its ma
 
 ## Workspace definitions
 
-The default workspace is one tab with one local shell pane. An optional `[workspace]` table declares ordered tabs and a recursive pane layout. Each `pane` leaf starts a fresh local shell session; `split` nodes record `horizontal` or `vertical` structure. `active_tab` and each tab's `active_pane` are zero-based indexes. Pane indexes follow leaves in first-then-second traversal order. The app rejects empty tab lists and out-of-range focus indexes.
+The default workspace is one tab with one local shell pane. An optional `[workspace]` table declares ordered tabs and a recursive pane layout. Each `pane` leaf starts an independent PTY session; `split` nodes record `horizontal` or `vertical` structure. `active_tab` and each tab's `active_pane` are zero-based indexes. Pane indexes follow leaves in first-then-second traversal order. The app rejects empty tab lists and out-of-range focus indexes.
 
 ```toml
 [workspace]
@@ -61,7 +61,32 @@ title = "Notes"
 layout = { kind = "pane", session = "local_shell" }
 ```
 
-Definitions reproduce the tab, split, focus, and session structure on startup. They do not restore live process state or terminal contents. The running workspace keeps its live state when the config file changes; restart the app to apply changes to `[workspace]`. The active pane uses the full terminal window and the title shows its tab and pane position. Split geometry and simultaneous pane rendering remain future UI work.
+An optional `project_root` can be set on `[workspace]`, `[[workspace.tabs]]`, or a `pane` leaf. The pane root takes precedence over the tab root, then the workspace root. Relative roots resolve from the configuration file's directory. A root sets that pane's PTY working directory. Each pane's `session` defaults to `local_shell`; a command starts the specified program directly with its argument array, with no shell interpolation:
+
+```toml
+[workspace]
+project_root = "../repo"
+
+[[workspace.tabs]]
+title = "Server"
+[workspace.tabs.layout]
+kind = "pane"
+[workspace.tabs.layout.session.command]
+program = "cargo"
+args = ["run", "--bin", "server"]
+
+[[projects]]
+name = "Repository"
+path = "../repo"
+```
+
+`[[projects]]` names must be unique and paths must be nonempty. Their paths also resolve from the configuration file's directory. Palette project actions start a fresh local shell in the selected project root; a new tab owns its root, while a split records its root on the new pane. Ordinary new tab and split commands inherit the applicable workspace or tab root.
+
+Definitions reproduce the tab, split, focus, root, and startup command structure on startup. They do not restore live process state or terminal contents. The running workspace keeps its live state when the config file changes; restart the app to apply changes to `[workspace]`. Project palette entries update after a valid config reload. The active tab's split panes render simultaneously, and the title shows its focused tab and pane position.
+
+## CLI
+
+`terminal-app --project-root DIRECTORY` opens the default workspace in that directory. `terminal-app --workspace FILE.toml` loads a config-shaped TOML file that contains `[workspace]`; it can also include `[[projects]]`, theme, and bindings. The two options can be combined. `--project-root` replaces the workspace-level root from the file, while explicit tab and pane roots retain their precedence. `--help` prints usage. Invalid paths and arguments fail before the window opens. There is no external control of an already-running app.
 
 ## Manual smoke
 
@@ -74,3 +99,5 @@ Definitions reproduce the tab, split, focus, and session structure on startup. T
 7. Start with no `[workspace]`. Create a tab with Ctrl+Shift+T and a split with Ctrl+Shift+E. Run a different command in each pane; switch with Ctrl+Shift+ArrowLeft/ArrowRight and Ctrl+Tab/Ctrl+Shift+Tab. Check that each pane retains its own prompt and output, and that the window title identifies the focused tab and pane.
 8. Close a pane with Ctrl+Shift+W and verify its session ends while the remaining pane stays usable. Closing the sole pane of the sole tab leaves that terminal running.
 9. Add the two-tab workspace definition above and restart. Check that its tab and pane counts and initial focus match the file. Edit only `[workspace]` while running and verify the current sessions remain intact; restart to apply the new definition.
+10. On Windows, create a temporary workspace file with a `[workspace] project_root` pointing to an existing directory, a pane command using `program = "cmd.exe"` and `args = ["/K", "cd"]`, and a `[[projects]]` entry pointing to a second directory. Run `cargo run -q -p terminal-app -- --workspace PATH_TO_FILE`. The command should print the first directory and leave an interactive prompt.
+11. Open Ctrl+Shift+P and use **New Tab: NAME**, **Split Horizontal: NAME**, and **Split Vertical: NAME**. Run `cd` in each created shell and check that it prints the second directory. Check that all panes remain responsive, output continues in an unfocused pane, focus and cursor follow pane switching, and Close Pane leaves the others running. Run `cargo run -q -p terminal-app -- --project-root PATH_TO_DIRECTORY` separately and check the initial shell directory with `cd`.

@@ -2,7 +2,7 @@
 
 use serde::Deserialize;
 use std::{collections::HashSet, fmt, fs, path::Path};
-use terminal_workspace::{Workspace, WorkspaceDefinition};
+use terminal_workspace::{LayoutDefinition, Workspace, WorkspaceDefinition};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Rgb(pub u8, pub u8, pub u8);
@@ -86,6 +86,14 @@ pub struct Config {
     pub theme: Theme,
     pub bindings: Vec<Binding>,
     pub workspace: WorkspaceDefinition,
+    pub projects: Vec<ProjectRoot>,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ProjectRoot {
+    pub name: String,
+    pub path: std::path::PathBuf,
 }
 
 impl Default for Config {
@@ -93,6 +101,7 @@ impl Default for Config {
         Self {
             theme: Theme::default(),
             workspace: WorkspaceDefinition::default(),
+            projects: Vec::new(),
             bindings: [
                 ("Ctrl+Shift+C", Command::Copy),
                 ("Ctrl+Shift+V", Command::Paste),
@@ -119,6 +128,19 @@ impl Default for Config {
 }
 
 impl Config {
+    pub fn load_workspace_file(path: &Path) -> Result<Self, ConfigError> {
+        let source = fs::read_to_string(path)
+            .map_err(|error| ConfigError(format!("{}: {error}", path.display())))?;
+        let raw: RawConfig = toml::from_str(&source)
+            .map_err(|error| ConfigError(format!("{}: {error}", path.display())))?;
+        if raw.workspace.is_none() {
+            return Err(ConfigError(format!(
+                "{}: missing [workspace] definition",
+                path.display()
+            )));
+        }
+        Self::load(path)
+    }
     pub fn parse(source: &str) -> Result<Self, ConfigError> {
         let raw: RawConfig =
             toml::from_str(source).map_err(|error| ConfigError(error.to_string()))?;
@@ -127,6 +149,18 @@ impl Config {
             Workspace::from_definition(&workspace)
                 .map_err(|error| ConfigError(format!("workspace: {error}")))?;
             config.workspace = workspace;
+        }
+        if let Some(projects) = raw.projects {
+            let mut names = HashSet::new();
+            for project in &projects {
+                if project.name.trim().is_empty() || project.path.as_os_str().is_empty() {
+                    return Err(ConfigError("projects need a name and path".into()));
+                }
+                if !names.insert(project.name.clone()) {
+                    return Err(ConfigError(format!("duplicate project {:?}", project.name)));
+                }
+            }
+            config.projects = projects;
         }
         if let Some(theme) = raw.theme {
             for (name, value, slot) in [
@@ -194,7 +228,42 @@ impl Config {
     pub fn load(path: &Path) -> Result<Self, ConfigError> {
         let source = fs::read_to_string(path)
             .map_err(|error| ConfigError(format!("{}: {error}", path.display())))?;
-        Self::parse(&source).map_err(|error| ConfigError(format!("{}: {error}", path.display())))
+        let mut config = Self::parse(&source)
+            .map_err(|error| ConfigError(format!("{}: {error}", path.display())))?;
+        let base = path.parent().unwrap_or_else(|| Path::new("."));
+        let resolve = |root: &mut std::path::PathBuf| {
+            if root.is_relative() {
+                *root = base.join(&*root);
+            }
+        };
+        if let Some(root) = &mut config.workspace.project_root {
+            resolve(root);
+        }
+        for tab in &mut config.workspace.tabs {
+            if let Some(root) = &mut tab.project_root {
+                resolve(root);
+            }
+            fn resolve_layout(layout: &mut LayoutDefinition, base: &Path) {
+                match layout {
+                    LayoutDefinition::Pane {
+                        project_root: Some(root),
+                        ..
+                    } if root.is_relative() => {
+                        *root = base.join(&*root);
+                    }
+                    LayoutDefinition::Split { first, second, .. } => {
+                        resolve_layout(first, base);
+                        resolve_layout(second, base);
+                    }
+                    _ => {}
+                }
+            }
+            resolve_layout(&mut tab.layout, base);
+        }
+        for project in &mut config.projects {
+            resolve(&mut project.path);
+        }
+        Ok(config)
     }
 }
 
@@ -213,6 +282,7 @@ struct RawConfig {
     theme: Option<RawTheme>,
     bindings: Option<Vec<RawBinding>>,
     workspace: Option<WorkspaceDefinition>,
+    projects: Option<Vec<ProjectRoot>>,
 }
 
 #[derive(Deserialize, Default)]
@@ -301,6 +371,49 @@ fn parse_chord(value: &str) -> Result<KeyChord, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn workspace_startup_and_project_roots_parse() {
+        let source = "[workspace]\nproject_root = 'repo'\nactive_tab = 0\n[[workspace.tabs]]\ntitle = 'Build'\nproject_root = 'tab'\nactive_pane = 0\n[workspace.tabs.layout]\nkind = 'pane'\nproject_root = 'pane'\n[workspace.tabs.layout.session.command]\nprogram = 'cargo'\nargs = ['watch']\n[[projects]]\nname = 'Core'\npath = 'core'";
+        let config = Config::parse(source).unwrap();
+        assert_eq!(config.projects[0].name, "Core");
+        assert_eq!(config.workspace.tabs[0].project_root, Some("tab".into()));
+        assert!(matches!(
+            config.workspace.tabs[0].layout,
+            LayoutDefinition::Pane {
+                session: terminal_workspace::SessionDefinition::Command { .. },
+                ..
+            }
+        ));
+        assert!(
+            Config::parse(
+                "[[projects]]\nname = 'x'\npath = 'a'\n[[projects]]\nname = 'x'\npath = 'b'"
+            )
+            .is_err()
+        );
+    }
+    #[test]
+    fn loaded_roots_resolve_relative_to_definition_file() {
+        let directory = std::env::temp_dir().join(format!(
+            "terminal-config-roots-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        std::fs::create_dir_all(&directory).unwrap();
+        let file = directory.join("workspace.toml");
+        std::fs::write(&file, "[workspace]\nproject_root = 'root'\n[[workspace.tabs]]\ntitle = 'Build'\nproject_root = 'tab'\n[workspace.tabs.layout]\nkind = 'pane'\nproject_root = 'pane'\nsession = 'local_shell'\n[[projects]]\nname = 'Core'\npath = 'core'").unwrap();
+        let config = Config::load_workspace_file(&file).unwrap();
+        assert_eq!(config.workspace.project_root, Some(directory.join("root")));
+        assert_eq!(
+            config.workspace.tabs[0].project_root,
+            Some(directory.join("tab"))
+        );
+        assert!(
+            matches!(&config.workspace.tabs[0].layout, LayoutDefinition::Pane { project_root: Some(root), .. } if root == &directory.join("pane"))
+        );
+        assert_eq!(config.projects[0].path, directory.join("core"));
+        std::fs::remove_file(file).unwrap();
+        std::fs::remove_dir(directory).unwrap();
+    }
     #[test]
     fn defaults_and_partial_theme() {
         let config = Config::parse("[theme]\nforeground = '#123abc'").unwrap();

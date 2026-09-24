@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 use std::fmt;
+use std::path::PathBuf;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct TabId(u64);
@@ -32,10 +33,15 @@ impl PaneRect {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SessionDefinition {
     LocalShell,
+    Command {
+        program: PathBuf,
+        #[serde(default)]
+        args: Vec<String>,
+    },
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -43,6 +49,8 @@ pub enum SessionDefinition {
 pub enum LayoutDefinition {
     Pane {
         session: SessionDefinition,
+        #[serde(default)]
+        project_root: Option<PathBuf>,
     },
     Split {
         axis: SplitAxis,
@@ -54,6 +62,7 @@ impl LayoutDefinition {
     pub fn pane() -> Self {
         Self::Pane {
             session: SessionDefinition::LocalShell,
+            project_root: None,
         }
     }
 }
@@ -62,6 +71,8 @@ impl LayoutDefinition {
 #[serde(deny_unknown_fields)]
 pub struct TabDefinition {
     pub title: String,
+    #[serde(default)]
+    pub project_root: Option<PathBuf>,
     pub layout: LayoutDefinition,
     /// Zero-based leaf index in layout traversal order.
     #[serde(default)]
@@ -71,6 +82,8 @@ pub struct TabDefinition {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct WorkspaceDefinition {
+    #[serde(default)]
+    pub project_root: Option<PathBuf>,
     pub tabs: Vec<TabDefinition>,
     #[serde(default)]
     pub active_tab: usize,
@@ -78,8 +91,10 @@ pub struct WorkspaceDefinition {
 impl Default for WorkspaceDefinition {
     fn default() -> Self {
         Self {
+            project_root: None,
             tabs: vec![TabDefinition {
                 title: "Terminal 1".into(),
+                project_root: None,
                 layout: LayoutDefinition::pane(),
                 active_pane: 0,
             }],
@@ -137,7 +152,7 @@ impl Layout {
     }
     fn panes(&self, output: &mut Vec<Pane>) {
         match self {
-            Self::Pane(pane) => output.push(*pane),
+            Self::Pane(pane) => output.push(pane.clone()),
             Self::Split { first, second, .. } => {
                 first.panes(output);
                 second.panes(output);
@@ -149,14 +164,14 @@ impl Layout {
             Self::Pane(current) if current.id == target => {
                 *self = Self::Split {
                     axis,
-                    first: Box::new(Self::Pane(*current)),
+                    first: Box::new(Self::Pane(current.clone())),
                     second: Box::new(Self::Pane(pane)),
                 };
                 true
             }
             Self::Pane(_) => false,
             Self::Split { first, second, .. } => {
-                first.split(target, axis, pane) || second.split(target, axis, pane)
+                first.split(target, axis, pane.clone()) || second.split(target, axis, pane)
             }
         }
     }
@@ -178,7 +193,10 @@ impl Layout {
     }
     fn definition(&self) -> LayoutDefinition {
         match self {
-            Self::Pane(_) => LayoutDefinition::pane(),
+            Self::Pane(pane) => LayoutDefinition::Pane {
+                session: pane.startup.clone(),
+                project_root: pane.project_root.clone(),
+            },
             Self::Split {
                 axis,
                 first,
@@ -192,16 +210,19 @@ impl Layout {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Pane {
     pub id: PaneId,
     pub session: SessionId,
+    pub startup: SessionDefinition,
+    pub project_root: Option<PathBuf>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Tab {
     pub id: TabId,
     pub title: String,
+    pub project_root: Option<PathBuf>,
     pub layout: Layout,
     pub active_pane: PaneId,
 }
@@ -220,6 +241,7 @@ impl Tab {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Workspace {
+    project_root: Option<PathBuf>,
     tabs: Vec<Tab>,
     active_tab: usize,
     next_id: u64,
@@ -244,12 +266,31 @@ impl Workspace {
         if definition.tabs.is_empty() || definition.active_tab >= definition.tabs.len() {
             return Err(DefinitionError("workspace needs an active tab".into()));
         }
+        if definition
+            .project_root
+            .as_ref()
+            .is_some_and(|root| root.as_os_str().is_empty())
+        {
+            return Err(DefinitionError("workspace project_root is empty".into()));
+        }
         let mut workspace = Self {
+            project_root: definition.project_root.clone(),
             tabs: Vec::new(),
             active_tab: definition.active_tab,
             next_id: 1,
         };
         for tab in &definition.tabs {
+            if tab
+                .project_root
+                .as_ref()
+                .is_some_and(|root| root.as_os_str().is_empty())
+            {
+                return Err(DefinitionError(format!(
+                    "tab {:?}: project_root is empty",
+                    tab.title
+                )));
+            }
+            validate_layout(&tab.layout)?;
             let layout = workspace.build_layout(&tab.layout);
             let mut panes = Vec::new();
             layout.panes(&mut panes);
@@ -263,6 +304,7 @@ impl Workspace {
             workspace.tabs.push(Tab {
                 id,
                 title: tab.title.clone(),
+                project_root: tab.project_root.clone(),
                 layout,
                 active_pane,
             });
@@ -274,15 +316,20 @@ impl Workspace {
         self.next_id += 1;
         id
     }
-    fn new_pane(&mut self) -> Pane {
+    fn new_pane(&mut self, startup: SessionDefinition, project_root: Option<PathBuf>) -> Pane {
         Pane {
             id: PaneId(self.allocate_id()),
             session: SessionId(self.allocate_id()),
+            startup,
+            project_root,
         }
     }
     fn build_layout(&mut self, definition: &LayoutDefinition) -> Layout {
         match definition {
-            LayoutDefinition::Pane { .. } => Layout::Pane(self.new_pane()),
+            LayoutDefinition::Pane {
+                session,
+                project_root,
+            } => Layout::Pane(self.new_pane(session.clone(), project_root.clone())),
             LayoutDefinition::Split {
                 axis,
                 first,
@@ -310,23 +357,37 @@ impl Workspace {
         self.tabs.iter().flat_map(Tab::panes).collect()
     }
     pub fn new_tab(&mut self) -> PaneId {
-        let pane = self.new_pane();
+        let root = self.tabs[self.active_tab].project_root.clone();
+        self.new_tab_at_root(root)
+    }
+    pub fn new_tab_at_root(&mut self, project_root: Option<PathBuf>) -> PaneId {
+        let pane = self.new_pane(SessionDefinition::LocalShell, None);
+        let pane_id = pane.id;
         let id = TabId(self.allocate_id());
         self.tabs.push(Tab {
             id,
             title: format!("Terminal {}", self.tabs.len() + 1),
+            project_root,
             layout: Layout::Pane(pane),
-            active_pane: pane.id,
+            active_pane: pane_id,
         });
         self.active_tab = self.tabs.len() - 1;
-        pane.id
+        pane_id
     }
     pub fn split_active(&mut self, axis: SplitAxis) -> PaneId {
+        self.split_active_at_root(axis, None)
+    }
+    pub fn split_active_at_root(
+        &mut self,
+        axis: SplitAxis,
+        project_root: Option<PathBuf>,
+    ) -> PaneId {
         let target = self.active_pane();
-        let pane = self.new_pane();
+        let pane = self.new_pane(SessionDefinition::LocalShell, project_root);
+        let pane_id = pane.id;
         assert!(self.tabs[self.active_tab].layout.split(target, axis, pane));
-        self.tabs[self.active_tab].active_pane = pane.id;
-        pane.id
+        self.tabs[self.active_tab].active_pane = pane_id;
+        pane_id
     }
     pub fn focus_tab(&mut self, delta: isize) -> PaneId {
         self.active_tab =
@@ -372,6 +433,7 @@ impl Workspace {
     }
     pub fn definition(&self) -> WorkspaceDefinition {
         WorkspaceDefinition {
+            project_root: self.project_root.clone(),
             tabs: self
                 .tabs
                 .iter()
@@ -379,6 +441,7 @@ impl Workspace {
                     let panes = tab.panes();
                     TabDefinition {
                         title: tab.title.clone(),
+                        project_root: tab.project_root.clone(),
                         layout: tab.layout.definition(),
                         active_pane: panes
                             .iter()
@@ -390,11 +453,115 @@ impl Workspace {
             active_tab: self.active_tab,
         }
     }
+    pub fn project_root(&self) -> Option<&PathBuf> {
+        self.project_root.as_ref()
+    }
+    pub fn pane_launch(&self, pane_id: PaneId) -> Option<(Option<PathBuf>, SessionDefinition)> {
+        self.tabs.iter().find_map(|tab| {
+            tab.panes()
+                .into_iter()
+                .find(|pane| pane.id == pane_id)
+                .map(|pane| {
+                    (
+                        pane.project_root
+                            .or_else(|| tab.project_root.clone())
+                            .or_else(|| self.project_root.clone()),
+                        pane.startup,
+                    )
+                })
+        })
+    }
+}
+
+fn validate_layout(layout: &LayoutDefinition) -> Result<(), DefinitionError> {
+    match layout {
+        LayoutDefinition::Pane {
+            session,
+            project_root,
+        } => {
+            if project_root
+                .as_ref()
+                .is_some_and(|root| root.as_os_str().is_empty())
+            {
+                return Err(DefinitionError("pane project_root is empty".into()));
+            }
+            if let SessionDefinition::Command { program, .. } = session
+                && program.as_os_str().is_empty()
+            {
+                return Err(DefinitionError("startup command program is empty".into()));
+            }
+            Ok(())
+        }
+        LayoutDefinition::Split { first, second, .. } => {
+            validate_layout(first)?;
+            validate_layout(second)
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn roots_and_startup_commands_follow_pane_tab_workspace_precedence() {
+        let mut definition = WorkspaceDefinition {
+            project_root: Some("workspace".into()),
+            ..WorkspaceDefinition::default()
+        };
+        definition.tabs[0].project_root = Some("tab".into());
+        definition.tabs[0].layout = LayoutDefinition::Pane {
+            session: SessionDefinition::Command {
+                program: "tool".into(),
+                args: vec!["serve".into()],
+            },
+            project_root: Some("pane".into()),
+        };
+        let mut workspace = Workspace::from_definition(&definition).unwrap();
+        let first = workspace.active_pane();
+        assert_eq!(
+            workspace.pane_launch(first),
+            Some((
+                Some("pane".into()),
+                SessionDefinition::Command {
+                    program: "tool".into(),
+                    args: vec!["serve".into()]
+                }
+            ))
+        );
+        let second = workspace.split_active(SplitAxis::Vertical);
+        assert_eq!(
+            workspace.pane_launch(second),
+            Some((Some("tab".into()), SessionDefinition::LocalShell))
+        );
+        let third = workspace.split_active_at_root(SplitAxis::Horizontal, Some("other".into()));
+        assert_eq!(
+            workspace.pane_launch(third),
+            Some((Some("other".into()), SessionDefinition::LocalShell))
+        );
+        let fourth = workspace.new_tab_at_root(None);
+        assert_eq!(
+            workspace.pane_launch(fourth),
+            Some((Some("workspace".into()), SessionDefinition::LocalShell))
+        );
+        let roundtrip = workspace.definition();
+        assert_eq!(
+            Workspace::from_definition(&roundtrip).unwrap().definition(),
+            roundtrip
+        );
+    }
+
+    #[test]
+    fn empty_startup_program_is_rejected() {
+        let mut definition = WorkspaceDefinition::default();
+        definition.tabs[0].layout = LayoutDefinition::Pane {
+            session: SessionDefinition::Command {
+                program: PathBuf::new(),
+                args: vec![],
+            },
+            project_root: None,
+        };
+        assert!(Workspace::from_definition(&definition).is_err());
+    }
     #[test]
     fn single_terminal_is_default() {
         let workspace = Workspace::default();

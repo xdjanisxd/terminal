@@ -122,10 +122,10 @@ later performance/polish work.
 
 ## M6: Workspaces and release readiness
 
-- [ ] Add tabs, panes, layout, and reproducible workspace definitions
+- [x] Add tabs, panes, layout, and reproducible workspace definitions
   - [x] First structural slice: typed tab/pane/session ownership, recursive split layout, focus and lifecycle commands, startup TOML reproduction, and single-terminal default
   - [x] Show split panes simultaneously with layout geometry and pane focus UI
-- [ ] Add project roots, startup commands, expanded command palette features, and basic CLI control
+- [x] Add project roots, startup commands, expanded command palette features, and basic CLI control
 - [ ] Establish compatibility, fuzzing, and performance baselines
 - [ ] Dedicated input and frame-pacing performance task: investigate delayed typing/input, janky Backspace/delete, non-smooth PageUp/PageDown, live resize trailing the pointer (including temporary text scaling), and overall UI/frame pacing relative to mature terminals such as Alacritty
 - [ ] Package and validate supported Windows, Linux, and macOS releases

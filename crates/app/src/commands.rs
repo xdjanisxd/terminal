@@ -1,6 +1,21 @@
 //! App command definitions and palette selection state. Execution stays in Application.
 
-use terminal_config::Command;
+use std::path::PathBuf;
+use terminal_config::{Command, ProjectRoot};
+use terminal_workspace::SplitAxis;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum PaletteAction {
+    Command(Command),
+    ProjectTab(PathBuf),
+    ProjectSplit(PathBuf, SplitAxis),
+}
+
+#[derive(Clone, Debug)]
+pub struct PaletteEntry {
+    pub action: PaletteAction,
+    pub name: String,
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CommandInfo {
@@ -103,13 +118,53 @@ pub fn allowed_target(uri: &str) -> bool {
             .all(|byte| byte.is_ascii_alphanumeric() || b".-:[]".contains(&byte))
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Palette {
     query: String,
     selected: usize,
+    entries: Vec<PaletteEntry>,
+}
+
+impl Default for Palette {
+    fn default() -> Self {
+        Self::with_projects(&[])
+    }
 }
 
 impl Palette {
+    pub fn with_projects(projects: &[ProjectRoot]) -> Self {
+        let mut entries: Vec<_> = COMMANDS
+            .iter()
+            .filter(|info| info.in_palette)
+            .map(|info| PaletteEntry {
+                action: PaletteAction::Command(info.command),
+                name: info.name.into(),
+            })
+            .collect();
+        for project in projects {
+            for (name, action) in [
+                (
+                    format!("New Tab: {}", project.name),
+                    PaletteAction::ProjectTab(project.path.clone()),
+                ),
+                (
+                    format!("Split Horizontal: {}", project.name),
+                    PaletteAction::ProjectSplit(project.path.clone(), SplitAxis::Horizontal),
+                ),
+                (
+                    format!("Split Vertical: {}", project.name),
+                    PaletteAction::ProjectSplit(project.path.clone(), SplitAxis::Vertical),
+                ),
+            ] {
+                entries.push(PaletteEntry { action, name });
+            }
+        }
+        Self {
+            query: String::new(),
+            selected: 0,
+            entries,
+        }
+    }
     pub fn query(&self) -> &str {
         &self.query
     }
@@ -118,12 +173,11 @@ impl Palette {
         self.selected
     }
 
-    pub fn matches(&self) -> Vec<CommandInfo> {
+    pub fn matches(&self) -> Vec<&PaletteEntry> {
         let query = self.query.to_ascii_lowercase();
-        COMMANDS
+        self.entries
             .iter()
-            .copied()
-            .filter(|info| info.in_palette && info.name.to_ascii_lowercase().contains(&query))
+            .filter(|info| info.name.to_ascii_lowercase().contains(&query))
             .collect()
     }
 
@@ -148,8 +202,10 @@ impl Palette {
         }
     }
 
-    pub fn chosen(&self) -> Option<Command> {
-        self.matches().get(self.selected).map(|info| info.command)
+    pub fn chosen(&self) -> Option<PaletteAction> {
+        self.matches()
+            .get(self.selected)
+            .map(|info| info.action.clone())
     }
 }
 
@@ -160,18 +216,56 @@ mod tests {
     #[test]
     fn palette_filters_navigates_and_selects_registry_commands() {
         let mut palette = Palette::default();
-        assert_eq!(palette.chosen(), Some(Command::Copy));
+        assert_eq!(
+            palette.chosen(),
+            Some(PaletteAction::Command(Command::Copy))
+        );
         palette.push_text("PAGE");
         assert_eq!(palette.matches().len(), 2);
-        assert_eq!(palette.chosen(), Some(Command::PageUp));
+        assert_eq!(
+            palette.chosen(),
+            Some(PaletteAction::Command(Command::PageUp))
+        );
         palette.move_selection(1);
-        assert_eq!(palette.chosen(), Some(Command::PageDown));
+        assert_eq!(
+            palette.chosen(),
+            Some(PaletteAction::Command(Command::PageDown))
+        );
         palette.move_selection(1);
-        assert_eq!(palette.chosen(), Some(Command::PageDown));
+        assert_eq!(
+            palette.chosen(),
+            Some(PaletteAction::Command(Command::PageDown))
+        );
         palette.backspace();
         assert_eq!(palette.selected(), 0);
         palette.push_text("zzzz");
         assert_eq!(palette.chosen(), None);
+    }
+
+    #[test]
+    fn project_actions_are_searchable_and_typed() {
+        let mut projects = vec![ProjectRoot {
+            name: "Core".into(),
+            path: "repo".into(),
+        }];
+        let mut palette = Palette::with_projects(&projects);
+        projects[0].path = "changed".into();
+        palette.push_text("vertical: core");
+        assert_eq!(
+            palette.chosen(),
+            Some(PaletteAction::ProjectSplit(
+                "repo".into(),
+                SplitAxis::Vertical
+            ))
+        );
+        palette.backspace();
+        assert_eq!(
+            palette.chosen(),
+            Some(PaletteAction::ProjectSplit(
+                "repo".into(),
+                SplitAxis::Vertical
+            ))
+        );
     }
 
     #[test]
