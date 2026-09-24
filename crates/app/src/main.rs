@@ -2,8 +2,9 @@
 
 mod commands;
 
-use commands::Palette;
+use commands::{Palette, PaletteAction};
 use std::collections::HashMap;
+use std::ffi::OsString;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -23,7 +24,9 @@ use terminal_renderer::{
     CellMetrics, OverlayLine, PaneRenderInput, RedrawOutcome, RenderTheme, Renderer,
     RendererDiagnosticState, Rgba, TextOverlay, diagnostics_enabled, emit_diagnostic,
 };
-use terminal_workspace::{PaneId, PaneRect, SplitAxis, Workspace, WorkspaceDefinition};
+use terminal_workspace::{
+    PaneId, PaneRect, SessionDefinition, SplitAxis, Workspace, WorkspaceDefinition,
+};
 use winit::application::ApplicationHandler;
 use winit::dpi::{PhysicalPosition, PhysicalSize};
 use winit::event::{ElementState, MouseButton, MouseScrollDelta, WindowEvent};
@@ -60,7 +63,52 @@ struct Application {
     modifiers: ModifiersState,
     config: Config,
     config_path: PathBuf,
+    project_root_override: Option<PathBuf>,
     palette: Option<Palette>,
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+struct CliOptions {
+    project_root: Option<PathBuf>,
+    workspace: Option<PathBuf>,
+}
+
+impl CliOptions {
+    fn parse(args: impl IntoIterator<Item = OsString>) -> Result<Option<Self>, String> {
+        let mut options = Self::default();
+        let mut args = args.into_iter();
+        while let Some(arg) = args.next() {
+            match arg.to_str() {
+                Some("--help" | "-h") => return Ok(None),
+                Some("--project-root") if options.project_root.is_none() => {
+                    let path =
+                        PathBuf::from(args.next().ok_or("--project-root needs a directory")?);
+                    if !path.is_dir() {
+                        return Err(format!(
+                            "project root is not a directory: {}",
+                            path.display()
+                        ));
+                    }
+                    options.project_root =
+                        Some(path.canonicalize().map_err(|error| error.to_string())?);
+                }
+                Some("--workspace") if options.workspace.is_none() => {
+                    let path = PathBuf::from(args.next().ok_or("--workspace needs a TOML file")?);
+                    Config::load_workspace_file(&path)
+                        .map_err(|error| format!("workspace file: {error}"))?;
+                    options.workspace =
+                        Some(path.canonicalize().map_err(|error| error.to_string())?);
+                }
+                _ => {
+                    return Err(format!(
+                        "unknown or repeated argument: {}",
+                        arg.to_string_lossy()
+                    ));
+                }
+            }
+        }
+        Ok(Some(options))
+    }
 }
 
 /// App runtime for one workspace-owned pane and its associated session.
@@ -367,6 +415,7 @@ impl Default for Application {
             modifiers: ModifiersState::empty(),
             config: Config::default(),
             config_path: config_path(),
+            project_root_override: None,
             palette: None,
         }
     }
@@ -422,9 +471,11 @@ fn print_smoke_text(terminal: &mut TerminalState, text: &str) {
 }
 
 impl Application {
-    fn with_pty_wake_proxy(pty_wake_proxy: EventLoopProxy<PtyWake>) -> Self {
+    fn with_pty_wake_proxy(pty_wake_proxy: EventLoopProxy<PtyWake>, cli: CliOptions) -> Self {
         let mut app = Self {
             pty_wake_proxy: Some(pty_wake_proxy.clone()),
+            config_path: cli.workspace.unwrap_or_else(config_path),
+            project_root_override: cli.project_root,
             ..Self::default()
         };
         app.reload_config();
@@ -452,7 +503,10 @@ impl Application {
             Ok(Config::default())
         };
         match next {
-            Ok(config) => {
+            Ok(mut config) => {
+                if let Some(root) = &self.project_root_override {
+                    config.workspace.project_root = Some(root.clone());
+                }
                 if !self.workspace_loaded {
                     self.load_workspace(&config.workspace);
                     self.workspace_loaded = true;
@@ -534,10 +588,17 @@ impl Application {
     }
 
     fn create_pane(&mut self, axis: Option<SplitAxis>) {
+        self.create_pane_at_root(axis, None);
+    }
+
+    fn create_pane_at_root(&mut self, axis: Option<SplitAxis>, root: Option<PathBuf>) {
         emit_diagnostic(format_args!("app event=pane-create-start axis={axis:?}"));
         let new_pane = match axis {
-            Some(axis) => self.workspace.split_active(axis),
-            None => self.workspace.new_tab(),
+            Some(axis) => self.workspace.split_active_at_root(axis, root),
+            None => match root {
+                Some(root) => self.workspace.new_tab_at_root(Some(root)),
+                None => self.workspace.new_tab(),
+            },
         };
         emit_diagnostic(format_args!(
             "app event=pane-workspace-created pane={new_pane:?}"
@@ -600,7 +661,7 @@ impl Application {
                 }
             }
             Command::OpenPalette => {
-                self.palette = Some(Palette::default());
+                self.palette = Some(Palette::with_projects(&self.config.projects));
                 self.invalidate_frame();
             }
             Command::OpenTarget => {
@@ -634,6 +695,16 @@ impl Application {
         }
     }
 
+    fn dispatch_palette_action(&mut self, action: PaletteAction) {
+        match action {
+            PaletteAction::Command(command) => self.dispatch_command(command),
+            PaletteAction::ProjectTab(root) => self.create_pane_at_root(None, Some(root)),
+            PaletteAction::ProjectSplit(root, axis) => {
+                self.create_pane_at_root(Some(axis), Some(root));
+            }
+        }
+    }
+
     fn handle_palette_key(&mut self, key: &Key, text: Option<&str>) {
         let Some(mut palette) = self.palette.take() else {
             return;
@@ -663,7 +734,7 @@ impl Application {
             self.palette = Some(palette);
         }
         if let Some(command) = command {
-            self.dispatch_command(command);
+            self.dispatch_palette_action(command);
         }
         self.invalidate_frame();
     }
@@ -871,19 +942,27 @@ impl Application {
         let Some(proxy) = self.pty_wake_proxy.clone() else {
             return;
         };
-        if self.pty.is_none() {
+        if self.pty.is_none()
+            && let Some((root, startup)) = self.workspace.pane_launch(self.active_runtime_pane)
+        {
             self.pty = spawn_local_shell(
                 proxy.clone(),
                 Arc::clone(&self.pty_wake_pending),
                 self.terminal.dimensions(),
+                root,
+                startup,
             );
         }
-        for runtime in self.inactive_panes.values_mut() {
-            if runtime.pty.is_none() {
+        for (pane_id, runtime) in &mut self.inactive_panes {
+            if runtime.pty.is_none()
+                && let Some((root, startup)) = self.workspace.pane_launch(*pane_id)
+            {
                 runtime.pty = spawn_local_shell(
                     proxy.clone(),
                     Arc::clone(&self.pty_wake_pending),
                     runtime.terminal.dimensions(),
+                    root,
+                    startup,
                 );
             }
         }
@@ -1469,11 +1548,17 @@ fn spawn_local_shell(
     proxy: EventLoopProxy<PtyWake>,
     wake_pending: Arc<AtomicBool>,
     dimensions: TerminalDimensions,
+    root: Option<PathBuf>,
+    startup: SessionDefinition,
 ) -> Option<PtyWorker> {
     emit_diagnostic(format_args!("app event=pty-backend-start"));
     let backend = PortablePtyBackend::new();
     emit_diagnostic(format_args!("app event=pty-session-spawn-start"));
-    let session = match backend.spawn(local_shell_spawn_config(pty_size_for_terminal(dimensions))) {
+    let session = match backend.spawn(spawn_config_for_session(
+        pty_size_for_terminal(dimensions),
+        root,
+        startup,
+    )) {
         Ok(session) => session,
         Err(error) => {
             eprintln!("could not start local shell: {error}");
@@ -1534,6 +1619,23 @@ fn local_shell_spawn_config(size: PtySize) -> PtySpawnConfig {
         .unwrap_or_else(|| PathBuf::from("/bin/sh"));
 
     PtySpawnConfig::new(program, size)
+}
+
+fn spawn_config_for_session(
+    size: PtySize,
+    root: Option<PathBuf>,
+    startup: SessionDefinition,
+) -> PtySpawnConfig {
+    let config = match startup {
+        SessionDefinition::LocalShell => local_shell_spawn_config(size),
+        SessionDefinition::Command { program, args } => {
+            PtySpawnConfig::new(program, size).with_arguments(args.into_iter().map(OsString::from))
+        }
+    };
+    match root {
+        Some(root) => config.with_working_directory(root),
+        None => config,
+    }
 }
 
 fn parse_terminal_output(
@@ -1816,13 +1918,26 @@ fn configured_command(
 }
 
 fn main() {
+    let cli = match CliOptions::parse(std::env::args_os().skip(1)) {
+        Ok(Some(cli)) => cli,
+        Ok(None) => {
+            println!("Usage: terminal-app [--project-root DIRECTORY] [--workspace CONFIG.toml]");
+            return;
+        }
+        Err(error) => {
+            eprintln!(
+                "{error}\nUsage: terminal-app [--project-root DIRECTORY] [--workspace CONFIG.toml]"
+            );
+            std::process::exit(2);
+        }
+    };
     let event_loop = EventLoop::<PtyWake>::with_user_event()
         .build()
         .expect("could not create terminal event loop");
     event_loop.set_control_flow(ControlFlow::Wait);
     let pty_wake_proxy = event_loop.create_proxy();
     event_loop
-        .run_app(&mut Application::with_pty_wake_proxy(pty_wake_proxy))
+        .run_app(&mut Application::with_pty_wake_proxy(pty_wake_proxy, cli))
         .expect("terminal event loop failed");
 }
 
@@ -1833,11 +1948,12 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use super::{
-        Application, BasicKey, FrameState, PendingResize, PhysicalSizeSync, RecoveryRedraw,
-        SurfaceRestore, WindowsShellSource, basic_backspace_byte_for_platform, basic_key_input,
-        configured_command, cursor_key_from_logical_key, pane_dimensions, parse_terminal_output,
-        pty_size_for_terminal, scroll_terminal_for_wheel, select_windows_shell, target_at_pointer,
-        terminal_cell_at, terminal_dimensions_for_viewport, wheel_scroll_rows,
+        Application, BasicKey, CliOptions, FrameState, PaletteAction, PendingResize,
+        PhysicalSizeSync, RecoveryRedraw, SurfaceRestore, WindowsShellSource,
+        basic_backspace_byte_for_platform, basic_key_input, configured_command,
+        cursor_key_from_logical_key, pane_dimensions, parse_terminal_output, pty_size_for_terminal,
+        scroll_terminal_for_wheel, select_windows_shell, target_at_pointer, terminal_cell_at,
+        terminal_dimensions_for_viewport, wheel_scroll_rows,
     };
     use terminal_config::{Command, Config, Rgb};
     use terminal_core::{CursorKey, TerminalDimensions, TerminalParser, TerminalState};
@@ -1871,6 +1987,72 @@ mod tests {
         assert_eq!(terminal.screen().cell(0, 0).unwrap().character(), 'e');
         assert_eq!(terminal.screen().cell(1, 0).unwrap().character(), 'o');
         assert_eq!(terminal.screen().cell(1, 1).unwrap().character(), 'k');
+    }
+
+    #[test]
+    fn startup_command_builds_a_direct_pty_launch_in_its_project_root() {
+        let config = super::spawn_config_for_session(
+            terminal_pty::PtySize::new(24, 80).unwrap(),
+            Some("project".into()),
+            terminal_workspace::SessionDefinition::Command {
+                program: "builder".into(),
+                args: vec!["--watch".into(), "two words".into()],
+            },
+        );
+        assert_eq!(config.program(), std::path::Path::new("builder"));
+        assert_eq!(config.arguments(), &["--watch", "two words"]);
+        assert_eq!(
+            config.working_directory(),
+            Some(std::path::Path::new("project"))
+        );
+    }
+
+    #[test]
+    fn cli_accepts_root_and_workspace_file_and_rejects_bad_input() {
+        let root = std::env::temp_dir();
+        let file = root.join(format!("terminal-workspace-{}.toml", std::process::id()));
+        fs::write(&file, "[workspace]\nactive_tab = 0\n[[workspace.tabs]]\ntitle = 'One'\nactive_pane = 0\n[workspace.tabs.layout]\nkind = 'pane'\nsession = 'local_shell'").unwrap();
+        let args = vec![
+            "--project-root".into(),
+            root.clone().into_os_string(),
+            "--workspace".into(),
+            file.clone().into_os_string(),
+        ];
+        let parsed = CliOptions::parse(args).unwrap().unwrap();
+        assert_eq!(parsed.project_root, Some(root.canonicalize().unwrap()));
+        assert_eq!(parsed.workspace, Some(file.canonicalize().unwrap()));
+        assert!(CliOptions::parse(vec!["--workspace".into(), "missing-file".into()]).is_err());
+        assert!(CliOptions::parse(vec!["--unknown".into()]).is_err());
+        assert_eq!(CliOptions::parse(vec!["--help".into()]).unwrap(), None);
+        fs::remove_file(file).unwrap();
+    }
+
+    #[test]
+    fn configured_project_actions_create_independent_tab_and_split_sessions() {
+        let mut app = Application::default();
+        let first = app.workspace.active_pane();
+        app.dispatch_palette_action(PaletteAction::ProjectTab("core".into()));
+        let tab = app.workspace.active_pane();
+        assert_ne!(first, tab);
+        assert_eq!(
+            app.workspace.pane_launch(tab).unwrap().0,
+            Some("core".into())
+        );
+        app.dispatch_palette_action(PaletteAction::ProjectSplit(
+            "core".into(),
+            SplitAxis::Horizontal,
+        ));
+        let split = app.workspace.active_pane();
+        assert_eq!(
+            app.workspace.pane_launch(split).unwrap().0,
+            Some("core".into())
+        );
+        assert_ne!(
+            app.workspace.panes()[0].session,
+            app.workspace.panes()[1].session
+        );
+        app.dispatch_command(Command::ClosePane);
+        assert_eq!(app.workspace.active_pane(), tab);
     }
 
     #[test]
@@ -2173,7 +2355,7 @@ mod tests {
         app.handle_palette_key(&Key::Character("page down".into()), Some("page down"));
         assert_eq!(
             app.palette.as_ref().unwrap().chosen(),
-            Some(Command::PageDown)
+            Some(PaletteAction::Command(Command::PageDown))
         );
         app.handle_palette_key(&Key::Named(NamedKey::Enter), None);
         assert!(app.palette.is_none());
@@ -2185,7 +2367,10 @@ mod tests {
         let mut app = Application::default();
         app.dispatch_command(Command::OpenPalette);
         app.handle_palette_key(&Key::Character("paste".into()), Some("paste"));
-        assert_eq!(app.palette.as_ref().unwrap().chosen(), Some(Command::Paste));
+        assert_eq!(
+            app.palette.as_ref().unwrap().chosen(),
+            Some(PaletteAction::Command(Command::Paste))
+        );
         assert!(
             app.palette_overlay()
                 .unwrap()
