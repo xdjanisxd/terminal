@@ -22,11 +22,24 @@ pub(crate) struct Selection {
     focus_end: SelectionPoint,
     unit: SelectionUnit,
     active: bool,
+    force_active: bool,
 }
 
 impl TerminalState {
     pub fn begin_selection(&mut self, row: usize, column: usize) -> bool {
         self.start_selection(row, column, SelectionUnit::Cell)
+    }
+
+    /// Starts an inclusive character selection, including its anchor cell.
+    pub fn begin_visual_selection(&mut self, row: usize, column: usize) -> bool {
+        if !self.begin_selection(row, column) {
+            return false;
+        }
+        if let Some(selection) = &mut self.selection {
+            selection.active = true;
+            selection.force_active = true;
+        }
+        true
     }
 
     pub fn select_word(&mut self, row: usize, column: usize) -> bool {
@@ -50,6 +63,7 @@ impl TerminalState {
             focus_end: end,
             unit,
             active: unit != SelectionUnit::Cell,
+            force_active: false,
         });
         true
     }
@@ -66,7 +80,9 @@ impl TerminalState {
             return false;
         }
         let (start, end) = self.unit_bounds(point, selection.unit);
-        let active = selection.unit != SelectionUnit::Cell || start != selection.anchor_start;
+        let active = selection.force_active
+            || selection.unit != SelectionUnit::Cell
+            || start != selection.anchor_start;
         let changed = selection.focus_start != start
             || selection.focus_end != end
             || selection.active != active;

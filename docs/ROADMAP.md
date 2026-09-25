@@ -158,10 +158,10 @@ later performance/polish work.
 - [x] Improve mouse selection behavior.
   - Double-click selects words, triple-click selects lines, Shift+click extends selection, and edge dragging scrolls the viewport.
   - Selection remains terminal-owned across live content and Primary scrollback, including wide and combining cells.
-- [ ] Design and add a Vim-inspired terminal navigation/copy mode.
-  - Treat this as a broader navigation mode rather than copy-only behavior.
-  - Plan for Vim-like movement, search integration, visual selection, and copy/yank behavior over scrollback.
-  - Keep exact keybindings and scope for a dedicated design/implementation task.
+- [x] Design and add a Vim-inspired terminal navigation/copy mode.
+  - Primary-screen scrollback has an app-owned mode with Vim-style movement, shared search, character-wise visual selection, and clipboard yank.
+  - Ctrl+Shift+Y toggles it by default; the binding uses the normal configurable command system.
+  - Counts, text objects, registers, marks, and line/block visual modes remain future work.
 - [x] Add tab activity indicators.
   - Indicate when an unfocused tab receives new terminal output in the tab picker.
   - Clear the indicator when the user focuses the tab.

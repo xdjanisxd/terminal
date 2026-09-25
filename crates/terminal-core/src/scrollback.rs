@@ -11,7 +11,7 @@ pub const MAX_SCROLLBACK_ROWS: usize = 10_000;
 /// Bounded ordered storage for complete historical screen rows.
 #[derive(Debug)]
 pub(crate) struct Scrollback {
-    rows: VecDeque<Vec<Cell>>,
+    rows: VecDeque<(Vec<Cell>, bool)>,
 }
 
 impl Scrollback {
@@ -26,16 +26,20 @@ impl Scrollback {
     }
 
     pub(crate) fn row(&self, index: usize) -> Option<&[Cell]> {
-        self.rows.get(index).map(Vec::as_slice)
+        self.rows.get(index).map(|(row, _)| row.as_slice())
     }
 
-    pub(crate) fn push(&mut self, row: &[Cell]) {
+    pub(crate) fn wraps_from_previous(&self, index: usize) -> Option<bool> {
+        self.rows.get(index).map(|(_, wraps)| *wraps)
+    }
+
+    pub(crate) fn push(&mut self, row: &[Cell], wraps_from_previous: bool) {
         debug_assert!(row_is_valid(row));
         if self.rows.len() == MAX_SCROLLBACK_ROWS {
             self.rows.pop_front();
         }
-        self.rows.push_back(row.to_vec());
-        debug_assert!(self.rows.iter().all(|row| row_is_valid(row)));
+        self.rows.push_back((row.to_vec(), wraps_from_previous));
+        debug_assert!(self.rows.iter().all(|(row, _)| row_is_valid(row)));
     }
 }
 
@@ -61,10 +65,14 @@ mod tests {
     fn evicts_the_oldest_row_when_at_capacity() {
         let mut scrollback = Scrollback::new();
         for character in 0..=MAX_SCROLLBACK_ROWS {
-            scrollback.push(&[Cell::new(
-                char::from_u32(u32::from(b'A') + u32::try_from(character % 26).unwrap()).unwrap(),
-                Default::default(),
-            )]);
+            scrollback.push(
+                &[Cell::new(
+                    char::from_u32(u32::from(b'A') + u32::try_from(character % 26).unwrap())
+                        .unwrap(),
+                    Default::default(),
+                )],
+                false,
+            );
         }
 
         assert_eq!(scrollback.len(), MAX_SCROLLBACK_ROWS);

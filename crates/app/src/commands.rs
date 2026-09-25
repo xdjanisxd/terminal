@@ -32,6 +32,11 @@ pub const COMMANDS: &[CommandInfo] = &[
         in_palette: true,
     },
     CommandInfo {
+        command: Command::ToggleCopyMode,
+        name: "Toggle Copy Mode",
+        in_palette: true,
+    },
+    CommandInfo {
         command: Command::Paste,
         name: "Paste",
         in_palette: true,

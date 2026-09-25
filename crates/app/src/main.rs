@@ -6,9 +6,11 @@
 //! Native application lifecycle and component wiring.
 
 mod commands;
+mod copy_mode;
 mod search;
 
 use commands::{Palette, PaletteAction, PaletteEntry};
+use copy_mode::{CopyMode, Motion, Point};
 use search::Search;
 use std::collections::{HashMap, HashSet};
 use std::ffi::OsString;
@@ -87,6 +89,7 @@ struct Application {
     activity_frame: usize,
     activity_deadline: Option<Instant>,
     search: Option<Search>,
+    copy_mode: Option<CopyMode>,
     tab_rename: Option<String>,
 }
 
@@ -582,6 +585,7 @@ impl Default for Application {
             activity_frame: 0,
             activity_deadline: None,
             search: None,
+            copy_mode: None,
             tab_rename: None,
         }
     }
@@ -783,6 +787,7 @@ impl Application {
             return;
         }
         self.search = None;
+        self.copy_mode = None;
         let next_runtime = self
             .inactive_panes
             .remove(&next)
@@ -870,6 +875,19 @@ impl Application {
 
     fn dispatch_command(&mut self, command: Command) {
         match command {
+            Command::ToggleCopyMode => {
+                if self.copy_mode.take().is_some() {
+                    self.search = None;
+                    self.terminal.clear_selection();
+                } else {
+                    self.copy_mode = CopyMode::enter(&self.terminal);
+                    if self.copy_mode.is_some() {
+                        self.search = None;
+                        self.terminal.clear_selection();
+                    }
+                }
+                self.invalidate_frame();
+            }
             Command::Copy => {
                 if let Some(text) = self.terminal.selected_text()
                     && let Err(error) =
@@ -1268,17 +1286,146 @@ impl Application {
         })
     }
 
+    fn handle_copy_mode_key(&mut self, key: &Key, text: Option<&str>) {
+        let Some(mut mode) = self.copy_mode.take() else {
+            return;
+        };
+        if mode.search_input {
+            self.copy_mode = Some(mode);
+            self.handle_search_key(key, text);
+            return;
+        }
+        let control = self.modifiers.control_key();
+        let character = if control || self.modifiers.alt_key() || self.modifiers.super_key() {
+            None
+        } else {
+            text.and_then(|text| {
+                (text.chars().count() == 1)
+                    .then(|| text.chars().next())
+                    .flatten()
+            })
+            .or_else(|| match key {
+                Key::Character(value) if value.chars().count() == 1 => value.chars().next(),
+                _ => None,
+            })
+        };
+        let motion = if control {
+            match key {
+                Key::Character(value) if value.eq_ignore_ascii_case("u") => Some(Motion::HalfUp),
+                Key::Character(value) if value.eq_ignore_ascii_case("d") => Some(Motion::HalfDown),
+                _ => None,
+            }
+        } else {
+            match character {
+                Some('h') => Some(Motion::Left),
+                Some('j') => Some(Motion::Down),
+                Some('k') => Some(Motion::Up),
+                Some('l') => Some(Motion::Right),
+                Some('w') => Some(Motion::WordForward),
+                Some('b') => Some(Motion::WordBack),
+                Some('e') => Some(Motion::WordEnd),
+                Some('0') => Some(Motion::LineStart),
+                Some('$') => Some(Motion::LineEnd),
+                Some('G') => Some(Motion::Bottom),
+                Some('g') if mode.pending_g => Some(Motion::Top),
+                _ => None,
+            }
+        };
+        if let Some(motion) = motion {
+            mode.pending_g = false;
+            mode.move_cursor(&mut self.terminal, motion);
+        } else {
+            mode.pending_g = false;
+            match (key, character) {
+                (_, Some('g')) => mode.pending_g = true,
+                (_, Some('/')) => {
+                    self.search = Some(Search::default());
+                    mode.search_input = true;
+                }
+                (_, Some('n' | 'N')) => {
+                    if let Some(search) = self.search.as_mut() {
+                        search.navigate(
+                            &mut self.terminal,
+                            if character == Some('N') { -1 } else { 1 },
+                        );
+                        if let Some(found) = search.selected_match() {
+                            let row = self.terminal.scrollback_origin() + found.row;
+                            mode.set_cursor(
+                                &mut self.terminal,
+                                Point {
+                                    row,
+                                    column: found.start_column,
+                                },
+                            );
+                        }
+                    }
+                }
+                (_, Some('v')) => {
+                    if mode.visual {
+                        mode.cancel_visual(&mut self.terminal);
+                    } else {
+                        mode.start_visual(&mut self.terminal);
+                    }
+                }
+                (_, Some('y')) if mode.visual => {
+                    if let Some(text) = self.terminal.selected_text()
+                        && let Err(error) =
+                            terminal_platform::write_clipboard(&text, self.window.as_deref())
+                    {
+                        eprintln!("could not copy selected text: {error}");
+                    }
+                    mode.cancel_visual(&mut self.terminal);
+                    self.search = None;
+                    self.invalidate_frame();
+                    return;
+                }
+                (Key::Named(NamedKey::Escape), _) => {
+                    if mode.visual {
+                        mode.cancel_visual(&mut self.terminal);
+                    } else {
+                        self.search = None;
+                        self.terminal.clear_selection();
+                        self.invalidate_frame();
+                        return;
+                    }
+                }
+                _ => {}
+            }
+        }
+        self.copy_mode = Some(mode);
+        self.invalidate_frame();
+    }
+
     fn handle_search_key(&mut self, key: &Key, text: Option<&str>) {
         let Some(mut search) = self.search.take() else {
             return;
         };
         match key {
-            Key::Named(NamedKey::Escape) => {}
+            Key::Named(NamedKey::Escape) => {
+                if let Some(mode) = self.copy_mode.as_mut() {
+                    mode.search_input = false;
+                    self.search = Some(search);
+                }
+            }
             Key::Named(NamedKey::Enter) => {
-                search.navigate(
-                    &mut self.terminal,
-                    if self.modifiers.shift_key() { -1 } else { 1 },
-                );
+                if let Some(mode) = self.copy_mode.as_mut() {
+                    mode.search_input = false;
+                    if let Some(found) = search.selected_match() {
+                        let row = self.terminal.scrollback_origin() + found.row;
+                        mode.set_cursor(
+                            &mut self.terminal,
+                            Point {
+                                row,
+                                column: found.start_column,
+                            },
+                        );
+                    }
+                } else {
+                    search.navigate(
+                        &mut self.terminal,
+                        if self.modifiers.shift_key() { -1 } else { 1 },
+                    );
+                }
                 self.search = Some(search);
             }
             Key::Named(NamedKey::Backspace) => {
@@ -1300,37 +1447,70 @@ impl Application {
     }
 
     fn search_overlay(&self) -> Option<TextOverlay> {
-        let search = self.search.as_ref()?;
-        let status = match search.position() {
-            Some(position) => format!("{position}/{}", search.count()),
-            None if search.query().is_empty() => "Enter a query".into(),
+        let search = self.search.as_ref();
+        let mode = self.copy_mode.as_ref();
+        if search.is_none() && mode.is_none() {
+            return None;
+        }
+        let status = match search.and_then(Search::position) {
+            Some(position) => format!("{position}/{}", search.map_or(0, Search::count)),
+            None if search.is_some_and(|search| search.query().is_empty()) => {
+                "Enter a query".into()
+            }
             None => "No matches".into(),
         };
+        let prompt = if let Some(mode) = mode {
+            if mode.search_input {
+                format!(
+                    " /{}  [{status}]  Enter accept  Esc cancel",
+                    search.map_or("", Search::query)
+                )
+            } else {
+                format!(
+                    " {}COPY  h/j/k/l move  / search  v select  Esc exit",
+                    if mode.visual { "VISUAL " } else { "" }
+                )
+            }
+        } else {
+            format!(
+                " Search: {}  [{status}]  Enter next  Shift+Enter previous  Esc close",
+                search.map_or("", Search::query)
+            )
+        };
+        let mut search_matches: Vec<_> = search
+            .into_iter()
+            .flat_map(|search| search.viewport_matches(&self.terminal))
+            .map(|(row, start_column, end_column, active)| SearchHighlight {
+                row,
+                start_column,
+                end_column,
+                active,
+            })
+            .collect();
+        if let Some((row, column)) = mode.and_then(|mode| mode.viewport_position(&self.terminal)) {
+            search_matches.push(SearchHighlight {
+                row,
+                start_column: column,
+                end_column: column + 1,
+                active: true,
+            });
+        }
         Some(TextOverlay {
             lines: vec![OverlayLine {
-                text: format!(
-                    " Search: {}  [{status}]  Enter next  Shift+Enter previous  Esc close",
-                    search.query()
-                ),
+                text: prompt,
                 selected: true,
                 accent_column: None,
             }],
             bottom: search
-                .viewport_match(&self.terminal)
-                .is_some_and(|(row, _)| row == 0),
-            search_matches: search
-                .viewport_matches(&self.terminal)
-                .into_iter()
-                .map(|(row, start_column, end_column, active)| SearchHighlight {
-                    row,
-                    start_column,
-                    end_column,
-                    active,
-                })
-                .collect(),
+                .and_then(|search| search.viewport_match(&self.terminal))
+                .is_some_and(|(row, _)| row == 0)
+                || mode
+                    .and_then(|mode| mode.viewport_position(&self.terminal))
+                    .is_some_and(|(row, _)| row == 0),
+            search_matches,
             search_markers: search
-                .markers()
                 .into_iter()
+                .flat_map(Search::markers)
                 .map(|(row, active)| SearchMarker { row, active })
                 .collect(),
         })
@@ -1700,9 +1880,17 @@ impl Application {
         match event {
             PtyWorkerEvent::Output(PtyOutput::Bytes(bytes)) => {
                 let parse_started = std::time::Instant::now();
-                self.terminal.clear_selection();
+                if !self.copy_mode.as_ref().is_some_and(|mode| mode.visual) {
+                    self.terminal.clear_selection();
+                }
                 let previous_title_version = self.terminal.shell_title_version();
                 let replies = parse_terminal_output(&mut self.parser, &mut self.terminal, &bytes);
+                if self.terminal.active_screen() != ScreenKind::Primary {
+                    self.copy_mode = None;
+                    self.search = None;
+                } else if let Some(mode) = self.copy_mode.as_mut() {
+                    mode.reconcile(&mut self.terminal);
+                }
                 if self.terminal.shell_title_version() != previous_title_version {
                     self.update_workspace_title();
                 }
@@ -2202,6 +2390,10 @@ impl ApplicationHandler<PtyWake> for Application {
                                 self.terminal.dimensions(),
                             )
                         }) {
+                            if self.copy_mode.take().is_some() {
+                                self.search = None;
+                                self.invalidate_frame();
+                            }
                             let now = Instant::now();
                             let count = if self.modifiers.shift_key() {
                                 1
@@ -2284,6 +2476,27 @@ impl ApplicationHandler<PtyWake> for Application {
                 ));
                 if self.tab_rename.is_some() {
                     self.handle_tab_rename_key(&event.logical_key, event.text.as_deref());
+                } else if self.copy_mode.is_some() {
+                    if let Some(command) =
+                        configured_command(&self.config, event.physical_key, self.modifiers)
+                        && matches!(
+                            command,
+                            Command::ToggleCopyMode
+                                | Command::Copy
+                                | Command::NextTab
+                                | Command::PreviousTab
+                                | Command::NextPane
+                                | Command::PreviousPane
+                                | Command::FocusPaneLeft
+                                | Command::FocusPaneRight
+                                | Command::FocusPaneUp
+                                | Command::FocusPaneDown
+                        )
+                    {
+                        self.dispatch_command(command);
+                    } else {
+                        self.handle_copy_mode_key(&event.logical_key, event.text.as_deref());
+                    }
                 } else if self.search.is_some() {
                     self.handle_search_key(&event.logical_key, event.text.as_deref());
                 } else if self.palette.is_some() {
@@ -4246,6 +4459,95 @@ mod tests {
         app.handle_search_key(&Key::Named(NamedKey::Escape), None);
         assert!(app.search.is_none());
         assert_eq!(app.terminal.screen().cell(0, 0).unwrap().character(), 'f');
+    }
+
+    #[test]
+    fn copy_mode_routes_navigation_search_and_visual_keys_without_terminal_input() {
+        let mut app = Application {
+            terminal: TerminalState::new(TerminalDimensions::new(12, 3).unwrap()),
+            ..Application::default()
+        };
+        for line in ["find one", "other", "find two", "last"] {
+            for character in line.chars() {
+                app.terminal.print_character(character).unwrap();
+            }
+            app.terminal.carriage_return();
+            app.terminal.index();
+        }
+        let original = app.terminal.screen().cell(0, 0).unwrap().character();
+        app.dispatch_command(Command::ToggleCopyMode);
+        assert!(app.copy_mode.is_some());
+
+        app.handle_copy_mode_key(&Key::Character("g".into()), Some("g"));
+        app.handle_copy_mode_key(&Key::Character("g".into()), Some("g"));
+        assert_eq!(
+            app.copy_mode.as_ref().unwrap().cursor.row,
+            app.terminal.scrollback_origin()
+        );
+        app.handle_copy_mode_key(&Key::Character("G".into()), Some("G"));
+        let bottom = app.terminal.scrollback_origin()
+            + app.terminal.scrollback_len()
+            + app.terminal.dimensions().rows()
+            - 1;
+        assert_eq!(app.copy_mode.as_ref().unwrap().cursor.row, bottom);
+        app.modifiers = ModifiersState::CONTROL;
+        app.handle_copy_mode_key(&Key::Character("u".into()), None);
+        assert!(app.copy_mode.as_ref().unwrap().cursor.row < bottom);
+        app.handle_copy_mode_key(&Key::Character("d".into()), None);
+        assert_eq!(app.copy_mode.as_ref().unwrap().cursor.row, bottom);
+        app.modifiers = ModifiersState::empty();
+
+        app.handle_copy_mode_key(&Key::Character("/".into()), Some("/"));
+        assert!(app.copy_mode.as_ref().unwrap().search_input);
+        app.handle_copy_mode_key(&Key::Character("find".into()), Some("find"));
+        assert_eq!(app.search.as_ref().unwrap().count(), 2);
+        app.handle_copy_mode_key(&Key::Named(NamedKey::Enter), None);
+        assert!(!app.copy_mode.as_ref().unwrap().search_input);
+        let first = app.copy_mode.as_ref().unwrap().cursor;
+        app.handle_copy_mode_key(&Key::Character("n".into()), Some("n"));
+        assert_ne!(app.copy_mode.as_ref().unwrap().cursor, first);
+        app.handle_copy_mode_key(&Key::Character("N".into()), Some("N"));
+        assert_eq!(app.copy_mode.as_ref().unwrap().cursor, first);
+
+        app.handle_copy_mode_key(&Key::Character("v".into()), Some("v"));
+        assert!(app.copy_mode.as_ref().unwrap().visual);
+        assert!(app.terminal.selected_text().is_some());
+        app.handle_copy_mode_key(&Key::Character("l".into()), Some("l"));
+        assert!(app.terminal.selected_text().unwrap().chars().count() >= 2);
+        app.handle_copy_mode_key(&Key::Named(NamedKey::Escape), None);
+        assert!(app.copy_mode.is_some());
+        assert!(!app.copy_mode.as_ref().unwrap().visual);
+        assert!(app.terminal.selected_text().is_none());
+        app.handle_copy_mode_key(&Key::Named(NamedKey::Escape), None);
+        assert!(app.copy_mode.is_none());
+        assert_eq!(
+            app.terminal.screen().cell(0, 0).unwrap().character(),
+            original
+        );
+        assert_eq!(
+            terminal_key_input(
+                Some("h"),
+                None,
+                PhysicalKey::Code(KeyCode::KeyH),
+                ModifiersState::empty()
+            ),
+            Some(b"h".to_vec())
+        );
+        app.dispatch_command(Command::ToggleCopyMode);
+        app.handle_copy_mode_key(&Key::Character("v".into()), Some("v"));
+        assert!(app.terminal.selected_text().is_some());
+        app.handle_copy_mode_key(&Key::Character("y".into()), Some("y"));
+        assert!(app.copy_mode.is_none());
+        assert!(app.terminal.selected_text().is_none());
+    }
+
+    #[test]
+    fn copy_mode_stays_off_the_alternate_screen() {
+        let mut app = Application::default();
+        let mut parser = TerminalParser::new();
+        parser.advance(&mut app.terminal, b"\x1b[?1049h").unwrap();
+        app.dispatch_command(Command::ToggleCopyMode);
+        assert!(app.copy_mode.is_none());
     }
 
     #[test]

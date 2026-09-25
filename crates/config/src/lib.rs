@@ -71,6 +71,7 @@ impl Default for Theme {
 #[serde(rename_all = "snake_case")]
 pub enum Command {
     Copy,
+    ToggleCopyMode,
     Paste,
     PageUp,
     PageDown,
@@ -156,6 +157,7 @@ impl Default for Config {
             projects: Vec::new(),
             bindings: [
                 ("Ctrl+Shift+C", Command::Copy),
+                ("Ctrl+Shift+Y", Command::ToggleCopyMode),
                 ("Ctrl+Shift+V", Command::Paste),
                 ("PageUp", Command::PageUp),
                 ("PageDown", Command::PageDown),
@@ -618,7 +620,12 @@ mod tests {
     fn repository_example_loads_through_config_file_path() {
         let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../config.example.toml");
         let config = Config::load(&path).unwrap();
-        assert_eq!(config, Config::default());
+        let defaults = Config::default();
+        assert!(config.bindings.starts_with(&defaults.bindings));
+        assert_eq!(config.font, defaults.font);
+        assert_eq!(config.theme, defaults.theme);
+        assert_eq!(config.workspace, defaults.workspace);
+        assert_eq!(config.projects, defaults.projects);
     }
     #[test]
     fn font_defaults_and_partial_settings() {

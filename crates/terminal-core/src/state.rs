@@ -260,6 +260,18 @@ impl TerminalState {
         self.screen.primary_scrollback_len()
     }
 
+    /// Absolute ordinal of the oldest retained Primary row. This advances when
+    /// bounded scrollback evicts rows and lets app-owned navigation stay anchored.
+    pub fn scrollback_origin(&self) -> usize {
+        self.screen.selection_history_origin()
+    }
+
+    /// Whether a retained Primary row continues the preceding row after auto-wrap.
+    /// The index counts from the oldest retained row through the live grid.
+    pub fn primary_row_wraps_from_previous(&self, index: usize) -> Option<bool> {
+        self.screen.primary_row_wraps_from_previous(index)
+    }
+
     /// Returns an immutable historical Primary-screen row by chronological index.
     ///
     /// Rows retain the exact width and complete `Cell` payload they had when
@@ -692,6 +704,8 @@ impl TerminalState {
                 1,
             );
         }
+        self.screen
+            .set_row_wraps_from_previous(self.cursor().row(), false);
     }
 
     /// Advances one row, scrolling the active region at its bottom margin.
@@ -706,6 +720,8 @@ impl TerminalState {
         } else if cursor_row + 1 < self.dimensions().rows() {
             self.screen.move_cursor(1, 0);
         }
+        self.screen
+            .set_row_wraps_from_previous(self.cursor().row(), false);
         self.screen.set_wrap_pending(false);
     }
 
@@ -837,6 +853,7 @@ impl TerminalState {
     /// Clears every active-screen cell without moving the cursor.
     pub fn clear_screen(&mut self) {
         self.screen.clear();
+        self.screen.clear_row_wraps();
         self.screen.set_wrap_pending(false);
     }
 
@@ -859,6 +876,11 @@ impl TerminalState {
         };
 
         self.screen.erase_cells(start, end);
+        for row in 0..self.dimensions().rows() {
+            if start <= row * columns && end >= (row + 1) * columns {
+                self.screen.set_row_wraps_from_previous(row, false);
+            }
+        }
         self.screen.set_wrap_pending(false);
     }
 
@@ -1017,6 +1039,8 @@ impl TerminalState {
 
         self.line_feed();
         self.carriage_return();
+        self.screen
+            .set_row_wraps_from_previous(self.cursor().row(), true);
     }
 }
 

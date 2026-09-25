@@ -27,6 +27,7 @@ struct ScreenState {
     grid: ScreenGrid,
     vertical_scrolling_margins: VerticalScrollingMargins,
     wrap_pending: bool,
+    row_wraps: Vec<bool>,
     saved_cursor: Option<SavedCursor>,
     scrollback: Option<Scrollback>,
     viewport_offset: usize,
@@ -39,6 +40,7 @@ impl ScreenState {
             grid: ScreenGrid::new(dimensions),
             vertical_scrolling_margins: VerticalScrollingMargins::full_screen(dimensions.rows()),
             wrap_pending: false,
+            row_wraps: vec![false; dimensions.rows()],
             saved_cursor: None,
             scrollback: owns_scrollback.then(Scrollback::new),
             viewport_offset: 0,
@@ -72,6 +74,7 @@ impl ScreenState {
 
     fn resize(&mut self, dimensions: TerminalDimensions) {
         self.grid.resize(dimensions);
+        self.row_wraps.resize(dimensions.rows(), false);
         self.vertical_scrolling_margins = VerticalScrollingMargins::full_screen(dimensions.rows());
         self.wrap_pending = false;
         self.viewport_offset = self.viewport_offset.min(self.scrollback_len());
@@ -93,7 +96,7 @@ impl ScreenState {
                     .row(row)
                     .expect("scrolling margin row is always in bounds");
                 let full = scrollback.len() == crate::MAX_SCROLLBACK_ROWS;
-                scrollback.push(displaced);
+                scrollback.push(displaced, self.row_wraps[row]);
                 if full {
                     self.history_origin += 1;
                 }
@@ -110,6 +113,39 @@ impl ScreenState {
         }
 
         self.grid.scroll_region_up(margins, rows);
+        self.shift_row_wraps(margins, rows, true);
+    }
+
+    fn scroll_region_down(&mut self, margins: VerticalScrollingMargins, rows: usize) {
+        self.grid.scroll_region_down(margins, rows);
+        self.shift_row_wraps(margins, rows, false);
+    }
+
+    fn scroll_region_up_without_history(&mut self, margins: VerticalScrollingMargins, rows: usize) {
+        self.grid.scroll_region_up(margins, rows);
+        self.shift_row_wraps(margins, rows, true);
+    }
+
+    fn shift_row_wraps(&mut self, margins: VerticalScrollingMargins, rows: usize, up: bool) {
+        if margins.bottom() >= self.row_wraps.len() {
+            return;
+        }
+        let start = margins.top();
+        let end = margins.bottom() + 1;
+        let count = rows.min(end - start);
+        if count == 0 {
+            return;
+        }
+        if count == end - start {
+            self.row_wraps[start..end].fill(false);
+        } else if up {
+            self.row_wraps.copy_within(start + count..end, start);
+            self.row_wraps[end - count..end].fill(false);
+        } else {
+            self.row_wraps
+                .copy_within(start..end - count, start + count);
+            self.row_wraps[start..start + count].fill(false);
+        }
     }
 
     fn scrollback_len(&self) -> usize {
@@ -118,6 +154,14 @@ impl ScreenState {
 
     fn scrollback_row(&self, index: usize) -> Option<&[Cell]> {
         self.scrollback.as_ref()?.row(index)
+    }
+
+    fn row_wraps_from_previous(&self, index: usize) -> Option<bool> {
+        if index < self.scrollback_len() {
+            self.scrollback.as_ref()?.wraps_from_previous(index)
+        } else {
+            self.row_wraps.get(index - self.scrollback_len()).copied()
+        }
     }
 
     fn viewport_offset(&self) -> usize {
@@ -265,7 +309,26 @@ impl ScreenSet {
         margins: VerticalScrollingMargins,
         rows: usize,
     ) {
-        self.active_state_mut().grid.scroll_region_up(margins, rows);
+        self.active_state_mut()
+            .scroll_region_up_without_history(margins, rows);
+    }
+
+    pub(crate) fn scroll_region_down(&mut self, margins: VerticalScrollingMargins, rows: usize) {
+        self.active_state_mut().scroll_region_down(margins, rows);
+    }
+
+    pub(crate) fn set_row_wraps_from_previous(&mut self, row: usize, wraps: bool) {
+        if let Some(slot) = self.active_state_mut().row_wraps.get_mut(row) {
+            *slot = wraps;
+        }
+    }
+
+    pub(crate) fn clear_row_wraps(&mut self) {
+        self.active_state_mut().row_wraps.fill(false);
+    }
+
+    pub(crate) fn primary_row_wraps_from_previous(&self, index: usize) -> Option<bool> {
+        self.primary.row_wraps_from_previous(index)
     }
 
     pub(crate) fn primary_scrollback_len(&self) -> usize {
