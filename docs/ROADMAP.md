@@ -153,9 +153,9 @@ later performance/polish work.
   - Literal search is case-insensitive by default, with wrap-around next/previous navigation and an active/total match count.
   - Highlight full matched spans and all visible matches, with the active match styled distinctly.
   - Regex search remains out of scope.
-- [ ] Improve mouse selection behavior.
-  - Add word selection, line selection, selection extension, and other common terminal selection polish.
-  - Preserve the existing terminal-owned selection model.
+- [x] Improve mouse selection behavior.
+  - Double-click selects words, triple-click selects lines, Shift+click extends selection, and edge dragging scrolls the viewport.
+  - Selection remains terminal-owned across live content and Primary scrollback, including wide and combining cells.
 - [ ] Design and add a Vim-inspired terminal navigation/copy mode.
   - Treat this as a broader navigation mode rather than copy-only behavior.
   - Plan for Vim-like movement, search integration, visual selection, and copy/yank behavior over scrollback.

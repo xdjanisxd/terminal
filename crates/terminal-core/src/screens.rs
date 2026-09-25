@@ -30,6 +30,7 @@ struct ScreenState {
     saved_cursor: Option<SavedCursor>,
     scrollback: Option<Scrollback>,
     viewport_offset: usize,
+    history_origin: usize,
 }
 
 impl ScreenState {
@@ -41,6 +42,7 @@ impl ScreenState {
             saved_cursor: None,
             scrollback: owns_scrollback.then(Scrollback::new),
             viewport_offset: 0,
+            history_origin: 0,
         }
     }
 
@@ -90,7 +92,11 @@ impl ScreenState {
                     .grid
                     .row(row)
                     .expect("scrolling margin row is always in bounds");
+                let full = scrollback.len() == crate::MAX_SCROLLBACK_ROWS;
                 scrollback.push(displaced);
+                if full {
+                    self.history_origin += 1;
+                }
             }
             // History is inserted immediately above the live grid. Keeping the
             // same rows in view therefore requires moving the viewport away from
@@ -157,6 +163,15 @@ impl ScreenState {
             return self.scrollback_row(source_row)?.get(column);
         }
         self.grid.cell(source_row - self.scrollback_len(), column)
+    }
+
+    fn selection_cell(&self, row: usize, column: usize) -> Option<&Cell> {
+        let row = row.checked_sub(self.history_origin)?;
+        if row < self.scrollback_len() {
+            self.scrollback_row(row)?.get(column)
+        } else {
+            self.grid.cell(row - self.scrollback_len(), column)
+        }
     }
 }
 
@@ -283,6 +298,14 @@ impl ScreenSet {
 
     pub(crate) fn viewport_cell(&self, row: usize, column: usize) -> Option<&Cell> {
         self.active_state().viewport_cell(row, column)
+    }
+
+    pub(crate) fn selection_cell(&self, row: usize, column: usize) -> Option<&Cell> {
+        self.active_state().selection_cell(row, column)
+    }
+
+    pub(crate) fn selection_history_origin(&self) -> usize {
+        self.active_state().history_origin
     }
 
     fn active_state(&self) -> &ScreenState {

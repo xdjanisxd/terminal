@@ -15,7 +15,7 @@ use std::ffi::OsString;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use terminal_config::{Command, Config, FontConfig, Rgb};
 
 use terminal_core::{
@@ -66,6 +66,8 @@ struct Application {
     pointer_position: Option<PhysicalPosition<f64>>,
     pressed_mouse_button: Option<TerminalMouseButton>,
     selection_dragging: bool,
+    selection_click: Option<(Instant, usize, usize, u8)>,
+    selection_edge: Option<(i32, usize, usize, Instant)>,
     target_click_held: bool,
     pending_target: Option<String>,
     modifiers: ModifiersState,
@@ -77,6 +79,34 @@ struct Application {
     palette: Option<Palette>,
     search: Option<Search>,
     tab_rename: Option<String>,
+}
+
+fn selection_click_count(
+    previous: Option<(Instant, usize, usize, u8)>,
+    now: Instant,
+    row: usize,
+    column: usize,
+) -> u8 {
+    match previous {
+        Some((when, previous_row, previous_column, count))
+            if now.duration_since(when) <= Duration::from_millis(500)
+                && row == previous_row
+                && column == previous_column =>
+        {
+            (count % 3) + 1
+        }
+        _ => 1,
+    }
+}
+
+fn selection_edge_direction(row: usize, rows: usize) -> Option<i32> {
+    if row == 0 {
+        Some(1)
+    } else if row + 1 == rows {
+        Some(-1)
+    } else {
+        None
+    }
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -422,6 +452,8 @@ impl Default for Application {
             pointer_position: None,
             pressed_mouse_button: None,
             selection_dragging: false,
+            selection_click: None,
+            selection_edge: None,
             target_click_held: false,
             pending_target: None,
             modifiers: ModifiersState::empty(),
@@ -634,6 +666,8 @@ impl Application {
         self.inactive_panes.insert(current, old);
         self.active_runtime_pane = next;
         self.selection_dragging = false;
+        self.selection_click = None;
+        self.selection_edge = None;
         self.pressed_mouse_button = None;
         self.wheel_remainder = 0.0;
         self.mouse_wheel_remainder = 0.0;
@@ -1526,7 +1560,7 @@ impl ApplicationHandler<PtyWake> for Application {
         self.diagnose("suspended-complete");
     }
 
-    fn about_to_wait(&mut self, _event_loop: &ActiveEventLoop) {
+    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
         if self.dpi_size_sync.take() {
             self.queue_window_size();
         }
@@ -1539,6 +1573,31 @@ impl ApplicationHandler<PtyWake> for Application {
             self.queue_window_size();
         }
         self.apply_pending_resize();
+        if let Some((direction, row, column, deadline)) = self.selection_edge
+            && self.selection_dragging
+            && Instant::now() >= deadline
+        {
+            if self
+                .terminal
+                .scroll_selection_viewport_rows(direction, row, column)
+            {
+                self.invalidate_frame();
+                self.selection_edge = Some((
+                    direction,
+                    row,
+                    column,
+                    Instant::now() + Duration::from_millis(60),
+                ));
+            } else {
+                self.selection_edge = None;
+            }
+        }
+        event_loop.set_control_flow(
+            self.selection_edge
+                .map_or(ControlFlow::Wait, |(_, _, _, deadline)| {
+                    ControlFlow::WaitUntil(deadline)
+                }),
+        );
         self.diagnose("about-to-wait");
     }
 
@@ -1618,12 +1677,17 @@ impl ApplicationHandler<PtyWake> for Application {
                     self.pressed_mouse_button = None;
                     self.pointer_position = None;
                     self.selection_dragging = false;
+                    self.selection_click = None;
+                    self.selection_edge = None;
                 }
             }
             WindowEvent::ModifiersChanged(modifiers) => {
                 self.modifiers = modifiers.state();
             }
-            WindowEvent::CursorLeft { .. } => self.pointer_position = None,
+            WindowEvent::CursorLeft { .. } => {
+                self.pointer_position = None;
+                self.selection_edge = None;
+            }
             WindowEvent::CursorMoved { position, .. } => {
                 if self.selection_dragging {
                     emit_diagnostic(format_args!("app event=selection-move"));
@@ -1636,9 +1700,25 @@ impl ApplicationHandler<PtyWake> for Application {
                             renderer.cell_metrics(),
                             self.terminal.dimensions(),
                         )
-                    }) && self.terminal.extend_selection(row, column)
-                    {
-                        self.invalidate_frame();
+                    }) {
+                        if self.terminal.extend_selection(row, column) {
+                            self.selection_click = None;
+                            self.invalidate_frame();
+                        }
+                        let direction =
+                            selection_edge_direction(row, self.terminal.dimensions().rows());
+                        self.selection_edge = direction.map(|direction| {
+                            let deadline = self
+                                .selection_edge
+                                .filter(|(previous, _, _, _)| *previous == direction)
+                                .map_or(
+                                    Instant::now() + Duration::from_millis(60),
+                                    |(_, _, _, deadline)| deadline,
+                                );
+                            (direction, row, column, deadline)
+                        });
+                    } else {
+                        self.selection_edge = None;
                     }
                 } else {
                     self.send_mouse_event(MouseEvent::Move(self.pressed_mouse_button));
@@ -1687,15 +1767,34 @@ impl ApplicationHandler<PtyWake> for Application {
                                 self.terminal.dimensions(),
                             )
                         }) {
-                            let previous_selection = self.terminal.clear_selection();
-                            self.selection_dragging = self.terminal.begin_selection(row, column);
+                            let now = Instant::now();
+                            let count = if self.modifiers.shift_key() {
+                                1
+                            } else {
+                                selection_click_count(self.selection_click, now, row, column)
+                            };
+                            self.selection_click = Some((now, row, column, count));
+                            let previous_selection = self.terminal.has_selection();
+                            self.selection_dragging =
+                                if self.modifiers.shift_key() && previous_selection {
+                                    self.selection_click = None;
+                                    self.terminal.extend_selection(row, column);
+                                    true
+                                } else {
+                                    match count {
+                                        2 => self.terminal.select_word(row, column),
+                                        3 => self.terminal.select_line(row, column),
+                                        _ => self.terminal.begin_selection(row, column),
+                                    }
+                                };
                             emit_diagnostic(format_args!("app event=selection-start"));
-                            if previous_selection {
+                            if previous_selection || count > 1 {
                                 self.invalidate_frame();
                             }
                         }
                     } else {
                         self.selection_dragging = false;
+                        self.selection_edge = None;
                         emit_diagnostic(format_args!("app event=selection-end"));
                     }
                     return;
@@ -2380,9 +2479,43 @@ fn main() {
 mod tests {
     use std::fs;
     use std::path::PathBuf;
-    use std::time::{SystemTime, UNIX_EPOCH};
+    use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
     use super::Search;
+    use super::{selection_click_count, selection_edge_direction};
+
+    #[test]
+    fn click_count_tracks_same_cell_within_timeout() {
+        let now = Instant::now();
+        assert_eq!(selection_click_count(None, now, 1, 2), 1);
+        assert_eq!(
+            selection_click_count(Some((now, 1, 2, 1)), now + Duration::from_millis(100), 1, 2),
+            2
+        );
+        assert_eq!(
+            selection_click_count(Some((now, 1, 2, 2)), now + Duration::from_millis(100), 1, 2),
+            3
+        );
+        assert_eq!(
+            selection_click_count(Some((now, 1, 2, 3)), now + Duration::from_millis(100), 1, 2),
+            1
+        );
+        assert_eq!(
+            selection_click_count(Some((now, 1, 2, 1)), now + Duration::from_millis(501), 1, 2),
+            1
+        );
+        assert_eq!(
+            selection_click_count(Some((now, 1, 2, 1)), now + Duration::from_millis(100), 1, 3),
+            1
+        );
+    }
+
+    #[test]
+    fn edge_direction_only_applies_at_viewport_borders() {
+        assert_eq!(selection_edge_direction(0, 5), Some(1));
+        assert_eq!(selection_edge_direction(4, 5), Some(-1));
+        assert_eq!(selection_edge_direction(2, 5), None);
+    }
     use super::{
         Application, BasicKey, CliOptions, FrameState, PaletteAction, PendingResize,
         PhysicalSizeSync, RecoveryRedraw, SurfaceRestore, WindowsShellSource,

@@ -1,53 +1,95 @@
 use crate::{CellOccupancy, ScreenKind, TerminalState};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) struct SelectionPoint {
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
+struct SelectionPoint {
     row: usize,
     column: usize,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum SelectionUnit {
+    Cell,
+    Word,
+    Line,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct Selection {
     screen: ScreenKind,
-    viewport_offset: usize,
-    anchor: SelectionPoint,
-    focus: SelectionPoint,
+    anchor_start: SelectionPoint,
+    anchor_end: SelectionPoint,
+    focus_start: SelectionPoint,
+    focus_end: SelectionPoint,
+    unit: SelectionUnit,
+    active: bool,
 }
 
 impl TerminalState {
     pub fn begin_selection(&mut self, row: usize, column: usize) -> bool {
-        if row >= self.dimensions().rows() || column >= self.dimensions().columns() {
+        self.start_selection(row, column, SelectionUnit::Cell)
+    }
+
+    pub fn select_word(&mut self, row: usize, column: usize) -> bool {
+        self.start_selection(row, column, SelectionUnit::Word)
+    }
+
+    pub fn select_line(&mut self, row: usize, column: usize) -> bool {
+        self.start_selection(row, column, SelectionUnit::Line)
+    }
+
+    fn start_selection(&mut self, row: usize, column: usize, unit: SelectionUnit) -> bool {
+        let Some(point) = self.selection_point(row, column) else {
             return false;
-        }
-        let point = SelectionPoint { row, column };
+        };
+        let (start, end) = self.unit_bounds(point, unit);
         self.selection = Some(Selection {
             screen: self.active_screen(),
-            viewport_offset: self.viewport_offset(),
-            anchor: point,
-            focus: point,
+            anchor_start: start,
+            anchor_end: end,
+            focus_start: start,
+            focus_end: end,
+            unit,
+            active: unit != SelectionUnit::Cell,
         });
         true
     }
 
     pub fn extend_selection(&mut self, row: usize, column: usize) -> bool {
-        if row >= self.dimensions().rows() || column >= self.dimensions().columns() {
-            return false;
-        }
-        let screen = self.active_screen();
-        let viewport_offset = self.viewport_offset();
-        let Some(selection) = self.selection.as_mut() else {
+        let Some(point) = self.selection_point(row, column) else {
             return false;
         };
-        if selection.screen != screen || selection.viewport_offset != viewport_offset {
+        let Some(selection) = self.selection else {
+            return false;
+        };
+        if selection.screen != self.active_screen() {
             self.selection = None;
             return false;
         }
-        let point = SelectionPoint { row, column };
-        if selection.focus == point {
+        let (start, end) = self.unit_bounds(point, selection.unit);
+        let active = selection.unit != SelectionUnit::Cell || start != selection.anchor_start;
+        let changed = selection.focus_start != start
+            || selection.focus_end != end
+            || selection.active != active;
+        if let Some(selection) = &mut self.selection {
+            selection.focus_start = start;
+            selection.focus_end = end;
+            selection.active = active;
+        }
+        changed
+    }
+
+    /// Scrolls the viewport during a drag and extends the same selection into the new view.
+    pub fn scroll_selection_viewport_rows(&mut self, rows: i32, row: usize, column: usize) -> bool {
+        if self.selection.is_none() || !self.scroll_viewport_for_selection(rows) {
             return false;
         }
-        selection.focus = point;
+        self.extend_selection(row, column);
         true
+    }
+
+    pub fn has_selection(&self) -> bool {
+        self.selection
+            .is_some_and(|selection| selection.screen == self.active_screen())
     }
 
     pub fn clear_selection(&mut self) -> bool {
@@ -55,28 +97,32 @@ impl TerminalState {
     }
 
     pub fn is_selected(&self, row: usize, column: usize) -> bool {
-        let Some(selection) = self.selection else {
+        let Some(selection) = self
+            .selection
+            .filter(|selection| selection.active && selection.screen == self.active_screen())
+        else {
             return false;
         };
-        if selection.screen != self.active_screen()
-            || selection.viewport_offset != self.viewport_offset()
-        {
+        let Some(point) = self.selection_point(row, column) else {
+            return false;
+        };
+        let (start, end) = selection_bounds(selection);
+        if end.row < self.selection_history_origin() {
             return false;
         }
-        let (start, end) = ordered(selection.anchor, selection.focus);
-        let point = SelectionPoint { row, column };
-        point_key(start) <= point_key(point) && point_key(point) <= point_key(end) && start != end
+        start <= point && point <= end
     }
 
     pub fn selected_text(&self) -> Option<String> {
-        let selection = self.selection?;
-        if selection.screen != self.active_screen()
-            || selection.viewport_offset != self.viewport_offset()
-        {
-            return None;
+        let selection = self
+            .selection
+            .filter(|selection| selection.active && selection.screen == self.active_screen())?;
+        let (mut start, end) = selection_bounds(selection);
+        if start.row < self.selection_history_origin() {
+            start.row = self.selection_history_origin();
+            start.column = 0;
         }
-        let (start, end) = ordered(selection.anchor, selection.focus);
-        if start == end {
+        if start > end {
             return None;
         }
         let mut result = String::new();
@@ -92,7 +138,7 @@ impl TerminalState {
             };
             let mut line = String::new();
             for column in left..=right {
-                let Some(cell) = self.viewport_cell(row, column) else {
+                let Some(cell) = self.selection_cell(row, column) else {
                     continue;
                 };
                 if cell.occupancy() == CellOccupancy::WideContinuation {
@@ -105,23 +151,109 @@ impl TerminalState {
         }
         Some(result)
     }
-}
 
-fn point_key(point: SelectionPoint) -> (usize, usize) {
-    (point.row, point.column)
-}
-
-fn ordered(a: SelectionPoint, b: SelectionPoint) -> (SelectionPoint, SelectionPoint) {
-    if point_key(a) <= point_key(b) {
-        (a, b)
-    } else {
-        (b, a)
+    fn selection_point(&self, row: usize, column: usize) -> Option<SelectionPoint> {
+        if row >= self.dimensions().rows() || column >= self.dimensions().columns() {
+            return None;
+        }
+        let history = if self.active_screen() == ScreenKind::Primary {
+            self.scrollback_len()
+        } else {
+            0
+        };
+        let row = self.selection_history_origin() + history + row - self.viewport_offset();
+        let column = if column > 0
+            && self
+                .selection_cell(row, column)
+                .is_some_and(|cell| cell.is_wide_continuation())
+        {
+            column - 1
+        } else {
+            column
+        };
+        Some(SelectionPoint { row, column })
     }
+
+    fn unit_bounds(
+        &self,
+        point: SelectionPoint,
+        unit: SelectionUnit,
+    ) -> (SelectionPoint, SelectionPoint) {
+        match unit {
+            SelectionUnit::Cell => (point, point),
+            SelectionUnit::Line => (
+                SelectionPoint { column: 0, ..point },
+                SelectionPoint {
+                    column: self.dimensions().columns() - 1,
+                    ..point
+                },
+            ),
+            SelectionUnit::Word => {
+                let class = self.word_class(point.row, point.column);
+                let mut left = point.column;
+                while left > 0 && self.word_class(point.row, left - 1) == class {
+                    left -= 1;
+                }
+                let mut right = point.column;
+                let last = self.dimensions().columns() - 1;
+                while right < last && self.word_class(point.row, right + 1) == class {
+                    right += 1;
+                }
+                (
+                    SelectionPoint {
+                        column: left,
+                        ..point
+                    },
+                    SelectionPoint {
+                        column: right,
+                        ..point
+                    },
+                )
+            }
+        }
+    }
+
+    fn word_class(&self, row: usize, column: usize) -> u8 {
+        let Some(cell) = self.selection_cell(row, column) else {
+            return 0;
+        };
+        let character = if cell.is_wide_continuation() && column > 0 {
+            self.selection_cell(row, column - 1)
+                .map_or(' ', |lead| lead.character())
+        } else {
+            cell.character()
+        };
+        if character.is_alphanumeric()
+            || matches!(
+                character,
+                '_' | '.' | '/' | '\\' | ':' | '~' | '@' | '-' | '$' | '%' | '+'
+            )
+        {
+            1
+        } else if character.is_whitespace() {
+            0
+        } else {
+            2
+        }
+    }
+}
+
+fn selection_bounds(selection: Selection) -> (SelectionPoint, SelectionPoint) {
+    (
+        selection.anchor_start.min(selection.focus_start),
+        selection.anchor_end.max(selection.focus_end),
+    )
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{TerminalDimensions, TerminalState};
+
+    fn print(state: &mut TerminalState, text: &str) {
+        for character in text.chars() {
+            state.print_character(character).unwrap();
+        }
+    }
 
     #[test]
     fn selection_extracts_viewport_text_and_clears_across_screen_switch() {
@@ -158,5 +290,84 @@ mod tests {
         assert_eq!(state.selected_text().as_deref(), Some("one\ntwo"));
         assert!(state.page_down());
         assert_eq!(state.selected_text(), None);
+    }
+
+    #[test]
+    fn word_selection_uses_terminal_identifier_and_path_boundaries() {
+        let mut state = TerminalState::new(TerminalDimensions::new(28, 2).unwrap());
+        print(&mut state, "go src/my_file.rs:12! next");
+        assert!(state.select_word(0, 7));
+        assert_eq!(state.selected_text().as_deref(), Some("src/my_file.rs:12"));
+        assert!(state.select_word(0, 20));
+        assert_eq!(state.selected_text().as_deref(), Some("!"));
+        assert!(state.select_word(0, 21));
+        assert_eq!(state.selected_text().as_deref(), Some(""));
+    }
+
+    #[test]
+    fn line_selection_and_extension_keep_complete_rows() {
+        let mut state = TerminalState::new(TerminalDimensions::new(5, 3).unwrap());
+        print(&mut state, "first");
+        state.set_cursor_position(1, 0).unwrap();
+        print(&mut state, "two");
+        assert!(state.select_line(0, 2));
+        assert_eq!(state.selected_text().as_deref(), Some("first"));
+        assert!(state.extend_selection(1, 1));
+        assert_eq!(state.selected_text().as_deref(), Some("first\ntwo"));
+        assert!(state.begin_selection(0, 1));
+        assert!(state.has_selection());
+        assert_eq!(state.selected_text(), None);
+        assert!(state.extend_selection(1, 1));
+        assert_eq!(state.selected_text().as_deref(), Some("irst\ntw"));
+    }
+
+    #[test]
+    fn drag_autoscroll_extends_selection_from_live_rows_into_scrollback() {
+        let mut state = TerminalState::new(TerminalDimensions::new(3, 2).unwrap());
+        for (index, word) in ["one", "two", "tri", "for"].into_iter().enumerate() {
+            if index == 1 {
+                state.set_cursor_position(1, 0).unwrap();
+            } else if index > 1 {
+                state.set_cursor_position(1, 0).unwrap();
+                state.index();
+            }
+            print(&mut state, word);
+        }
+        assert!(state.begin_selection(1, 2));
+        assert!(state.scroll_selection_viewport_rows(1, 0, 0));
+        assert_eq!(state.selected_text().as_deref(), Some("two\ntri\nfor"));
+        assert!(state.scroll_selection_viewport_rows(1, 0, 0));
+        assert_eq!(state.selected_text().as_deref(), Some("one\ntwo\ntri\nfor"));
+        assert!(state.is_selected(0, 0));
+        assert!(!state.scroll_selection_viewport_rows(1, 0, 0));
+        assert!(state.scroll_selection_viewport_rows(-1, 1, 2));
+        assert_eq!(state.selected_text().as_deref(), Some("i\nfor"));
+    }
+
+    #[test]
+    fn wide_and_combining_cells_are_selected_as_whole_characters() {
+        let mut state = TerminalState::new(TerminalDimensions::new(8, 2).unwrap());
+        print(&mut state, "界e\u{301}/z !");
+        assert!(state.select_word(0, 1));
+        assert_eq!(state.selected_text().as_deref(), Some("界e\u{301}/z"));
+        assert!(state.is_selected(0, 0));
+        assert!(state.is_selected(0, 1));
+        assert!(state.select_word(0, 2));
+        assert_eq!(state.selected_text().as_deref(), Some("界e\u{301}/z"));
+    }
+
+    #[test]
+    fn retained_selection_survives_scrollback_eviction() {
+        let mut state = TerminalState::new(TerminalDimensions::new(2, 2).unwrap());
+        state.set_cursor_position(1, 0).unwrap();
+        for _ in 0..crate::MAX_SCROLLBACK_ROWS {
+            state.index();
+        }
+        state.set_cursor_position(0, 0).unwrap();
+        print(&mut state, "ab");
+        assert!(state.select_word(0, 0));
+        state.set_cursor_position(1, 0).unwrap();
+        state.index();
+        assert_eq!(state.selected_text().as_deref(), Some("ab"));
     }
 }
