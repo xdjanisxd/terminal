@@ -63,6 +63,16 @@ pub const COMMANDS: &[CommandInfo] = &[
         in_palette: true,
     },
     CommandInfo {
+        command: Command::SetPaneStartupCommand,
+        name: "Set Pane Startup Command",
+        in_palette: true,
+    },
+    CommandInfo {
+        command: Command::ClearPaneStartupCommand,
+        name: "Clear Pane Startup Command",
+        in_palette: true,
+    },
+    CommandInfo {
         command: Command::OpenWorkspacePicker,
         name: "Open Workspace",
         in_palette: true,

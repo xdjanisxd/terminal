@@ -72,6 +72,9 @@ pub enum LayoutDefinition {
         session: SessionDefinition,
         #[serde(default)]
         project_root: Option<PathBuf>,
+        /// Explicit shell input for a future launch, never inferred from a process.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        startup_command: Option<String>,
     },
     Split {
         axis: SplitAxis,
@@ -89,6 +92,7 @@ impl LayoutDefinition {
         Self::Pane {
             session: SessionDefinition::LocalShell,
             project_root: None,
+            startup_command: None,
         }
     }
 }
@@ -143,6 +147,22 @@ pub enum Layout {
     },
 }
 impl Layout {
+    fn find_pane(&self, target: PaneId) -> Option<&Pane> {
+        match self {
+            Self::Pane(pane) => (pane.id == target).then_some(pane),
+            Self::Split { first, second, .. } => {
+                first.find_pane(target).or_else(|| second.find_pane(target))
+            }
+        }
+    }
+    fn find_pane_mut(&mut self, target: PaneId) -> Option<&mut Pane> {
+        match self {
+            Self::Pane(pane) => (pane.id == target).then_some(pane),
+            Self::Split { first, second, .. } => first
+                .find_pane_mut(target)
+                .or_else(|| second.find_pane_mut(target)),
+        }
+    }
     fn contains_pane(&self, target: PaneId) -> bool {
         match self {
             Self::Pane(pane) => pane.id == target,
@@ -290,6 +310,7 @@ impl Layout {
             Self::Pane(pane) => LayoutDefinition::Pane {
                 session: pane.startup.clone(),
                 project_root: pane.project_root.clone(),
+                startup_command: pane.startup_command.clone(),
             },
             Self::Split {
                 axis,
@@ -343,6 +364,7 @@ pub struct Pane {
     pub session: SessionId,
     pub startup: SessionDefinition,
     pub project_root: Option<PathBuf>,
+    pub startup_command: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -470,6 +492,7 @@ impl Workspace {
             session: SessionId(self.allocate_id()),
             startup,
             project_root,
+            startup_command: None,
         }
     }
     fn build_layout(&mut self, definition: &LayoutDefinition) -> Layout {
@@ -477,7 +500,12 @@ impl Workspace {
             LayoutDefinition::Pane {
                 session,
                 project_root,
-            } => Layout::Pane(self.new_pane(session.clone(), project_root.clone())),
+                startup_command,
+            } => {
+                let mut pane = self.new_pane(session.clone(), project_root.clone());
+                pane.startup_command = startup_command.clone();
+                Layout::Pane(pane)
+            }
             LayoutDefinition::Split {
                 axis,
                 first_share,
@@ -505,6 +533,21 @@ impl Workspace {
     }
     pub fn active_pane(&self) -> PaneId {
         self.active_tab().active_pane
+    }
+    pub fn focused_pane_startup_command(&self) -> Option<&str> {
+        let target = self.active_pane();
+        self.active_tab()
+            .layout
+            .find_pane(target)
+            .and_then(|pane| pane.startup_command.as_deref())
+    }
+    pub fn set_focused_pane_startup_command(&mut self, command: Option<String>) {
+        let target = self.active_pane();
+        self.tabs[self.active_tab]
+            .layout
+            .find_pane_mut(target)
+            .expect("focused pane exists")
+            .startup_command = command;
     }
     pub fn toggle_zoom(&mut self) -> bool {
         let tab = &mut self.tabs[self.active_tab];
@@ -718,6 +761,12 @@ impl Workspace {
                 })
         })
     }
+    pub fn pane_startup_command(&self, pane_id: PaneId) -> Option<&str> {
+        self.tabs
+            .iter()
+            .find_map(|tab| tab.layout.find_pane(pane_id))
+            .and_then(|pane| pane.startup_command.as_deref())
+    }
 }
 
 fn validate_layout(layout: &LayoutDefinition) -> Result<(), DefinitionError> {
@@ -725,6 +774,7 @@ fn validate_layout(layout: &LayoutDefinition) -> Result<(), DefinitionError> {
         LayoutDefinition::Pane {
             session,
             project_root,
+            startup_command,
         } => {
             if project_root
                 .as_ref()
@@ -736,6 +786,18 @@ fn validate_layout(layout: &LayoutDefinition) -> Result<(), DefinitionError> {
                 && program.as_os_str().is_empty()
             {
                 return Err(DefinitionError("startup command program is empty".into()));
+            }
+            if startup_command.as_ref().is_some_and(|command| {
+                command.trim().is_empty() || command.chars().any(char::is_control)
+            }) {
+                return Err(DefinitionError(
+                    "pane startup_command must be a single nonempty line".into(),
+                ));
+            }
+            if startup_command.is_some() && !matches!(session, SessionDefinition::LocalShell) {
+                return Err(DefinitionError(
+                    "pane startup_command requires a local shell".into(),
+                ));
             }
             Ok(())
         }
@@ -965,6 +1027,34 @@ mod tests {
         workspace.toggle_zoom();
         assert_eq!(workspace.active_tab().layout, layout);
     }
+
+    #[test]
+    fn explicit_startup_commands_follow_panes_through_layout_and_tab_changes() {
+        let mut workspace = Workspace::default();
+        let first = workspace.active_pane();
+        workspace.set_focused_pane_startup_command(Some("nvim".into()));
+        let second = workspace.split_active(SplitAxis::Vertical);
+        workspace.set_focused_pane_startup_command(Some("npm run dev".into()));
+        assert!(workspace.resize_focused_pane(PaneDirection::Left, viewport(), 5, 10));
+        workspace.toggle_zoom();
+        workspace.toggle_zoom();
+        assert!(workspace.focus_pane_id(first));
+        assert_eq!(workspace.focused_pane_startup_command(), Some("nvim"));
+        assert_eq!(workspace.pane_startup_command(second), Some("npm run dev"));
+        workspace.new_tab();
+        assert_eq!(workspace.focused_pane_startup_command(), None);
+        let roundtrip = Workspace::from_definition(&workspace.definition()).unwrap();
+        assert_eq!(roundtrip.definition(), workspace.definition());
+        assert!(matches!(&roundtrip.definition().tabs[0].layout,
+            LayoutDefinition::Split { first, second, .. }
+            if matches!(first.as_ref(), LayoutDefinition::Pane { startup_command: Some(command), .. } if command == "nvim")
+            && matches!(second.as_ref(), LayoutDefinition::Pane { startup_command: Some(command), .. } if command == "npm run dev")));
+        workspace.focus_tab(-1);
+        assert_eq!(workspace.focused_pane_startup_command(), Some("nvim"));
+        workspace.set_focused_pane_startup_command(None);
+        assert_eq!(workspace.focused_pane_startup_command(), None);
+        assert_eq!(workspace.pane_startup_command(second), Some("npm run dev"));
+    }
     #[test]
     fn roots_and_startup_commands_follow_pane_tab_workspace_precedence() {
         let mut definition = WorkspaceDefinition {
@@ -978,6 +1068,7 @@ mod tests {
                 args: vec!["serve".into()],
             },
             project_root: Some("pane".into()),
+            startup_command: None,
         };
         let mut workspace = Workspace::from_definition(&definition).unwrap();
         let first = workspace.active_pane();
@@ -1022,6 +1113,7 @@ mod tests {
                 args: vec![],
             },
             project_root: None,
+            startup_command: None,
         };
         assert!(Workspace::from_definition(&definition).is_err());
     }
