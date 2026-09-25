@@ -15,6 +15,16 @@ pub struct Theme {
     pub selection_foreground: Rgb,
     pub selection_background: Rgb,
     pub ansi: [Rgb; 16],
+    pub ui_background: Option<Rgb>,
+    pub ui_foreground: Option<Rgb>,
+    pub ui_selected_background: Option<Rgb>,
+    pub ui_muted: Option<Rgb>,
+    pub ui_accent: Option<Rgb>,
+    pub ui_border: Option<Rgb>,
+    pub search_match_background: Option<Rgb>,
+    pub search_active_background: Option<Rgb>,
+    pub scrollbar_thumb: Option<Rgb>,
+    pub scrollbar_thumb_hover: Option<Rgb>,
 }
 
 impl Default for Theme {
@@ -25,6 +35,16 @@ impl Default for Theme {
             cursor: Rgb(230, 230, 230),
             selection_foreground: Rgb(255, 255, 255),
             selection_background: Rgb(46, 89, 166),
+            ui_background: None,
+            ui_foreground: None,
+            ui_selected_background: None,
+            ui_muted: None,
+            ui_accent: None,
+            ui_border: None,
+            search_match_background: None,
+            search_active_background: None,
+            scrollbar_thumb: None,
+            scrollbar_thumb_hover: None,
             ansi: [
                 Rgb(0, 0, 0),
                 Rgb(205, 49, 49),
@@ -255,6 +275,61 @@ impl Config {
                         .map_err(|reason| ConfigError(format!("{name}: {reason}")))?;
                 }
             }
+            for (name, value, slot) in [
+                (
+                    "theme.ui_background",
+                    theme.ui_background,
+                    &mut config.theme.ui_background,
+                ),
+                (
+                    "theme.ui_foreground",
+                    theme.ui_foreground,
+                    &mut config.theme.ui_foreground,
+                ),
+                (
+                    "theme.ui_selected_background",
+                    theme.ui_selected_background,
+                    &mut config.theme.ui_selected_background,
+                ),
+                ("theme.ui_muted", theme.ui_muted, &mut config.theme.ui_muted),
+                (
+                    "theme.ui_accent",
+                    theme.ui_accent,
+                    &mut config.theme.ui_accent,
+                ),
+                (
+                    "theme.ui_border",
+                    theme.ui_border,
+                    &mut config.theme.ui_border,
+                ),
+                (
+                    "theme.search_match_background",
+                    theme.search_match_background,
+                    &mut config.theme.search_match_background,
+                ),
+                (
+                    "theme.search_active_background",
+                    theme.search_active_background,
+                    &mut config.theme.search_active_background,
+                ),
+                (
+                    "theme.scrollbar_thumb",
+                    theme.scrollbar_thumb,
+                    &mut config.theme.scrollbar_thumb,
+                ),
+                (
+                    "theme.scrollbar_thumb_hover",
+                    theme.scrollbar_thumb_hover,
+                    &mut config.theme.scrollbar_thumb_hover,
+                ),
+            ] {
+                if let Some(value) = value {
+                    *slot = Some(
+                        parse_color(&value)
+                            .map_err(|reason| ConfigError(format!("{name}: {reason}")))?,
+                    );
+                }
+            }
             if let Some(ansi) = theme.ansi {
                 if ansi.len() != 16 {
                     return Err(ConfigError(format!(
@@ -366,6 +441,16 @@ struct RawTheme {
     selection_foreground: Option<String>,
     selection_background: Option<String>,
     ansi: Option<Vec<String>>,
+    ui_background: Option<String>,
+    ui_foreground: Option<String>,
+    ui_selected_background: Option<String>,
+    ui_muted: Option<String>,
+    ui_accent: Option<String>,
+    ui_border: Option<String>,
+    search_match_background: Option<String>,
+    search_active_background: Option<String>,
+    scrollbar_thumb: Option<String>,
+    scrollbar_thumb_hover: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -502,7 +587,32 @@ mod tests {
         let config = Config::parse("[theme]\nforeground = '#123abc'").unwrap();
         assert_eq!(config.theme.foreground, Rgb(0x12, 0x3a, 0xbc));
         assert_eq!(config.theme.background, Theme::default().background);
+        assert_eq!(config.theme.ui_accent, None);
         assert_eq!(config.bindings, Config::default().bindings);
+    }
+    #[test]
+    fn old_theme_fields_and_partial_ui_override_parse_together() {
+        let config = Config::parse(
+            "[theme]\nforeground = '#123abc'\nbackground = '#010203'\ncursor = '#040506'\nselection_foreground = '#070809'\nselection_background = '#0a0b0c'\nui_accent = '#ff79c6'",
+        )
+        .unwrap();
+        assert_eq!(config.theme.foreground, Rgb(0x12, 0x3a, 0xbc));
+        assert_eq!(config.theme.background, Rgb(1, 2, 3));
+        assert_eq!(config.theme.cursor, Rgb(4, 5, 6));
+        assert_eq!(config.theme.selection_foreground, Rgb(7, 8, 9));
+        assert_eq!(config.theme.selection_background, Rgb(10, 11, 12));
+        assert_eq!(config.theme.ui_accent, Some(Rgb(255, 121, 198)));
+        assert_eq!(config.theme.ui_background, None);
+        assert_eq!(config.theme.search_match_background, None);
+        assert_eq!(config.theme.ansi, Theme::default().ansi);
+    }
+    #[test]
+    fn invalid_ui_colors_name_the_field() {
+        for field in ["ui_accent", "search_match_background", "scrollbar_thumb"] {
+            let source = format!("[theme]\n{field} = 'red'");
+            let error = Config::parse(&source).unwrap_err().to_string();
+            assert!(error.contains(&format!("theme.{field}: expected #RRGGBB")));
+        }
     }
     #[test]
     fn repository_example_loads_through_config_file_path() {

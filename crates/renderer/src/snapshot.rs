@@ -16,6 +16,52 @@ pub struct RenderTheme {
     pub selection_foreground: Rgba,
     pub selection_background: Rgba,
     pub ansi: [Rgba; 16],
+    pub ui: UiRenderTheme,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct UiRenderTheme {
+    pub background: Rgba,
+    pub foreground: Rgba,
+    pub selected_background: Rgba,
+    pub selected_foreground: Rgba,
+    pub muted: Rgba,
+    pub accent: Rgba,
+    pub border: Rgba,
+    pub search_match_foreground: Rgba,
+    pub search_match_background: Rgba,
+    pub search_active_background: Rgba,
+    pub scrollbar_track: Rgba,
+    pub scrollbar_track_hover: Rgba,
+    pub scrollbar_thumb: Rgba,
+    pub scrollbar_thumb_hover: Rgba,
+    pub search_marker: Rgba,
+    pub search_active_marker: Rgba,
+    pub focus_border: Rgba,
+}
+
+impl Default for UiRenderTheme {
+    fn default() -> Self {
+        Self {
+            background: DEFAULT_BACKGROUND,
+            foreground: DEFAULT_FOREGROUND,
+            selected_background: Rgba([0.18, 0.35, 0.65, 1.0]),
+            selected_foreground: Rgba([1.0, 1.0, 1.0, 1.0]),
+            muted: Rgba([0.7, 0.7, 0.7, 0.9]),
+            accent: Rgba([1.0, 1.0, 1.0, 1.0]),
+            border: Rgba([0.25, 0.25, 0.25, 0.65]),
+            search_match_foreground: Rgba([1.0, 0.85, 0.35, 1.0]),
+            search_match_background: Rgba([0.30, 0.22, 0.04, 1.0]),
+            search_active_background: Rgba([0.18, 0.35, 0.65, 1.0]),
+            scrollbar_track: Rgba([0.25, 0.25, 0.25, 0.65]),
+            scrollbar_track_hover: Rgba([0.34, 0.34, 0.34, 0.85]),
+            scrollbar_thumb: Rgba([0.7, 0.7, 0.7, 0.9]),
+            scrollbar_thumb_hover: Rgba([0.95, 0.95, 0.95, 1.0]),
+            search_marker: Rgba([1.0, 0.75, 0.2, 0.95]),
+            search_active_marker: Rgba([0.30, 0.75, 1.0, 1.0]),
+            focus_border: Rgba([0.35, 0.65, 1.0, 0.9]),
+        }
+    }
 }
 
 impl Default for RenderTheme {
@@ -27,6 +73,7 @@ impl Default for RenderTheme {
             selection_foreground: Rgba([1.0, 1.0, 1.0, 1.0]),
             selection_background: Rgba([0.18, 0.35, 0.65, 1.0]),
             ansi: std::array::from_fn(|index| indexed_color(index as u8)),
+            ui: UiRenderTheme::default(),
         }
     }
 }
@@ -97,6 +144,8 @@ pub struct SearchHighlight {
 pub struct OverlayLine {
     pub text: String,
     pub selected: bool,
+    /// Optional character column drawn with the UI accent (tab activity).
+    pub accent_column: Option<usize>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -227,11 +276,11 @@ impl TerminalRenderData {
                     && cell.column + cell.width > found.start_column
             }) {
                 if found.active {
-                    cell.foreground = theme.selection_foreground;
-                    cell.background = theme.selection_background;
+                    cell.foreground = theme.ui.selected_foreground;
+                    cell.background = theme.ui.search_active_background;
                 } else {
-                    cell.foreground = Rgba([1.0, 0.85, 0.35, 1.0]);
-                    cell.background = Rgba([0.30, 0.22, 0.04, 1.0]);
+                    cell.foreground = theme.ui.search_match_foreground;
+                    cell.background = theme.ui.search_match_background;
                 }
             }
         }
@@ -247,9 +296,9 @@ impl TerminalRenderData {
         for (index, line) in overlay.lines.iter().take(line_count).enumerate() {
             let row = first_row + index;
             let (foreground, background) = if line.selected {
-                (theme.selection_foreground, theme.selection_background)
+                (theme.ui.selected_foreground, theme.ui.selected_background)
             } else {
-                (theme.foreground, theme.background)
+                (theme.ui.foreground, theme.ui.background)
             };
             let mut characters = line.text.chars();
             for column in 0..self.columns {
@@ -260,7 +309,11 @@ impl TerminalRenderData {
                     width: 1,
                     character,
                     text: RenderText::scalar(character),
-                    foreground,
+                    foreground: if line.accent_column == Some(column) {
+                        theme.ui.accent
+                    } else {
+                        foreground
+                    },
                     background,
                     underline: false,
                 });
@@ -386,6 +439,7 @@ mod tests {
                 lines: vec![OverlayLine {
                     text: "Go".into(),
                     selected: true,
+                    accent_column: None,
                 }],
                 bottom: false,
                 search_matches: Vec::new(),
@@ -424,6 +478,7 @@ mod tests {
                 lines: vec![OverlayLine {
                     text: "Find".into(),
                     selected: true,
+                    accent_column: None,
                 }],
                 bottom: true,
                 search_matches: vec![SearchHighlight {
@@ -473,6 +528,7 @@ mod tests {
                 lines: vec![OverlayLine {
                     text: "Search".into(),
                     selected: true,
+                    accent_column: None,
                 }],
                 bottom: true,
                 search_matches: vec![
@@ -511,6 +567,63 @@ mod tests {
             assert_eq!(cell.background, theme.selection_background);
         }
         assert_eq!(state.screen().cell(0, 0).unwrap().character(), 'A');
+    }
+    #[test]
+    fn overlay_uses_resolved_ui_colors_for_matches_selection_and_activity() {
+        let mut state = TerminalState::new(TerminalDimensions::new(4, 3).unwrap());
+        state.print_character('A').unwrap();
+        let mut theme = RenderTheme::default();
+        theme.ui.background = Rgba([0.1, 0.2, 0.3, 1.0]);
+        theme.ui.foreground = Rgba([0.4, 0.5, 0.6, 1.0]);
+        theme.ui.selected_background = Rgba([0.2, 0.3, 0.4, 1.0]);
+        theme.ui.selected_foreground = Rgba([0.9, 0.8, 0.7, 1.0]);
+        theme.ui.accent = Rgba([0.8, 0.2, 0.6, 1.0]);
+        theme.ui.search_match_background = Rgba([0.7, 0.1, 0.2, 1.0]);
+        let mut data = TerminalRenderData::from_terminal_with_theme(&state, &theme);
+        data.apply_text_overlay(
+            &TextOverlay {
+                lines: vec![
+                    OverlayLine {
+                        text: "x".into(),
+                        selected: false,
+                        accent_column: None,
+                    },
+                    OverlayLine {
+                        text: "*x".into(),
+                        selected: true,
+                        accent_column: Some(0),
+                    },
+                ],
+                bottom: true,
+                search_matches: vec![SearchHighlight {
+                    row: 0,
+                    start_column: 0,
+                    end_column: 1,
+                    active: false,
+                }],
+                search_markers: Vec::new(),
+            },
+            &theme,
+        );
+        let cell = |row| {
+            data.cells
+                .iter()
+                .find(|cell| cell.row == row && cell.column == 0)
+                .unwrap()
+        };
+        assert_eq!(cell(0).background, theme.ui.search_match_background);
+        assert_eq!(cell(1).foreground, theme.ui.foreground);
+        assert_eq!(cell(1).background, theme.ui.background);
+        assert_eq!(cell(2).foreground, theme.ui.accent);
+        assert_eq!(cell(2).background, theme.ui.selected_background);
+        assert_eq!(
+            data.cells
+                .iter()
+                .find(|cell| cell.row == 2 && cell.column == 1)
+                .unwrap()
+                .foreground,
+            theme.ui.selected_foreground
+        );
     }
     #[test]
     fn selection_highlights_snapshot_without_changing_terminal_cells() {

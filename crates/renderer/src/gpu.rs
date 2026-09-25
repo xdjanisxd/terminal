@@ -330,6 +330,7 @@ pub(super) struct FrameContext<'a> {
     pub(super) target: &'a wgpu::TextureView,
     pub(super) surface_size: crate::SurfaceSize,
     pub(super) cell_metrics: crate::CellMetrics,
+    pub(super) ui: &'a crate::UiRenderTheme,
 }
 
 pub(super) struct PaneDraw {
@@ -585,9 +586,9 @@ impl DrawResources {
                     frame.surface_size,
                 ),
                 color: if data.scrollbar_hover.is_some() {
-                    [0.34, 0.34, 0.34, 0.85]
+                    frame.ui.scrollbar_track_hover.0
                 } else {
-                    [0.25, 0.25, 0.25, 0.65]
+                    frame.ui.scrollbar_track.0
                 },
             });
             overlays.push(RectInstance {
@@ -599,9 +600,9 @@ impl DrawResources {
                     frame.surface_size,
                 ),
                 color: if data.scrollbar_hover == Some(ScrollbarHit::Thumb) {
-                    [0.95, 0.95, 0.95, 1.0]
+                    frame.ui.scrollbar_thumb_hover.0
                 } else {
-                    [0.7, 0.7, 0.7, 0.9]
+                    frame.ui.scrollbar_thumb.0
                 },
             });
             for marker in data
@@ -620,15 +621,15 @@ impl DrawResources {
                         frame.surface_size,
                     ),
                     color: if marker.active {
-                        [0.30, 0.75, 1.0, 1.0]
+                        frame.ui.search_active_marker.0
                     } else {
-                        [1.0, 0.75, 0.2, 0.95]
+                        frame.ui.search_marker.0
                     },
                 });
             }
         }
         if pane_draw.focused_border && pane[2] > 1 && pane[3] > 1 {
-            let color = [0.35, 0.65, 1.0, 0.9];
+            let color = frame.ui.focus_border.0;
             for rect in [
                 [pane[0] as f32, pane[1] as f32, pane[2] as f32, 2.0],
                 [
@@ -1149,6 +1150,7 @@ mod tests {
                 target: &view,
                 surface_size: SurfaceSize::new(WIDTH, HEIGHT).unwrap(),
                 cell_metrics: crate::CellMetrics::from_physical(96, 25, 25.0),
+                ui: &crate::UiRenderTheme::default(),
             },
             &data,
             &mut fonts,

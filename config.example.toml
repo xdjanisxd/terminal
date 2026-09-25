@@ -33,6 +33,20 @@ ansi = [
 "#3b8eea", "#d670d6", "#29b8db", "#ffffff",
 ]
 
+# Optional app UI colors. Set only the values you care about; omitted values
+# keep sensible defaults derived from the terminal theme or existing UI colors.
+# ui_background = "#000000"          # Picker and prompt surfaces.
+# ui_foreground = "#e6e6e6"          # Picker and prompt text.
+# ui_selected_background = "#2e59a6" # Selected picker rows and active search.
+# ui_muted = "#b3b3b3"               # Scrollbar thumb.
+# ui_accent = "#ff79c6"              # Activity, search, and focus accents.
+# ui_border = "#404040"              # Scrollbar track.
+# More specific optional colors take precedence over semantic UI colors:
+# search_match_background = "#4d380a"
+# search_active_background = "#2e59a6"
+# scrollbar_thumb = "#b3b3b3"
+# scrollbar_thumb_hover = "#f2f2f2"
+
 # Binding entries replace the entire default list; keep any shortcuts you want.
 
 # A chord uses optional Ctrl, Shift, Alt, then a physical key. Supported keys:
