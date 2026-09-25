@@ -67,6 +67,7 @@ pub enum Command {
     NextPane,
     PreviousPane,
     ClosePane,
+    RenameTab,
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
