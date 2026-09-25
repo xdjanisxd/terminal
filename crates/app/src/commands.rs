@@ -91,6 +91,26 @@ pub const COMMANDS: &[CommandInfo] = &[
         in_palette: true,
     },
     CommandInfo {
+        command: Command::FocusPaneLeft,
+        name: "Focus Pane Left",
+        in_palette: true,
+    },
+    CommandInfo {
+        command: Command::FocusPaneRight,
+        name: "Focus Pane Right",
+        in_palette: true,
+    },
+    CommandInfo {
+        command: Command::FocusPaneUp,
+        name: "Focus Pane Up",
+        in_palette: true,
+    },
+    CommandInfo {
+        command: Command::FocusPaneDown,
+        name: "Focus Pane Down",
+        in_palette: true,
+    },
+    CommandInfo {
         command: Command::TogglePaneZoom,
         name: "Toggle Pane Zoom",
         in_palette: true,
@@ -250,6 +270,27 @@ mod tests {
         assert_eq!(palette.selected(), 0);
         palette.push_text("zzzz");
         assert_eq!(palette.chosen(), None);
+    }
+
+    #[test]
+    fn directional_pane_commands_are_searchable_in_palette() {
+        let mut palette = Palette::default();
+        palette.push_text("focus pane");
+        let commands: Vec<_> = palette
+            .matches()
+            .iter()
+            .map(|entry| entry.action.clone())
+            .collect();
+        assert_eq!(
+            commands,
+            [
+                Command::FocusPaneLeft,
+                Command::FocusPaneRight,
+                Command::FocusPaneUp,
+                Command::FocusPaneDown,
+            ]
+            .map(PaletteAction::Command)
+        );
     }
 
     #[test]

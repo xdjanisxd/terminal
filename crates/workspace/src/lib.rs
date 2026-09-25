@@ -18,6 +18,14 @@ pub enum SplitAxis {
     Vertical,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PaneDirection {
+    Left,
+    Right,
+    Up,
+    Down,
+}
+
 /// Physical pixels assigned to a leaf of the split tree.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PaneRect {
@@ -429,6 +437,73 @@ impl Workspace {
             panes[(current as isize + delta).rem_euclid(panes.len() as isize) as usize].id;
         tab.active_pane
     }
+    /// Moves to a pane sharing an edge in the requested direction. Zoom does
+    /// not alter navigation geometry: the stored split layout is used.
+    pub fn focus_pane_direction(
+        &mut self,
+        direction: PaneDirection,
+        viewport: PaneRect,
+    ) -> Option<PaneId> {
+        use std::cmp::Reverse;
+
+        let tab = &mut self.tabs[self.active_tab];
+        let mut rects = Vec::new();
+        tab.layout.pane_rects(viewport, &mut rects);
+        let current = rects.iter().find(|(id, _)| *id == tab.active_pane)?.1;
+        if current.width == 0 || current.height == 0 {
+            return None;
+        }
+
+        let current_x = u64::from(current.x);
+        let current_y = u64::from(current.y);
+        let current_right = current_x + u64::from(current.width);
+        let current_bottom = current_y + u64::from(current.height);
+        let neighbor = rects
+            .into_iter()
+            .filter(|(id, rect)| *id != tab.active_pane && rect.width > 0 && rect.height > 0)
+            .filter_map(|(id, rect)| {
+                let x = u64::from(rect.x);
+                let y = u64::from(rect.y);
+                let right = x + u64::from(rect.width);
+                let bottom = y + u64::from(rect.height);
+                let (touches, overlap, center_distance, perpendicular_start) = match direction {
+                    PaneDirection::Left | PaneDirection::Right => (
+                        if direction == PaneDirection::Left {
+                            right == current_x
+                        } else {
+                            x == current_right
+                        },
+                        bottom.min(current_bottom).saturating_sub(y.max(current_y)),
+                        (2 * y + u64::from(rect.height))
+                            .abs_diff(2 * current_y + u64::from(current.height)),
+                        y,
+                    ),
+                    PaneDirection::Up | PaneDirection::Down => (
+                        if direction == PaneDirection::Up {
+                            bottom == current_y
+                        } else {
+                            y == current_bottom
+                        },
+                        right.min(current_right).saturating_sub(x.max(current_x)),
+                        (2 * x + u64::from(rect.width))
+                            .abs_diff(2 * current_x + u64::from(current.width)),
+                        x,
+                    ),
+                };
+                (touches && overlap > 0).then_some((
+                    id,
+                    (
+                        overlap,
+                        Reverse(center_distance),
+                        Reverse(perpendicular_start),
+                    ),
+                ))
+            })
+            .max_by_key(|(_, rank)| *rank)
+            .map(|(id, _)| id)?;
+        tab.active_pane = neighbor;
+        Some(neighbor)
+    }
     pub fn focus_pane_id(&mut self, pane_id: PaneId) -> bool {
         let tab = &mut self.tabs[self.active_tab];
         if tab.active_pane == pane_id || !tab.panes().iter().any(|pane| pane.id == pane_id) {
@@ -769,5 +844,178 @@ mod tests {
         assert_eq!(workspace.active_pane(), prior_focus);
         workspace.focus_pane_id(first);
         assert_eq!(workspace.active_pane(), first);
+    }
+
+    #[test]
+    fn directional_focus_follows_edges_in_both_axes_without_changing_layout() {
+        let mut workspace = Workspace::default();
+        let top_left = workspace.active_pane();
+        let top_right = workspace.split_active(SplitAxis::Vertical);
+        let bottom_right = workspace.split_active(SplitAxis::Horizontal);
+        workspace.focus_pane_id(top_left);
+        let bottom_left = workspace.split_active(SplitAxis::Horizontal);
+        let viewport = PaneRect {
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 100,
+        };
+        let layout = workspace.active_tab().layout.clone();
+
+        assert_eq!(
+            workspace.focus_pane_direction(PaneDirection::Right, viewport),
+            Some(bottom_right)
+        );
+        assert_eq!(
+            workspace.focus_pane_direction(PaneDirection::Up, viewport),
+            Some(top_right)
+        );
+        assert_eq!(
+            workspace.focus_pane_direction(PaneDirection::Left, viewport),
+            Some(top_left)
+        );
+        assert_eq!(
+            workspace.focus_pane_direction(PaneDirection::Down, viewport),
+            Some(bottom_left)
+        );
+        assert_eq!(workspace.active_tab().layout, layout);
+    }
+
+    #[test]
+    fn directional_focus_prefers_greatest_overlap_and_breaks_ties_by_position() {
+        let mut workspace = Workspace::default();
+        let left = workspace.active_pane();
+        let top_right = workspace.split_active(SplitAxis::Vertical);
+        let bottom_right = workspace.split_active(SplitAxis::Horizontal);
+        let even = PaneRect {
+            x: 3,
+            y: 5,
+            width: 101,
+            height: 100,
+        };
+        let uneven = PaneRect {
+            height: 101,
+            ..even
+        };
+
+        workspace.focus_pane_id(left);
+        assert_eq!(
+            workspace.focus_pane_direction(PaneDirection::Right, even),
+            Some(top_right)
+        );
+        workspace.focus_pane_id(left);
+        assert_eq!(
+            workspace.focus_pane_direction(PaneDirection::Right, uneven),
+            Some(bottom_right)
+        );
+        assert_eq!(
+            workspace.focus_pane_direction(PaneDirection::Left, uneven),
+            Some(left)
+        );
+    }
+
+    #[test]
+    fn directional_focus_prefers_nearest_center_before_topmost() {
+        let mut workspace = Workspace::default();
+        let left = workspace.active_pane();
+        let top_right = workspace.split_active(SplitAxis::Vertical);
+        let bottom_right = workspace.split_active(SplitAxis::Horizontal);
+        workspace.focus_pane_id(top_right);
+        let upper_middle = workspace.split_active(SplitAxis::Horizontal);
+        workspace.focus_pane_id(bottom_right);
+        workspace.split_active(SplitAxis::Horizontal);
+        workspace.focus_pane_id(left);
+
+        assert_eq!(
+            workspace.focus_pane_direction(
+                PaneDirection::Right,
+                PaneRect {
+                    x: 0,
+                    y: 0,
+                    width: 100,
+                    height: 100,
+                },
+            ),
+            Some(upper_middle)
+        );
+    }
+
+    #[test]
+    fn directional_focus_has_no_wrap_and_ignores_zero_sized_panes() {
+        let mut workspace = Workspace::default();
+        let left = workspace.active_pane();
+        workspace.split_active(SplitAxis::Vertical);
+        workspace.split_active(SplitAxis::Horizontal);
+        let viewport = PaneRect {
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 100,
+        };
+        workspace.focus_pane_id(left);
+        let layout = workspace.active_tab().layout.clone();
+        assert_eq!(
+            workspace.focus_pane_direction(PaneDirection::Left, viewport),
+            None
+        );
+        assert_eq!(
+            workspace.focus_pane_direction(PaneDirection::Up, viewport),
+            None
+        );
+        assert_eq!(workspace.active_pane(), left);
+        assert_eq!(workspace.active_tab().layout, layout);
+
+        let zero_width = PaneRect {
+            width: 1,
+            ..viewport
+        };
+        assert_eq!(
+            workspace.focus_pane_direction(PaneDirection::Right, zero_width),
+            None
+        );
+        assert_eq!(workspace.active_pane(), left);
+    }
+
+    #[test]
+    fn directional_focus_uses_layout_during_zoom_and_retains_per_tab_focus() {
+        let mut workspace = Workspace::default();
+        let left = workspace.active_pane();
+        let right = workspace.split_active(SplitAxis::Vertical);
+        let viewport = PaneRect {
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 100,
+        };
+        let layout = workspace.active_tab().layout.clone();
+        workspace.toggle_zoom();
+        let other_tab = workspace.new_tab();
+        assert_eq!(
+            workspace.focus_pane_direction(PaneDirection::Left, viewport),
+            None
+        );
+        workspace.focus_tab(-1);
+        assert!(workspace.active_tab().is_zoomed());
+        assert_eq!(
+            workspace.focus_pane_direction(PaneDirection::Left, viewport),
+            Some(left)
+        );
+        assert_eq!(
+            workspace.active_tab().pane_rects(viewport),
+            vec![(left, viewport)]
+        );
+        assert_eq!(
+            workspace.focus_pane_direction(PaneDirection::Right, viewport),
+            Some(right)
+        );
+        assert_eq!(
+            workspace.active_tab().pane_rects(viewport),
+            vec![(right, viewport)]
+        );
+        assert_eq!(workspace.active_tab().layout, layout);
+        workspace.focus_tab(1);
+        assert_eq!(workspace.active_pane(), other_tab);
+        workspace.focus_tab(-1);
+        assert_eq!(workspace.active_pane(), right);
     }
 }
