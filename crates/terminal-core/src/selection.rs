@@ -80,7 +80,7 @@ impl TerminalState {
 
     /// Scrolls the viewport during a drag and extends the same selection into the new view.
     pub fn scroll_selection_viewport_rows(&mut self, rows: i32, row: usize, column: usize) -> bool {
-        if self.selection.is_none() || !self.scroll_viewport_for_selection(rows) {
+        if self.selection.is_none() || !self.scroll_viewport_rows(rows) {
             return false;
         }
         self.extend_selection(row, column);
@@ -273,7 +273,7 @@ mod tests {
     }
 
     #[test]
-    fn selection_reads_scrollback_projection_and_clears_on_navigation() {
+    fn selection_reads_scrollback_projection_and_survives_navigation() {
         let mut state = TerminalState::new(TerminalDimensions::new(3, 2).unwrap());
         for c in "one".chars() {
             state.print_character(c).unwrap();
@@ -289,7 +289,39 @@ mod tests {
         assert!(state.extend_selection(1, 2));
         assert_eq!(state.selected_text().as_deref(), Some("one\ntwo"));
         assert!(state.page_down());
-        assert_eq!(state.selected_text(), None);
+        assert_eq!(state.selected_text().as_deref(), Some("one\ntwo"));
+        assert!(state.is_selected(0, 0));
+        assert!(!state.is_selected(1, 0));
+        assert!(state.page_up());
+        assert!(state.is_selected(0, 0));
+        assert!(state.return_to_live_viewport());
+        assert_eq!(state.selected_text().as_deref(), Some("one\ntwo"));
+    }
+
+    #[test]
+    fn viewport_movement_preserves_selection_spanning_history_and_live_rows() {
+        let mut state = TerminalState::new(TerminalDimensions::new(3, 2).unwrap());
+        for (index, word) in ["one", "two", "tri", "for"].into_iter().enumerate() {
+            state.set_cursor_position(1, 0).unwrap();
+            if index > 0 {
+                state.index();
+            }
+            print(&mut state, word);
+        }
+        assert!(state.scroll_viewport_rows(1));
+        assert!(state.begin_selection(0, 0));
+        assert!(state.extend_selection(1, 2));
+        assert_eq!(state.selected_text().as_deref(), Some("two\ntri"));
+
+        assert!(state.scroll_viewport_rows(1));
+        assert_eq!(state.selected_text().as_deref(), Some("two\ntri"));
+        assert!(!state.is_selected(0, 0));
+        assert!(state.is_selected(1, 0));
+
+        assert!(state.scroll_viewport_rows(-2));
+        assert_eq!(state.selected_text().as_deref(), Some("two\ntri"));
+        assert!(state.is_selected(0, 0));
+        assert!(!state.is_selected(1, 0));
     }
 
     #[test]

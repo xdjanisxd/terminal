@@ -21,16 +21,16 @@ use terminal_config::{Command, Config, FontConfig, Rgb};
 use terminal_core::{
     CellColor, CursorKey, InputModes, MAX_COLUMNS, MAX_GRID_CELLS, MAX_ROWS,
     MouseButton as TerminalMouseButton, MouseEvent, MouseModifiers, MouseTracking, Osc52Policy,
-    TerminalDimensions, TerminalParser, TerminalState, UnderlineStyle, encode_control_cursor_key,
-    encode_cursor_key, encode_focus, encode_mouse, encode_paste,
+    ScreenKind, TerminalDimensions, TerminalParser, TerminalState, UnderlineStyle,
+    encode_control_cursor_key, encode_cursor_key, encode_focus, encode_mouse, encode_paste,
 };
 use terminal_pty::{
     PortablePtyBackend, PtyBackend, PtyOutput, PtySize, PtySpawnConfig, PtyWorker, PtyWorkerEvent,
 };
 use terminal_renderer::{
     CellMetrics, FontRequest, OverlayLine, PaneRenderInput, RedrawOutcome, RenderTheme, Renderer,
-    RendererDiagnosticState, Rgba, SearchHighlight, TextOverlay, diagnostics_enabled,
-    emit_diagnostic,
+    RendererDiagnosticState, Rgba, ScrollbarGeometry, ScrollbarHit, ScrollbarRenderData,
+    SearchHighlight, SearchMarker, SurfaceSize, TextOverlay, diagnostics_enabled, emit_diagnostic,
 };
 use terminal_workspace::{
     PaneDirection, PaneId, PaneRect, SessionDefinition, SplitAxis, Workspace, WorkspaceDefinition,
@@ -66,6 +66,9 @@ struct Application {
     pointer_position: Option<PhysicalPosition<f64>>,
     pressed_mouse_button: Option<TerminalMouseButton>,
     selection_dragging: bool,
+    scrollbar_drag: Option<f64>,
+    scrollbar_click_held: bool,
+    scrollbar_hover: Option<ScrollbarHit>,
     selection_click: Option<(Instant, usize, usize, u8)>,
     selection_edge: Option<(i32, usize, usize, Instant)>,
     target_click_held: bool,
@@ -97,6 +100,15 @@ fn selection_click_count(
             (count % 3) + 1
         }
         _ => 1,
+    }
+}
+
+fn scrollbar_page_delta(hit: ScrollbarHit, visible_rows: usize) -> i32 {
+    let page = visible_rows.min(i32::MAX as usize) as i32;
+    match hit {
+        ScrollbarHit::TrackAbove => page,
+        ScrollbarHit::TrackBelow => -page,
+        ScrollbarHit::Thumb => 0,
     }
 }
 
@@ -453,6 +465,9 @@ impl Default for Application {
             pointer_position: None,
             pressed_mouse_button: None,
             selection_dragging: false,
+            scrollbar_drag: None,
+            scrollbar_click_held: false,
+            scrollbar_hover: None,
             selection_click: None,
             selection_edge: None,
             target_click_held: false,
@@ -668,6 +683,9 @@ impl Application {
         self.inactive_panes.insert(current, old);
         self.active_runtime_pane = next;
         self.selection_dragging = false;
+        self.scrollbar_drag = None;
+        self.scrollbar_click_held = false;
+        self.scrollbar_hover = None;
         self.selection_click = None;
         self.selection_edge = None;
         self.pressed_mouse_button = None;
@@ -1041,6 +1059,7 @@ impl Application {
             lines,
             bottom: false,
             search_matches: Vec::new(),
+            search_markers: Vec::new(),
         })
     }
 
@@ -1137,6 +1156,11 @@ impl Application {
                     active,
                 })
                 .collect(),
+            search_markers: search
+                .markers()
+                .into_iter()
+                .map(|(row, active)| SearchMarker { row, active })
+                .collect(),
         })
     }
 
@@ -1182,6 +1206,7 @@ impl Application {
             }],
             bottom: false,
             search_matches: Vec::new(),
+            search_markers: Vec::new(),
         })
     }
 
@@ -1602,6 +1627,57 @@ impl Application {
         ))
     }
 
+    fn scrollbar_geometry(&self) -> Option<ScrollbarGeometry> {
+        if self.terminal.active_screen() != ScreenKind::Primary {
+            return None;
+        }
+        let (_, rect) = self
+            .pane_rects()?
+            .into_iter()
+            .find(|(pane, _)| *pane == self.workspace.active_pane())?;
+        ScrollbarGeometry::new(
+            ScrollbarRenderData {
+                history_rows: self.terminal.scrollback_len(),
+                visible_rows: self.terminal.dimensions().rows(),
+                viewport_offset: self.terminal.viewport_offset(),
+            },
+            SurfaceSize::new(rect.width, rect.height)?,
+            self.renderer.as_ref()?.cell_metrics().height() as f32,
+        )
+    }
+
+    fn scrollbar_hit(&self, position: PhysicalPosition<f64>) -> Option<ScrollbarHit> {
+        let local = self.local_pointer_position(position)?;
+        self.scrollbar_geometry()?.hit(local.x, local.y)
+    }
+
+    fn scrollbar_input_enabled(&self) -> bool {
+        self.terminal.input_modes().mouse_tracking() == MouseTracking::Off
+            || self.modifiers.shift_key()
+    }
+
+    fn set_scrollbar_hover(&mut self, hover: Option<ScrollbarHit>) {
+        if self.scrollbar_hover != hover {
+            self.scrollbar_hover = hover;
+            self.invalidate_frame();
+        }
+    }
+
+    fn scroll_to_offset(&mut self, offset: usize) {
+        let current = self.terminal.viewport_offset();
+        let delta = (offset as i64 - current as i64).clamp(i32::MIN as i64, i32::MAX as i64) as i32;
+        if delta != 0 && self.terminal.scroll_viewport_rows(delta) {
+            self.invalidate_frame();
+        }
+    }
+
+    fn page_scrollbar(&mut self, hit: ScrollbarHit) {
+        let delta = scrollbar_page_delta(hit, self.terminal.dimensions().rows());
+        if self.terminal.scroll_viewport_rows(delta) {
+            self.invalidate_frame();
+        }
+    }
+
     fn focus_pane_at_pointer(&mut self) {
         let Some(position) = self.pointer_position else {
             return;
@@ -1784,20 +1860,56 @@ impl ApplicationHandler<PtyWake> for Application {
                     self.selection_dragging = false;
                     self.selection_click = None;
                     self.selection_edge = None;
+                    self.scrollbar_drag = None;
+                    self.scrollbar_click_held = false;
+                    self.set_scrollbar_hover(None);
                 }
             }
             WindowEvent::ModifiersChanged(modifiers) => {
                 self.modifiers = modifiers.state();
+                if !self.scrollbar_click_held {
+                    self.set_scrollbar_hover(if self.scrollbar_input_enabled() {
+                        self.pointer_position
+                            .and_then(|position| self.scrollbar_hit(position))
+                    } else {
+                        None
+                    });
+                }
             }
             WindowEvent::CursorLeft { .. } => {
                 self.pointer_position = None;
                 self.selection_edge = None;
+                self.set_scrollbar_hover(None);
             }
             WindowEvent::CursorMoved { position, .. } => {
                 if self.selection_dragging {
                     emit_diagnostic(format_args!("app event=selection-move"));
                 }
                 self.pointer_position = Some(position);
+                if let Some(grab_y) = self.scrollbar_drag {
+                    if let Some(geometry) = self.scrollbar_geometry()
+                        && let Some((_, rect)) = self.pane_rects().and_then(|rects| {
+                            rects
+                                .into_iter()
+                                .find(|(pane, _)| *pane == self.workspace.active_pane())
+                        })
+                    {
+                        self.scroll_to_offset(
+                            geometry.offset_for_drag(position.y - rect.y as f64, grab_y),
+                        );
+                    }
+                    self.set_scrollbar_hover(Some(ScrollbarHit::Thumb));
+                    return;
+                }
+                let hover = if self.scrollbar_input_enabled() {
+                    self.scrollbar_hit(position)
+                } else {
+                    None
+                };
+                self.set_scrollbar_hover(hover);
+                if self.scrollbar_click_held {
+                    return;
+                }
                 if self.selection_dragging {
                     if let Some((column, row)) = self.renderer.as_ref().and_then(|renderer| {
                         terminal_cell_at(
@@ -1837,6 +1949,42 @@ impl ApplicationHandler<PtyWake> for Application {
                     if state == ElementState::Released {
                         self.target_click_held = false;
                     }
+                    return;
+                }
+                if button == MouseButton::Left && self.scrollbar_click_held {
+                    if state == ElementState::Released {
+                        self.scrollbar_drag = None;
+                        self.scrollbar_click_held = false;
+                        self.set_scrollbar_hover(if self.scrollbar_input_enabled() {
+                            self.pointer_position
+                                .and_then(|position| self.scrollbar_hit(position))
+                        } else {
+                            None
+                        });
+                    }
+                    return;
+                }
+                if button == MouseButton::Left
+                    && state == ElementState::Pressed
+                    && !self.selection_dragging
+                    && self.scrollbar_input_enabled()
+                    && let Some(position) = self.pointer_position
+                    && let Some(hit) = self.scrollbar_hit(position)
+                {
+                    self.scrollbar_click_held = true;
+                    match hit {
+                        ScrollbarHit::Thumb => {
+                            if let Some(geometry) = self.scrollbar_geometry()
+                                && let Some(local) = self.local_pointer_position(position)
+                            {
+                                self.scrollbar_drag = Some(local.y - geometry.thumb[1] as f64);
+                            }
+                        }
+                        ScrollbarHit::TrackAbove | ScrollbarHit::TrackBelow => {
+                            self.page_scrollbar(hit);
+                        }
+                    }
+                    self.set_scrollbar_hover(self.scrollbar_hit(position));
                     return;
                 }
                 if button == MouseButton::Left
@@ -2023,10 +2171,13 @@ impl ApplicationHandler<PtyWake> for Application {
                     };
                 self.frame.begin_redraw();
                 let overlay = self
-                    .tab_rename_overlay()
-                    .or_else(|| self.search_overlay())
-                    .or_else(|| self.palette_overlay())
-                    .or_else(|| self.tab_picker_overlay());
+                  .tab_rename_overlay()
+                  .or_else(|| self.search_overlay())
+                  .or_else(|| self.palette_overlay())
+                  .or_else(|| self.tab_picker_overlay());
+
+                let scrollback_input_enabled = self.scrollbar_input_enabled();
+
                 let Some(renderer) = self.renderer.as_mut() else {
                     return;
                 };
@@ -2056,6 +2207,10 @@ impl ApplicationHandler<PtyWake> for Application {
                             terminal,
                             rect: [rect.x, rect.y, rect.width, rect.height],
                             focused: pane_id == self.workspace.active_pane(),
+                            scrollbar_hover: (pane_id == self.workspace.active_pane()
+                                && scrollbar_input_enabled)
+                                .then_some(self.scrollbar_hover)
+                                .flatten(),
                         })
                     })
                     .collect();
@@ -2590,7 +2745,30 @@ mod tests {
     use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
     use super::Search;
-    use super::{selection_click_count, selection_edge_direction};
+    use super::{scrollbar_page_delta, selection_click_count, selection_edge_direction};
+    use terminal_renderer::ScrollbarHit;
+
+    #[test]
+    fn scrollbar_track_click_pages_in_the_expected_direction() {
+        assert_eq!(scrollbar_page_delta(ScrollbarHit::TrackAbove, 24), 24);
+        assert_eq!(scrollbar_page_delta(ScrollbarHit::TrackBelow, 24), -24);
+        assert_eq!(scrollbar_page_delta(ScrollbarHit::Thumb, 24), 0);
+    }
+
+    #[test]
+    fn scrollbar_hover_invalidates_only_on_change() {
+        let mut app = Application::default();
+        app.set_scrollbar_hover(Some(ScrollbarHit::TrackAbove));
+        assert_eq!(app.scrollbar_hover, Some(ScrollbarHit::TrackAbove));
+        assert_eq!(app.frame.requests_armed, 1);
+        app.frame.begin_redraw();
+        app.set_scrollbar_hover(Some(ScrollbarHit::TrackAbove));
+        assert_eq!(app.frame.requests_armed, 1);
+        app.set_scrollbar_hover(Some(ScrollbarHit::Thumb));
+        assert_eq!(app.frame.requests_armed, 2);
+        app.set_scrollbar_hover(None);
+        assert_eq!(app.scrollbar_hover, None);
+    }
 
     #[test]
     fn click_count_tracks_same_cell_within_timeout() {
@@ -2636,7 +2814,9 @@ mod tests {
     use terminal_config::{Command, Config, Rgb};
     use terminal_core::{CursorKey, TerminalDimensions, TerminalParser, TerminalState};
     use terminal_pty::{PtyOutput, PtyWorkerEvent};
-    use terminal_renderer::{CellMetrics, FontRequest};
+    use terminal_renderer::{
+        CellMetrics, FontRequest, ScrollbarGeometry, ScrollbarRenderData, SurfaceSize,
+    };
     use terminal_workspace::{LayoutDefinition, PaneDirection, PaneRect, SplitAxis};
     use winit::dpi::{PhysicalPosition, PhysicalSize};
     use winit::event::MouseScrollDelta;
@@ -3886,6 +4066,86 @@ mod tests {
             &mut remainder,
         ));
         assert_eq!(terminal.viewport_offset(), 0);
+    }
+
+    fn terminal_with_history_selection() -> TerminalState {
+        let mut terminal = TerminalState::new(TerminalDimensions::new(3, 2).unwrap());
+        for (index, word) in ["one", "two", "tri", "for"].into_iter().enumerate() {
+            terminal.set_cursor_position(1, 0).unwrap();
+            if index > 0 {
+                terminal.index();
+            }
+            for character in word.chars() {
+                terminal.print_character(character).unwrap();
+            }
+        }
+        assert!(terminal.scroll_viewport_rows(1));
+        assert!(terminal.begin_selection(0, 0));
+        assert!(terminal.extend_selection(1, 2));
+        assert_eq!(terminal.selected_text().as_deref(), Some("two\ntri"));
+        terminal
+    }
+
+    #[test]
+    fn wheel_scroll_preserves_selected_history_coordinates() {
+        let mut terminal = terminal_with_history_selection();
+        let mut remainder = 0.0;
+        assert!(scroll_terminal_for_wheel(
+            &mut terminal,
+            MouseScrollDelta::LineDelta(0.0, 1.0),
+            20,
+            &mut remainder,
+        ));
+        assert_eq!(terminal.viewport_offset(), 3);
+        assert_eq!(terminal.selected_text().as_deref(), Some("two\ntri"));
+        assert!(scroll_terminal_for_wheel(
+            &mut terminal,
+            MouseScrollDelta::LineDelta(0.0, -1.0),
+            20,
+            &mut remainder,
+        ));
+        assert_eq!(terminal.viewport_offset(), 0);
+        assert_eq!(terminal.selected_text().as_deref(), Some("two\ntri"));
+        assert!(terminal.is_selected(0, 0));
+    }
+
+    #[test]
+    fn scrollbar_thumb_drag_preserves_selection() {
+        let mut app = Application {
+            terminal: terminal_with_history_selection(),
+            ..Application::default()
+        };
+        let geometry = ScrollbarGeometry::new(
+            ScrollbarRenderData {
+                history_rows: app.terminal.scrollback_len(),
+                visible_rows: app.terminal.dimensions().rows(),
+                viewport_offset: app.terminal.viewport_offset(),
+            },
+            SurfaceSize::new(100, 40).unwrap(),
+            20.0,
+        )
+        .unwrap();
+        app.scroll_to_offset(geometry.offset_for_drag(-100.0, 4.0));
+        assert_eq!(app.terminal.viewport_offset(), 3);
+        assert_eq!(app.terminal.selected_text().as_deref(), Some("two\ntri"));
+        app.scroll_to_offset(geometry.offset_for_drag(1000.0, 4.0));
+        assert_eq!(app.terminal.viewport_offset(), 0);
+        assert_eq!(app.terminal.selected_text().as_deref(), Some("two\ntri"));
+    }
+
+    #[test]
+    fn scrollbar_track_click_preserves_selection() {
+        let mut app = Application {
+            terminal: terminal_with_history_selection(),
+            ..Application::default()
+        };
+        app.page_scrollbar(ScrollbarHit::TrackAbove);
+        assert_eq!(app.terminal.viewport_offset(), 3);
+        assert_eq!(app.terminal.selected_text().as_deref(), Some("two\ntri"));
+        app.page_scrollbar(ScrollbarHit::TrackBelow);
+        assert_eq!(app.terminal.viewport_offset(), 1);
+        assert_eq!(app.terminal.selected_text().as_deref(), Some("two\ntri"));
+        assert!(app.terminal.is_selected(0, 0));
     }
 
     #[test]

@@ -281,11 +281,7 @@ impl TerminalState {
     /// Returns whether the visible rows changed. Alternate has no scrollback, so this is
     /// a no-op there.
     pub fn page_up(&mut self) -> bool {
-        let changed = self.screen.page_up();
-        if changed {
-            self.selection = None;
-        }
-        changed
+        self.screen.page_up()
     }
 
     /// Moves the Primary viewport one terminal page toward the live bottom.
@@ -293,21 +289,13 @@ impl TerminalState {
     /// Returns whether the visible rows changed. Reaching the bottom resumes following
     /// normal output.
     pub fn page_down(&mut self) -> bool {
-        let changed = self.screen.page_down();
-        if changed {
-            self.selection = None;
-        }
-        changed
+        self.screen.page_down()
     }
 
     /// Returns the active viewport to live output after terminal input is sent.
     /// Alternate has no scrollback, so this is a no-op there.
     pub fn return_to_live_viewport(&mut self) -> bool {
-        let changed = self.screen.return_to_live_viewport();
-        if changed {
-            self.selection = None;
-        }
-        changed
+        self.screen.return_to_live_viewport()
     }
 
     /// Moves the active viewport by signed rows: positive toward older history.
@@ -315,14 +303,6 @@ impl TerminalState {
     /// Movement is clamped to retained Primary history and the live bottom.
     /// Alternate has no history, so movement there is a no-op.
     pub fn scroll_viewport_rows(&mut self, rows: i32) -> bool {
-        let changed = self.screen.scroll_viewport_rows(rows);
-        if changed {
-            self.selection = None;
-        }
-        changed
-    }
-
-    pub(crate) fn scroll_viewport_for_selection(&mut self, rows: i32) -> bool {
         self.screen.scroll_viewport_rows(rows)
     }
 

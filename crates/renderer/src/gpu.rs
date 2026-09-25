@@ -4,7 +4,8 @@ use std::time::{Duration, Instant};
 use bytemuck::{Pod, Zeroable};
 
 use crate::{
-    FontSystem, ScrollbarRenderData, TerminalRenderData, diagnostics_enabled, emit_diagnostic,
+    FontSystem, ScrollbarGeometry, ScrollbarHit, ScrollbarRenderData, TerminalRenderData,
+    diagnostics_enabled, emit_diagnostic,
 };
 
 const ATLAS_WIDTH: u32 = 1024;
@@ -583,7 +584,11 @@ impl DrawResources {
                     geometry.track[3],
                     frame.surface_size,
                 ),
-                color: [0.25, 0.25, 0.25, 0.65],
+                color: if data.scrollbar_hover.is_some() {
+                    [0.34, 0.34, 0.34, 0.85]
+                } else {
+                    [0.25, 0.25, 0.25, 0.65]
+                },
             });
             overlays.push(RectInstance {
                 rect: to_clip_rect(
@@ -593,8 +598,34 @@ impl DrawResources {
                     geometry.thumb[3],
                     frame.surface_size,
                 ),
-                color: [0.7, 0.7, 0.7, 0.9],
+                color: if data.scrollbar_hover == Some(ScrollbarHit::Thumb) {
+                    [0.95, 0.95, 0.95, 1.0]
+                } else {
+                    [0.7, 0.7, 0.7, 0.9]
+                },
             });
+            for marker in data
+                .search_markers
+                .iter()
+                .filter(|marker| !marker.active)
+                .chain(data.search_markers.iter().filter(|marker| marker.active))
+            {
+                let y = geometry.marker_y(marker.row, scrollbar.visible_rows);
+                overlays.push(RectInstance {
+                    rect: to_clip_rect(
+                        pane[0] as f32 + geometry.track[0],
+                        pane[1] as f32 + y - 1.0,
+                        geometry.track[2],
+                        2.0,
+                        frame.surface_size,
+                    ),
+                    color: if marker.active {
+                        [0.30, 0.75, 1.0, 1.0]
+                    } else {
+                        [1.0, 0.75, 0.2, 0.95]
+                    },
+                });
+            }
         }
         if pane_draw.focused_border && pane[2] > 1 && pane[3] > 1 {
             let color = [0.35, 0.65, 1.0, 0.9];
@@ -846,36 +877,12 @@ fn to_clip_rect(x: f32, y: f32, width: f32, height: f32, surface: crate::Surface
     ]
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-struct ScrollbarGeometry {
-    track: [f32; 4],
-    thumb: [f32; 4],
-}
-
 fn scrollbar_geometry(
     data: ScrollbarRenderData,
     surface: crate::SurfaceSize,
     cell_height: f32,
 ) -> Option<ScrollbarGeometry> {
-    if data.history_rows == 0 || data.visible_rows == 0 || cell_height <= 0.0 {
-        return None;
-    }
-    let surface_width = surface.width() as f32;
-    let grid_height = (data.visible_rows as f32 * cell_height).min(surface.height() as f32);
-    let inset = if grid_height > 4.0 { 2.0 } else { 0.0 };
-    let track_height = grid_height - 2.0 * inset;
-    let track_width = surface_width.min(6.0);
-    let x = surface_width - track_width - (surface_width - track_width).min(2.0);
-    let track = [x, inset, track_width, track_height];
-    let total_rows = data.history_rows.saturating_add(data.visible_rows);
-    let thumb_height = (track_height * data.visible_rows as f32 / total_rows as f32)
-        .max(18.0)
-        .min(track_height);
-    let travel = track_height - thumb_height;
-    let position =
-        data.history_rows.saturating_sub(data.viewport_offset) as f32 / data.history_rows as f32;
-    let thumb = [x, inset + travel * position, track_width, thumb_height];
-    Some(ScrollbarGeometry { track, thumb })
+    ScrollbarGeometry::new(data, surface, cell_height)
 }
 
 fn to_clip_rect_from_pixels(rect: [f32; 4], surface: crate::SurfaceSize) -> [f32; 4] {
@@ -926,8 +933,8 @@ mod tests {
             viewport_offset: 0,
         };
         let bottom = scrollbar_geometry(data, surface, 20.0).unwrap();
-        assert_eq!(bottom.track, [92.0, 2.0, 6.0, 96.0]);
-        assert_eq!(bottom.thumb, [92.0, 50.0, 6.0, 48.0]);
+        assert_eq!(bottom.track, [92.0, 2.0, 8.0, 96.0]);
+        assert_eq!(bottom.thumb, [92.0, 50.0, 8.0, 48.0]);
         data.viewport_offset = 5;
         let top = scrollbar_geometry(data, surface, 20.0).unwrap();
         assert_eq!(top.thumb[1], 2.0);
