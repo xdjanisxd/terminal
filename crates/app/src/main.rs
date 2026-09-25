@@ -10,7 +10,7 @@ mod search;
 
 use commands::{Palette, PaletteAction, PaletteEntry};
 use search::Search;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ffi::OsString;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -33,7 +33,8 @@ use terminal_renderer::{
     SearchHighlight, SearchMarker, SurfaceSize, TextOverlay, diagnostics_enabled, emit_diagnostic,
 };
 use terminal_workspace::{
-    PaneDirection, PaneId, PaneRect, SessionDefinition, SplitAxis, Workspace, WorkspaceDefinition,
+    PaneDirection, PaneId, PaneRect, SessionDefinition, SplitAxis, Tab, TabId, Workspace,
+    WorkspaceDefinition,
 };
 use winit::application::ApplicationHandler;
 use winit::dpi::{PhysicalPosition, PhysicalSize};
@@ -81,6 +82,9 @@ struct Application {
     project_root_override: Option<PathBuf>,
     palette: Option<Palette>,
     tab_picker: Option<Palette>,
+    unseen_tab_activity: HashSet<TabId>,
+    activity_frame: usize,
+    activity_deadline: Option<Instant>,
     search: Option<Search>,
     tab_rename: Option<String>,
 }
@@ -432,6 +436,78 @@ impl SurfaceRestore {
     }
 }
 
+fn short_cwd(uri: &str) -> Option<String> {
+    if !uri.get(..7)?.eq_ignore_ascii_case("file://") {
+        return None;
+    }
+    let (_, path) = uri[7..].split_once('/')?;
+    let mut decoded = Vec::with_capacity(path.len());
+    let mut bytes = path.bytes();
+    while let Some(byte) = bytes.next() {
+        if byte == b'%' {
+            let high = (bytes.next()? as char).to_digit(16)?;
+            let low = (bytes.next()? as char).to_digit(16)?;
+            decoded.push((high * 16 + low) as u8);
+        } else {
+            decoded.push(byte);
+        }
+    }
+    let path = String::from_utf8(decoded).ok()?;
+    let segments: Vec<_> = path
+        .split(['/', '\\'])
+        .filter(|segment| !segment.is_empty() && *segment != "." && *segment != "..")
+        .collect();
+    (!segments.is_empty()).then(|| segments[segments.len().saturating_sub(2)..].join("/"))
+}
+
+fn display_application(name: &str) -> Option<String> {
+    let name = name.trim().rsplit(['/', '\\']).next()?.trim();
+    let name = name
+        .get(..name.len().saturating_sub(4))
+        .filter(|_| name.to_ascii_lowercase().ends_with(".exe"))
+        .unwrap_or(name);
+    if name.is_empty() {
+        return None;
+    }
+    Some(
+        if name.eq_ignore_ascii_case("pwsh") || name.eq_ignore_ascii_case("powershell") {
+            "PowerShell".into()
+        } else {
+            name.into()
+        },
+    )
+}
+
+fn tab_picker_label(tab: &Tab, terminal: Option<&TerminalState>, index: usize) -> String {
+    if let Some(title) = &tab.custom_title {
+        return title.clone();
+    }
+    let cwd = terminal
+        .and_then(TerminalState::working_directory_uri)
+        .and_then(short_cwd);
+    let startup_program = tab.panes().into_iter().find_map(|pane| {
+        (pane.id == tab.active_pane)
+            .then_some(pane.startup)
+            .and_then(|startup| {
+                if let SessionDefinition::Command { program, .. } = startup {
+                    program.to_str().map(str::to_owned)
+                } else {
+                    None
+                }
+            })
+    });
+    let app = terminal
+        .and_then(TerminalState::shell_title)
+        .and_then(display_application)
+        .or_else(|| startup_program.as_deref().and_then(display_application));
+    match (cwd, app) {
+        (Some(cwd), Some(app)) => format!("{cwd}  {app}"),
+        (Some(cwd), None) => cwd,
+        (None, Some(app)) => app,
+        (None, None) => format!("Terminal {}", index + 1),
+    }
+}
+
 impl Default for Application {
     fn default() -> Self {
         let workspace = Workspace::default();
@@ -480,6 +556,9 @@ impl Default for Application {
             project_root_override: None,
             palette: None,
             tab_picker: None,
+            unseen_tab_activity: HashSet::new(),
+            activity_frame: 0,
+            activity_deadline: None,
             search: None,
             tab_rename: None,
         }
@@ -666,6 +745,8 @@ impl Application {
     }
 
     fn activate_pane(&mut self, next: PaneId) {
+        self.unseen_tab_activity
+            .remove(&self.workspace.active_tab().id);
         let current = self.active_runtime_pane;
         if current == next {
             return;
@@ -736,7 +817,16 @@ impl Application {
     }
 
     fn close_pane(&mut self) {
+        let closing_tab = self.workspace.active_tab().id;
         if let Some(closed) = self.workspace.close_active_pane() {
+            if !self
+                .workspace
+                .tabs()
+                .iter()
+                .any(|tab| tab.id == closing_tab)
+            {
+                self.unseen_tab_activity.remove(&closing_tab);
+            }
             let next = self.workspace.active_pane();
             self.activate_pane(next);
             self.inactive_panes.remove(&closed);
@@ -791,16 +881,16 @@ impl Application {
                     .iter()
                     .enumerate()
                     .map(|(index, tab)| {
-                        let shell_title = if tab.active_pane == self.active_runtime_pane {
-                            self.terminal.shell_title()
+                        let terminal = if tab.active_pane == self.active_runtime_pane {
+                            Some(&self.terminal)
                         } else {
                             self.inactive_panes
                                 .get(&tab.active_pane)
-                                .and_then(|runtime| runtime.terminal.shell_title())
+                                .map(|runtime| &runtime.terminal)
                         };
                         PaletteEntry {
                             action: PaletteAction::SwitchTab(index),
-                            name: tab.display_title_with_shell_title(shell_title).to_owned(),
+                            name: tab_picker_label(tab, terminal, index),
                         }
                     })
                     .collect();
@@ -988,11 +1078,44 @@ impl Application {
         }
         if !close {
             self.tab_picker = Some(picker);
+        } else {
+            self.activity_deadline = None;
         }
         if let Some(action) = chosen {
             self.dispatch_palette_action(action);
         }
         self.invalidate_frame();
+    }
+
+    fn record_background_output(&mut self, pane_id: PaneId) {
+        let active_tab = self.workspace.active_tab().id;
+        if let Some(tab_id) = self
+            .workspace
+            .tabs()
+            .iter()
+            .find(|tab| tab.id != active_tab && tab.panes().iter().any(|pane| pane.id == pane_id))
+            .map(|tab| tab.id)
+            && self.unseen_tab_activity.insert(tab_id)
+            && self.tab_picker.is_some()
+        {
+            self.invalidate_frame();
+        }
+    }
+
+    fn tick_tab_activity(&mut self, now: Instant) -> Option<Instant> {
+        if self.tab_picker.is_none() || self.unseen_tab_activity.is_empty() {
+            self.activity_deadline = None;
+            return None;
+        }
+        let deadline = self
+            .activity_deadline
+            .get_or_insert(now + Duration::from_millis(300));
+        if now >= *deadline {
+            self.activity_frame = (self.activity_frame + 1) % 4;
+            *deadline = now + Duration::from_millis(300);
+            self.invalidate_frame();
+        }
+        self.activity_deadline
     }
 
     fn handle_palette_key(&mut self, key: &Key, text: Option<&str>) {
@@ -1076,19 +1199,29 @@ impl Application {
                 selected: false,
             });
         } else {
-            lines.extend(
-                matches
-                    .iter()
-                    .enumerate()
-                    .map(|(index, entry)| OverlayLine {
-                        text: format!(
-                            " {} {}",
-                            if index == picker.selected() { '>' } else { ' ' },
-                            entry.name
-                        ),
-                        selected: index == picker.selected(),
-                    }),
-            );
+            lines.extend(matches.iter().enumerate().map(|(index, entry)| {
+                let activity = match &entry.action {
+                    PaletteAction::SwitchTab(tab_index)
+                        if self
+                            .workspace
+                            .tabs()
+                            .get(*tab_index)
+                            .is_some_and(|tab| self.unseen_tab_activity.contains(&tab.id)) =>
+                    {
+                        ['|', '/', '-', '\\'][self.activity_frame]
+                    }
+                    _ => ' ',
+                };
+                OverlayLine {
+                    text: format!(
+                        " {} {} {}",
+                        if index == picker.selected() { '>' } else { ' ' },
+                        activity,
+                        entry.name
+                    ),
+                    selected: index == picker.selected(),
+                }
+            }));
         }
         Some(TextOverlay {
             lines,
@@ -1479,6 +1612,7 @@ impl Application {
             .iter()
             .map(|pane| pane.id)
             .collect();
+        let mut background_output = HashSet::new();
         for (pane_id, runtime) in &mut self.inactive_panes {
             while let Some(pty) = runtime.pty.as_ref() {
                 let event = match pty.recv_timeout(Duration::ZERO) {
@@ -1493,9 +1627,15 @@ impl Application {
                 if let PtyWorkerEvent::Output(PtyOutput::Bytes(chunk)) = &event {
                     bytes += chunk.len();
                     visible_output |= visible.contains(pane_id);
+                    if !chunk.is_empty() && !visible.contains(pane_id) {
+                        background_output.insert(*pane_id);
+                    }
                 }
                 handle_background_pty_event(runtime, event);
             }
+        }
+        for pane_id in background_output {
+            self.record_background_output(pane_id);
         }
         let output_us = started.elapsed().as_micros();
         let invalidate_started = std::time::Instant::now();
@@ -1774,12 +1914,14 @@ impl ApplicationHandler<PtyWake> for Application {
                 self.selection_edge = None;
             }
         }
-        event_loop.set_control_flow(
-            self.selection_edge
-                .map_or(ControlFlow::Wait, |(_, _, _, deadline)| {
-                    ControlFlow::WaitUntil(deadline)
-                }),
-        );
+        let activity_deadline = self.tick_tab_activity(Instant::now());
+        let deadline = self
+            .selection_edge
+            .map(|(_, _, _, deadline)| deadline)
+            .into_iter()
+            .chain(activity_deadline)
+            .min();
+        event_loop.set_control_flow(deadline.map_or(ControlFlow::Wait, ControlFlow::WaitUntil));
         self.diagnose("about-to-wait");
     }
 
@@ -3742,6 +3884,117 @@ mod tests {
         app.handle_tab_picker_key(&Key::Character("Shell".into()), Some("Shell"));
         app.handle_tab_picker_key(&Key::Named(NamedKey::Enter), None);
         assert_eq!(app.active_tab_title(), "Shell title");
+    }
+
+    #[test]
+    fn tab_picker_formats_cwd_application_and_fallback_without_changing_renames() {
+        let mut app = Application::default();
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
+            b"\x1b]7;file:///home/me/backend/src\x07\x1b]2;C:\\Tools\\nvim.exe\x07".to_vec(),
+        )));
+        app.dispatch_command(Command::NewTab);
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
+            b"\x1b]7;file:///work/frontend/app\x07\x1b]2;C:\\Program%20Files\\pwsh.exe\x07"
+                .to_vec(),
+        )));
+        app.workspace
+            .set_active_tab_custom_title(Some("  full-stack-workstation  ".into()));
+        app.dispatch_command(Command::NewTab);
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
+            b"\x1b]7;file:///work/my%20project/src\x07".to_vec(),
+        )));
+        app.dispatch_command(Command::NewTab);
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
+            b"\x1b]2;/usr/bin/nvim\x07".to_vec(),
+        )));
+        app.dispatch_command(Command::NewTab);
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
+            b"\x1b]7;file:///work/frontend/app\x07\x1b]2;C:\\Tools\\pwsh.exe\x07".to_vec(),
+        )));
+        app.dispatch_command(Command::NewTab);
+        app.dispatch_command(Command::OpenTabPicker);
+        let names: Vec<_> = app
+            .tab_picker
+            .as_ref()
+            .unwrap()
+            .matches()
+            .iter()
+            .map(|entry| entry.name.as_str())
+            .collect();
+        assert_eq!(
+            names,
+            [
+                "backend/src  nvim",
+                "  full-stack-workstation  ",
+                "my project/src",
+                "nvim",
+                "frontend/app  PowerShell",
+                "Terminal 6"
+            ]
+        );
+        assert_eq!(
+            app.workspace.tabs()[1].custom_title.as_deref(),
+            Some("  full-stack-workstation  ")
+        );
+        assert_eq!(
+            super::display_application("C:\\Tools\\pwsh.exe"),
+            Some("PowerShell".into())
+        );
+    }
+
+    #[test]
+    fn background_output_marks_tab_and_focus_clears_activity() {
+        let mut app = Application::default();
+        let first_pane = app.workspace.active_pane();
+        let first_tab = app.workspace.active_tab().id;
+        app.dispatch_command(Command::NewTab);
+        app.record_background_output(first_pane);
+        assert!(app.unseen_tab_activity.contains(&first_tab));
+        app.dispatch_command(Command::OpenTabPicker);
+        assert!(
+            app.tab_picker_overlay().unwrap().lines[1]
+                .text
+                .contains("| Terminal 1")
+        );
+        app.dispatch_command(Command::PreviousTab);
+        assert!(!app.unseen_tab_activity.contains(&first_tab));
+        app.record_background_output(first_pane);
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(b"active".to_vec())));
+        assert!(app.unseen_tab_activity.is_empty());
+    }
+
+    #[test]
+    fn activity_animation_runs_only_while_picker_is_open() {
+        let mut app = Application::default();
+        let first_pane = app.workspace.active_pane();
+        app.dispatch_command(Command::NewTab);
+        app.frame.begin_redraw();
+        let requests_before_output = app.frame.requests_armed;
+        app.record_background_output(first_pane);
+        assert_eq!(app.frame.requests_armed, requests_before_output);
+        let now = Instant::now();
+        assert_eq!(app.tick_tab_activity(now), None);
+        assert_eq!(app.activity_frame, 0);
+        app.dispatch_command(Command::OpenTabPicker);
+        let deadline = app.tick_tab_activity(now).unwrap();
+        assert_eq!(deadline, now + Duration::from_millis(300));
+        assert_eq!(
+            app.tick_tab_activity(deadline).unwrap(),
+            deadline + Duration::from_millis(300)
+        );
+        assert_eq!(app.activity_frame, 1);
+        assert!(
+            app.tab_picker_overlay().unwrap().lines[1]
+                .text
+                .contains("/ Terminal 1")
+        );
+        app.handle_tab_picker_key(&Key::Named(NamedKey::Escape), None);
+        assert_eq!(
+            app.tick_tab_activity(deadline + Duration::from_secs(1)),
+            None
+        );
+        assert_eq!(app.activity_frame, 1);
+        assert!(app.activity_deadline.is_none());
     }
 
     #[test]
