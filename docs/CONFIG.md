@@ -56,6 +56,10 @@ Unknown fields or commands, malformed TOML, invalid colors, incomplete ANSI pale
 
 The app checks the file contents every 500 ms and posts a change event to its main loop. Theme, keybindings, and project palette entries apply after a valid reload without restarting the PTY. Removing the file restores defaults for those live settings. A short lived invalid file during editing can produce an error; a later valid save is applied. An open palette retains its query; changed bindings affect the next keypress outside the palette. Editing font settings and workspace definitions requires an app restart. Runtime font shortcuts resize the renderer and terminal grids without writing `config.toml`; reset returns to the configured `[font].size` captured at startup.
 
+## UI theme colors
+
+Under `[theme]`, `ui_background`, `ui_foreground`, `ui_selected_background`, `ui_muted`, `ui_accent`, and `ui_border` optionally color app-owned pickers, prompts, activity, search, scrollbars, and focus borders. Set only the values you care about. The optional `search_match_background`, `search_active_background`, `scrollbar_thumb`, and `scrollbar_thumb_hover` values take precedence over related semantic UI colors. Omitted UI colors retain the terminal theme or existing UI defaults. All colors use `#RRGGBB`.
+
 ## Font settings
 
 `font.family` selects an installed monospace family by name. If omitted, the renderer uses its platform monospace selection. A missing or proportional family fails renderer initialization. `font.size` is an integer in logical pixels from 1 to 256; it defaults to 16. The renderer scales that size with window DPI when calculating cell metrics and grid dimensions. Fallback faces are selected automatically and cannot be configured. Font family and size are applied when the renderer starts; restart the app after editing `[font]`.

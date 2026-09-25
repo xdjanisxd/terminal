@@ -170,10 +170,10 @@ later performance/polish work.
 - [x] Polish the scrollback scrollbar.
   - Improve hover/visibility behavior and dragging.
   - Consider track interaction and search-match markers where they fit cleanly.
-- [ ] Improve theme ergonomics.
-  - Add named/built-in theme presets with optional user overrides.
-  - Extend themeable UI colors where useful, such as active/inactive panes, tab bar, search matches, and selection.
-  - Keep advanced visual effects outside the initial scope.
+- [x] Improve theme ergonomics.
+  - Add optional semantic UI colors and focused search/scrollbar overrides under the existing `[theme]` table, with independent fallbacks.
+  - Apply them to app-owned overlays, activity, search, scrollbars, and pane focus borders while preserving existing terminal theme behavior.
+  - Keep named presets and advanced visual effects outside this scope.
 - [ ] Add reusable custom workspace creation and launching.
   - Allow users to build a workspace interactively from tabs/panes and save it under a custom name.
   - Persist the recursive pane layout, pane sizes, tab titles, per-pane working directories, and declarative startup behavior.

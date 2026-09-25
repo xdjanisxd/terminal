@@ -30,7 +30,8 @@ use terminal_pty::{
 use terminal_renderer::{
     CellMetrics, FontRequest, OverlayLine, PaneRenderInput, RedrawOutcome, RenderTheme, Renderer,
     RendererDiagnosticState, Rgba, ScrollbarGeometry, ScrollbarHit, ScrollbarRenderData,
-    SearchHighlight, SearchMarker, SurfaceSize, TextOverlay, diagnostics_enabled, emit_diagnostic,
+    SearchHighlight, SearchMarker, SurfaceSize, TextOverlay, UiRenderTheme, diagnostics_enabled,
+    emit_diagnostic,
 };
 use terminal_workspace::{
     PaneDirection, PaneId, PaneRect, SessionDefinition, SplitAxis, Tab, TabId, Workspace,
@@ -1157,12 +1158,14 @@ impl Application {
         let mut lines = vec![OverlayLine {
             text: format!(" Command Palette > {}", palette.query()),
             selected: false,
+            accent_column: None,
         }];
         let matches = palette.matches();
         if matches.is_empty() {
             lines.push(OverlayLine {
                 text: " No matching commands".into(),
                 selected: false,
+                accent_column: None,
             });
         } else {
             lines.extend(matches.iter().enumerate().map(|(index, info)| OverlayLine {
@@ -1176,6 +1179,7 @@ impl Application {
                     info.name
                 ),
                 selected: index == palette.selected(),
+                accent_column: None,
             }));
         }
         Some(TextOverlay {
@@ -1191,12 +1195,14 @@ impl Application {
         let mut lines = vec![OverlayLine {
             text: format!(" Tab Picker > {}", picker.query()),
             selected: false,
+            accent_column: None,
         }];
         let matches = picker.matches();
         if matches.is_empty() {
             lines.push(OverlayLine {
                 text: " No matching tabs".into(),
                 selected: false,
+                accent_column: None,
             });
         } else {
             lines.extend(matches.iter().enumerate().map(|(index, entry)| {
@@ -1220,6 +1226,7 @@ impl Application {
                         entry.name
                     ),
                     selected: index == picker.selected(),
+                    accent_column: (activity != ' ').then_some(3),
                 }
             }));
         }
@@ -1276,6 +1283,7 @@ impl Application {
                     search.query()
                 ),
                 selected: true,
+                accent_column: None,
             }],
             bottom: search
                 .viewport_match(&self.terminal)
@@ -1337,6 +1345,7 @@ impl Application {
             lines: vec![OverlayLine {
                 text: format!(" Rename Tab: {title}  Enter save  Esc cancel  empty resets"),
                 selected: true,
+                accent_column: None,
             }],
             bottom: false,
             search_matches: Vec::new(),
@@ -2816,6 +2825,55 @@ fn render_theme(theme: &terminal_config::Theme) -> RenderTheme {
             alpha,
         ])
     };
+    let mut ui = UiRenderTheme {
+        background: rgba(theme.ui_background.unwrap_or(theme.background), 1.0),
+        foreground: rgba(theme.ui_foreground.unwrap_or(theme.foreground), 1.0),
+        selected_background: rgba(
+            theme
+                .ui_selected_background
+                .unwrap_or(theme.selection_background),
+            1.0,
+        ),
+        selected_foreground: rgba(
+            theme.ui_foreground.unwrap_or(theme.selection_foreground),
+            1.0,
+        ),
+        accent: rgba(theme.selection_foreground, 1.0),
+        ..UiRenderTheme::default()
+    };
+    if let Some(muted) = theme.ui_muted {
+        ui.muted = rgba(muted, 1.0);
+        ui.scrollbar_thumb = ui.muted;
+    }
+    if let Some(accent) = theme.ui_accent {
+        ui.accent = rgba(accent, 1.0);
+        ui.focus_border = ui.accent;
+        ui.search_marker = rgba(accent, 0.75);
+        ui.search_active_marker = ui.accent;
+        ui.search_match_foreground = ui.foreground;
+        ui.search_match_background = ui.accent;
+    }
+    if let Some(border) = theme.ui_border {
+        ui.border = rgba(border, 1.0);
+        ui.scrollbar_track = rgba(border, 0.65);
+        ui.scrollbar_track_hover = ui.border;
+    }
+    if let Some(foreground) = theme.ui_foreground {
+        ui.scrollbar_thumb_hover = rgba(foreground, 1.0);
+    }
+    ui.search_active_background = ui.selected_background;
+    if let Some(color) = theme.search_match_background {
+        ui.search_match_background = rgba(color, 1.0);
+    }
+    if let Some(color) = theme.search_active_background {
+        ui.search_active_background = rgba(color, 1.0);
+    }
+    if let Some(color) = theme.scrollbar_thumb {
+        ui.scrollbar_thumb = rgba(color, 1.0);
+    }
+    if let Some(color) = theme.scrollbar_thumb_hover {
+        ui.scrollbar_thumb_hover = rgba(color, 1.0);
+    }
     RenderTheme {
         foreground: rgba(theme.foreground, 1.0),
         background: rgba(theme.background, 1.0),
@@ -2823,6 +2881,58 @@ fn render_theme(theme: &terminal_config::Theme) -> RenderTheme {
         selection_foreground: rgba(theme.selection_foreground, 1.0),
         selection_background: rgba(theme.selection_background, 1.0),
         ansi: theme.ansi.map(|color| rgba(color, 1.0)),
+        ui,
+    }
+}
+
+#[cfg(test)]
+mod theme_resolution_tests {
+    use super::{Config, Rgb, render_theme};
+
+    #[test]
+    fn semantic_colors_fall_back_independently() {
+        let config =
+            Config::parse("[theme]\nbackground = '#101112'\nui_accent = '#ff79c6'").unwrap();
+        let resolved = render_theme(&config.theme);
+        assert_eq!(resolved.ui.background, resolved.background);
+        assert_eq!(resolved.ui.foreground, resolved.foreground);
+        assert_eq!(
+            resolved.ui.selected_background,
+            resolved.selection_background
+        );
+        assert_eq!(
+            resolved.ui.accent.0,
+            [1.0, 121.0 / 255.0, 198.0 / 255.0, 1.0]
+        );
+        assert_eq!(resolved.ui.focus_border, resolved.ui.accent);
+        assert_ne!(resolved.ui.search_marker, resolved.ui.search_active_marker);
+        assert_eq!(resolved.ui.search_match_background, resolved.ui.accent);
+        assert_eq!(
+            resolved.ui.scrollbar_thumb,
+            terminal_renderer::UiRenderTheme::default().scrollbar_thumb
+        );
+    }
+
+    #[test]
+    fn specific_colors_override_semantic_colors() {
+        let config = Config::parse("[theme]\nui_selected_background = '#010203'\nui_accent = '#040506'\nui_muted = '#070809'\nui_foreground = '#0a0b0c'\nsearch_match_background = '#0d0e0f'\nsearch_active_background = '#101112'\nscrollbar_thumb = '#131415'\nscrollbar_thumb_hover = '#161718'").unwrap();
+        let resolved = render_theme(&config.theme).ui;
+        let rgb = |c: Rgb| {
+            [
+                c.0 as f32 / 255.0,
+                c.1 as f32 / 255.0,
+                c.2 as f32 / 255.0,
+                1.0,
+            ]
+        };
+        assert_eq!(resolved.selected_background.0, rgb(Rgb(1, 2, 3)));
+        assert_eq!(resolved.selected_foreground.0, rgb(Rgb(10, 11, 12)));
+        assert_eq!(resolved.search_match_background.0, rgb(Rgb(13, 14, 15)));
+        assert_eq!(resolved.search_active_background.0, rgb(Rgb(16, 17, 18)));
+        assert_eq!(resolved.scrollbar_thumb.0, rgb(Rgb(19, 20, 21)));
+        assert_eq!(resolved.scrollbar_thumb_hover.0, rgb(Rgb(22, 23, 24)));
+        assert_eq!(resolved.search_marker.0[0..3], resolved.accent.0[0..3]);
+        assert!(resolved.search_marker.0[3] < resolved.search_active_marker.0[3]);
     }
 }
 

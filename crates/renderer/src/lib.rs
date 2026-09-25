@@ -15,7 +15,7 @@ pub use font::{
 };
 pub use snapshot::{
     CursorRenderData, OverlayLine, RenderCell, RenderText, RenderTheme, Rgba, ScrollbarRenderData,
-    SearchHighlight, SearchMarker, TerminalRenderData, TextOverlay,
+    SearchHighlight, SearchMarker, TerminalRenderData, TextOverlay, UiRenderTheme,
 };
 
 use std::error::Error;
@@ -411,6 +411,7 @@ impl Renderer {
                                 target: &view,
                                 surface_size: size,
                                 cell_metrics: self.cell_metrics,
+                                ui: &self.theme.ui,
                             },
                             pane_data,
                             &mut self.font_system,
