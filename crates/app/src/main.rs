@@ -2682,7 +2682,29 @@ fn local_shell_spawn_config(size: PtySize) -> PtySpawnConfig {
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("/bin/sh"));
 
+    #[cfg(windows)]
+    return windows_local_shell_spawn_config(program, source, size);
+
+    #[cfg(not(windows))]
     PtySpawnConfig::new(program, size)
+}
+
+#[cfg(any(windows, test))]
+fn windows_local_shell_spawn_config(
+    program: PathBuf,
+    source: WindowsShellSource,
+    size: PtySize,
+) -> PtySpawnConfig {
+    let config = PtySpawnConfig::new(program, size);
+    match source {
+        WindowsShellSource::PowerShellCore | WindowsShellSource::WindowsPowerShell => config
+            .with_arguments([
+                OsString::from("-NoExit"),
+                OsString::from("-Command"),
+                OsString::from(include_str!("powershell_osc7.ps1")),
+            ]),
+        WindowsShellSource::ComSpec | WindowsShellSource::Cmd => config,
+    }
 }
 
 fn spawn_config_for_session(
@@ -3410,6 +3432,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
+    use std::ffi::OsString;
     use std::fs;
     use std::path::PathBuf;
     use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -3478,16 +3501,19 @@ mod tests {
         basic_backspace_byte_for_platform, basic_key_input, configured_command,
         cursor_key_from_logical_key, font_request, pane_dimensions, parse_terminal_output,
         pty_size_for_terminal, queue_terminal_input, scroll_terminal_for_wheel,
-        select_windows_shell, target_at_pointer, terminal_cell_at, terminal_cursor_key_input,
-        terminal_dimensions_for_viewport, terminal_key_input, wheel_scroll_rows,
+        select_windows_shell, spawn_config_for_session, target_at_pointer, terminal_cell_at,
+        terminal_cursor_key_input, terminal_dimensions_for_viewport, terminal_key_input,
+        wheel_scroll_rows, windows_local_shell_spawn_config,
     };
     use terminal_config::{Command, Config, Rgb};
     use terminal_core::{CursorKey, TerminalDimensions, TerminalParser, TerminalState};
-    use terminal_pty::{PtyOutput, PtyWorkerEvent};
+    use terminal_pty::{PtyOutput, PtySize, PtyWorkerEvent};
     use terminal_renderer::{
         CellMetrics, FontRequest, ScrollbarGeometry, ScrollbarRenderData, SurfaceSize,
     };
-    use terminal_workspace::{LayoutDefinition, PaneDirection, PaneRect, SplitAxis};
+    use terminal_workspace::{
+        LayoutDefinition, PaneDirection, PaneRect, SessionDefinition, SplitAxis,
+    };
 
     fn saved_state_path() -> PathBuf {
         std::env::temp_dir().join(format!(
@@ -3594,6 +3620,50 @@ mod tests {
                 .all(|runtime| runtime.pty.is_none())
         );
         assert_eq!(restarted.terminal.shell_title(), None);
+        fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn prompt_osc7_updates_pane_cwd_used_by_saved_workspace() {
+        let path = saved_state_path();
+        let mut app = Application {
+            saved_workspaces_path: path.clone(),
+            ..Application::default()
+        };
+        let mut definition = app.workspace.definition();
+        if let LayoutDefinition::Pane { project_root, .. } = &mut definition.tabs[0].layout {
+            *project_root = Some(PathBuf::from("original project root"));
+        } else {
+            panic!("expected a pane");
+        }
+        app.load_workspace(&definition);
+
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
+            b"\x1b]7;file:///C:/new%20directory\x07PS> ".to_vec(),
+        )));
+        let reported = super::local_cwd_from_osc7("file:///C:/new%20directory").unwrap();
+        assert_eq!(
+            app.terminal.working_directory_uri(),
+            Some("file:///C:/new%20directory")
+        );
+        assert!(matches!(&app.snapshot_workspace().tabs[0].layout,
+            LayoutDefinition::Pane { project_root: Some(root), .. } if root == &reported));
+
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
+            b"\x1b]7;file:///C:/invalid%GGpath\x07".to_vec(),
+        )));
+        assert_eq!(
+            app.terminal.working_directory_uri(),
+            Some("file:///C:/new%20directory")
+        );
+        app.save_workspace("After cd".into());
+        let mut reopened = Application {
+            saved_workspaces_path: path.clone(),
+            ..Application::default()
+        };
+        reopened.open_saved_workspace("After cd");
+        assert!(matches!(&reopened.workspace.definition().tabs[0].layout,
+            LayoutDefinition::Pane { project_root: Some(root), .. } if root == &reported));
         fs::remove_file(path).unwrap();
     }
 
@@ -5286,6 +5356,45 @@ mod tests {
         assert_eq!(
             select_windows_shell(None, None, None),
             (PathBuf::from("cmd.exe"), WindowsShellSource::Cmd)
+        );
+    }
+
+    #[test]
+    fn powershell_local_shell_injects_prompt_hook_without_disabling_profiles() {
+        let size = PtySize::new(24, 80).unwrap();
+        for source in [
+            WindowsShellSource::PowerShellCore,
+            WindowsShellSource::WindowsPowerShell,
+        ] {
+            let config =
+                windows_local_shell_spawn_config(PathBuf::from("powershell.exe"), source, size);
+            assert_eq!(config.arguments()[0], "-NoExit");
+            assert_eq!(config.arguments()[1], "-Command");
+            assert!(
+                config.arguments()[2]
+                    .to_string_lossy()
+                    .contains("function global:prompt")
+            );
+            assert!(!config.arguments().iter().any(|arg| arg == "-NoProfile"));
+        }
+        for source in [WindowsShellSource::ComSpec, WindowsShellSource::Cmd] {
+            assert!(
+                windows_local_shell_spawn_config(PathBuf::from("cmd.exe"), source, size)
+                    .arguments()
+                    .is_empty()
+            );
+        }
+        let direct = spawn_config_for_session(
+            size,
+            None,
+            SessionDefinition::Command {
+                program: PathBuf::from("powershell.exe"),
+                args: vec!["-File".into(), "task.ps1".into()],
+            },
+        );
+        assert_eq!(
+            direct.arguments(),
+            &[OsString::from("-File"), OsString::from("task.ps1")]
         );
     }
 
