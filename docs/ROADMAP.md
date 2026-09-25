@@ -149,13 +149,10 @@ later performance/polish work.
   - Track OSC 0/2 titles per pane and show the active pane's title unless the tab has an explicit user rename.
   - Track each pane's latest validated OSC 7 `file://` URI independently, including background panes.
 - [ ] Use a reported CWD to launch new splits or tabs after validating URI host and local path semantics against the target platform and configured project roots.
-- [ ] Improve scrollback search.
-  - Make literal search case-insensitive by default.
-  - Add wrap-around next/previous navigation.
-  - Show the current/total match count.
-  - Highlight the full matched text, not only the first cell.
-  - Highlight all visible matches while keeping the active match distinct.
-  - Regex search is out of scope for now.
+- [x] Improve scrollback search.
+  - Literal search is case-insensitive by default, with wrap-around next/previous navigation and an active/total match count.
+  - Highlight full matched spans and all visible matches, with the active match styled distinctly.
+  - Regex search remains out of scope.
 - [ ] Improve mouse selection behavior.
   - Add word selection, line selection, selection extension, and other common terminal selection polish.
   - Preserve the existing terminal-owned selection model.

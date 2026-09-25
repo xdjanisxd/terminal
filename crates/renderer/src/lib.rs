@@ -12,7 +12,7 @@ pub use font::{
 };
 pub use snapshot::{
     CursorRenderData, OverlayLine, RenderCell, RenderText, RenderTheme, Rgba, ScrollbarRenderData,
-    TerminalRenderData, TextOverlay,
+    SearchHighlight, TerminalRenderData, TextOverlay,
 };
 
 use std::error::Error;

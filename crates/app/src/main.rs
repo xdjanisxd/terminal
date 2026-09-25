@@ -29,7 +29,8 @@ use terminal_pty::{
 };
 use terminal_renderer::{
     CellMetrics, FontRequest, OverlayLine, PaneRenderInput, RedrawOutcome, RenderTheme, Renderer,
-    RendererDiagnosticState, Rgba, TextOverlay, diagnostics_enabled, emit_diagnostic,
+    RendererDiagnosticState, Rgba, SearchHighlight, TextOverlay, diagnostics_enabled,
+    emit_diagnostic,
 };
 use terminal_workspace::{
     PaneDirection, PaneId, PaneRect, SessionDefinition, SplitAxis, Workspace, WorkspaceDefinition,
@@ -934,7 +935,7 @@ impl Application {
         Some(TextOverlay {
             lines,
             bottom: false,
-            highlight: None,
+            search_matches: Vec::new(),
         })
     }
 
@@ -987,7 +988,16 @@ impl Application {
             bottom: search
                 .viewport_match(&self.terminal)
                 .is_some_and(|(row, _)| row == 0),
-            highlight: search.viewport_match(&self.terminal),
+            search_matches: search
+                .viewport_matches(&self.terminal)
+                .into_iter()
+                .map(|(row, start_column, end_column, active)| SearchHighlight {
+                    row,
+                    start_column,
+                    end_column,
+                    active,
+                })
+                .collect(),
         })
     }
 
@@ -1032,7 +1042,7 @@ impl Application {
                 selected: true,
             }],
             bottom: false,
-            highlight: None,
+            search_matches: Vec::new(),
         })
     }
 
@@ -3307,7 +3317,9 @@ mod tests {
         assert_eq!(app.search.as_ref().unwrap().position(), first);
         app.handle_search_key(&Key::Named(NamedKey::Backspace), None);
         assert_eq!(app.search.as_ref().unwrap().query(), "fin");
-        assert!(app.search_overlay().unwrap().highlight.is_some());
+        let overlay = app.search_overlay().unwrap();
+        assert!(overlay.lines[0].text.contains("[2/2]"));
+        assert!(!overlay.search_matches.is_empty());
         app.handle_search_key(&Key::Named(NamedKey::Escape), None);
         assert!(app.search.is_none());
         assert_eq!(app.terminal.screen().cell(0, 0).unwrap().character(), 'f');

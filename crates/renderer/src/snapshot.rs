@@ -74,8 +74,16 @@ pub struct TextOverlay {
     pub lines: Vec<OverlayLine>,
     /// Place the panel at the bottom instead of the top of the viewport.
     pub bottom: bool,
-    /// Viewport row and column of the active search match.
-    pub highlight: Option<(usize, usize)>,
+    /// Search match spans in viewport coordinates, with the selected match marked active.
+    pub search_matches: Vec<SearchHighlight>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SearchHighlight {
+    pub row: usize,
+    pub start_column: usize,
+    pub end_column: usize,
+    pub active: bool,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -200,13 +208,20 @@ impl TerminalRenderData {
         if line_count == 0 || self.columns == 0 {
             return;
         }
-        if let Some((row, column)) = overlay.highlight
-            && let Some(cell) = self.cells.iter_mut().find(|cell| {
-                cell.row == row && column >= cell.column && column < cell.column + cell.width
-            })
-        {
-            cell.foreground = theme.selection_foreground;
-            cell.background = theme.selection_background;
+        for cell in &mut self.cells {
+            if let Some(found) = overlay.search_matches.iter().find(|found| {
+                cell.row == found.row
+                    && cell.column < found.end_column
+                    && cell.column + cell.width > found.start_column
+            }) {
+                if found.active {
+                    cell.foreground = theme.selection_foreground;
+                    cell.background = theme.selection_background;
+                } else {
+                    cell.foreground = Rgba([1.0, 0.85, 0.35, 1.0]);
+                    cell.background = Rgba([0.30, 0.22, 0.04, 1.0]);
+                }
+            }
         }
         let first_row = if overlay.bottom {
             self.rows - line_count
@@ -361,7 +376,7 @@ mod tests {
                     selected: true,
                 }],
                 bottom: false,
-                highlight: None,
+                search_matches: Vec::new(),
             },
             &theme,
         );
@@ -398,7 +413,12 @@ mod tests {
                     selected: true,
                 }],
                 bottom: true,
-                highlight: Some((0, 0)),
+                search_matches: vec![SearchHighlight {
+                    row: 0,
+                    start_column: 0,
+                    end_column: 1,
+                    active: true,
+                }],
             },
             &theme,
         );
@@ -414,6 +434,58 @@ mod tests {
                 .iter()
                 .any(|cell| cell.row == 1 && cell.character == 'F')
         );
+    }
+
+    #[test]
+    fn search_overlay_highlights_full_spans_with_distinct_active_style() {
+        let mut state = TerminalState::new(TerminalDimensions::new(6, 2).unwrap());
+        for character in "ABCDEF".chars() {
+            state.print_character(character).unwrap();
+        }
+        let theme = RenderTheme::default();
+        let mut data = TerminalRenderData::from_terminal_with_theme(&state, &theme);
+        data.apply_text_overlay(
+            &TextOverlay {
+                lines: vec![OverlayLine {
+                    text: "Search".into(),
+                    selected: true,
+                }],
+                bottom: true,
+                search_matches: vec![
+                    SearchHighlight {
+                        row: 0,
+                        start_column: 0,
+                        end_column: 3,
+                        active: false,
+                    },
+                    SearchHighlight {
+                        row: 0,
+                        start_column: 3,
+                        end_column: 6,
+                        active: true,
+                    },
+                ],
+            },
+            &theme,
+        );
+
+        for column in 0..3 {
+            let cell = data
+                .cells
+                .iter()
+                .find(|cell| cell.row == 0 && cell.column == column)
+                .unwrap();
+            assert_eq!(cell.background, Rgba([0.30, 0.22, 0.04, 1.0]));
+        }
+        for column in 3..6 {
+            let cell = data
+                .cells
+                .iter()
+                .find(|cell| cell.row == 0 && cell.column == column)
+                .unwrap();
+            assert_eq!(cell.background, theme.selection_background);
+        }
+        assert_eq!(state.screen().cell(0, 0).unwrap().character(), 'A');
     }
     #[test]
     fn selection_highlights_snapshot_without_changing_terminal_cells() {
