@@ -75,9 +75,14 @@ pub enum LayoutDefinition {
     },
     Split {
         axis: SplitAxis,
+        #[serde(default = "default_first_share")]
+        first_share: u32,
         first: Box<LayoutDefinition>,
         second: Box<LayoutDefinition>,
     },
+}
+fn default_first_share() -> u32 {
+    500_000
 }
 impl LayoutDefinition {
     pub fn pane() -> Self {
@@ -92,6 +97,8 @@ impl LayoutDefinition {
 #[serde(deny_unknown_fields)]
 pub struct TabDefinition {
     pub title: String,
+    #[serde(default)]
+    pub custom_title: Option<String>,
     #[serde(default)]
     pub project_root: Option<PathBuf>,
     pub layout: LayoutDefinition,
@@ -115,6 +122,7 @@ impl Default for WorkspaceDefinition {
             project_root: None,
             tabs: vec![TabDefinition {
                 title: "Terminal 1".into(),
+                custom_title: None,
                 project_root: None,
                 layout: LayoutDefinition::pane(),
                 active_pane: 0,
@@ -285,11 +293,12 @@ impl Layout {
             },
             Self::Split {
                 axis,
+                first_share,
                 first,
                 second,
-                ..
             } => LayoutDefinition::Split {
                 axis: *axis,
+                first_share: *first_share,
                 first: Box::new(first.definition()),
                 second: Box::new(second.definition()),
             },
@@ -441,7 +450,7 @@ impl Workspace {
             workspace.tabs.push(Tab {
                 id,
                 title: tab.title.clone(),
-                custom_title: None,
+                custom_title: tab.custom_title.clone(),
                 project_root: tab.project_root.clone(),
                 layout,
                 active_pane,
@@ -471,11 +480,12 @@ impl Workspace {
             } => Layout::Pane(self.new_pane(session.clone(), project_root.clone())),
             LayoutDefinition::Split {
                 axis,
+                first_share,
                 first,
                 second,
             } => Layout::Split {
                 axis: *axis,
-                first_share: 500_000,
+                first_share: *first_share,
                 first: Box::new(self.build_layout(first)),
                 second: Box::new(self.build_layout(second)),
             },
@@ -677,6 +687,7 @@ impl Workspace {
                     let panes = tab.panes();
                     TabDefinition {
                         title: tab.title.clone(),
+                        custom_title: tab.custom_title.clone(),
                         project_root: tab.project_root.clone(),
                         layout: tab.layout.definition(),
                         active_pane: panes
@@ -728,7 +739,15 @@ fn validate_layout(layout: &LayoutDefinition) -> Result<(), DefinitionError> {
             }
             Ok(())
         }
-        LayoutDefinition::Split { first, second, .. } => {
+        LayoutDefinition::Split {
+            first_share,
+            first,
+            second,
+            ..
+        } => {
+            if *first_share == 0 || *first_share >= 1_000_000 {
+                return Err(DefinitionError("split first_share is out of range".into()));
+            }
             validate_layout(first)?;
             validate_layout(second)
         }

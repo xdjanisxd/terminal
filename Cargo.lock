@@ -1798,12 +1798,14 @@ dependencies = [
 name = "terminal-app"
 version = "0.0.0"
 dependencies = [
+ "serde",
  "terminal-config",
  "terminal-core",
  "terminal-platform",
  "terminal-pty",
  "terminal-renderer",
  "terminal-workspace",
+ "toml",
  "winit",
 ]
 
