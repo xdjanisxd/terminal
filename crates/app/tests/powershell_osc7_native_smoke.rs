@@ -15,6 +15,122 @@ use terminal_pty::{
 
 const INTEGRATION: &str = include_str!("../src/powershell_osc7.ps1");
 
+// Read the accumulated PTY bytes as a VT stream. PSReadLine can insert repaint
+// sequences between bytes of text written to the console.
+fn observed_output(raw: &[u8]) -> (String, usize) {
+    enum State {
+        Text,
+        Escape,
+        Csi,
+        Osc,
+        OscEscape,
+        ControlString,
+        ControlStringEscape,
+    }
+
+    let mut state = State::Text;
+    let mut text = Vec::new();
+    let mut osc = Vec::new();
+    let mut ready_count = 0;
+    for &byte in raw {
+        state = match state {
+            State::Text => match byte {
+                0x1b => State::Escape,
+                b'\n' => {
+                    text.push(b'\n');
+                    State::Text
+                }
+                b'\r' => State::Text,
+                0x20..=0xff => {
+                    text.push(byte);
+                    State::Text
+                }
+                _ => State::Text,
+            },
+            State::Escape => match byte {
+                b'[' => State::Csi,
+                b']' => {
+                    osc.clear();
+                    State::Osc
+                }
+                b'P' | b'_' | b'^' | b'X' => State::ControlString,
+                _ => State::Text,
+            },
+            State::Csi => {
+                if (0x40..=0x7e).contains(&byte) {
+                    State::Text
+                } else {
+                    State::Csi
+                }
+            }
+            State::Osc => match byte {
+                0x07 => {
+                    ready_count += usize::from(osc == b"133;A");
+                    State::Text
+                }
+                0x1b => State::OscEscape,
+                _ => {
+                    osc.push(byte);
+                    State::Osc
+                }
+            },
+            State::OscEscape => {
+                if byte == b'\\' {
+                    ready_count += usize::from(osc == b"133;A");
+                    State::Text
+                } else {
+                    osc.push(byte);
+                    State::Osc
+                }
+            }
+            State::ControlString => {
+                if byte == 0x1b {
+                    State::ControlStringEscape
+                } else {
+                    State::ControlString
+                }
+            }
+            State::ControlStringEscape => {
+                if byte == b'\\' {
+                    State::Text
+                } else {
+                    State::ControlString
+                }
+            }
+        };
+    }
+    (String::from_utf8_lossy(&text).into_owned(), ready_count)
+}
+
+fn output_tail(output: &str) -> String {
+    output
+        .chars()
+        .rev()
+        .take(1200)
+        .collect::<String>()
+        .chars()
+        .rev()
+        .collect()
+}
+
+#[test]
+fn vt_observation_ignores_repaint_and_osc_around_split_output_markers() {
+    let chunks: [&[u8]; 4] = [
+        b"\x1b]0;PowerShell\x07\x1b]133;A\x07Write-Output ('__STARTUP_' + 'EXECUTED__')\r\n",
+        b"\x1b[1G__START",
+        b"\x1b[32mUP_\x1b[0m\r\x1b[2GEXEC",
+        b"UTED__\r\n\x1b]133;A\x07",
+    ];
+    let mut raw = Vec::new();
+    for chunk in chunks {
+        raw.extend_from_slice(chunk);
+    }
+    let (text, ready_count) = observed_output(&raw);
+    assert!(text.contains("__STARTUP_EXECUTED__"), "{text:?}");
+    assert_eq!(ready_count, 2);
+    assert!(!text.contains("PowerShell"), "{text:?}");
+}
+
 fn run_script(directory: &Path, body: &str, custom_prompt: bool) -> String {
     let custom_prompt = if custom_prompt {
         "function prompt { 'CUSTOM> ' }"
@@ -109,32 +225,29 @@ fn saved_command_runs_in_fresh_shell_at_cwd_and_shell_survives_exit() {
     let mut output = Vec::new();
     let mut answered_cursor_query = false;
     fn wait_for(
-        needle: &[u8],
-        occurrences: usize,
+        marker: &str,
+        ready_occurrences: usize,
         output: &mut Vec<u8>,
         receiver: &mpsc::Receiver<Vec<u8>>,
         session: &mut dyn PtySession,
         answered_cursor_query: &mut bool,
     ) {
         let deadline = Instant::now() + Duration::from_secs(15);
-        while output
-            .windows(needle.len())
-            .filter(|bytes| *bytes == needle)
-            .count()
-            < occurrences
-        {
+        loop {
+            let (logical_text, ready_count) = observed_output(output);
+            if logical_text.contains(marker) && ready_count >= ready_occurrences {
+                break;
+            }
             let remaining = deadline.saturating_duration_since(Instant::now());
             assert!(
                 !remaining.is_zero(),
-                "missing occurrence {occurrences} of {:?}: {:?}",
-                needle,
-                String::from_utf8_lossy(output)
+                "waiting for marker {marker:?} and prompt-ready #{ready_occurrences}; observed {ready_count}; normalized tail {:?}",
+                output_tail(&logical_text)
             );
             let chunk = receiver.recv_timeout(remaining).unwrap_or_else(|error| {
                 panic!(
-                    "waiting for {:?}: {error:?}; output {:?}; lifecycle {:?}",
-                    needle,
-                    String::from_utf8_lossy(output),
+                    "waiting for marker {marker:?} and prompt-ready #{ready_occurrences}: {error:?}; observed {ready_count}; normalized tail {:?}; lifecycle {:?}",
+                    output_tail(&logical_text),
                     session.lifecycle()
                 )
             });
@@ -145,19 +258,26 @@ fn saved_command_runs_in_fresh_shell_at_cwd_and_shell_survives_exit() {
             }
         }
     }
-    const SHELL_READY: &[u8] = b"\x1b]133;A\x07";
     wait_for(
-        SHELL_READY,
+        "",
         1,
         &mut output,
         &receiver,
         &mut session,
         &mut answered_cursor_query,
     );
-    session.write(b"Write-Output ('__STARTUP_EXECUTED_CWD__' + (Get-Location).Path); cmd.exe /d /c exit 0; Write-Output ('__COMMAND_' + 'EXITED__')\r").unwrap();
-    let expected_cwd = format!("__STARTUP_EXECUTED_CWD__{}", directory.display());
+    session.write(b"Write-Output ('__STARTUP_' + 'EXECUTED__'); Write-Output ('__OBSERVED_' + 'CWD__' + (Get-Location).Path); cmd.exe /d /c exit 0; Write-Output ('__CHILD_' + 'EXITED__')\r").unwrap();
     wait_for(
-        expected_cwd.as_bytes(),
+        "__STARTUP_EXECUTED__",
+        1,
+        &mut output,
+        &receiver,
+        &mut session,
+        &mut answered_cursor_query,
+    );
+    let expected_cwd = format!("__OBSERVED_CWD__{}", directory.display());
+    wait_for(
+        &expected_cwd,
         1,
         &mut output,
         &receiver,
@@ -165,7 +285,7 @@ fn saved_command_runs_in_fresh_shell_at_cwd_and_shell_survives_exit() {
         &mut answered_cursor_query,
     );
     wait_for(
-        b"__COMMAND_EXITED__",
+        "__CHILD_EXITED__",
         1,
         &mut output,
         &receiver,
@@ -173,7 +293,7 @@ fn saved_command_runs_in_fresh_shell_at_cwd_and_shell_survives_exit() {
         &mut answered_cursor_query,
     );
     wait_for(
-        SHELL_READY,
+        "",
         2,
         &mut output,
         &receiver,
@@ -184,7 +304,7 @@ fn saved_command_runs_in_fresh_shell_at_cwd_and_shell_survives_exit() {
         .write(b"Write-Output ('__SHELL_' + 'REUSABLE__')\r")
         .unwrap();
     wait_for(
-        b"__SHELL_REUSABLE__",
+        "__SHELL_REUSABLE__",
         1,
         &mut output,
         &receiver,
