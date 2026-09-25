@@ -32,7 +32,7 @@ use terminal_renderer::{
     RendererDiagnosticState, Rgba, TextOverlay, diagnostics_enabled, emit_diagnostic,
 };
 use terminal_workspace::{
-    PaneId, PaneRect, SessionDefinition, SplitAxis, Workspace, WorkspaceDefinition,
+    PaneDirection, PaneId, PaneRect, SessionDefinition, SplitAxis, Workspace, WorkspaceDefinition,
 };
 use winit::application::ApplicationHandler;
 use winit::dpi::{PhysicalPosition, PhysicalSize};
@@ -745,6 +745,52 @@ impl Application {
             Command::PreviousPane => {
                 let next = self.workspace.focus_pane(-1);
                 self.activate_pane(next);
+            }
+            Command::ResizePaneLeft
+            | Command::ResizePaneRight
+            | Command::ResizePaneUp
+            | Command::ResizePaneDown => {
+                let Some((size, metrics)) = self
+                    .window
+                    .as_ref()
+                    .zip(self.renderer.as_ref())
+                    .map(|(window, renderer)| (window.inner_size(), renderer.cell_metrics()))
+                else {
+                    return;
+                };
+                let (direction, step, minimum) = match command {
+                    Command::ResizePaneLeft => (
+                        PaneDirection::Left,
+                        metrics.width() * 2,
+                        metrics.width() * 10,
+                    ),
+                    Command::ResizePaneRight => (
+                        PaneDirection::Right,
+                        metrics.width() * 2,
+                        metrics.width() * 10,
+                    ),
+                    Command::ResizePaneUp => {
+                        (PaneDirection::Up, metrics.height(), metrics.height() * 3)
+                    }
+                    Command::ResizePaneDown => {
+                        (PaneDirection::Down, metrics.height(), metrics.height() * 3)
+                    }
+                    _ => unreachable!(),
+                };
+                if self.workspace.resize_focused_pane(
+                    direction,
+                    PaneRect {
+                        x: 0,
+                        y: 0,
+                        width: size.width,
+                        height: size.height,
+                    },
+                    step,
+                    minimum,
+                ) {
+                    self.resize_terminal_to_viewport(size);
+                    self.invalidate_frame();
+                }
             }
             Command::TogglePaneZoom => {
                 self.workspace.toggle_zoom();
@@ -2301,7 +2347,7 @@ mod tests {
     use terminal_core::{CursorKey, TerminalDimensions, TerminalParser, TerminalState};
     use terminal_pty::{PtyOutput, PtyWorkerEvent};
     use terminal_renderer::{CellMetrics, FontRequest};
-    use terminal_workspace::{LayoutDefinition, SplitAxis};
+    use terminal_workspace::{LayoutDefinition, PaneDirection, PaneRect, SplitAxis};
     use winit::dpi::{PhysicalPosition, PhysicalSize};
     use winit::event::MouseScrollDelta;
     use winit::keyboard::{Key, KeyCode, ModifiersState, NamedKey, PhysicalKey};
@@ -2606,6 +2652,60 @@ mod tests {
                 (other_tab, TerminalDimensions::new(10, 5).unwrap()),
             ]
         );
+    }
+
+    #[test]
+    fn directional_resize_changes_pane_grid_dimensions_without_replacing_sessions() {
+        let mut workspace = terminal_workspace::Workspace::default();
+        let first = workspace.active_pane();
+        let second = workspace.split_active(SplitAxis::Vertical);
+        let panes = workspace.panes();
+        let size = PhysicalSize::new(400, 200);
+        let metrics = CellMetrics::from_physical(10, 10, 10.0);
+        assert_eq!(
+            pane_dimensions(&workspace, size, metrics),
+            vec![
+                (first, TerminalDimensions::new(20, 20).unwrap()),
+                (second, TerminalDimensions::new(20, 20).unwrap()),
+            ]
+        );
+        assert!(workspace.resize_focused_pane(
+            PaneDirection::Left,
+            PaneRect {
+                x: 0,
+                y: 0,
+                width: 400,
+                height: 200
+            },
+            20,
+            100,
+        ));
+        assert_eq!(
+            pane_dimensions(&workspace, size, metrics),
+            vec![
+                (first, TerminalDimensions::new(18, 20).unwrap()),
+                (second, TerminalDimensions::new(22, 20).unwrap()),
+            ]
+        );
+        assert!(workspace.resize_focused_pane(
+            PaneDirection::Right,
+            PaneRect {
+                x: 0,
+                y: 0,
+                width: 400,
+                height: 200
+            },
+            20,
+            100,
+        ));
+        assert_eq!(
+            pane_dimensions(&workspace, size, metrics),
+            vec![
+                (first, TerminalDimensions::new(20, 20).unwrap()),
+                (second, TerminalDimensions::new(20, 20).unwrap()),
+            ]
+        );
+        assert_eq!(workspace.panes(), panes);
     }
 
     #[test]

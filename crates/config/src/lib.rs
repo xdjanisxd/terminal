@@ -66,6 +66,10 @@ pub enum Command {
     PreviousTab,
     NextPane,
     PreviousPane,
+    ResizePaneLeft,
+    ResizePaneRight,
+    ResizePaneUp,
+    ResizePaneDown,
     TogglePaneZoom,
     ClosePane,
     RenameTab,
@@ -142,6 +146,10 @@ impl Default for Config {
                 ("Ctrl+Shift+Tab", Command::PreviousTab),
                 ("Ctrl+Shift+ArrowRight", Command::NextPane),
                 ("Ctrl+Shift+ArrowLeft", Command::PreviousPane),
+                ("Alt+Shift+ArrowLeft", Command::ResizePaneLeft),
+                ("Alt+Shift+ArrowRight", Command::ResizePaneRight),
+                ("Alt+Shift+ArrowUp", Command::ResizePaneUp),
+                ("Alt+Shift+ArrowDown", Command::ResizePaneDown),
                 ("Ctrl+Shift+Z", Command::TogglePaneZoom),
                 ("Ctrl+Shift+W", Command::ClosePane),
             ]
@@ -405,6 +413,8 @@ fn parse_chord(value: &str) -> Result<KeyChord, String> {
                     "tab" => "Tab".into(),
                     "arrowright" => "ArrowRight".into(),
                     "arrowleft" => "ArrowLeft".into(),
+                    "arrowup" => "ArrowUp".into(),
+                    "arrowdown" => "ArrowDown".into(),
                     _ if key.len() == 1 && key.bytes().all(|byte| byte.is_ascii_alphabetic()) => {
                         format!("Key{}", key.to_ascii_uppercase())
                     }
@@ -637,6 +647,10 @@ mod tests {
             Command::PreviousTab,
             Command::NextPane,
             Command::PreviousPane,
+            Command::ResizePaneLeft,
+            Command::ResizePaneRight,
+            Command::ResizePaneUp,
+            Command::ResizePaneDown,
             Command::TogglePaneZoom,
             Command::ClosePane,
         ] {
@@ -647,5 +661,12 @@ mod tests {
                     .any(|binding| binding.command == command)
             );
         }
+        let mut chords = std::collections::HashSet::new();
+        assert!(
+            config
+                .bindings
+                .iter()
+                .all(|binding| chords.insert(&binding.key))
+        );
     }
 }

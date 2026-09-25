@@ -18,6 +18,27 @@ pub enum SplitAxis {
     Vertical,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PaneDirection {
+    Left,
+    Right,
+    Up,
+    Down,
+}
+
+impl PaneDirection {
+    fn axis(self) -> SplitAxis {
+        match self {
+            Self::Left | Self::Right => SplitAxis::Vertical,
+            Self::Up | Self::Down => SplitAxis::Horizontal,
+        }
+    }
+
+    fn decreases_first_extent(self) -> bool {
+        matches!(self, Self::Left | Self::Up)
+    }
+}
+
 /// Physical pixels assigned to a leaf of the split tree.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PaneRect {
@@ -108,43 +129,107 @@ pub enum Layout {
     Pane(Pane),
     Split {
         axis: SplitAxis,
+        first_share: u32,
         first: Box<Layout>,
         second: Box<Layout>,
     },
 }
 impl Layout {
+    fn contains_pane(&self, target: PaneId) -> bool {
+        match self {
+            Self::Pane(pane) => pane.id == target,
+            Self::Split { first, second, .. } => {
+                first.contains_pane(target) || second.contains_pane(target)
+            }
+        }
+    }
+
+    fn minimum_extent(&self, axis: SplitAxis, leaf_minimum: u32) -> u32 {
+        match self {
+            Self::Pane(_) => leaf_minimum,
+            Self::Split {
+                axis: split_axis,
+                first,
+                second,
+                ..
+            } if *split_axis == axis => first
+                .minimum_extent(axis, leaf_minimum)
+                .saturating_add(second.minimum_extent(axis, leaf_minimum)),
+            Self::Split { first, second, .. } => first
+                .minimum_extent(axis, leaf_minimum)
+                .max(second.minimum_extent(axis, leaf_minimum)),
+        }
+    }
+
+    // Search from the focused leaf outward. An exhausted nearest border does
+    // not cause a more distant split to move instead.
+    fn resize_toward(
+        &mut self,
+        target: PaneId,
+        direction: PaneDirection,
+        rect: PaneRect,
+        step: u32,
+        leaf_minimum: u32,
+    ) -> Option<bool> {
+        let Self::Split {
+            axis,
+            first_share,
+            first,
+            second,
+        } = self
+        else {
+            return None;
+        };
+        let first_path = first.contains_pane(target);
+        let second_path = !first_path && second.contains_pane(target);
+        if !first_path && !second_path {
+            return None;
+        }
+        let (first_rect, second_rect) = split_rects(rect, *axis, *first_share);
+        let inner = if first_path {
+            first.resize_toward(target, direction, first_rect, step, leaf_minimum)
+        } else {
+            second.resize_toward(target, direction, second_rect, step, leaf_minimum)
+        };
+        if inner.is_some() {
+            return inner;
+        }
+        if *axis != direction.axis() {
+            return None;
+        }
+        let extent = if *axis == SplitAxis::Vertical {
+            rect.width
+        } else {
+            rect.height
+        };
+        let old_first = split_extent(extent, *first_share);
+        let first_min = first.minimum_extent(*axis, leaf_minimum);
+        let second_min = second.minimum_extent(*axis, leaf_minimum);
+        if old_first < first_min || extent - old_first < second_min {
+            return Some(false);
+        }
+        let new_first = if direction.decreases_first_extent() {
+            old_first.saturating_sub(step).max(first_min)
+        } else {
+            old_first.saturating_add(step).min(extent - second_min)
+        };
+        if new_first == old_first {
+            return Some(false);
+        }
+        *first_share = (u64::from(new_first) * 1_000_000).div_ceil(u64::from(extent)) as u32;
+        Some(true)
+    }
+
     fn pane_rects(&self, rect: PaneRect, output: &mut Vec<(PaneId, PaneRect)>) {
         match self {
             Self::Pane(pane) => output.push((pane.id, rect)),
             Self::Split {
                 axis,
+                first_share,
                 first,
                 second,
             } => {
-                let (first_rect, second_rect) = match axis {
-                    SplitAxis::Vertical => {
-                        let width = rect.width / 2;
-                        (
-                            PaneRect { width, ..rect },
-                            PaneRect {
-                                x: rect.x + width,
-                                width: rect.width - width,
-                                ..rect
-                            },
-                        )
-                    }
-                    SplitAxis::Horizontal => {
-                        let height = rect.height / 2;
-                        (
-                            PaneRect { height, ..rect },
-                            PaneRect {
-                                y: rect.y + height,
-                                height: rect.height - height,
-                                ..rect
-                            },
-                        )
-                    }
-                };
+                let (first_rect, second_rect) = split_rects(rect, *axis, *first_share);
                 first.pane_rects(first_rect, output);
                 second.pane_rects(second_rect, output);
             }
@@ -164,6 +249,7 @@ impl Layout {
             Self::Pane(current) if current.id == target => {
                 *self = Self::Split {
                     axis,
+                    first_share: 500_000,
                     first: Box::new(Self::Pane(current.clone())),
                     second: Box::new(Self::Pane(pane)),
                 };
@@ -201,11 +287,43 @@ impl Layout {
                 axis,
                 first,
                 second,
+                ..
             } => LayoutDefinition::Split {
                 axis: *axis,
                 first: Box::new(first.definition()),
                 second: Box::new(second.definition()),
             },
+        }
+    }
+}
+
+fn split_extent(extent: u32, first_share: u32) -> u32 {
+    ((u64::from(extent) * u64::from(first_share)) / 1_000_000) as u32
+}
+
+fn split_rects(rect: PaneRect, axis: SplitAxis, first_share: u32) -> (PaneRect, PaneRect) {
+    match axis {
+        SplitAxis::Vertical => {
+            let width = split_extent(rect.width, first_share);
+            (
+                PaneRect { width, ..rect },
+                PaneRect {
+                    x: rect.x + width,
+                    width: rect.width - width,
+                    ..rect
+                },
+            )
+        }
+        SplitAxis::Horizontal => {
+            let height = split_extent(rect.height, first_share);
+            (
+                PaneRect { height, ..rect },
+                PaneRect {
+                    y: rect.y + height,
+                    height: rect.height - height,
+                    ..rect
+                },
+            )
         }
     }
 }
@@ -350,6 +468,7 @@ impl Workspace {
                 second,
             } => Layout::Split {
                 axis: *axis,
+                first_share: 500_000,
                 first: Box::new(self.build_layout(first)),
                 second: Box::new(self.build_layout(second)),
             },
@@ -374,6 +493,25 @@ impl Workspace {
         let tab = &mut self.tabs[self.active_tab];
         tab.zoomed = !tab.zoomed;
         tab.zoomed
+    }
+    /// Move the nearest split boundary controlling the focused pane in
+    /// `direction` by at most `step` physical pixels. A leaf retains at least
+    /// `leaf_minimum` pixels on the affected axis; nested same-axis branches
+    /// retain their combined minimum.
+    pub fn resize_focused_pane(
+        &mut self,
+        direction: PaneDirection,
+        rect: PaneRect,
+        step: u32,
+        leaf_minimum: u32,
+    ) -> bool {
+        let tab = &mut self.tabs[self.active_tab];
+        if tab.zoomed || step == 0 || leaf_minimum == 0 {
+            return false;
+        }
+        tab.layout
+            .resize_toward(tab.active_pane, direction, rect, step, leaf_minimum)
+            .unwrap_or(false)
     }
     pub fn panes(&self) -> Vec<Pane> {
         self.tabs.iter().flat_map(Tab::panes).collect()
@@ -526,6 +664,214 @@ fn validate_layout(layout: &LayoutDefinition) -> Result<(), DefinitionError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn viewport() -> PaneRect {
+        PaneRect {
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 60,
+        }
+    }
+
+    #[test]
+    fn vertical_resize_moves_divider_both_directions_for_each_side() {
+        let mut workspace = Workspace::default();
+        let first = workspace.active_pane();
+        let second = workspace.split_active(SplitAxis::Vertical);
+        assert_eq!(workspace.active_pane(), second);
+        let panes = workspace.panes();
+        let definition = workspace.definition();
+
+        // The second pane grows, then shrinks back to its original size.
+        assert!(workspace.resize_focused_pane(PaneDirection::Left, viewport(), 5, 10));
+        let rects = workspace.active_tab().pane_rects(viewport());
+        assert_eq!(rects[0].1.width, 45);
+        assert_eq!(rects[1].1.width, 55);
+        assert!(workspace.resize_focused_pane(PaneDirection::Right, viewport(), 5, 10));
+        assert_eq!(workspace.active_tab().pane_rects(viewport())[0].1.width, 50);
+
+        // The same pane shrinks, then grows back without changing focus.
+        assert!(workspace.resize_focused_pane(PaneDirection::Right, viewport(), 5, 10));
+        assert_eq!(workspace.active_tab().pane_rects(viewport())[0].1.width, 55);
+        assert!(workspace.resize_focused_pane(PaneDirection::Left, viewport(), 5, 10));
+        assert_eq!(workspace.active_tab().pane_rects(viewport())[0].1.width, 50);
+
+        // The commands remain boundary-relative when the first pane is focused.
+        assert!(workspace.focus_pane_id(first));
+        assert!(workspace.resize_focused_pane(PaneDirection::Right, viewport(), 5, 10));
+        assert_eq!(workspace.active_tab().pane_rects(viewport())[0].1.width, 55);
+        assert!(workspace.resize_focused_pane(PaneDirection::Left, viewport(), 5, 10));
+        assert_eq!(workspace.active_tab().pane_rects(viewport())[0].1.width, 50);
+
+        assert_eq!(workspace.panes(), panes);
+        assert_eq!(
+            workspace.definition().tabs[0].layout,
+            definition.tabs[0].layout
+        );
+        assert_eq!(workspace.active_pane(), first);
+    }
+
+    #[test]
+    fn horizontal_resize_moves_divider_both_directions_for_each_side() {
+        let mut workspace = Workspace::default();
+        let first = workspace.active_pane();
+        workspace.split_active(SplitAxis::Horizontal);
+
+        assert!(workspace.resize_focused_pane(PaneDirection::Up, viewport(), 4, 12));
+        assert_eq!(
+            workspace.active_tab().pane_rects(viewport())[0].1.height,
+            26
+        );
+        assert!(workspace.resize_focused_pane(PaneDirection::Down, viewport(), 4, 12));
+        assert_eq!(
+            workspace.active_tab().pane_rects(viewport())[0].1.height,
+            30
+        );
+
+        assert!(workspace.focus_pane_id(first));
+        assert!(workspace.resize_focused_pane(PaneDirection::Down, viewport(), 4, 12));
+        assert_eq!(
+            workspace.active_tab().pane_rects(viewport())[0].1.height,
+            34
+        );
+        assert!(workspace.resize_focused_pane(PaneDirection::Up, viewport(), 4, 12));
+        assert_eq!(
+            workspace.active_tab().pane_rects(viewport())[0].1.height,
+            30
+        );
+    }
+
+    #[test]
+    fn resize_repeats_and_stops_at_each_minimum_boundary() {
+        let mut workspace = Workspace::default();
+        workspace.split_active(SplitAxis::Vertical);
+
+        for _ in 0..20 {
+            workspace.resize_focused_pane(PaneDirection::Left, viewport(), 7, 10);
+        }
+        let rects = workspace.active_tab().pane_rects(viewport());
+        assert_eq!(rects[0].1.width, 10);
+        assert_eq!(rects[1].1.width, 90);
+        assert!(!workspace.resize_focused_pane(PaneDirection::Left, viewport(), 7, 10));
+
+        for _ in 0..20 {
+            workspace.resize_focused_pane(PaneDirection::Right, viewport(), 7, 10);
+        }
+        let rects = workspace.active_tab().pane_rects(viewport());
+        assert_eq!(rects[0].1.width, 90);
+        assert_eq!(rects[1].1.width, 10);
+        assert!(!workspace.resize_focused_pane(PaneDirection::Right, viewport(), 7, 10));
+    }
+
+    #[test]
+    fn nested_resize_uses_nearest_matching_split_and_subtree_minimum() {
+        let mut workspace = Workspace::default();
+        let left = workspace.active_pane();
+        let right = workspace.split_active(SplitAxis::Vertical);
+        let far_right = workspace.split_active(SplitAxis::Vertical);
+
+        assert!(workspace.resize_focused_pane(PaneDirection::Left, viewport(), 7, 10));
+        let rects = workspace.active_tab().pane_rects(viewport());
+        assert_eq!(rects[0].1.width, 50);
+        assert_eq!(rects[1].1.width, 18);
+        assert_eq!(rects[2].1.width, 32);
+        assert_eq!(rects[0].0, left);
+        assert_eq!(rects[1].0, right);
+        assert_eq!(rects[2].0, far_right);
+
+        assert!(workspace.resize_focused_pane(PaneDirection::Right, viewport(), 7, 10));
+        let rects = workspace.active_tab().pane_rects(viewport());
+        assert_eq!(rects[0].1.width, 50);
+        assert_eq!(rects[1].1.width, 25);
+        assert_eq!(rects[2].1.width, 25);
+
+        assert!(workspace.focus_pane_id(right));
+        for _ in 0..20 {
+            workspace.resize_focused_pane(PaneDirection::Left, viewport(), 7, 10);
+        }
+        assert_eq!(workspace.active_tab().pane_rects(viewport())[1].1.width, 10);
+        assert!(!workspace.resize_focused_pane(PaneDirection::Left, viewport(), 7, 10));
+        assert_eq!(workspace.active_tab().pane_rects(viewport())[0].1.width, 50);
+        assert!(workspace.resize_focused_pane(PaneDirection::Right, viewport(), 7, 10));
+        assert_eq!(workspace.active_tab().pane_rects(viewport())[1].1.width, 17);
+        assert_eq!(workspace.active_tab().pane_rects(viewport())[0].1.width, 50);
+    }
+
+    #[test]
+    fn uneven_mixed_axis_layout_resizes_only_selected_split() {
+        let mut workspace = Workspace::default();
+        let left = workspace.active_pane();
+        let top_right = workspace.split_active(SplitAxis::Vertical);
+        let bottom_right = workspace.split_active(SplitAxis::Horizontal);
+        let panes = workspace.panes();
+        assert!(workspace.resize_focused_pane(PaneDirection::Up, viewport(), 5, 10));
+        let before = workspace.active_tab().pane_rects(viewport());
+        assert_eq!(
+            before[0],
+            (
+                left,
+                PaneRect {
+                    x: 0,
+                    y: 0,
+                    width: 50,
+                    height: 60
+                }
+            )
+        );
+        assert_eq!(
+            before[1],
+            (
+                top_right,
+                PaneRect {
+                    x: 50,
+                    y: 0,
+                    width: 50,
+                    height: 25
+                }
+            )
+        );
+        assert_eq!(
+            before[2],
+            (
+                bottom_right,
+                PaneRect {
+                    x: 50,
+                    y: 25,
+                    width: 50,
+                    height: 35
+                }
+            )
+        );
+        assert!(workspace.resize_focused_pane(PaneDirection::Left, viewport(), 5, 10));
+        let after = workspace.active_tab().pane_rects(viewport());
+        assert_eq!(after[0].1.width, 45);
+        assert_eq!(after[1].1.width, 55);
+        assert_eq!(after[2].1.width, 55);
+        assert_eq!(after[1].1.height, 25);
+        assert_eq!(after[2].1.height, 35);
+        assert!(workspace.focus_pane_id(top_right));
+        assert!(workspace.resize_focused_pane(PaneDirection::Down, viewport(), 5, 10));
+        assert_eq!(
+            workspace.active_tab().pane_rects(viewport())[1].1.height,
+            30
+        );
+        assert_eq!(workspace.panes(), panes);
+    }
+
+    #[test]
+    fn resize_without_matching_axis_and_during_zoom_is_noop() {
+        let mut workspace = Workspace::default();
+        let first = workspace.active_pane();
+        workspace.split_active(SplitAxis::Vertical);
+        assert!(workspace.focus_pane_id(first));
+        let layout = workspace.active_tab().layout.clone();
+        assert!(!workspace.resize_focused_pane(PaneDirection::Up, viewport(), 5, 10));
+        workspace.toggle_zoom();
+        assert!(!workspace.resize_focused_pane(PaneDirection::Right, viewport(), 5, 10));
+        workspace.toggle_zoom();
+        assert_eq!(workspace.active_tab().layout, layout);
+    }
     #[test]
     fn roots_and_startup_commands_follow_pane_tab_workspace_precedence() {
         let mut definition = WorkspaceDefinition {

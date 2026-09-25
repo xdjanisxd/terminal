@@ -26,13 +26,10 @@ ansi = [
 # Binding entries replace the entire default list; keep any shortcuts you want.
 # A chord uses optional Ctrl, Shift, Alt, then a physical key. Supported keys:
 # A-Z, 0-9, PageUp, PageDown, Home, End, Insert, Delete, Backspace, Tab,
-# ArrowLeft, ArrowRight, Equal, Minus. Plain letters and digits require a modifier.
+# ArrowLeft, ArrowRight, ArrowUp, ArrowDown, Equal, Minus. Plain letters and digits require a modifier.
 # Example custom binding: key = "Ctrl+Shift+Backspace", command = "close_pane".
-# Commands: copy, paste, page_up, page_down, open_palette, open_target,
-# new_tab, split_horizontal, split_vertical, next_tab, previous_tab,
-# next_pane, previous_pane, toggle_pane_zoom, close_pane. "action" aliases "command".
-# next_pane, previous_pane, close_pane, increase_font_size,
-# decrease_font_size, reset_font_size. "action" aliases "command".
+# Commands include copy, paste, font size, workspace, and resize_pane_left,
+# resize_pane_right, resize_pane_up, resize_pane_down. "action" aliases "command".
 [[bindings]]
 key = "Ctrl+Shift+C"
 command = "copy"
@@ -96,6 +93,22 @@ command = "next_pane"
 [[bindings]]
 key = "Ctrl+Shift+ArrowLeft"
 command = "previous_pane"
+
+[[bindings]]
+key = "Alt+Shift+ArrowLeft"
+command = "resize_pane_left"
+
+[[bindings]]
+key = "Alt+Shift+ArrowRight"
+command = "resize_pane_right"
+
+[[bindings]]
+key = "Alt+Shift+ArrowUp"
+command = "resize_pane_up"
+
+[[bindings]]
+key = "Alt+Shift+ArrowDown"
+command = "resize_pane_down"
 
 [[bindings]]
 key = "Ctrl+Shift+Z"

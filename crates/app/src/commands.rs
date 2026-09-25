@@ -91,6 +91,26 @@ pub const COMMANDS: &[CommandInfo] = &[
         in_palette: true,
     },
     CommandInfo {
+        command: Command::ResizePaneLeft,
+        name: "Resize Pane Left",
+        in_palette: true,
+    },
+    CommandInfo {
+        command: Command::ResizePaneRight,
+        name: "Resize Pane Right",
+        in_palette: true,
+    },
+    CommandInfo {
+        command: Command::ResizePaneUp,
+        name: "Resize Pane Up",
+        in_palette: true,
+    },
+    CommandInfo {
+        command: Command::ResizePaneDown,
+        name: "Resize Pane Down",
+        in_palette: true,
+    },
+    CommandInfo {
         command: Command::TogglePaneZoom,
         name: "Toggle Pane Zoom",
         in_palette: true,
