@@ -76,6 +76,13 @@ pub struct TextOverlay {
     pub bottom: bool,
     /// Search match spans in viewport coordinates, with the selected match marked active.
     pub search_matches: Vec<SearchHighlight>,
+    pub search_markers: Vec<SearchMarker>,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct SearchMarker {
+    pub row: usize,
+    pub active: bool,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -115,6 +122,8 @@ pub struct TerminalRenderData {
     pub cursor_color: Rgba,
     pub surface_background: Rgba,
     pub scrollbar: Option<ScrollbarRenderData>,
+    pub scrollbar_hover: Option<crate::ScrollbarHit>,
+    pub search_markers: Vec<SearchMarker>,
 }
 
 impl TerminalRenderData {
@@ -200,10 +209,13 @@ impl TerminalRenderData {
             cursor_color: theme.cursor,
             surface_background: theme.background,
             scrollbar,
+            scrollbar_hover: None,
+            search_markers: Vec::new(),
         }
     }
 
     pub fn apply_text_overlay(&mut self, overlay: &TextOverlay, theme: &RenderTheme) {
+        self.search_markers.clone_from(&overlay.search_markers);
         let line_count = overlay.lines.len().min(self.rows);
         if line_count == 0 || self.columns == 0 {
             return;
@@ -377,6 +389,7 @@ mod tests {
                 }],
                 bottom: false,
                 search_matches: Vec::new(),
+                search_markers: Vec::new(),
             },
             &theme,
         );
@@ -419,6 +432,10 @@ mod tests {
                     end_column: 1,
                     active: true,
                 }],
+                search_markers: vec![SearchMarker {
+                    row: 0,
+                    active: true,
+                }],
             },
             &theme,
         );
@@ -429,6 +446,13 @@ mod tests {
             .unwrap();
         assert_eq!(match_cell.character, 'A');
         assert_eq!(match_cell.background, theme.selection_background);
+        assert_eq!(
+            data.search_markers,
+            vec![SearchMarker {
+                row: 0,
+                active: true
+            }]
+        );
         assert!(
             data.cells
                 .iter()
@@ -465,6 +489,7 @@ mod tests {
                         active: true,
                     },
                 ],
+                search_markers: Vec::new(),
             },
             &theme,
         );

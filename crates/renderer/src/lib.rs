@@ -5,14 +5,17 @@
 
 mod font;
 mod gpu;
+mod scrollbar;
 mod snapshot;
+
+pub use scrollbar::{ScrollbarGeometry, ScrollbarHit};
 
 pub use font::{
     CellMetrics, FontProcessingError, FontRequest, GlyphBitmap, ShapedGlyph, ShapedText,
 };
 pub use snapshot::{
     CursorRenderData, OverlayLine, RenderCell, RenderText, RenderTheme, Rgba, ScrollbarRenderData,
-    SearchHighlight, TerminalRenderData, TextOverlay,
+    SearchHighlight, SearchMarker, TerminalRenderData, TextOverlay,
 };
 
 use std::error::Error;
@@ -84,6 +87,7 @@ pub struct PaneRenderInput<'a> {
     pub terminal: &'a terminal_core::TerminalState,
     pub rect: [u32; 4],
     pub focused: bool,
+    pub scrollbar_hover: Option<ScrollbarHit>,
 }
 
 /// Renderer-owned surface state safe to include in native lifecycle diagnostics.
@@ -610,6 +614,7 @@ fn project_panes(
         .iter()
         .map(|pane| {
             let mut data = TerminalRenderData::from_terminal_with_theme(pane.terminal, theme);
+            data.scrollbar_hover = pane.scrollbar_hover;
             if !pane.focused {
                 data.cursor = None;
             }
@@ -684,11 +689,13 @@ mod tests {
                     terminal: &left,
                     rect: [0, 0, 30, 40],
                     focused: false,
+                    scrollbar_hover: Some(super::ScrollbarHit::Thumb),
                 },
                 PaneRenderInput {
                     terminal: &right,
                     rect: [30, 0, 31, 40],
                     focused: true,
+                    scrollbar_hover: None,
                 },
             ],
             None,
@@ -700,6 +707,7 @@ mod tests {
         assert!(data[0].0.cells.iter().any(|cell| cell.character == 'L'));
         assert!(data[1].0.cells.iter().any(|cell| cell.character == 'R'));
         assert_eq!(data[0].0.cursor, None);
+        assert_eq!(data[0].0.scrollbar_hover, Some(super::ScrollbarHit::Thumb));
         assert!(data[1].0.cursor.is_some());
         assert!(!data[0].2 && data[1].2);
     }

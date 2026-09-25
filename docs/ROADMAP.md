@@ -164,9 +164,9 @@ later performance/polish work.
   - Indicate when an unfocused tab receives new terminal output.
   - Clear or update the indicator when the user focuses the tab.
   - Leave richer bell/process-state indicators as possible follow-up work.
-- [ ] Polish the scrollback scrollbar.
-  - Improve hover/visibility behavior and dragging.
-  - Consider track interaction and search-match markers where they fit cleanly.
+- [x] Polish the scrollback scrollbar.
+  - Show the Primary scrollbar whenever history exists, with hover feedback, bounded thumb dragging, and one-page track clicks.
+  - Show search-match markers on the track and distinguish the active match.
 - [ ] Improve theme ergonomics.
   - Add named/built-in theme presets with optional user overrides.
   - Extend themeable UI colors where useful, such as active/inactive panes, tab bar, search matches, and selection.
