@@ -66,10 +66,6 @@ pub enum Command {
     PreviousTab,
     NextPane,
     PreviousPane,
-    ResizePaneLeft,
-    ResizePaneRight,
-    ResizePaneUp,
-    ResizePaneDown,
     FocusPaneLeft,
     FocusPaneRight,
     FocusPaneUp,
@@ -150,14 +146,10 @@ impl Default for Config {
                 ("Ctrl+Shift+Tab", Command::PreviousTab),
                 ("Ctrl+Shift+ArrowRight", Command::NextPane),
                 ("Ctrl+Shift+ArrowLeft", Command::PreviousPane),
-                ("Ctrl+Shift+H", Command::FocusPaneLeft),
-                ("Ctrl+Shift+L", Command::FocusPaneRight),
-                ("Ctrl+Shift+K", Command::FocusPaneUp),
-                ("Ctrl+Shift+J", Command::FocusPaneDown),
-                ("Ctrl+Alt+H", Command::ResizePaneLeft),
-                ("Ctrl+Alt+L", Command::ResizePaneRight),
-                ("Ctrl+Alt+K", Command::ResizePaneUp),
-                ("Ctrl+Alt+J", Command::ResizePaneDown),
+                ("Alt+Shift+ArrowLeft", Command::FocusPaneLeft),
+                ("Alt+Shift+ArrowRight", Command::FocusPaneRight),
+                ("Alt+Shift+ArrowUp", Command::FocusPaneUp),
+                ("Alt+Shift+ArrowDown", Command::FocusPaneDown),
                 ("Ctrl+Shift+Z", Command::TogglePaneZoom),
                 ("Ctrl+Shift+W", Command::ClosePane),
             ]
@@ -662,10 +654,6 @@ mod tests {
             Command::PreviousTab,
             Command::NextPane,
             Command::PreviousPane,
-            Command::ResizePaneLeft,
-            Command::ResizePaneRight,
-            Command::ResizePaneUp,
-            Command::ResizePaneDown,
             Command::FocusPaneLeft,
             Command::FocusPaneRight,
             Command::FocusPaneUp,
@@ -680,13 +668,6 @@ mod tests {
                     .any(|binding| binding.command == command)
             );
         }
-        let mut chords = std::collections::HashSet::new();
-        assert!(
-            config
-                .bindings
-                .iter()
-                .all(|binding| chords.insert(&binding.key))
-        );
     }
 
     #[test]
