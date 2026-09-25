@@ -1094,6 +1094,7 @@ impl Application {
             lines,
             bottom: false,
             search_matches: Vec::new(),
+            search_markers: Vec::new(),
         })
     }
 
@@ -2171,10 +2172,10 @@ impl ApplicationHandler<PtyWake> for Application {
                     };
                 self.frame.begin_redraw();
                 let overlay = self
-                  .tab_rename_overlay()
-                  .or_else(|| self.search_overlay())
-                  .or_else(|| self.palette_overlay())
-                  .or_else(|| self.tab_picker_overlay());
+                    .tab_rename_overlay()
+                    .or_else(|| self.search_overlay())
+                    .or_else(|| self.palette_overlay())
+                    .or_else(|| self.tab_picker_overlay());
 
                 let scrollback_input_enabled = self.scrollbar_input_enabled();
 
@@ -2208,7 +2209,7 @@ impl ApplicationHandler<PtyWake> for Application {
                             rect: [rect.x, rect.y, rect.width, rect.height],
                             focused: pane_id == self.workspace.active_pane(),
                             scrollbar_hover: (pane_id == self.workspace.active_pane()
-                                && scrollbar_input_enabled)
+                                && scrollback_input_enabled)
                                 .then_some(self.scrollbar_hover)
                                 .flatten(),
                         })
