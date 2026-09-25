@@ -103,6 +103,27 @@ fn selection_click_count(
     }
 }
 
+fn normalize_window_title(title: &str) -> String {
+    let executable = title.rsplit(['/', '\\']).next().unwrap_or(title);
+    let executable = executable
+        .get(..executable.len().saturating_sub(4))
+        .filter(|_| executable.to_ascii_lowercase().ends_with(".exe"))
+        .unwrap_or(executable);
+    if executable.eq_ignore_ascii_case("pwsh") || executable.eq_ignore_ascii_case("powershell") {
+        "PowerShell".into()
+    } else if executable.eq_ignore_ascii_case("cmd") {
+        "cmd".into()
+    } else if executable.eq_ignore_ascii_case("nvim") {
+        "nvim".into()
+    } else if executable.eq_ignore_ascii_case("vim") {
+        "vim".into()
+    } else if title.contains(['/', '\\']) {
+        executable.to_owned()
+    } else {
+        title.to_owned()
+    }
+}
+
 fn scrollbar_page_delta(hit: ScrollbarHit, visible_rows: usize) -> i32 {
     let page = visible_rows.min(i32::MAX as usize) as i32;
     match hit {
@@ -634,6 +655,10 @@ impl Application {
         let Some(window) = self.window.as_ref() else {
             return;
         };
+        window.set_title(&self.workspace_window_title());
+    }
+
+    fn workspace_window_title(&self) -> String {
         let tab = self.workspace.active_tab();
         let panes = tab.panes();
         if self.workspace.tabs().len() == 1
@@ -641,28 +666,33 @@ impl Application {
             && tab.custom_title.is_none()
             && self.terminal.shell_title().is_none()
         {
-            window.set_title("Terminal");
+            "Terminal".to_owned()
         } else {
             let pane_index = panes
                 .iter()
                 .position(|pane| pane.id == tab.active_pane)
                 .unwrap()
                 + 1;
-            window.set_title(&format!(
+            format!(
                 "Terminal — {} ({}/{}) — Pane {}/{}",
                 self.active_tab_title(),
                 self.workspace.active_tab_index() + 1,
                 self.workspace.tabs().len(),
                 pane_index,
                 panes.len(),
-            ));
+            )
         }
     }
 
-    fn active_tab_title(&self) -> &str {
-        self.workspace
-            .active_tab()
-            .display_title_with_shell_title(self.terminal.shell_title())
+    fn active_tab_title(&self) -> String {
+        let tab = self.workspace.active_tab();
+        if let Some(title) = &tab.custom_title {
+            return title.clone();
+        }
+        self.terminal
+            .shell_title()
+            .map(normalize_window_title)
+            .unwrap_or_else(|| tab.display_title().to_owned())
     }
 
     fn activate_pane(&mut self, next: PaneId) {
@@ -3692,6 +3722,64 @@ mod tests {
         app.dispatch_command(Command::PreviousTab);
         assert_eq!(app.active_tab_title(), "Updated shell");
         assert_eq!(app.terminal.working_directory_uri(), Some("file:///second"));
+    }
+
+    #[test]
+    fn window_title_normalizes_executable_names_and_paths() {
+        for (raw, expected) in [
+            ("pwsh.exe", "PowerShell"),
+            (
+                r"C:\Program Files\WindowsApps\PowerShell\pwsh.exe",
+                "PowerShell",
+            ),
+            ("powershell.exe", "PowerShell"),
+            (r"C:\Windows\System32\cmd.exe", "cmd"),
+            ("nvim.exe", "nvim"),
+            (r"/usr/bin/vim.exe", "vim"),
+        ] {
+            assert_eq!(super::normalize_window_title(raw), expected);
+        }
+    }
+
+    #[test]
+    fn pty_title_updates_window_title_with_normalization_and_rename_precedence() {
+        let mut app = Application::default();
+        assert_eq!(app.workspace_window_title(), "Terminal");
+
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
+            b"\x1b]2;C:\\Program Files\\WindowsApps\\pwsh.exe\x07".to_vec(),
+        )));
+        assert_eq!(
+            app.workspace_window_title(),
+            "Terminal — PowerShell (1/1) — Pane 1/1"
+        );
+
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
+            b"\x1b]2;C:\\Windows\\System32\\WindowsPowerShell\\powershell.exe\x07".to_vec(),
+        )));
+        assert_eq!(
+            app.workspace_window_title(),
+            "Terminal — PowerShell (1/1) — Pane 1/1"
+        );
+
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
+            b"\x1b]2;backend - nvim\x07".to_vec(),
+        )));
+        assert_eq!(
+            app.workspace_window_title(),
+            "Terminal — backend - nvim (1/1) — Pane 1/1"
+        );
+
+        let renamed = "  full-stack-workstation  ";
+        app.workspace
+            .set_active_tab_custom_title(Some(renamed.to_owned()));
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
+            b"\x1b]2;C:\\Program Files\\WindowsApps\\pwsh.exe\x07".to_vec(),
+        )));
+        assert_eq!(
+            app.workspace_window_title(),
+            format!("Terminal — {renamed} (1/1) — Pane 1/1")
+        );
     }
 
     #[test]
