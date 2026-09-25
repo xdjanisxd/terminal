@@ -6,9 +6,11 @@
 //! Native application lifecycle and component wiring.
 
 mod commands;
+mod saved_workspaces;
 mod search;
 
 use commands::{Palette, PaletteAction, PaletteEntry};
+use saved_workspaces::SavedWorkspaces;
 use search::Search;
 use std::collections::{HashMap, HashSet};
 use std::ffi::OsString;
@@ -34,8 +36,8 @@ use terminal_renderer::{
     emit_diagnostic,
 };
 use terminal_workspace::{
-    PaneDirection, PaneId, PaneRect, SessionDefinition, SplitAxis, Tab, TabId, Workspace,
-    WorkspaceDefinition,
+    LayoutDefinition, PaneDirection, PaneId, PaneRect, SessionDefinition, SplitAxis, Tab, TabId,
+    Workspace, WorkspaceDefinition,
 };
 use winit::application::ApplicationHandler;
 use winit::dpi::{PhysicalPosition, PhysicalSize};
@@ -80,14 +82,30 @@ struct Application {
     base_font_size: u16,
     font_size: u16,
     config_path: PathBuf,
+    saved_workspaces_path: PathBuf,
     project_root_override: Option<PathBuf>,
     palette: Option<Palette>,
     tab_picker: Option<Palette>,
+    saved_workspace_picker: Option<(Palette, SavedPickerMode)>,
+    workspace_name: Option<String>,
+    workspace_confirmation: Option<WorkspaceConfirmation>,
+    workspace_notice: Option<String>,
     unseen_tab_activity: HashSet<TabId>,
     activity_frame: usize,
     activity_deadline: Option<Instant>,
     search: Option<Search>,
     tab_rename: Option<String>,
+}
+
+#[derive(Clone, Copy)]
+enum SavedPickerMode {
+    Open,
+    Delete,
+}
+
+enum WorkspaceConfirmation {
+    Overwrite(String),
+    Delete(String),
 }
 
 fn selection_click_count(
@@ -575,9 +593,14 @@ impl Default for Application {
             base_font_size: Config::default().font.size,
             font_size: Config::default().font.size,
             config_path: config_path(),
+            saved_workspaces_path: app_storage_directory().join("workspaces.toml"),
             project_root_override: None,
             palette: None,
             tab_picker: None,
+            saved_workspace_picker: None,
+            workspace_name: None,
+            workspace_confirmation: None,
+            workspace_notice: None,
             unseen_tab_activity: HashSet::new(),
             activity_frame: 0,
             activity_deadline: None,
@@ -660,6 +683,124 @@ fn queue_terminal_input(
 }
 
 impl Application {
+    fn snapshot_workspace(&self) -> WorkspaceDefinition {
+        let mut definition = self.workspace.definition();
+        for (tab, saved_tab) in self.workspace.tabs().iter().zip(&mut definition.tabs) {
+            let roots: Vec<_> = tab
+                .panes()
+                .iter()
+                .map(|pane| {
+                    let terminal = if pane.id == self.active_runtime_pane {
+                        Some(&self.terminal)
+                    } else {
+                        self.inactive_panes
+                            .get(&pane.id)
+                            .map(|runtime| &runtime.terminal)
+                    };
+                    terminal
+                        .and_then(TerminalState::working_directory_uri)
+                        .and_then(local_cwd_from_osc7)
+                        .or_else(|| {
+                            self.workspace
+                                .pane_launch(pane.id)
+                                .and_then(|(root, _)| root)
+                        })
+                })
+                .collect();
+            apply_pane_roots(&mut saved_tab.layout, &mut roots.into_iter());
+        }
+        definition
+    }
+
+    fn save_workspace(&mut self, name: String) {
+        let result = (|| -> Result<(), String> {
+            let mut store = SavedWorkspaces::load(&self.saved_workspaces_path)?;
+            store.save(name, self.snapshot_workspace())?;
+            store.write(&self.saved_workspaces_path)
+        })();
+        if let Err(error) = result {
+            self.workspace_notice = Some(format!("Could not save workspace: {error}"));
+        }
+        self.invalidate_frame();
+    }
+
+    fn open_saved_workspace_picker(&mut self, mode: SavedPickerMode) {
+        match SavedWorkspaces::load(&self.saved_workspaces_path) {
+            Ok(store) => {
+                let entries = store
+                    .workspaces
+                    .into_iter()
+                    .map(|item| PaletteEntry {
+                        action: PaletteAction::SavedWorkspace(item.name.clone()),
+                        name: item.name,
+                    })
+                    .collect();
+                self.saved_workspace_picker = Some((Palette::from_entries(entries), mode));
+            }
+            Err(error) => {
+                self.workspace_notice = Some(format!("Could not read saved workspaces: {error}"))
+            }
+        }
+        self.invalidate_frame();
+    }
+
+    fn open_saved_workspace(&mut self, name: &str) {
+        let result = (|| -> Result<Workspace, String> {
+            let store = SavedWorkspaces::load(&self.saved_workspaces_path)?;
+            let item = store
+                .workspaces
+                .iter()
+                .find(|item| item.name == name)
+                .ok_or("saved workspace no longer exists")?;
+            Workspace::from_definition(&item.definition).map_err(|error| error.to_string())
+        })();
+        match result {
+            Ok(workspace) => {
+                self.pty.take();
+                self.inactive_panes.clear();
+                let dimensions = self.terminal.dimensions();
+                self.terminal = TerminalState::new(dimensions);
+                self.parser = TerminalParser::with_osc52_policy(Osc52Policy::Deny);
+                let active = workspace.active_pane();
+                self.inactive_panes = workspace
+                    .panes()
+                    .into_iter()
+                    .filter(|pane| pane.id != active)
+                    .map(|pane| (pane.id, PaneRuntime::new(dimensions)))
+                    .collect();
+                self.workspace = workspace;
+                self.active_runtime_pane = active;
+                self.search = None;
+                self.unseen_tab_activity.clear();
+                self.pty_wake_pending.store(false, Ordering::Release);
+                if let Some(size) = self.window.as_ref().map(|window| window.inner_size()) {
+                    self.resize_terminal_to_viewport(size);
+                }
+                self.start_local_shell();
+                self.update_workspace_title();
+                self.invalidate_frame();
+            }
+            Err(error) => {
+                self.workspace_notice = Some(format!("Could not open workspace: {error}"));
+                self.invalidate_frame();
+            }
+        }
+    }
+
+    fn delete_saved_workspace(&mut self, name: &str) {
+        let result = (|| -> Result<(), String> {
+            let mut store = SavedWorkspaces::load(&self.saved_workspaces_path)?;
+            if !store.delete(name) {
+                return Err("saved workspace no longer exists".into());
+            }
+            store.write(&self.saved_workspaces_path)
+        })();
+        if let Err(error) = result {
+            self.workspace_notice = Some(format!("Could not delete workspace: {error}"));
+        }
+        self.invalidate_frame();
+    }
+
     fn with_pty_wake_proxy(pty_wake_proxy: EventLoopProxy<PtyWake>, cli: CliOptions) -> Self {
         let mut app = Self {
             pty_wake_proxy: Some(pty_wake_proxy.clone()),
@@ -928,6 +1069,12 @@ impl Application {
                 self.tab_picker = Some(Palette::from_entries(entries));
                 self.invalidate_frame();
             }
+            Command::SaveCurrentWorkspace => {
+                self.workspace_name = Some(String::new());
+                self.invalidate_frame();
+            }
+            Command::OpenWorkspacePicker => self.open_saved_workspace_picker(SavedPickerMode::Open),
+            Command::DeleteWorkspace => self.open_saved_workspace_picker(SavedPickerMode::Delete),
             Command::OpenTarget => {
                 if let Some(uri) = self.pending_target.take()
                     && commands::allowed_target(&uri)
@@ -1063,6 +1210,7 @@ impl Application {
     fn dispatch_palette_action(&mut self, action: PaletteAction) {
         match action {
             PaletteAction::Command(command) => self.dispatch_command(command),
+            PaletteAction::SavedWorkspace(name) => self.open_saved_workspace(&name),
             PaletteAction::ProjectTab(root) => self.create_pane_at_root(None, Some(root)),
             PaletteAction::ProjectSplit(root, axis) => {
                 self.create_pane_at_root(Some(axis), Some(root));
@@ -2282,7 +2430,19 @@ impl ApplicationHandler<PtyWake> for Application {
                     "app event=keyboard logical={:?} physical={:?} text={:?}",
                     event.logical_key, event.physical_key, event.text
                 ));
-                if self.tab_rename.is_some() {
+                if self.workspace_notice.is_some() {
+                    self.workspace_notice = None;
+                    self.invalidate_frame();
+                } else if self.workspace_confirmation.is_some() {
+                    self.handle_workspace_confirmation_key(&event.logical_key);
+                } else if self.workspace_name.is_some() {
+                    self.handle_workspace_name_key(&event.logical_key, event.text.as_deref());
+                } else if self.saved_workspace_picker.is_some() {
+                    self.handle_saved_workspace_picker_key(
+                        &event.logical_key,
+                        event.text.as_deref(),
+                    );
+                } else if self.tab_rename.is_some() {
                     self.handle_tab_rename_key(&event.logical_key, event.text.as_deref());
                 } else if self.search.is_some() {
                     self.handle_search_key(&event.logical_key, event.text.as_deref());
@@ -2353,7 +2513,8 @@ impl ApplicationHandler<PtyWake> for Application {
                     };
                 self.frame.begin_redraw();
                 let overlay = self
-                    .tab_rename_overlay()
+                    .workspace_overlay()
+                    .or_else(|| self.tab_rename_overlay())
                     .or_else(|| self.search_overlay())
                     .or_else(|| self.palette_overlay())
                     .or_else(|| self.tab_picker_overlay());
@@ -2521,7 +2682,29 @@ fn local_shell_spawn_config(size: PtySize) -> PtySpawnConfig {
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("/bin/sh"));
 
+    #[cfg(windows)]
+    return windows_local_shell_spawn_config(program, source, size);
+
+    #[cfg(not(windows))]
     PtySpawnConfig::new(program, size)
+}
+
+#[cfg(any(windows, test))]
+fn windows_local_shell_spawn_config(
+    program: PathBuf,
+    source: WindowsShellSource,
+    size: PtySize,
+) -> PtySpawnConfig {
+    let config = PtySpawnConfig::new(program, size);
+    match source {
+        WindowsShellSource::PowerShellCore | WindowsShellSource::WindowsPowerShell => config
+            .with_arguments([
+                OsString::from("-NoExit"),
+                OsString::from("-Command"),
+                OsString::from(include_str!("powershell_osc7.ps1")),
+            ]),
+        WindowsShellSource::ComSpec | WindowsShellSource::Cmd => config,
+    }
 }
 
 fn spawn_config_for_session(
@@ -2818,6 +3001,10 @@ fn config_path() -> PathBuf {
     if let Some(path) = std::env::var_os("TERMINAL_CONFIG") {
         return PathBuf::from(path);
     }
+    app_storage_directory().join("config.toml")
+}
+
+fn app_storage_directory() -> PathBuf {
     let directory = if cfg!(windows) {
         std::env::var_os("APPDATA").map(PathBuf::from)
     } else {
@@ -2828,7 +3015,229 @@ fn config_path() -> PathBuf {
     directory
         .unwrap_or_else(|| PathBuf::from("."))
         .join("terminal")
-        .join("config.toml")
+}
+
+fn apply_pane_roots(
+    layout: &mut LayoutDefinition,
+    roots: &mut impl Iterator<Item = Option<PathBuf>>,
+) {
+    match layout {
+        LayoutDefinition::Pane { project_root, .. } => {
+            *project_root = roots.next().expect("one root per pane")
+        }
+        LayoutDefinition::Split { first, second, .. } => {
+            apply_pane_roots(first, roots);
+            apply_pane_roots(second, roots);
+        }
+    }
+}
+
+impl Application {
+    fn handle_workspace_name_key(&mut self, key: &Key, text: Option<&str>) {
+        let Some(mut name) = self.workspace_name.take() else {
+            return;
+        };
+        match key {
+            Key::Named(NamedKey::Escape) => {}
+            Key::Named(NamedKey::Enter) => {
+                name = name.trim().to_owned();
+                if name.is_empty() {
+                    self.workspace_name = Some(name);
+                } else {
+                    match SavedWorkspaces::load(&self.saved_workspaces_path) {
+                        Ok(store) if store.contains(&name) => {
+                            self.workspace_confirmation =
+                                Some(WorkspaceConfirmation::Overwrite(name))
+                        }
+                        Ok(_) => self.save_workspace(name),
+                        Err(error) => {
+                            self.workspace_notice =
+                                Some(format!("Could not read saved workspaces: {error}"))
+                        }
+                    }
+                }
+            }
+            Key::Named(NamedKey::Backspace) => {
+                name.pop();
+                self.workspace_name = Some(name);
+            }
+            _ => {
+                if !self.modifiers.control_key()
+                    && !self.modifiers.alt_key()
+                    && !self.modifiers.super_key()
+                    && let Some(text) = text
+                {
+                    name.push_str(text);
+                }
+                self.workspace_name = Some(name);
+            }
+        }
+        self.invalidate_frame();
+    }
+
+    fn handle_saved_workspace_picker_key(&mut self, key: &Key, text: Option<&str>) {
+        let Some((mut picker, mode)) = self.saved_workspace_picker.take() else {
+            return;
+        };
+        let mut chosen = None;
+        let mut close = false;
+        match key {
+            Key::Named(NamedKey::Escape) => close = true,
+            Key::Named(NamedKey::Enter) => {
+                chosen = picker.chosen();
+                close = chosen.is_some();
+            }
+            Key::Named(NamedKey::Backspace) => picker.backspace(),
+            Key::Named(NamedKey::ArrowUp) => picker.move_selection(-1),
+            Key::Named(NamedKey::ArrowDown) => picker.move_selection(1),
+            _ if !self.modifiers.control_key()
+                && !self.modifiers.alt_key()
+                && !self.modifiers.super_key() =>
+            {
+                if let Some(text) = text {
+                    picker.push_text(text);
+                }
+            }
+            _ => {}
+        }
+        if !close {
+            self.saved_workspace_picker = Some((picker, mode));
+        }
+        if let Some(PaletteAction::SavedWorkspace(name)) = chosen {
+            match mode {
+                SavedPickerMode::Open => self.open_saved_workspace(&name),
+                SavedPickerMode::Delete => {
+                    self.workspace_confirmation = Some(WorkspaceConfirmation::Delete(name))
+                }
+            }
+        }
+        self.invalidate_frame();
+    }
+
+    fn handle_workspace_confirmation_key(&mut self, key: &Key) {
+        let Some(confirmation) = self.workspace_confirmation.take() else {
+            return;
+        };
+        if matches!(key, Key::Character(value) if value.eq_ignore_ascii_case("y")) {
+            match confirmation {
+                WorkspaceConfirmation::Overwrite(name) => self.save_workspace(name),
+                WorkspaceConfirmation::Delete(name) => self.delete_saved_workspace(&name),
+            }
+        } else if !matches!(
+            key,
+            Key::Named(NamedKey::Escape) | Key::Named(NamedKey::Enter) | Key::Character(_)
+        ) {
+            self.workspace_confirmation = Some(confirmation);
+        }
+        self.invalidate_frame();
+    }
+
+    fn workspace_overlay(&self) -> Option<TextOverlay> {
+        let lines = if let Some(message) = &self.workspace_notice {
+            vec![OverlayLine {
+                text: format!(" {message}  Enter/Esc dismiss"),
+                selected: true,
+                accent_column: None,
+            }]
+        } else if let Some(confirmation) = &self.workspace_confirmation {
+            let prompt = match confirmation {
+                WorkspaceConfirmation::Overwrite(name) => {
+                    format!(" Replace saved workspace '{name}'?")
+                }
+                WorkspaceConfirmation::Delete(name) => format!(" Delete saved workspace '{name}'?"),
+            };
+            vec![OverlayLine {
+                text: format!("{prompt}  Y confirm  Esc cancel"),
+                selected: true,
+                accent_column: None,
+            }]
+        } else if let Some(name) = &self.workspace_name {
+            vec![OverlayLine {
+                text: format!(" Save Current Workspace: {name}  Enter save  Esc cancel"),
+                selected: true,
+                accent_column: None,
+            }]
+        } else if let Some((picker, mode)) = &self.saved_workspace_picker {
+            let title = match mode {
+                SavedPickerMode::Open => "Open Workspace",
+                SavedPickerMode::Delete => "Delete Workspace",
+            };
+            let mut lines = vec![OverlayLine {
+                text: format!(" {title} > {}", picker.query()),
+                selected: false,
+                accent_column: None,
+            }];
+            let matches = picker.matches();
+            if matches.is_empty() {
+                lines.push(OverlayLine {
+                    text: " No saved workspaces".into(),
+                    selected: false,
+                    accent_column: None,
+                });
+            } else {
+                lines.extend(
+                    matches
+                        .iter()
+                        .enumerate()
+                        .map(|(index, entry)| OverlayLine {
+                            text: format!(
+                                " {} {}",
+                                if index == picker.selected() { '>' } else { ' ' },
+                                entry.name
+                            ),
+                            selected: index == picker.selected(),
+                            accent_column: None,
+                        }),
+                );
+            }
+            lines
+        } else {
+            return None;
+        };
+        Some(TextOverlay {
+            lines,
+            bottom: false,
+            search_matches: Vec::new(),
+            search_markers: Vec::new(),
+        })
+    }
+}
+
+fn local_cwd_from_osc7(uri: &str) -> Option<PathBuf> {
+    let rest = uri.strip_prefix("file://")?;
+    let (host, path) = if rest.starts_with('/') {
+        ("", rest)
+    } else {
+        let (host, _) = rest.split_once('/')?;
+        (host, &rest[host.len()..])
+    };
+    if !host.is_empty()
+        && !host.eq_ignore_ascii_case("localhost")
+        && !std::env::var("COMPUTERNAME").is_ok_and(|local| host.eq_ignore_ascii_case(&local))
+        && !std::env::var("HOSTNAME").is_ok_and(|local| host.eq_ignore_ascii_case(&local))
+    {
+        return None;
+    }
+    let mut decoded = Vec::with_capacity(path.len());
+    let mut bytes = path.bytes();
+    while let Some(byte) = bytes.next() {
+        if byte == b'%' {
+            let high = (bytes.next()? as char).to_digit(16)?;
+            let low = (bytes.next()? as char).to_digit(16)?;
+            decoded.push((high * 16 + low) as u8);
+        } else {
+            decoded.push(byte);
+        }
+    }
+    let path = String::from_utf8(decoded).ok()?;
+    #[cfg(windows)]
+    let path = if path.as_bytes().get(2) == Some(&b':') {
+        &path[1..]
+    } else {
+        &path
+    };
+    let path = PathBuf::from(path);
+    path.is_absolute().then_some(path)
 }
 
 fn config_fingerprint(path: &std::path::Path) -> Option<u64> {
@@ -3023,6 +3432,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
+    use std::ffi::OsString;
     use std::fs;
     use std::path::PathBuf;
     use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
@@ -3091,16 +3501,254 @@ mod tests {
         basic_backspace_byte_for_platform, basic_key_input, configured_command,
         cursor_key_from_logical_key, font_request, pane_dimensions, parse_terminal_output,
         pty_size_for_terminal, queue_terminal_input, scroll_terminal_for_wheel,
-        select_windows_shell, target_at_pointer, terminal_cell_at, terminal_cursor_key_input,
-        terminal_dimensions_for_viewport, terminal_key_input, wheel_scroll_rows,
+        select_windows_shell, spawn_config_for_session, target_at_pointer, terminal_cell_at,
+        terminal_cursor_key_input, terminal_dimensions_for_viewport, terminal_key_input,
+        wheel_scroll_rows, windows_local_shell_spawn_config,
     };
     use terminal_config::{Command, Config, Rgb};
     use terminal_core::{CursorKey, TerminalDimensions, TerminalParser, TerminalState};
-    use terminal_pty::{PtyOutput, PtyWorkerEvent};
+    use terminal_pty::{PtyOutput, PtySize, PtyWorkerEvent};
     use terminal_renderer::{
         CellMetrics, FontRequest, ScrollbarGeometry, ScrollbarRenderData, SurfaceSize,
     };
-    use terminal_workspace::{LayoutDefinition, PaneDirection, PaneRect, SplitAxis};
+    use terminal_workspace::{
+        LayoutDefinition, PaneDirection, PaneRect, SessionDefinition, SplitAxis,
+    };
+
+    fn saved_state_path() -> PathBuf {
+        std::env::temp_dir().join(format!(
+            "terminal-saved-workspaces-{}-{}.toml",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ))
+    }
+
+    #[test]
+    fn saved_workspace_round_trips_layout_focus_titles_sessions_and_fresh_runtime() {
+        let path = saved_state_path();
+        let mut app = Application {
+            saved_workspaces_path: path.clone(),
+            ..Application::default()
+        };
+        app.dispatch_command(Command::SplitVertical);
+        app.workspace
+            .set_active_tab_custom_title(Some("Editor".into()));
+        assert!(app.workspace.resize_focused_pane(
+            PaneDirection::Left,
+            PaneRect {
+                x: 0,
+                y: 0,
+                width: 1000,
+                height: 600
+            },
+            100,
+            10
+        ));
+        let mut definition = app.workspace.definition();
+        if let LayoutDefinition::Split { first, .. } = &mut definition.tabs[0].layout
+            && let LayoutDefinition::Pane {
+                session,
+                project_root,
+            } = first.as_mut()
+        {
+            *session = terminal_workspace::SessionDefinition::Command {
+                program: "nvim".into(),
+                args: vec!["notes.txt".into()],
+            };
+            *project_root = Some("project".into());
+        }
+        if let LayoutDefinition::Split { second, .. } = &mut definition.tabs[0].layout
+            && let LayoutDefinition::Pane { project_root, .. } = second.as_mut()
+        {
+            *project_root = Some("older project root".into());
+        }
+        app.load_workspace(&definition);
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
+            b"\x1b]7;file:///C:/reported%20cwd\x07\x1b]2;manually launched child\x07".to_vec(),
+        )));
+        app.dispatch_command(Command::NewTab);
+        app.workspace
+            .set_active_tab_custom_title(Some("Shell".into()));
+        app.dispatch_command(Command::SplitHorizontal);
+        let snapshot = app.snapshot_workspace();
+        assert_eq!(snapshot.tabs.len(), 2);
+        assert_eq!(snapshot.active_tab, 1);
+        assert_eq!(snapshot.tabs[0].custom_title.as_deref(), Some("Editor"));
+        if let LayoutDefinition::Split {
+            first_share,
+            first,
+            second,
+            ..
+        } = &snapshot.tabs[0].layout
+        {
+            assert_ne!(*first_share, 500_000);
+            assert!(matches!(first.as_ref(), LayoutDefinition::Pane {
+                session: terminal_workspace::SessionDefinition::Command { program, args },
+                project_root: Some(root),
+            } if program == "nvim" && args == &["notes.txt"] && root == &std::path::PathBuf::from("project")));
+            assert!(matches!(second.as_ref(), LayoutDefinition::Pane {
+                session: terminal_workspace::SessionDefinition::LocalShell,
+                project_root: Some(root),
+            } if root == &super::local_cwd_from_osc7("file:///C:/reported%20cwd").unwrap()));
+        } else {
+            panic!("split missing");
+        }
+        assert!(
+            matches!(&snapshot.tabs[1].layout, LayoutDefinition::Split { first, second, .. }
+            if matches!(first.as_ref(), LayoutDefinition::Pane { session: terminal_workspace::SessionDefinition::LocalShell, project_root: None })
+            && matches!(second.as_ref(), LayoutDefinition::Pane { session: terminal_workspace::SessionDefinition::LocalShell, project_root: None }))
+        );
+        app.save_workspace("Mine".into());
+        assert!(app.workspace_notice.is_none(), "{:?}", app.workspace_notice);
+        let mut restarted = Application {
+            saved_workspaces_path: path.clone(),
+            ..Application::default()
+        };
+        restarted.dispatch_command(Command::NewTab);
+        restarted.open_saved_workspace("Mine");
+        assert_eq!(restarted.workspace.definition(), snapshot);
+        assert_eq!(restarted.workspace.tabs().len(), 2);
+        assert_eq!(restarted.inactive_panes.len(), 3);
+        assert!(restarted.pty.is_none());
+        assert!(
+            restarted
+                .inactive_panes
+                .values()
+                .all(|runtime| runtime.pty.is_none())
+        );
+        assert_eq!(restarted.terminal.shell_title(), None);
+        fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn prompt_osc7_updates_pane_cwd_used_by_saved_workspace() {
+        let path = saved_state_path();
+        let mut app = Application {
+            saved_workspaces_path: path.clone(),
+            ..Application::default()
+        };
+        let mut definition = app.workspace.definition();
+        if let LayoutDefinition::Pane { project_root, .. } = &mut definition.tabs[0].layout {
+            *project_root = Some(PathBuf::from("original project root"));
+        } else {
+            panic!("expected a pane");
+        }
+        app.load_workspace(&definition);
+
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
+            b"\x1b]7;file:///C:/new%20directory\x07PS> ".to_vec(),
+        )));
+        let reported = super::local_cwd_from_osc7("file:///C:/new%20directory").unwrap();
+        assert_eq!(
+            app.terminal.working_directory_uri(),
+            Some("file:///C:/new%20directory")
+        );
+        assert!(matches!(&app.snapshot_workspace().tabs[0].layout,
+            LayoutDefinition::Pane { project_root: Some(root), .. } if root == &reported));
+
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
+            b"\x1b]7;file:///C:/invalid%GGpath\x07".to_vec(),
+        )));
+        assert_eq!(
+            app.terminal.working_directory_uri(),
+            Some("file:///C:/new%20directory")
+        );
+        app.save_workspace("After cd".into());
+        let mut reopened = Application {
+            saved_workspaces_path: path.clone(),
+            ..Application::default()
+        };
+        reopened.open_saved_workspace("After cd");
+        assert!(matches!(&reopened.workspace.definition().tabs[0].layout,
+            LayoutDefinition::Pane { project_root: Some(root), .. } if root == &reported));
+        fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn saved_workspace_confirmations_delete_and_corrupt_state_are_safe() {
+        let path = saved_state_path();
+        let mut app = Application {
+            saved_workspaces_path: path.clone(),
+            ..Application::default()
+        };
+        app.dispatch_command(Command::SaveCurrentWorkspace);
+        app.handle_workspace_name_key(&Key::Character("  ".into()), Some("  "));
+        app.handle_workspace_name_key(&Key::Named(NamedKey::Enter), None);
+        assert!(app.workspace_name.is_some());
+        app.workspace_name = Some("Mine".into());
+        app.handle_workspace_name_key(&Key::Named(NamedKey::Enter), None);
+        app.dispatch_command(Command::SaveCurrentWorkspace);
+        app.workspace_name = Some("Mine".into());
+        app.handle_workspace_name_key(&Key::Named(NamedKey::Enter), None);
+        assert!(matches!(
+            app.workspace_confirmation,
+            Some(super::WorkspaceConfirmation::Overwrite(_))
+        ));
+        app.handle_workspace_confirmation_key(&Key::Named(NamedKey::Escape));
+        assert_eq!(
+            super::SavedWorkspaces::load(&path)
+                .unwrap()
+                .workspaces
+                .len(),
+            1
+        );
+        app.dispatch_command(Command::DeleteWorkspace);
+        app.handle_saved_workspace_picker_key(&Key::Named(NamedKey::Enter), None);
+        assert!(matches!(
+            app.workspace_confirmation,
+            Some(super::WorkspaceConfirmation::Delete(_))
+        ));
+        app.handle_workspace_confirmation_key(&Key::Character("y".into()));
+        assert!(
+            !super::SavedWorkspaces::load(&path)
+                .unwrap()
+                .contains("Mine")
+        );
+        fs::write(&path, "broken = [").unwrap();
+        let before = app.workspace.definition();
+        app.open_saved_workspace("Mine");
+        assert_eq!(app.workspace.definition(), before);
+        assert!(app.workspace_notice.is_some());
+        fs::remove_file(&path).unwrap();
+        assert!(
+            super::SavedWorkspaces::load(&path)
+                .unwrap()
+                .workspaces
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn saved_workspace_picker_filters_and_owns_its_input() {
+        let path = saved_state_path();
+        let mut app = Application {
+            saved_workspaces_path: path.clone(),
+            ..Application::default()
+        };
+        app.save_workspace("Alpha".into());
+        app.dispatch_command(Command::NewTab);
+        app.save_workspace("Beta".into());
+        app.dispatch_command(Command::OpenWorkspacePicker);
+        let before = app.terminal.screen().cell(0, 0).unwrap().character();
+        app.handle_saved_workspace_picker_key(&Key::Character("beta".into()), Some("beta"));
+        let (picker, _) = app.saved_workspace_picker.as_ref().unwrap();
+        assert_eq!(picker.matches().len(), 1);
+        assert_eq!(
+            picker.chosen(),
+            Some(PaletteAction::SavedWorkspace("Beta".into()))
+        );
+        assert_eq!(
+            app.terminal.screen().cell(0, 0).unwrap().character(),
+            before
+        );
+        app.handle_saved_workspace_picker_key(&Key::Named(NamedKey::Enter), None);
+        assert!(app.saved_workspace_picker.is_none());
+        assert_eq!(app.workspace.tabs().len(), 2);
+        fs::remove_file(path).unwrap();
+    }
     use winit::dpi::{PhysicalPosition, PhysicalSize};
     use winit::event::MouseScrollDelta;
     use winit::keyboard::{Key, KeyCode, ModifiersState, NamedKey, PhysicalKey};
@@ -4708,6 +5356,45 @@ mod tests {
         assert_eq!(
             select_windows_shell(None, None, None),
             (PathBuf::from("cmd.exe"), WindowsShellSource::Cmd)
+        );
+    }
+
+    #[test]
+    fn powershell_local_shell_injects_prompt_hook_without_disabling_profiles() {
+        let size = PtySize::new(24, 80).unwrap();
+        for source in [
+            WindowsShellSource::PowerShellCore,
+            WindowsShellSource::WindowsPowerShell,
+        ] {
+            let config =
+                windows_local_shell_spawn_config(PathBuf::from("powershell.exe"), source, size);
+            assert_eq!(config.arguments()[0], "-NoExit");
+            assert_eq!(config.arguments()[1], "-Command");
+            assert!(
+                config.arguments()[2]
+                    .to_string_lossy()
+                    .contains("function global:prompt")
+            );
+            assert!(!config.arguments().iter().any(|arg| arg == "-NoProfile"));
+        }
+        for source in [WindowsShellSource::ComSpec, WindowsShellSource::Cmd] {
+            assert!(
+                windows_local_shell_spawn_config(PathBuf::from("cmd.exe"), source, size)
+                    .arguments()
+                    .is_empty()
+            );
+        }
+        let direct = spawn_config_for_session(
+            size,
+            None,
+            SessionDefinition::Command {
+                program: PathBuf::from("powershell.exe"),
+                args: vec!["-File".into(), "task.ps1".into()],
+            },
+        );
+        assert_eq!(
+            direct.arguments(),
+            &[OsString::from("-File"), OsString::from("task.ps1")]
         );
     }
 

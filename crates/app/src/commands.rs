@@ -10,6 +10,7 @@ pub enum PaletteAction {
     ProjectTab(PathBuf),
     ProjectSplit(PathBuf, SplitAxis),
     SwitchTab(usize),
+    SavedWorkspace(String),
 }
 
 #[derive(Clone, Debug)]
@@ -55,6 +56,21 @@ pub const COMMANDS: &[CommandInfo] = &[
         command: Command::OpenTabPicker,
         name: "Tab Picker",
         in_palette: false,
+    },
+    CommandInfo {
+        command: Command::SaveCurrentWorkspace,
+        name: "Save Current Workspace",
+        in_palette: true,
+    },
+    CommandInfo {
+        command: Command::OpenWorkspacePicker,
+        name: "Open Workspace",
+        in_palette: true,
+    },
+    CommandInfo {
+        command: Command::DeleteWorkspace,
+        name: "Delete Workspace",
+        in_palette: true,
     },
     CommandInfo {
         command: Command::OpenTarget,
@@ -325,6 +341,19 @@ mod tests {
             ]
             .map(PaletteAction::Command)
         );
+    }
+
+    #[test]
+    fn saved_workspace_commands_are_searchable_in_palette() {
+        for (query, expected) in [
+            ("save current workspace", Command::SaveCurrentWorkspace),
+            ("open workspace", Command::OpenWorkspacePicker),
+            ("delete workspace", Command::DeleteWorkspace),
+        ] {
+            let mut palette = Palette::default();
+            palette.push_text(query);
+            assert_eq!(palette.chosen(), Some(PaletteAction::Command(expected)));
+        }
     }
 
     #[test]
