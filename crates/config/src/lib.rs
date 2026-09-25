@@ -54,6 +54,9 @@ pub enum Command {
     Paste,
     PageUp,
     PageDown,
+    IncreaseFontSize,
+    DecreaseFontSize,
+    ResetFontSize,
     OpenPalette,
     OpenTarget,
     NewTab,
@@ -127,6 +130,10 @@ impl Default for Config {
                 ("Ctrl+Shift+V", Command::Paste),
                 ("PageUp", Command::PageUp),
                 ("PageDown", Command::PageDown),
+                ("Ctrl+=", Command::IncreaseFontSize),
+                ("Ctrl+Shift+=", Command::IncreaseFontSize),
+                ("Ctrl+-", Command::DecreaseFontSize),
+                ("Ctrl+0", Command::ResetFontSize),
                 ("Ctrl+Shift+P", Command::OpenPalette),
                 ("Ctrl+Shift+T", Command::NewTab),
                 ("Ctrl+Shift+E", Command::SplitVertical),
@@ -368,6 +375,11 @@ fn parse_color(value: &str) -> Result<Rgb, String> {
 }
 
 fn parse_chord(value: &str) -> Result<KeyChord, String> {
+    let value = if value.trim().eq_ignore_ascii_case("Ctrl++") {
+        "Ctrl+Shift+="
+    } else {
+        value
+    };
     let mut chord = KeyChord {
         control: false,
         shift: false,
@@ -381,6 +393,8 @@ fn parse_chord(value: &str) -> Result<KeyChord, String> {
             "alt" if !chord.alt && chord.key.is_empty() => chord.alt = true,
             key if chord.key.is_empty() => {
                 chord.key = match key {
+                    "=" => "Equal".into(),
+                    "-" => "Minus".into(),
                     "pageup" => "PageUp".into(),
                     "pagedown" => "PageDown".into(),
                     "home" => "Home".into(),
@@ -523,6 +537,34 @@ mod tests {
                 .iter()
                 .any(|binding| binding.command == Command::OpenPalette)
         );
+    }
+
+    #[test]
+    fn font_size_shortcuts_are_configurable_physical_chords() {
+        let config = Config::parse(
+            "[[bindings]]\nkey = 'Ctrl++'\ncommand = 'increase_font_size'\n[[bindings]]\nkey = 'Ctrl+-'\ncommand = 'decrease_font_size'\n[[bindings]]\nkey = 'Ctrl+0'\ncommand = 'reset_font_size'",
+        )
+        .unwrap();
+        assert_eq!(config.bindings[0].key.key, "Equal");
+        assert!(config.bindings[0].key.shift);
+        assert_eq!(config.bindings[0].command, Command::IncreaseFontSize);
+        assert_eq!(config.bindings[1].key.key, "Minus");
+        assert_eq!(config.bindings[1].command, Command::DecreaseFontSize);
+        assert_eq!(config.bindings[2].command, Command::ResetFontSize);
+
+        let defaults = Config::default();
+        for command in [
+            Command::IncreaseFontSize,
+            Command::DecreaseFontSize,
+            Command::ResetFontSize,
+        ] {
+            assert!(
+                defaults
+                    .bindings
+                    .iter()
+                    .any(|binding| binding.command == command)
+            );
+        }
     }
     #[test]
     fn backspace_is_a_supported_physical_binding_key() {

@@ -6,7 +6,7 @@
 [font]
 # Omit family to use the platform-selected monospace font (default).
 # family = "Cascadia Mono" # Installed monospace family; restart to apply.
-size = 16 # Logical pixels; integer from 1 to 256. Restart to apply.
+size = 16 # Logical pixels; integer from 1 to 256. Runtime shortcuts change size; this is the reset size. Restart to apply edits.
 
 [theme]
 # Colors use #RRGGBB.
@@ -26,11 +26,13 @@ ansi = [
 # Binding entries replace the entire default list; keep any shortcuts you want.
 # A chord uses optional Ctrl, Shift, Alt, then a physical key. Supported keys:
 # A-Z, 0-9, PageUp, PageDown, Home, End, Insert, Delete, Backspace, Tab,
-# ArrowLeft, ArrowRight. Plain letters and digits require a modifier.
+# ArrowLeft, ArrowRight, Equal, Minus. Plain letters and digits require a modifier.
 # Example custom binding: key = "Ctrl+Shift+Backspace", command = "close_pane".
 # Commands: copy, paste, page_up, page_down, open_palette, open_target,
 # new_tab, split_horizontal, split_vertical, next_tab, previous_tab,
 # next_pane, previous_pane, toggle_pane_zoom, close_pane. "action" aliases "command".
+# next_pane, previous_pane, close_pane, increase_font_size,
+# decrease_font_size, reset_font_size. "action" aliases "command".
 [[bindings]]
 key = "Ctrl+Shift+C"
 command = "copy"
@@ -46,6 +48,22 @@ command = "page_up"
 [[bindings]]
 key = "PageDown"
 command = "page_down"
+
+[[bindings]]
+key = "Ctrl+="
+command = "increase_font_size"
+
+[[bindings]]
+key = "Ctrl++"
+command = "increase_font_size"
+
+[[bindings]]
+key = "Ctrl+-"
+command = "decrease_font_size"
+
+[[bindings]]
+key = "Ctrl+0"
+command = "reset_font_size"
 
 [[bindings]]
 key = "Ctrl+Shift+P"
