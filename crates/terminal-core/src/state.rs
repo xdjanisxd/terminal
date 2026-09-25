@@ -145,12 +145,41 @@ pub struct TerminalState {
     pending_replies: PendingReplies,
     pub(crate) selection: Option<crate::selection::Selection>,
     pending_osc52_write: Option<String>,
+    shell_title: Option<String>,
+    shell_title_version: u64,
+    working_directory_uri: Option<String>,
     targets: std::collections::HashMap<u64, String>,
     current_target: Option<u64>,
     next_target_id: u64,
 }
 
 impl TerminalState {
+    /// The latest terminal-provided title for this session.
+    pub fn shell_title(&self) -> Option<&str> {
+        self.shell_title.as_deref()
+    }
+
+    pub(crate) fn set_shell_title(&mut self, title: Option<String>) {
+        if self.shell_title != title {
+            self.shell_title = title;
+            self.shell_title_version = self.shell_title_version.wrapping_add(1);
+        }
+    }
+
+    /// Changes when a reported shell title changes.
+    pub fn shell_title_version(&self) -> u64 {
+        self.shell_title_version
+    }
+
+    /// The latest validated OSC 7 file URI for this session.
+    pub fn working_directory_uri(&self) -> Option<&str> {
+        self.working_directory_uri.as_deref()
+    }
+
+    pub(crate) fn set_working_directory_uri(&mut self, uri: String) {
+        self.working_directory_uri = Some(uri);
+    }
+
     /// Starts or ends an OSC 8 span. The URI is untrusted terminal data.
     pub(crate) fn set_hyperlink(&mut self, uri: Option<String>) {
         self.current_target = None;
@@ -204,6 +233,9 @@ impl TerminalState {
             pending_replies: PendingReplies::default(),
             selection: None,
             pending_osc52_write: None,
+            shell_title: None,
+            shell_title_version: 0,
+            working_directory_uri: None,
             targets: std::collections::HashMap::new(),
             current_target: None,
             next_target_id: 0,

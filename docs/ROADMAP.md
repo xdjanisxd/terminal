@@ -132,7 +132,7 @@ later performance/polish work.
 - [x] Add an in-terminal search UI for Primary-screen scrollback, with next/previous match navigation bounded to terminal-owned history and the visible viewport.
   - Ctrl+F opens app-owned literal search; Enter/Shift+Enter navigate bounded matches, and Escape closes it. The renderer highlights the active match without changing terminal cells or searching Alternate-screen content.
 - [x] Add directional pane focus commands (left, right, above, below) that follow pane layout geometry rather than pane creation order.
-- [ ] Add directional keyboard shortcuts to grow or shrink the active pane while preserving valid, bounded geometry in the existing split layout.
+- [x] Add directional keyboard shortcuts to grow or shrink the active pane while preserving valid, bounded geometry in the existing split layout.
 - [x] Add configurable shortcuts to increase, decrease, and reset terminal font size through the existing DPI, grid, renderer, and PTY resize behavior. Ctrl+= / Ctrl++ increase, Ctrl+- decreases, and Ctrl+0 resets to the configured base size. Runtime changes are bounded and do not write config; font config edits still require restart.
 - [x] Allow custom tab titles, keeping user-assigned titles distinct from automatically derived terminal or shell titles if those are supported later.
   - Completed: the Rename Tab command palette action edits the active tab title; custom titles remain separate from configured or generated base titles.
@@ -145,9 +145,10 @@ later performance/polish work.
   - Show tabs as a clearer dedicated UI surface with active-tab styling.
   - Support mouse tab selection and basic new/close-tab controls.
   - Keep tab reorder and drag-and-drop as optional later work rather than required for the first slice.
-- [ ] Add shell title and working-directory integration.
-  - Track terminal-provided title information without overriding explicit user-renamed tab titles.
-  - Track each pane's current working directory so new panes and workspaces can start from the correct path.
+- [x] Add shell title and working-directory integration.
+  - Track OSC 0/2 titles per pane and show the active pane's title unless the tab has an explicit user rename.
+  - Track each pane's latest validated OSC 7 `file://` URI independently, including background panes.
+- [ ] Use a reported CWD to launch new splits or tabs after validating URI host and local path semantics against the target platform and configured project roots.
 - [ ] Improve scrollback search.
   - Make literal search case-insensitive by default.
   - Add wrap-around next/previous navigation.
