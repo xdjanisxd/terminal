@@ -131,12 +131,10 @@ later performance/polish work.
 - [x] Dedicated input and frame-pacing performance task: investigate delayed typing/input, janky Backspace/delete, non-smooth PageUp/PageDown, live resize trailing the pointer (including temporary text scaling), and overall UI/frame pacing relative to mature terminals such as Alacritty
 - [x] Add an in-terminal search UI for Primary-screen scrollback, with next/previous match navigation bounded to terminal-owned history and the visible viewport.
   - Ctrl+F opens app-owned literal search; Enter/Shift+Enter navigate bounded matches, and Escape closes it. The renderer highlights the active match without changing terminal cells or searching Alternate-screen content.
-- [ ] Add directional pane focus commands (left, right, above, below) that follow pane layout geometry rather than pane creation order.
+- [x] Add directional pane focus commands (left, right, above, below) that follow pane layout geometry rather than pane creation order.
 - [ ] Add directional keyboard shortcuts to grow or shrink the active pane while preserving valid, bounded geometry in the existing split layout.
-- [ ] Allow custom tab titles, keeping user-assigned titles distinct from automatically derived terminal or shell titles if those are supported later.
 - [x] Add configurable shortcuts to increase, decrease, and reset terminal font size through the existing DPI, grid, renderer, and PTY resize behavior. Ctrl+= / Ctrl++ increase, Ctrl+- decreases, and Ctrl+0 resets to the configured base size. Runtime changes are bounded and do not write config; font config edits still require restart.
 - [x] Allow custom tab titles, keeping user-assigned titles distinct from automatically derived terminal or shell titles if those are supported later.
   - Completed: the Rename Tab command palette action edits the active tab title; custom titles remain separate from configured or generated base titles.
-- [ ] Add shortcuts to increase, decrease, and reset terminal font size through the existing DPI, grid, and renderer resize behavior.
 - [x] Add pane zoom so the focused pane temporarily fills the workspace; toggling zoom off restores the prior split layout and preserves all panes and sessions.
 - [ ] Package and validate supported Windows, Linux, and macOS releases

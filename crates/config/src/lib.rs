@@ -66,6 +66,10 @@ pub enum Command {
     PreviousTab,
     NextPane,
     PreviousPane,
+    FocusPaneLeft,
+    FocusPaneRight,
+    FocusPaneUp,
+    FocusPaneDown,
     TogglePaneZoom,
     ClosePane,
     RenameTab,
@@ -142,6 +146,10 @@ impl Default for Config {
                 ("Ctrl+Shift+Tab", Command::PreviousTab),
                 ("Ctrl+Shift+ArrowRight", Command::NextPane),
                 ("Ctrl+Shift+ArrowLeft", Command::PreviousPane),
+                ("Alt+Shift+ArrowLeft", Command::FocusPaneLeft),
+                ("Alt+Shift+ArrowRight", Command::FocusPaneRight),
+                ("Alt+Shift+ArrowUp", Command::FocusPaneUp),
+                ("Alt+Shift+ArrowDown", Command::FocusPaneDown),
                 ("Ctrl+Shift+Z", Command::TogglePaneZoom),
                 ("Ctrl+Shift+W", Command::ClosePane),
             ]
@@ -405,6 +413,8 @@ fn parse_chord(value: &str) -> Result<KeyChord, String> {
                     "tab" => "Tab".into(),
                     "arrowright" => "ArrowRight".into(),
                     "arrowleft" => "ArrowLeft".into(),
+                    "arrowup" => "ArrowUp".into(),
+                    "arrowdown" => "ArrowDown".into(),
                     _ if key.len() == 1 && key.bytes().all(|byte| byte.is_ascii_alphabetic()) => {
                         format!("Key{}", key.to_ascii_uppercase())
                     }
@@ -629,6 +639,13 @@ mod tests {
     fn default_workspace_bindings_use_supported_physical_keys() {
         let config = Config::default();
         assert_eq!(config.workspace, WorkspaceDefinition::default());
+        let mut chords = HashSet::new();
+        for binding in &config.bindings {
+            assert!(
+                chords.insert(binding.key.clone()),
+                "duplicate default chord"
+            );
+        }
         for command in [
             Command::NewTab,
             Command::SplitHorizontal,
@@ -637,6 +654,10 @@ mod tests {
             Command::PreviousTab,
             Command::NextPane,
             Command::PreviousPane,
+            Command::FocusPaneLeft,
+            Command::FocusPaneRight,
+            Command::FocusPaneUp,
+            Command::FocusPaneDown,
             Command::TogglePaneZoom,
             Command::ClosePane,
         ] {
@@ -647,5 +668,18 @@ mod tests {
                     .any(|binding| binding.command == command)
             );
         }
+    }
+
+    #[test]
+    fn directional_pane_commands_accept_configured_up_and_down_chords() {
+        let config = Config::parse(
+            "[[bindings]]\nkey = 'Ctrl+ArrowUp'\ncommand = 'focus_pane_up'\n[[bindings]]\nkey = 'Ctrl+ArrowDown'\ncommand = 'focus_pane_down'",
+        )
+        .unwrap();
+        assert_eq!(config.bindings.len(), 2);
+        assert_eq!(config.bindings[0].key.key, "ArrowUp");
+        assert_eq!(config.bindings[0].command, Command::FocusPaneUp);
+        assert_eq!(config.bindings[1].key.key, "ArrowDown");
+        assert_eq!(config.bindings[1].command, Command::FocusPaneDown);
     }
 }

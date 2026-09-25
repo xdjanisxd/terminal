@@ -32,7 +32,7 @@ use terminal_renderer::{
     RendererDiagnosticState, Rgba, TextOverlay, diagnostics_enabled, emit_diagnostic,
 };
 use terminal_workspace::{
-    PaneId, PaneRect, SessionDefinition, SplitAxis, Workspace, WorkspaceDefinition,
+    PaneDirection, PaneId, PaneRect, SessionDefinition, SplitAxis, Workspace, WorkspaceDefinition,
 };
 use winit::application::ApplicationHandler;
 use winit::dpi::{PhysicalPosition, PhysicalSize};
@@ -745,6 +745,31 @@ impl Application {
             Command::PreviousPane => {
                 let next = self.workspace.focus_pane(-1);
                 self.activate_pane(next);
+            }
+            Command::FocusPaneLeft
+            | Command::FocusPaneRight
+            | Command::FocusPaneUp
+            | Command::FocusPaneDown => {
+                if let Some(size) = self.window.as_ref().map(|window| window.inner_size()) {
+                    let direction = match command {
+                        Command::FocusPaneLeft => PaneDirection::Left,
+                        Command::FocusPaneRight => PaneDirection::Right,
+                        Command::FocusPaneUp => PaneDirection::Up,
+                        Command::FocusPaneDown => PaneDirection::Down,
+                        _ => unreachable!(),
+                    };
+                    if let Some(next) = self.workspace.focus_pane_direction(
+                        direction,
+                        PaneRect {
+                            x: 0,
+                            y: 0,
+                            width: size.width,
+                            height: size.height,
+                        },
+                    ) {
+                        self.activate_pane(next);
+                    }
+                }
             }
             Command::TogglePaneZoom => {
                 self.workspace.toggle_zoom();
@@ -3228,6 +3253,21 @@ mod tests {
             ),
             Some(Command::PreviousPane)
         );
+        for (key, command) in [
+            (KeyCode::ArrowLeft, Command::FocusPaneLeft),
+            (KeyCode::ArrowRight, Command::FocusPaneRight),
+            (KeyCode::ArrowUp, Command::FocusPaneUp),
+            (KeyCode::ArrowDown, Command::FocusPaneDown),
+        ] {
+            assert_eq!(
+                configured_command(
+                    &defaults,
+                    PhysicalKey::Code(key),
+                    ModifiersState::ALT | ModifiersState::SHIFT
+                ),
+                Some(command)
+            );
+        }
         let custom =
             Config::parse("[[bindings]]\nkey = 'Ctrl+ArrowLeft'\naction = 'copy'").unwrap();
         assert_eq!(
