@@ -1,40 +1,64 @@
 # Copy this file to the platform config path described in docs/CONFIG.md.
+
 # Omitted top-level sections use built-in defaults. Within an explicit workspace,
+
 # tab titles, layouts, pane sessions, and split children are required.
+
 # Unknown fields reject the file.
 
 [font]
+
 # Omit family to use the platform-selected monospace font (default).
+
 # family = "Cascadia Mono" # Installed monospace family; restart to apply.
+
 size = 16 # Logical pixels; integer from 1 to 256. Runtime shortcuts change size; this is the reset size. Restart to apply edits.
 
 [theme]
+
 # Colors use #RRGGBB.
+
 foreground = "#e6e6e6"           # Text color.
 background = "#000000"           # Terminal background.
 cursor = "#e6e6e6"               # Cursor color.
 selection_foreground = "#ffffff" # Selected text.
 selection_background = "#2e59a6" # Selection background.
+
 # Exactly 16 ANSI colors, indexes 0 through 15.
+
 ansi = [
-  "#000000", "#cd3131", "#0dbc79", "#e5e510",
-  "#2472c8", "#bc3fbc", "#11a8cd", "#e5e5e5",
-  "#666666", "#f14c4c", "#23d18b", "#f5f543",
-  "#3b8eea", "#d670d6", "#29b8db", "#ffffff",
+"#000000", "#cd3131", "#0dbc79", "#e5e510",
+"#2472c8", "#bc3fbc", "#11a8cd", "#e5e5e5",
+"#666666", "#f14c4c", "#23d18b", "#f5f543",
+"#3b8eea", "#d670d6", "#29b8db", "#ffffff",
 ]
 
 # Binding entries replace the entire default list; keep any shortcuts you want.
+
 # A chord uses optional Ctrl, Shift, Alt, then a physical key. Supported keys:
+
 # A-Z, 0-9, PageUp, PageDown, Home, End, Insert, Delete, Backspace, Tab,
+
 # ArrowLeft, ArrowRight, ArrowUp, ArrowDown, Equal, Minus. Plain letters and
+
 # digits require a modifier.
+
 # Example custom binding: key = "Ctrl+Shift+Backspace", command = "close_pane".
+
 # Commands include copy, paste, page_up, page_down, open_palette, open_target,
+
 # new_tab, split_horizontal, split_vertical, next_tab, previous_tab, next_pane,
+
 # previous_pane, focus_pane_left, focus_pane_right, focus_pane_up,
-# focus_pane_down, toggle_pane_zoom, close_pane, rename_tab,
+
+# focus_pane_down, resize_pane_left, resize_pane_right, resize_pane_up,
+
+# resize_pane_down, toggle_pane_zoom, close_pane, rename_tab,
+
 # increase_font_size, decrease_font_size, reset_font_size.
+
 # "action" aliases "command".
+
 [[bindings]]
 key = "Ctrl+Shift+C"
 command = "copy"
@@ -100,20 +124,36 @@ key = "Ctrl+Shift+ArrowLeft"
 command = "previous_pane"
 
 [[bindings]]
-key = "Alt+Shift+ArrowLeft"
+key = "Ctrl+Shift+H"
 command = "focus_pane_left"
 
 [[bindings]]
-key = "Alt+Shift+ArrowRight"
+key = "Ctrl+Shift+L"
 command = "focus_pane_right"
 
 [[bindings]]
-key = "Alt+Shift+ArrowUp"
+key = "Ctrl+Shift+K"
 command = "focus_pane_up"
 
 [[bindings]]
-key = "Alt+Shift+ArrowDown"
+key = "Ctrl+Shift+J"
 command = "focus_pane_down"
+
+[[bindings]]
+key = "Ctrl+Alt+H"
+command = "resize_pane_left"
+
+[[bindings]]
+key = "Ctrl+Alt+L"
+command = "resize_pane_right"
+
+[[bindings]]
+key = "Ctrl+Alt+K"
+command = "resize_pane_up"
+
+[[bindings]]
+key = "Ctrl+Alt+J"
+command = "resize_pane_down"
 
 [[bindings]]
 key = "Ctrl+Shift+Z"
@@ -124,33 +164,53 @@ key = "Ctrl+Shift+W"
 command = "close_pane"
 
 [workspace]
+
 # Default: no project_root. Set a path to choose the working directory for
+
 # panes without a more specific tab or pane root. Relative paths resolve from
+
 # the config file directory. Example: project_root = "../my-project"
+
 active_tab = 0 # Zero-based index of the initially focused tab.
 
 [[workspace.tabs]]
 title = "Terminal 1" # Initial tab title.
+
 # Default: no tab project_root. It overrides workspace.project_root.
+
 # Example: project_root = "../my-project"
+
 active_pane = 0 # Zero-based initial pane index, in layout leaf order.
 
 [workspace.tabs.layout]
 kind = "pane" # "pane" or "split"; a split has axis, first, and second.
+
 # Default: no pane project_root. It overrides tab and workspace roots.
+
 # Example: project_root = "../my-project"
+
 session = "local_shell" # Required for a pane; or use the command table below.
 
 # To start a command in this pane, replace the session line above with:
+
 # [workspace.tabs.layout.session.command]
+
 # program = "cargo" # Executable path or name; no shell interpolation.
+
 # args = ["--version"] # Default: []; arguments passed directly.
+
 #
+
 # A split layout can be written inline in a tab instead of the layout table:
+
 # layout = { kind = "split", axis = "vertical", first = { kind = "pane", session = "local_shell" }, second = { kind = "pane", session = "local_shell" } }
+
 # axis accepts "vertical" or "horizontal"; each child can itself be a split.
 
 # Optional project palette entry (default: no projects):
+
 # [[projects]]
+
 # name = "My project" # Must be nonempty and unique.
+
 # path = "../my-project" # Nonempty; relative to the config file directory.
