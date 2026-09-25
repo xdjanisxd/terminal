@@ -69,6 +69,8 @@ struct Application {
     pending_target: Option<String>,
     modifiers: ModifiersState,
     config: Config,
+    base_font_size: u16,
+    font_size: u16,
     config_path: PathBuf,
     project_root_override: Option<PathBuf>,
     palette: Option<Palette>,
@@ -423,6 +425,8 @@ impl Default for Application {
             pending_target: None,
             modifiers: ModifiersState::empty(),
             config: Config::default(),
+            base_font_size: Config::default().font.size,
+            font_size: Config::default().font.size,
             config_path: config_path(),
             project_root_override: None,
             palette: None,
@@ -550,6 +554,10 @@ impl Application {
                         renderer.set_theme(render_theme(&config.theme));
                     }
                     self.invalidate_frame();
+                }
+                if self.renderer.is_none() {
+                    self.base_font_size = config.font.size;
+                    self.font_size = config.font.size;
                 }
                 self.config = config;
             }
@@ -695,6 +703,13 @@ impl Application {
                     self.invalidate_frame();
                 }
             }
+            Command::IncreaseFontSize | Command::DecreaseFontSize | Command::ResetFontSize => {
+                if let Some(size) =
+                    font_size_for_command(command, self.font_size, self.base_font_size)
+                {
+                    self.set_font_size(size);
+                }
+            }
             Command::OpenPalette => {
                 self.palette = Some(Palette::with_projects(&self.config.projects));
                 self.invalidate_frame();
@@ -731,6 +746,25 @@ impl Application {
                 self.tab_rename = Some(String::new());
                 self.invalidate_frame();
             }
+        }
+    }
+
+    fn set_font_size(&mut self, size: u16) {
+        let Some(scale_factor) = self.window.as_ref().map(|window| window.scale_factor()) else {
+            return;
+        };
+        let Some(renderer) = self.renderer.as_mut() else {
+            return;
+        };
+        match renderer.set_font_size(f32::from(size), scale_factor) {
+            Ok(metrics_changed) => {
+                self.font_size = size;
+                if metrics_changed && let Some(window) = self.window.as_ref() {
+                    self.resize_terminal_to_viewport(window.inner_size());
+                }
+                self.invalidate_frame();
+            }
+            Err(error) => eprintln!("could not change terminal font size: {error}"),
         }
     }
 
@@ -2180,6 +2214,15 @@ fn render_theme(theme: &terminal_config::Theme) -> RenderTheme {
     }
 }
 
+fn font_size_for_command(command: Command, current: u16, base: u16) -> Option<u16> {
+    match command {
+        Command::IncreaseFontSize => Some(current.saturating_add(1).min(256)),
+        Command::DecreaseFontSize => Some(current.saturating_sub(1).max(1)),
+        Command::ResetFontSize => Some(base),
+        _ => None,
+    }
+}
+
 fn configured_command(
     config: &Config,
     physical_key: PhysicalKey,
@@ -2250,6 +2293,40 @@ mod tests {
     use winit::dpi::{PhysicalPosition, PhysicalSize};
     use winit::event::MouseScrollDelta;
     use winit::keyboard::{Key, KeyCode, ModifiersState, NamedKey, PhysicalKey};
+
+    #[test]
+    fn font_size_commands_increase_decrease_reset_and_clamp() {
+        assert_eq!(
+            crate::font_size_for_command(Command::IncreaseFontSize, 16, 20),
+            Some(17)
+        );
+        assert_eq!(
+            crate::font_size_for_command(Command::DecreaseFontSize, 16, 20),
+            Some(15)
+        );
+        assert_eq!(
+            crate::font_size_for_command(Command::ResetFontSize, 24, 20),
+            Some(20)
+        );
+        assert_eq!(
+            crate::font_size_for_command(Command::IncreaseFontSize, 256, 20),
+            Some(256)
+        );
+        assert_eq!(
+            crate::font_size_for_command(Command::DecreaseFontSize, 1, 20),
+            Some(1)
+        );
+        assert_eq!(crate::font_size_for_command(Command::Copy, 16, 20), None);
+    }
+
+    #[test]
+    fn reset_uses_the_startup_configured_font_size() {
+        let config = Config::parse("[font]\nsize = 20").unwrap();
+        assert_eq!(
+            crate::font_size_for_command(Command::ResetFontSize, 28, config.font.size),
+            Some(20)
+        );
+    }
 
     #[test]
     fn config_font_family_maps_to_renderer_request() {

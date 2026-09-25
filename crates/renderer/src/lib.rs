@@ -252,6 +252,21 @@ impl Renderer {
         Ok(true)
     }
 
+    /// Updates logical font size and returns whether cell metrics changed.
+    pub fn set_font_size(
+        &mut self,
+        logical_font_size: f32,
+        scale_factor: f64,
+    ) -> Result<bool, FontProcessingError> {
+        let metrics = self
+            .font_system
+            .cell_metrics(scale_factor, logical_font_size)?;
+        let changed = self.cell_metrics != metrics;
+        self.logical_font_size = logical_font_size;
+        self.cell_metrics = metrics;
+        Ok(changed)
+    }
+
     /// Shapes one terminal text run with the selected initial font face.
     pub fn shape_text(
         &mut self,

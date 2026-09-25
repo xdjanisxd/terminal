@@ -133,6 +133,8 @@ later performance/polish work.
   - Ctrl+F opens app-owned literal search; Enter/Shift+Enter navigate bounded matches, and Escape closes it. The renderer highlights the active match without changing terminal cells or searching Alternate-screen content.
 - [ ] Add directional pane focus commands (left, right, above, below) that follow pane layout geometry rather than pane creation order.
 - [ ] Add directional keyboard shortcuts to grow or shrink the active pane while preserving valid, bounded geometry in the existing split layout.
+- [ ] Allow custom tab titles, keeping user-assigned titles distinct from automatically derived terminal or shell titles if those are supported later.
+- [x] Add configurable shortcuts to increase, decrease, and reset terminal font size through the existing DPI, grid, renderer, and PTY resize behavior. Ctrl+= / Ctrl++ increase, Ctrl+- decreases, and Ctrl+0 resets to the configured base size. Runtime changes are bounded and do not write config; font config edits still require restart.
 - [x] Allow custom tab titles, keeping user-assigned titles distinct from automatically derived terminal or shell titles if those are supported later.
   - Completed: the Rename Tab command palette action edits the active tab title; custom titles remain separate from configured or generated base titles.
 - [ ] Add shortcuts to increase, decrease, and reset terminal font size through the existing DPI, grid, and renderer resize behavior.
