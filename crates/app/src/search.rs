@@ -35,6 +35,21 @@ impl Search {
             .copied()
     }
 
+    pub fn markers(&self) -> Vec<(usize, bool)> {
+        let mut markers: Vec<(usize, bool)> = Vec::new();
+        for (index, found) in self.matches.iter().enumerate() {
+            let active = Some(index) == self.selected;
+            if let Some((row, row_active)) = markers.last_mut()
+                && *row == found.row
+            {
+                *row_active |= active;
+            } else {
+                markers.push((found.row, active));
+            }
+        }
+        markers
+    }
+
     pub fn viewport_match(&self, terminal: &TerminalState) -> Option<(usize, usize)> {
         let found = self.selected_match()?;
         let top = terminal
@@ -225,10 +240,37 @@ mod tests {
         let mut search = Search::default();
         search.push_text("aLpHa", &mut terminal);
         search.navigate(&mut terminal, -1);
+        assert_eq!(search.markers(), vec![(0, true), (2, false)]);
         assert_eq!(
             search.viewport_matches(&terminal),
             vec![(0, 0, 5, true), (2, 0, 5, false)]
         );
+    }
+
+    #[test]
+    fn markers_merge_matches_on_one_row_and_keep_active_state() {
+        let search = Search {
+            matches: vec![
+                Match {
+                    row: 1,
+                    start_column: 0,
+                    end_column: 1,
+                },
+                Match {
+                    row: 1,
+                    start_column: 3,
+                    end_column: 4,
+                },
+                Match {
+                    row: 4,
+                    start_column: 0,
+                    end_column: 1,
+                },
+            ],
+            selected: Some(1),
+            ..Search::default()
+        };
+        assert_eq!(search.markers(), vec![(1, true), (4, false)]);
     }
 
     #[test]
