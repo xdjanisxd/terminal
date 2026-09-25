@@ -627,6 +627,11 @@ impl Application {
         self.wheel_remainder = 0.0;
         self.mouse_wheel_remainder = 0.0;
         self.update_workspace_title();
+        if self.workspace.active_tab().is_zoomed()
+            && let Some(size) = self.window.as_ref().map(|window| window.inner_size())
+        {
+            self.resize_terminal_to_viewport(size);
+        }
         self.invalidate_frame();
     }
 
@@ -740,6 +745,13 @@ impl Application {
             Command::PreviousPane => {
                 let next = self.workspace.focus_pane(-1);
                 self.activate_pane(next);
+            }
+            Command::TogglePaneZoom => {
+                self.workspace.toggle_zoom();
+                if let Some(size) = self.window.as_ref().map(|window| window.inner_size()) {
+                    self.resize_terminal_to_viewport(size);
+                }
+                self.invalidate_frame();
             }
             Command::ClosePane => self.close_pane(),
             Command::RenameTab => {
@@ -2455,6 +2467,41 @@ mod tests {
         assert_eq!(app.workspace.panes().len(), 1);
         app.dispatch_command(Command::ClosePane);
         assert_eq!(app.workspace.panes().len(), 1);
+    }
+
+    #[test]
+    fn pane_zoom_command_keeps_runtime_and_background_output() {
+        let mut app = Application::default();
+        let first = app.workspace.active_pane();
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(b"A".to_vec())));
+        app.dispatch_command(Command::SplitVertical);
+        let second = app.workspace.active_pane();
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(b"C".to_vec())));
+        let layout = app.workspace.active_tab().layout.clone();
+        let panes = app.workspace.panes();
+        app.dispatch_command(Command::TogglePaneZoom);
+        assert!(app.workspace.active_tab().is_zoomed());
+        assert_eq!(app.active_runtime_pane, second);
+        assert_eq!(app.workspace.active_tab().layout, layout);
+        assert_eq!(app.workspace.panes(), panes);
+        assert_eq!(app.terminal.screen().cell(0, 0).unwrap().character(), 'C');
+
+        super::handle_background_pty_event(
+            app.inactive_panes.get_mut(&first).unwrap(),
+            PtyWorkerEvent::Output(PtyOutput::Bytes(b"B".to_vec())),
+        );
+        app.dispatch_command(Command::PreviousPane);
+        assert_eq!(app.active_runtime_pane, first);
+        assert_eq!(app.terminal.screen().cell(0, 0).unwrap().character(), 'A');
+        assert_eq!(app.terminal.screen().cell(0, 1).unwrap().character(), 'B');
+        app.dispatch_command(Command::NextPane);
+        assert_eq!(app.active_runtime_pane, second);
+        assert_eq!(app.terminal.screen().cell(0, 0).unwrap().character(), 'C');
+        app.dispatch_command(Command::TogglePaneZoom);
+        assert!(!app.workspace.active_tab().is_zoomed());
+        assert_eq!(app.workspace.active_tab().layout, layout);
+        assert_eq!(app.workspace.panes(), panes);
+        assert_pane_runtimes_match_workspace(&app);
     }
 
     #[test]

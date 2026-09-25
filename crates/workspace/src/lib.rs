@@ -226,6 +226,7 @@ pub struct Tab {
     pub project_root: Option<PathBuf>,
     pub layout: Layout,
     pub active_pane: PaneId,
+    zoomed: bool,
 }
 impl Tab {
     pub fn display_title(&self) -> &str {
@@ -233,6 +234,9 @@ impl Tab {
     }
 
     pub fn pane_rects(&self, rect: PaneRect) -> Vec<(PaneId, PaneRect)> {
+        if self.zoomed {
+            return vec![(self.active_pane, rect)];
+        }
         let mut panes = Vec::new();
         self.layout.pane_rects(rect, &mut panes);
         panes
@@ -241,6 +245,9 @@ impl Tab {
         let mut panes = Vec::new();
         self.layout.panes(&mut panes);
         panes
+    }
+    pub fn is_zoomed(&self) -> bool {
+        self.zoomed
     }
 }
 
@@ -313,6 +320,7 @@ impl Workspace {
                 project_root: tab.project_root.clone(),
                 layout,
                 active_pane,
+                zoomed: false,
             });
         }
         Ok(workspace)
@@ -362,6 +370,11 @@ impl Workspace {
     pub fn active_pane(&self) -> PaneId {
         self.active_tab().active_pane
     }
+    pub fn toggle_zoom(&mut self) -> bool {
+        let tab = &mut self.tabs[self.active_tab];
+        tab.zoomed = !tab.zoomed;
+        tab.zoomed
+    }
     pub fn panes(&self) -> Vec<Pane> {
         self.tabs.iter().flat_map(Tab::panes).collect()
     }
@@ -380,6 +393,7 @@ impl Workspace {
             project_root,
             layout: Layout::Pane(pane),
             active_pane: pane_id,
+            zoomed: false,
         });
         self.active_tab = self.tabs.len() - 1;
         pane_id
@@ -698,5 +712,62 @@ mod tests {
         assert!(!rects[2].1.contains(104, 55));
         assert!(workspace.focus_pane_id(first));
         assert!(!workspace.focus_pane_id(first));
+    }
+
+    #[test]
+    fn zoom_preserves_split_layout_focus_and_sessions() {
+        let mut workspace = Workspace::default();
+        let first = workspace.active_pane();
+        workspace.split_active(SplitAxis::Vertical);
+        let focused = workspace.split_active(SplitAxis::Horizontal);
+        let viewport = PaneRect {
+            x: 3,
+            y: 5,
+            width: 101,
+            height: 51,
+        };
+        let layout = workspace.active_tab().layout.clone();
+        let panes = workspace.panes();
+        let definition = workspace.definition();
+        let rects = workspace.active_tab().pane_rects(viewport);
+
+        assert!(workspace.toggle_zoom());
+        assert_eq!(
+            workspace.active_tab().pane_rects(viewport),
+            vec![(focused, viewport)]
+        );
+        assert_eq!(workspace.active_tab().layout, layout);
+        assert_eq!(workspace.panes(), panes);
+        assert_eq!(workspace.definition(), definition);
+        assert!(workspace.focus_pane_id(first));
+        assert_eq!(
+            workspace.active_tab().pane_rects(viewport),
+            vec![(first, viewport)]
+        );
+        assert!(!workspace.toggle_zoom());
+        assert_eq!(workspace.active_tab().pane_rects(viewport), rects);
+        assert_eq!(workspace.active_tab().layout, layout);
+        assert_eq!(workspace.panes(), panes);
+    }
+
+    #[test]
+    fn zoom_is_per_tab_and_survives_split_and_close() {
+        let mut workspace = Workspace::default();
+        let first = workspace.active_pane();
+        workspace.split_active(SplitAxis::Vertical);
+        assert!(workspace.toggle_zoom());
+        let new_pane = workspace.split_active(SplitAxis::Horizontal);
+        assert!(workspace.active_tab().is_zoomed());
+        assert_eq!(workspace.close_active_pane(), Some(new_pane));
+        assert!(workspace.active_tab().is_zoomed());
+        let prior_focus = workspace.active_pane();
+
+        workspace.new_tab();
+        assert!(!workspace.active_tab().is_zoomed());
+        workspace.focus_tab(-1);
+        assert!(workspace.active_tab().is_zoomed());
+        assert_eq!(workspace.active_pane(), prior_focus);
+        workspace.focus_pane_id(first);
+        assert_eq!(workspace.active_pane(), first);
     }
 }

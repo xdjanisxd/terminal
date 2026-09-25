@@ -66,6 +66,7 @@ pub enum Command {
     PreviousTab,
     NextPane,
     PreviousPane,
+    TogglePaneZoom,
     ClosePane,
     RenameTab,
 }
@@ -141,6 +142,7 @@ impl Default for Config {
                 ("Ctrl+Shift+Tab", Command::PreviousTab),
                 ("Ctrl+Shift+ArrowRight", Command::NextPane),
                 ("Ctrl+Shift+ArrowLeft", Command::PreviousPane),
+                ("Ctrl+Shift+Z", Command::TogglePaneZoom),
                 ("Ctrl+Shift+W", Command::ClosePane),
             ]
             .into_iter()
@@ -635,6 +637,7 @@ mod tests {
             Command::PreviousTab,
             Command::NextPane,
             Command::PreviousPane,
+            Command::TogglePaneZoom,
             Command::ClosePane,
         ] {
             assert!(

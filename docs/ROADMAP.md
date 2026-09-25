@@ -138,5 +138,5 @@ later performance/polish work.
 - [x] Allow custom tab titles, keeping user-assigned titles distinct from automatically derived terminal or shell titles if those are supported later.
   - Completed: the Rename Tab command palette action edits the active tab title; custom titles remain separate from configured or generated base titles.
 - [ ] Add shortcuts to increase, decrease, and reset terminal font size through the existing DPI, grid, and renderer resize behavior.
-- [ ] Add pane zoom so the focused pane temporarily fills the workspace; toggling zoom off restores the prior split layout and preserves all panes and sessions.
+- [x] Add pane zoom so the focused pane temporarily fills the workspace; toggling zoom off restores the prior split layout and preserves all panes and sessions.
 - [ ] Package and validate supported Windows, Linux, and macOS releases

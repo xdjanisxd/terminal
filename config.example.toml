@@ -30,6 +30,7 @@ ansi = [
 # Example custom binding: key = "Ctrl+Shift+Backspace", command = "close_pane".
 # Commands: copy, paste, page_up, page_down, open_palette, open_target,
 # new_tab, split_horizontal, split_vertical, next_tab, previous_tab,
+# next_pane, previous_pane, toggle_pane_zoom, close_pane. "action" aliases "command".
 # next_pane, previous_pane, close_pane, increase_font_size,
 # decrease_font_size, reset_font_size. "action" aliases "command".
 [[bindings]]
@@ -95,6 +96,10 @@ command = "next_pane"
 [[bindings]]
 key = "Ctrl+Shift+ArrowLeft"
 command = "previous_pane"
+
+[[bindings]]
+key = "Ctrl+Shift+Z"
+command = "toggle_pane_zoom"
 
 [[bindings]]
 key = "Ctrl+Shift+W"

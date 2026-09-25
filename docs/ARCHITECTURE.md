@@ -108,7 +108,7 @@ Dependencies are not added until the owning crate and tested behavior require th
 
 Keyboard bindings, command palette actions, and CLI control resolve to centralized commands such as `terminal.new_tab`, `pane.split_vertical`, and `config.reload`. UI handlers must not duplicate feature behavior.
 
-`terminal-workspace` owns tab order, pane identity, session association, focused tab/pane, and a recursive split tree. A workspace definition is a declarative startup recipe with tab titles, split axes, local-shell leaves, and focus indexes. `terminal-app` owns each pane's live parser, terminal state, and PTY worker, routes input and rendering to the focused pane, and continues draining background output. Closing a pane drops its worker and removes its layout leaf; the final pane is retained. The renderer currently displays the focused pane in the full window, pending split geometry support.
+`terminal-workspace` owns tab order, pane identity, session association, focused tab/pane, a recursive split tree, and per-tab temporary zoom state. A workspace definition is a declarative startup recipe with tab titles, split axes, local-shell leaves, and focus indexes; zoom is not part of that recipe. `terminal-app` owns each pane's live parser, terminal state, and PTY worker, routes input to the focused pane, and continues draining background output. Closing a pane drops its worker and removes its layout leaf; the final pane is retained. The renderer displays every pane rectangle supplied by the workspace; while zoomed, only the focused pane fills the viewport.
 
 Configuration and runtime state remain separate. Invalid hot-reloaded configuration must leave the last valid configuration active and report a useful error.
 
