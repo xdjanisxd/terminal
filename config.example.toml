@@ -39,13 +39,13 @@ ansi = [
 
 # A-Z, 0-9, PageUp, PageDown, Home, End, Insert, Delete, Backspace, Tab,
 
-# ArrowLeft, ArrowRight, ArrowUp, ArrowDown, Equal, Minus. Plain letters and
+# ArrowLeft, ArrowRight, ArrowUp, ArrowDown, Space, Equal, Minus. Plain letters and
 
 # digits require a modifier.
 
 # Example custom binding: key = "Ctrl+Shift+Backspace", command = "close_pane".
 
-# Commands include copy, paste, page_up, page_down, open_palette, open_target,
+# Commands include copy, paste, page_up, page_down, open_palette, open_tab_picker, open_target,
 
 # new_tab, split_horizontal, split_vertical, next_tab, previous_tab, next_pane,
 
@@ -94,6 +94,10 @@ command = "reset_font_size"
 [[bindings]]
 key = "Ctrl+Shift+P"
 command = "open_palette"
+
+[[bindings]]
+key = "Ctrl+Shift+Space"
+command = "open_tab_picker"
 
 [[bindings]]
 key = "Ctrl+Shift+T"

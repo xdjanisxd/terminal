@@ -9,6 +9,7 @@ pub enum PaletteAction {
     Command(Command),
     ProjectTab(PathBuf),
     ProjectSplit(PathBuf, SplitAxis),
+    SwitchTab(usize),
 }
 
 #[derive(Clone, Debug)]
@@ -48,6 +49,11 @@ pub const COMMANDS: &[CommandInfo] = &[
     CommandInfo {
         command: Command::OpenPalette,
         name: "Command Palette",
+        in_palette: false,
+    },
+    CommandInfo {
+        command: Command::OpenTabPicker,
+        name: "Tab Picker",
         in_palette: false,
     },
     CommandInfo {
@@ -182,6 +188,14 @@ impl Default for Palette {
 }
 
 impl Palette {
+    pub fn from_entries(entries: Vec<PaletteEntry>) -> Self {
+        Self {
+            query: String::new(),
+            selected: 0,
+            entries,
+        }
+    }
+
     pub fn with_projects(projects: &[ProjectRoot]) -> Self {
         let mut entries: Vec<_> = COMMANDS
             .iter()

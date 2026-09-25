@@ -141,10 +141,12 @@ later performance/polish work.
 
 ## M7: Usability, shell integration, and workspace workflows
 
-- [ ] Improve the tab bar UX.
-  - Show tabs as a clearer dedicated UI surface with active-tab styling.
-  - Support mouse tab selection and basic new/close-tab controls.
-  - Keep tab reorder and drag-and-drop as optional later work rather than required for the first slice.
+- [x] Add a keyboard-driven tab picker.
+  - Open the picker with Ctrl+Shift+Space.
+  - Show all currently open tabs using the existing custom/shell/base title precedence.
+  - Support j/k and Up/Down navigation, Enter to switch, and Escape to cancel.
+  - Allow typing to filter/search the open-tab list.
+  - Keep picker input app-owned so navigation/search keystrokes do not reach the PTY.
 - [x] Add shell title and working-directory integration.
   - Track OSC 0/2 titles per pane and show the active pane's title unless the tab has an explicit user rename.
   - Track each pane's latest validated OSC 7 `file://` URI independently, including background panes.
@@ -164,7 +166,7 @@ later performance/polish work.
   - Indicate when an unfocused tab receives new terminal output.
   - Clear or update the indicator when the user focuses the tab.
   - Leave richer bell/process-state indicators as possible follow-up work.
-- [ ] Polish the scrollback scrollbar.
+- [x] Polish the scrollback scrollbar.
   - Improve hover/visibility behavior and dragging.
   - Consider track interaction and search-match markers where they fit cleanly.
 - [ ] Improve theme ergonomics.

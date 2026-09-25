@@ -58,6 +58,7 @@ pub enum Command {
     DecreaseFontSize,
     ResetFontSize,
     OpenPalette,
+    OpenTabPicker,
     OpenTarget,
     NewTab,
     SplitHorizontal,
@@ -143,6 +144,7 @@ impl Default for Config {
                 ("Ctrl+-", Command::DecreaseFontSize),
                 ("Ctrl+0", Command::ResetFontSize),
                 ("Ctrl+Shift+P", Command::OpenPalette),
+                ("Ctrl+Shift+Space", Command::OpenTabPicker),
                 ("Ctrl+Shift+T", Command::NewTab),
                 ("Ctrl+Shift+E", Command::SplitVertical),
                 ("Ctrl+Shift+O", Command::SplitHorizontal),
@@ -418,6 +420,7 @@ fn parse_chord(value: &str) -> Result<KeyChord, String> {
                     "insert" => "Insert".into(),
                     "delete" => "Delete".into(),
                     "backspace" => "Backspace".into(),
+                    "space" => "Space".into(),
                     "tab" => "Tab".into(),
                     "arrowright" => "ArrowRight".into(),
                     "arrowleft" => "ArrowLeft".into(),
@@ -656,6 +659,7 @@ mod tests {
         }
         for command in [
             Command::NewTab,
+            Command::OpenTabPicker,
             Command::SplitHorizontal,
             Command::SplitVertical,
             Command::NextTab,
