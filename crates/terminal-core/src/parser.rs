@@ -383,9 +383,87 @@ impl<'a> SemanticPerformer<'a> {
     }
 }
 
+fn valid_working_directory_uri(uri: &str) -> bool {
+    let Some(prefix) = uri.get(..7) else {
+        return false;
+    };
+    if !prefix.eq_ignore_ascii_case("file://") {
+        return false;
+    }
+    let Some((host, path)) = uri[7..].split_once('/') else {
+        return false;
+    };
+    if !host
+        .bytes()
+        .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-'))
+    {
+        return false;
+    }
+    let mut decoded = Vec::with_capacity(path.len() + 1);
+    decoded.push(b'/');
+    let mut bytes = path.bytes();
+    while let Some(byte) = bytes.next() {
+        if byte == b'%' {
+            let Some(high) = bytes.next().and_then(|digit| (digit as char).to_digit(16)) else {
+                return false;
+            };
+            let Some(low) = bytes.next().and_then(|digit| (digit as char).to_digit(16)) else {
+                return false;
+            };
+            decoded.push((high * 16 + low) as u8);
+        } else if byte.is_ascii_alphanumeric()
+            || matches!(
+                byte,
+                b'-' | b'.'
+                    | b'_'
+                    | b'~'
+                    | b'!'
+                    | b'$'
+                    | b'&'
+                    | b'\''
+                    | b'('
+                    | b')'
+                    | b'*'
+                    | b'+'
+                    | b','
+                    | b';'
+                    | b'='
+                    | b':'
+                    | b'@'
+                    | b'/'
+            )
+        {
+            decoded.push(byte);
+        } else {
+            return false;
+        }
+    }
+    std::str::from_utf8(&decoded).is_ok_and(|path| !path.chars().any(char::is_control))
+}
+
 impl vte::Perform for SemanticPerformer<'_> {
     fn osc_dispatch(&mut self, params: &[&[u8]], _bell_terminated: bool) {
         if self.semantic_error.is_some() {
+            return;
+        }
+        if params.len() >= 2 && (params[0] == b"0" || params[0] == b"2") {
+            let payload = params[1..].join(&b';');
+            if payload.len() <= 512
+                && let Ok(title) = String::from_utf8(payload)
+                && !title.chars().any(char::is_control)
+            {
+                self.terminal
+                    .set_shell_title((!title.is_empty()).then_some(title));
+            }
+            return;
+        }
+        if params.len() >= 2 && params[0] == b"7" {
+            let payload = params[1..].join(&b';');
+            if let Ok(uri) = String::from_utf8(payload)
+                && valid_working_directory_uri(&uri)
+            {
+                self.terminal.set_working_directory_uri(uri);
+            }
             return;
         }
         if params.len() >= 3 && params[0] == b"8" {

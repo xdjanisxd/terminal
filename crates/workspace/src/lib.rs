@@ -348,7 +348,14 @@ pub struct Tab {
 }
 impl Tab {
     pub fn display_title(&self) -> &str {
-        self.custom_title.as_deref().unwrap_or(&self.title)
+        self.display_title_with_shell_title(None)
+    }
+
+    pub fn display_title_with_shell_title<'a>(&'a self, shell_title: Option<&'a str>) -> &'a str {
+        self.custom_title
+            .as_deref()
+            .or(shell_title)
+            .unwrap_or(&self.title)
     }
 
     pub fn pane_rects(&self, rect: PaneRect) -> Vec<(PaneId, PaneRect)> {

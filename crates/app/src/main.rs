@@ -586,7 +586,11 @@ impl Application {
         };
         let tab = self.workspace.active_tab();
         let panes = tab.panes();
-        if self.workspace.tabs().len() == 1 && panes.len() == 1 && tab.custom_title.is_none() {
+        if self.workspace.tabs().len() == 1
+            && panes.len() == 1
+            && tab.custom_title.is_none()
+            && self.terminal.shell_title().is_none()
+        {
             window.set_title("Terminal");
         } else {
             let pane_index = panes
@@ -596,13 +600,19 @@ impl Application {
                 + 1;
             window.set_title(&format!(
                 "Terminal — {} ({}/{}) — Pane {}/{}",
-                tab.display_title(),
+                self.active_tab_title(),
                 self.workspace.active_tab_index() + 1,
                 self.workspace.tabs().len(),
                 pane_index,
                 panes.len(),
             ));
         }
+    }
+
+    fn active_tab_title(&self) -> &str {
+        self.workspace
+            .active_tab()
+            .display_title_with_shell_title(self.terminal.shell_title())
     }
 
     fn activate_pane(&mut self, next: PaneId) {
@@ -1337,7 +1347,11 @@ impl Application {
             PtyWorkerEvent::Output(PtyOutput::Bytes(bytes)) => {
                 let parse_started = std::time::Instant::now();
                 self.terminal.clear_selection();
+                let previous_title_version = self.terminal.shell_title_version();
                 let replies = parse_terminal_output(&mut self.parser, &mut self.terminal, &bytes);
+                if self.terminal.shell_title_version() != previous_title_version {
+                    self.update_workspace_title();
+                }
                 emit_diagnostic(format_args!(
                     "app event=parser-feed bytes={} elapsed_us={}",
                     bytes.len(),
@@ -3192,6 +3206,63 @@ mod tests {
     }
 
     #[test]
+    fn shell_metadata_follows_panes_and_custom_tab_titles_take_precedence() {
+        let mut app = Application::default();
+        let first = app.workspace.active_pane();
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
+            b"\x1b]2;First shell\x07\x1b]7;file:///first\x07".to_vec(),
+        )));
+        assert_eq!(app.active_tab_title(), "First shell");
+        assert_eq!(app.terminal.working_directory_uri(), Some("file:///first"));
+
+        app.dispatch_command(Command::SplitVertical);
+        let second = app.workspace.active_pane();
+        assert_ne!(first, second);
+        assert_eq!(app.active_tab_title(), "Terminal 1");
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
+            b"\x1b]0;Second shell\x07\x1b]7;file:///second\x07".to_vec(),
+        )));
+        assert_eq!(app.active_tab_title(), "Second shell");
+        assert_eq!(app.terminal.working_directory_uri(), Some("file:///second"));
+
+        app.workspace
+            .set_active_tab_custom_title(Some("Renamed".into()));
+        assert_eq!(app.active_tab_title(), "Renamed");
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
+            b"\x1b]2;Updated shell\x07".to_vec(),
+        )));
+        assert_eq!(app.active_tab_title(), "Renamed");
+        app.dispatch_command(Command::PreviousPane);
+        assert_eq!(app.active_tab_title(), "Renamed");
+        assert_eq!(app.terminal.working_directory_uri(), Some("file:///first"));
+        app.workspace.set_active_tab_custom_title(None);
+        assert_eq!(app.active_tab_title(), "First shell");
+        app.dispatch_command(Command::NextPane);
+        assert_eq!(app.active_tab_title(), "Updated shell");
+
+        super::handle_background_pty_event(
+            app.inactive_panes.get_mut(&first).unwrap(),
+            PtyWorkerEvent::Output(PtyOutput::Bytes(
+                b"\x1b]2;Background shell\x07\x1b]7;file:///background\x07".to_vec(),
+            )),
+        );
+        assert_eq!(app.active_tab_title(), "Updated shell");
+        app.dispatch_command(Command::PreviousPane);
+        assert_eq!(app.active_tab_title(), "Background shell");
+        assert_eq!(
+            app.terminal.working_directory_uri(),
+            Some("file:///background")
+        );
+        app.dispatch_command(Command::NextPane);
+
+        app.dispatch_command(Command::NewTab);
+        assert_eq!(app.active_tab_title(), "Terminal 2");
+        app.dispatch_command(Command::PreviousTab);
+        assert_eq!(app.active_tab_title(), "Updated shell");
+        assert_eq!(app.terminal.working_directory_uri(), Some("file:///second"));
+    }
+
+    #[test]
     fn palette_consumes_input_and_escape_closes_it() {
         let mut app = Application::default();
         app.dispatch_command(Command::OpenPalette);
@@ -3353,17 +3424,23 @@ mod tests {
             ),
             Some(Command::PreviousPane)
         );
+        for key in [KeyCode::ArrowLeft, KeyCode::ArrowRight] {
+            assert_eq!(
+                configured_command(&defaults, PhysicalKey::Code(key), ModifiersState::CONTROL),
+                None
+            );
+        }
         for (key, command) in [
-            (KeyCode::ArrowLeft, Command::FocusPaneLeft),
-            (KeyCode::ArrowRight, Command::FocusPaneRight),
-            (KeyCode::ArrowUp, Command::FocusPaneUp),
-            (KeyCode::ArrowDown, Command::FocusPaneDown),
+            (KeyCode::KeyH, Command::FocusPaneLeft),
+            (KeyCode::KeyL, Command::FocusPaneRight),
+            (KeyCode::KeyK, Command::FocusPaneUp),
+            (KeyCode::KeyJ, Command::FocusPaneDown),
         ] {
             assert_eq!(
                 configured_command(
                     &defaults,
                     PhysicalKey::Code(key),
-                    ModifiersState::ALT | ModifiersState::SHIFT
+                    ModifiersState::CONTROL | ModifiersState::SHIFT
                 ),
                 Some(command)
             );
