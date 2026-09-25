@@ -143,7 +143,7 @@ later performance/polish work.
 
 - [x] Add a keyboard-driven tab picker.
   - Open the picker with Ctrl+Shift+Space.
-  - Show all currently open tabs using the existing custom/shell/base title precedence.
+  - Show explicit tab renames exactly; otherwise use the active pane's last two CWD segments and readable application name, falling back to `Terminal N`.
   - Support j/k and Up/Down navigation, Enter to switch, and Escape to cancel.
   - Allow typing to filter/search the open-tab list.
   - Keep picker input app-owned so navigation/search keystrokes do not reach the PTY.
@@ -162,9 +162,10 @@ later performance/polish work.
   - Treat this as a broader navigation mode rather than copy-only behavior.
   - Plan for Vim-like movement, search integration, visual selection, and copy/yank behavior over scrollback.
   - Keep exact keybindings and scope for a dedicated design/implementation task.
-- [ ] Add tab activity indicators.
-  - Indicate when an unfocused tab receives new terminal output.
-  - Clear or update the indicator when the user focuses the tab.
+- [x] Add tab activity indicators.
+  - Indicate when an unfocused tab receives new terminal output in the tab picker.
+  - Clear the indicator when the user focuses the tab.
+  - Animate the indicator at low frequency only while the picker is open.
   - Leave richer bell/process-state indicators as possible follow-up work.
 - [x] Polish the scrollback scrollbar.
   - Improve hover/visibility behavior and dragging.
