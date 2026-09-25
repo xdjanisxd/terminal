@@ -90,7 +90,6 @@ fn saved_command_runs_in_fresh_shell_at_cwd_and_shell_survives_exit() {
     )
     .with_arguments([
         OsString::from("-NoLogo"),
-        OsString::from("-NoProfile"),
         OsString::from("-NoExit"),
         OsString::from("-Command"),
         OsString::from(INTEGRATION),
@@ -108,45 +107,89 @@ fn saved_command_runs_in_fresh_shell_at_cwd_and_shell_survives_exit() {
         }
     });
     let mut output = Vec::new();
+    let mut answered_cursor_query = false;
     fn wait_for(
         needle: &[u8],
+        occurrences: usize,
         output: &mut Vec<u8>,
         receiver: &mpsc::Receiver<Vec<u8>>,
         session: &mut dyn PtySession,
+        answered_cursor_query: &mut bool,
     ) {
         let deadline = Instant::now() + Duration::from_secs(15);
-        while !output.windows(needle.len()).any(|bytes| bytes == needle) {
+        while output
+            .windows(needle.len())
+            .filter(|bytes| *bytes == needle)
+            .count()
+            < occurrences
+        {
             let remaining = deadline.saturating_duration_since(Instant::now());
             assert!(
                 !remaining.is_zero(),
-                "missing {:?}: {:?}",
+                "missing occurrence {occurrences} of {:?}: {:?}",
                 needle,
                 String::from_utf8_lossy(output)
             );
-            output.extend(receiver.recv_timeout(remaining).expect("PTY output closed"));
-            if output.windows(4).any(|bytes| bytes == b"\x1b[6n") {
+            let chunk = receiver.recv_timeout(remaining).unwrap_or_else(|error| {
+                panic!(
+                    "waiting for {:?}: {error:?}; output {:?}; lifecycle {:?}",
+                    needle,
+                    String::from_utf8_lossy(output),
+                    session.lifecycle()
+                )
+            });
+            output.extend(chunk);
+            if !*answered_cursor_query && output.windows(4).any(|bytes| bytes == b"\x1b[6n") {
                 session.write(b"\x1b[1;1R").unwrap();
+                *answered_cursor_query = true;
             }
         }
     }
-    wait_for(b"\x1b]133;A\x07", &mut output, &receiver, &mut session);
-    session.write(b"Write-Output ('__STARTUP_' + 'CWD__' + (Get-Location).Path); Write-Output ('__STARTUP_' + 'DONE__')\r").unwrap();
-    wait_for(b"__STARTUP_DONE__", &mut output, &receiver, &mut session);
-    let expected_cwd = format!("__STARTUP_CWD__{}", directory.display());
+    const SHELL_READY: &[u8] = b"\x1b]133;A\x07";
+    wait_for(
+        SHELL_READY,
+        1,
+        &mut output,
+        &receiver,
+        &mut session,
+        &mut answered_cursor_query,
+    );
+    session.write(b"Write-Output ('__STARTUP_EXECUTED_CWD__' + (Get-Location).Path); cmd.exe /d /c exit 0; Write-Output ('__COMMAND_' + 'EXITED__')\r").unwrap();
+    let expected_cwd = format!("__STARTUP_EXECUTED_CWD__{}", directory.display());
     wait_for(
         expected_cwd.as_bytes(),
+        1,
         &mut output,
         &receiver,
         &mut session,
+        &mut answered_cursor_query,
+    );
+    wait_for(
+        b"__COMMAND_EXITED__",
+        1,
+        &mut output,
+        &receiver,
+        &mut session,
+        &mut answered_cursor_query,
+    );
+    wait_for(
+        SHELL_READY,
+        2,
+        &mut output,
+        &receiver,
+        &mut session,
+        &mut answered_cursor_query,
     );
     session
-        .write(b"Write-Output ('__SHELL_' + 'STILL_HERE__')\r")
+        .write(b"Write-Output ('__SHELL_' + 'REUSABLE__')\r")
         .unwrap();
     wait_for(
-        b"__SHELL_STILL_HERE__",
+        b"__SHELL_REUSABLE__",
+        1,
         &mut output,
         &receiver,
         &mut session,
+        &mut answered_cursor_query,
     );
     assert_eq!(session.lifecycle(), PtyLifecycle::Running);
     session.terminate().unwrap();
