@@ -5,7 +5,8 @@ use terminal_core::{ScreenKind, TerminalState};
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) struct Match {
     pub row: usize,
-    pub column: usize,
+    pub start_column: usize,
+    pub end_column: usize,
 }
 
 #[derive(Debug, Default)]
@@ -40,7 +41,30 @@ impl Search {
             .scrollback_len()
             .saturating_sub(terminal.viewport_offset());
         let row = found.row.checked_sub(top)?;
-        (row < terminal.dimensions().rows()).then_some((row, found.column))
+        (row < terminal.dimensions().rows()).then_some((row, found.start_column))
+    }
+
+    pub fn viewport_matches(&self, terminal: &TerminalState) -> Vec<(usize, usize, usize, bool)> {
+        let top = terminal
+            .scrollback_len()
+            .saturating_sub(terminal.viewport_offset());
+        let bottom = top + terminal.dimensions().rows();
+        self.matches
+            .iter()
+            .enumerate()
+            .filter_map(|(index, found)| {
+                if found.row >= top && found.row < bottom {
+                    Some((
+                        found.row - top,
+                        found.start_column,
+                        found.end_column,
+                        Some(index) == self.selected,
+                    ))
+                } else {
+                    None
+                }
+            })
+            .collect()
     }
 
     pub fn push_text(&mut self, text: &str, terminal: &mut TerminalState) {
@@ -75,6 +99,7 @@ impl Search {
             let width = cells.map_or(terminal.dimensions().columns(), <[_]>::len);
             let mut line = String::new();
             let mut columns = Vec::with_capacity(width);
+            let mut ends = Vec::with_capacity(width);
             for column in 0..width {
                 let cell = if let Some(cells) = cells {
                     cells.get(column)
@@ -84,15 +109,21 @@ impl Search {
                 if let Some(cell) = cell
                     && !cell.is_wide_continuation()
                 {
-                    line.push(cell.character());
-                    columns.push(column);
+                    for folded in cell.character().to_lowercase() {
+                        line.push(folded);
+                        columns.push(column);
+                        ends.push(column + usize::from(cell.is_wide_lead()) + 1);
+                    }
                 }
             }
-            for (byte, _) in line.match_indices(&self.query) {
+            let folded_query = self.query.to_lowercase();
+            for (byte, matched) in line.match_indices(&folded_query) {
                 let character = line[..byte].chars().count();
+                let end_character = character + matched.chars().count();
                 self.matches.push(Match {
                     row,
-                    column: columns[character],
+                    start_column: columns[character],
+                    end_column: ends[end_character - 1].min(width),
                 });
             }
         }
@@ -113,12 +144,20 @@ impl Search {
     }
 
     pub fn navigate(&mut self, terminal: &mut TerminalState, direction: isize) {
-        if let Some(index) = self.selected {
-            self.selected = Some(
+        if let Some(index) = self.selected
+            && !self.matches.is_empty()
+        {
+            self.selected = Some(if direction < 0 {
+                if index == 0 {
+                    self.matches.len() - 1
+                } else {
+                    index - 1
+                }
+            } else if direction > 0 {
+                (index + 1) % self.matches.len()
+            } else {
                 index
-                    .saturating_add_signed(direction)
-                    .min(self.matches.len() - 1),
-            );
+            });
             self.reveal(terminal);
         }
     }
@@ -149,7 +188,7 @@ mod tests {
 
     fn terminal() -> TerminalState {
         let mut terminal = TerminalState::new(TerminalDimensions::new(12, 3).unwrap());
-        for text in ["alpha", "middle", "alpha", "tail"] {
+        for text in ["alpha", "middle", "Alpha", "tail"] {
             for ch in text.chars() {
                 terminal.print_character(ch).unwrap();
             }
@@ -160,21 +199,36 @@ mod tests {
     }
 
     #[test]
-    fn finds_and_navigates_bounded_primary_matches() {
+    fn finds_case_insensitive_matches_and_wraps_navigation() {
         let mut terminal = terminal();
         let mut search = Search::default();
-        search.push_text("alpha", &mut terminal);
+        search.push_text("ALPHA", &mut terminal);
         assert_eq!(search.count(), 2);
         assert_eq!(search.selected_match().unwrap().row, 2);
+        assert_eq!(search.selected_match().unwrap().start_column, 0);
+        assert_eq!(search.selected_match().unwrap().end_column, 5);
+        assert_eq!(search.position(), Some(2));
         search.navigate(&mut terminal, -1);
         assert_eq!(search.selected_match().unwrap().row, 0);
         assert_eq!(terminal.viewport_offset(), terminal.scrollback_len());
         search.navigate(&mut terminal, -1);
+        assert_eq!(search.position(), Some(2));
+        search.navigate(&mut terminal, 1);
         assert_eq!(search.position(), Some(1));
         search.navigate(&mut terminal, 1);
         assert_eq!(search.position(), Some(2));
-        search.navigate(&mut terminal, 1);
-        assert_eq!(search.position(), Some(2));
+    }
+
+    #[test]
+    fn returns_every_visible_match_with_active_state_and_full_span() {
+        let mut terminal = terminal();
+        let mut search = Search::default();
+        search.push_text("aLpHa", &mut terminal);
+        search.navigate(&mut terminal, -1);
+        assert_eq!(
+            search.viewport_matches(&terminal),
+            vec![(0, 0, 5, true), (2, 0, 5, false)]
+        );
     }
 
     #[test]
