@@ -322,6 +322,18 @@ impl TerminalState {
         changed
     }
 
+    pub(crate) fn scroll_viewport_for_selection(&mut self, rows: i32) -> bool {
+        self.screen.scroll_viewport_rows(rows)
+    }
+
+    pub(crate) fn selection_cell(&self, row: usize, column: usize) -> Option<&Cell> {
+        self.screen.selection_cell(row, column)
+    }
+
+    pub(crate) fn selection_history_origin(&self) -> usize {
+        self.screen.selection_history_origin()
+    }
+
     /// Returns a cell from the current viewport projection.
     ///
     /// Historical rows retain their capture-time widths. A column outside a historical
