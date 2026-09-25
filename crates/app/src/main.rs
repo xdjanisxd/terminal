@@ -8,7 +8,7 @@
 mod commands;
 mod search;
 
-use commands::{Palette, PaletteAction};
+use commands::{Palette, PaletteAction, PaletteEntry};
 use search::Search;
 use std::collections::HashMap;
 use std::ffi::OsString;
@@ -80,6 +80,7 @@ struct Application {
     config_path: PathBuf,
     project_root_override: Option<PathBuf>,
     palette: Option<Palette>,
+    tab_picker: Option<Palette>,
     search: Option<Search>,
     tab_rename: Option<String>,
 }
@@ -478,6 +479,7 @@ impl Default for Application {
             config_path: config_path(),
             project_root_override: None,
             palette: None,
+            tab_picker: None,
             search: None,
             tab_rename: None,
         }
@@ -782,6 +784,29 @@ impl Application {
                 self.palette = Some(Palette::with_projects(&self.config.projects));
                 self.invalidate_frame();
             }
+            Command::OpenTabPicker => {
+                let entries = self
+                    .workspace
+                    .tabs()
+                    .iter()
+                    .enumerate()
+                    .map(|(index, tab)| {
+                        let shell_title = if tab.active_pane == self.active_runtime_pane {
+                            self.terminal.shell_title()
+                        } else {
+                            self.inactive_panes
+                                .get(&tab.active_pane)
+                                .and_then(|runtime| runtime.terminal.shell_title())
+                        };
+                        PaletteEntry {
+                            action: PaletteAction::SwitchTab(index),
+                            name: tab.display_title_with_shell_title(shell_title).to_owned(),
+                        }
+                    })
+                    .collect();
+                self.tab_picker = Some(Palette::from_entries(entries));
+                self.invalidate_frame();
+            }
             Command::OpenTarget => {
                 if let Some(uri) = self.pending_target.take()
                     && commands::allowed_target(&uri)
@@ -921,7 +946,53 @@ impl Application {
             PaletteAction::ProjectSplit(root, axis) => {
                 self.create_pane_at_root(Some(axis), Some(root));
             }
+            PaletteAction::SwitchTab(index) => {
+                let current = self
+                    .workspace
+                    .tabs()
+                    .iter()
+                    .position(|tab| tab.id == self.workspace.active_tab().id)
+                    .unwrap_or(0);
+                let pane = self.workspace.focus_tab(index as isize - current as isize);
+                self.activate_pane(pane);
+            }
         }
+    }
+
+    fn handle_tab_picker_key(&mut self, key: &Key, text: Option<&str>) {
+        let Some(mut picker) = self.tab_picker.take() else {
+            return;
+        };
+        let mut chosen = None;
+        let mut close = false;
+        match key {
+            Key::Named(NamedKey::Escape) => close = true,
+            Key::Named(NamedKey::Enter) => {
+                chosen = picker.chosen();
+                close = true;
+            }
+            Key::Named(NamedKey::Backspace) => picker.backspace(),
+            Key::Named(NamedKey::ArrowUp) => picker.move_selection(-1),
+            Key::Named(NamedKey::ArrowDown) => picker.move_selection(1),
+            Key::Character(c) if c == "j" => picker.move_selection(1),
+            Key::Character(c) if c == "k" => picker.move_selection(-1),
+            _ if !self.modifiers.control_key()
+                && !self.modifiers.alt_key()
+                && !self.modifiers.super_key() =>
+            {
+                if let Some(text) = text {
+                    picker.push_text(text);
+                }
+            }
+            _ => {}
+        }
+        if !close {
+            self.tab_picker = Some(picker);
+        }
+        if let Some(action) = chosen {
+            self.dispatch_palette_action(action);
+        }
+        self.invalidate_frame();
     }
 
     fn handle_palette_key(&mut self, key: &Key, text: Option<&str>) {
@@ -989,6 +1060,40 @@ impl Application {
             bottom: false,
             search_matches: Vec::new(),
             search_markers: Vec::new(),
+        })
+    }
+
+    fn tab_picker_overlay(&self) -> Option<TextOverlay> {
+        let picker = self.tab_picker.as_ref()?;
+        let mut lines = vec![OverlayLine {
+            text: format!(" Tab Picker > {}", picker.query()),
+            selected: false,
+        }];
+        let matches = picker.matches();
+        if matches.is_empty() {
+            lines.push(OverlayLine {
+                text: " No matching tabs".into(),
+                selected: false,
+            });
+        } else {
+            lines.extend(
+                matches
+                    .iter()
+                    .enumerate()
+                    .map(|(index, entry)| OverlayLine {
+                        text: format!(
+                            " {} {}",
+                            if index == picker.selected() { '>' } else { ' ' },
+                            entry.name
+                        ),
+                        selected: index == picker.selected(),
+                    }),
+            );
+        }
+        Some(TextOverlay {
+            lines,
+            bottom: false,
+            search_matches: Vec::new(),
         })
     }
 
@@ -2001,6 +2106,8 @@ impl ApplicationHandler<PtyWake> for Application {
                     self.handle_search_key(&event.logical_key, event.text.as_deref());
                 } else if self.palette.is_some() {
                     self.handle_palette_key(&event.logical_key, event.text.as_deref());
+                } else if self.tab_picker.is_some() {
+                    self.handle_tab_picker_key(&event.logical_key, event.text.as_deref());
                 } else if let Some(command) =
                     configured_command(&self.config, event.physical_key, self.modifiers)
                 {
@@ -2064,10 +2171,13 @@ impl ApplicationHandler<PtyWake> for Application {
                     };
                 self.frame.begin_redraw();
                 let overlay = self
-                    .tab_rename_overlay()
-                    .or_else(|| self.search_overlay())
-                    .or_else(|| self.palette_overlay());
-                let scrollbar_input_enabled = self.scrollbar_input_enabled();
+                  .tab_rename_overlay()
+                  .or_else(|| self.search_overlay())
+                  .or_else(|| self.palette_overlay())
+                  .or_else(|| self.tab_picker_overlay());
+
+                let scrollback_input_enabled = self.scrollbar_input_enabled();
+
                 let Some(renderer) = self.renderer.as_mut() else {
                     return;
                 };
@@ -3581,6 +3691,56 @@ mod tests {
         app.dispatch_command(Command::PreviousTab);
         assert_eq!(app.active_tab_title(), "Updated shell");
         assert_eq!(app.terminal.working_directory_uri(), Some("file:///second"));
+    }
+
+    #[test]
+    fn tab_picker_uses_resolved_titles_and_consumes_filter_navigation_and_cancel() {
+        let mut app = Application::default();
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
+            b"\x1b]2;Shell title\x07".to_vec(),
+        )));
+        app.dispatch_command(Command::NewTab);
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
+            b"\x1b]2;Other shell\x07".to_vec(),
+        )));
+        app.workspace
+            .set_active_tab_custom_title(Some("User title".into()));
+        app.dispatch_command(Command::NewTab);
+        app.dispatch_command(Command::OpenTabPicker);
+        let names: Vec<_> = app
+            .tab_picker
+            .as_ref()
+            .unwrap()
+            .matches()
+            .iter()
+            .map(|entry| entry.name.as_str())
+            .collect();
+        assert_eq!(names, ["Shell title", "User title", "Terminal 3"]);
+        app.handle_tab_picker_key(&Key::Character("j".into()), Some("j"));
+        assert_eq!(app.tab_picker.as_ref().unwrap().selected(), 1);
+        app.handle_tab_picker_key(&Key::Character("k".into()), Some("k"));
+        assert_eq!(app.tab_picker.as_ref().unwrap().selected(), 0);
+        app.handle_tab_picker_key(&Key::Named(NamedKey::ArrowDown), None);
+        app.handle_tab_picker_key(&Key::Named(NamedKey::ArrowUp), None);
+        let before = app.terminal.screen().cell(0, 0).unwrap().character();
+        app.handle_tab_picker_key(&Key::Character("User".into()), Some("User"));
+        assert_eq!(app.tab_picker.as_ref().unwrap().matches().len(), 1);
+        app.handle_tab_picker_key(&Key::Named(NamedKey::ArrowUp), None);
+        app.handle_tab_picker_key(&Key::Named(NamedKey::Escape), None);
+        assert!(app.tab_picker.is_none());
+        assert_eq!(
+            app.workspace.tabs()[1].custom_title.as_deref(),
+            Some("User title")
+        );
+        assert_eq!(
+            app.terminal.screen().cell(0, 0).unwrap().character(),
+            before
+        );
+
+        app.dispatch_command(Command::OpenTabPicker);
+        app.handle_tab_picker_key(&Key::Character("Shell".into()), Some("Shell"));
+        app.handle_tab_picker_key(&Key::Named(NamedKey::Enter), None);
+        assert_eq!(app.active_tab_title(), "Shell title");
     }
 
     #[test]
