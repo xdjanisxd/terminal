@@ -13,3 +13,5 @@ terminal-pty = { path = "../terminal-pty" }
 terminal-renderer = { path = "../renderer" }
 terminal-workspace = { path = "../workspace" }
 winit = "0.30.13"
+serde = { version = "1", features = ["derive"] }
+toml = "0.9"

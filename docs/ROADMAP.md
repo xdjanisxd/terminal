@@ -174,12 +174,12 @@ later performance/polish work.
   - Add optional semantic UI colors and focused search/scrollbar overrides under the existing `[theme]` table, with independent fallbacks.
   - Apply them to app-owned overlays, activity, search, scrollbars, and pane focus borders while preserving existing terminal theme behavior.
   - Keep named presets and advanced visual effects outside this scope.
-- [ ] Add reusable custom workspace creation and launching.
+- [x] Add reusable custom workspace creation and launching.
   - Allow users to build a workspace interactively from tabs/panes and save it under a custom name.
   - Persist the recursive pane layout, pane sizes, tab titles, per-pane working directories, and declarative startup behavior.
   - Do not restore scrollback, shell history, process state, or prior terminal output; each restored pane must start as a fresh session.
-  - Support a normal local-shell pane with an optional startup command, and existing direct command sessions where appropriate.
-  - For example, one pane can open a shell in the backend directory and run `ls`, another can open a shell in the frontend directory, and another can start `nvim` in the backend directory.
+  - Preserve local-shell panes and existing direct-command session definitions; do not infer manually launched shell commands.
+  - For example, one pane can open a shell in the backend directory, another can open a shell in the frontend directory, and an existing direct-command pane can start `nvim` in the backend directory.
   - Add a searchable workspace picker opened by a shortcut or command palette action.
   - Selecting a saved workspace should recreate its layout and start fresh pane sessions from the saved definitions.
   - Do not attempt to infer or restore arbitrary command history or previously running processes.
