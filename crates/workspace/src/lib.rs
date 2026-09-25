@@ -222,11 +222,16 @@ pub struct Pane {
 pub struct Tab {
     pub id: TabId,
     pub title: String,
+    pub custom_title: Option<String>,
     pub project_root: Option<PathBuf>,
     pub layout: Layout,
     pub active_pane: PaneId,
 }
 impl Tab {
+    pub fn display_title(&self) -> &str {
+        self.custom_title.as_deref().unwrap_or(&self.title)
+    }
+
     pub fn pane_rects(&self, rect: PaneRect) -> Vec<(PaneId, PaneRect)> {
         let mut panes = Vec::new();
         self.layout.pane_rects(rect, &mut panes);
@@ -304,6 +309,7 @@ impl Workspace {
             workspace.tabs.push(Tab {
                 id,
                 title: tab.title.clone(),
+                custom_title: None,
                 project_root: tab.project_root.clone(),
                 layout,
                 active_pane,
@@ -350,6 +356,9 @@ impl Workspace {
     pub fn active_tab(&self) -> &Tab {
         &self.tabs[self.active_tab]
     }
+    pub fn set_active_tab_custom_title(&mut self, title: Option<String>) {
+        self.tabs[self.active_tab].custom_title = title.filter(|title| !title.is_empty());
+    }
     pub fn active_pane(&self) -> PaneId {
         self.active_tab().active_pane
     }
@@ -367,6 +376,7 @@ impl Workspace {
         self.tabs.push(Tab {
             id,
             title: format!("Terminal {}", self.tabs.len() + 1),
+            custom_title: None,
             project_root,
             layout: Layout::Pane(pane),
             active_pane: pane_id,
@@ -581,6 +591,33 @@ mod tests {
         let panes = workspace.panes();
         assert_eq!(panes.len(), 3);
         assert_ne!(panes[0].session, panes[1].session);
+    }
+
+    #[test]
+    fn custom_titles_stay_with_their_tab_and_preserve_configured_titles() {
+        let mut definition = WorkspaceDefinition::default();
+        definition.tabs[0].title = "Configured title".into();
+        let mut workspace = Workspace::from_definition(&definition).unwrap();
+        let first_tab = workspace.active_tab().id;
+        assert_eq!(workspace.active_tab().display_title(), "Configured title");
+
+        workspace.set_active_tab_custom_title(Some("Renamed first".into()));
+        let second_pane = workspace.new_tab();
+        let second_tab = workspace.active_tab().id;
+        assert_ne!(first_tab, second_tab);
+        assert_eq!(workspace.active_tab().display_title(), "Terminal 2");
+        workspace.set_active_tab_custom_title(Some("Renamed second".into()));
+
+        assert_eq!(workspace.focus_tab(-1), workspace.tabs()[0].active_pane);
+        assert_eq!(workspace.active_tab().display_title(), "Renamed first");
+        assert_eq!(workspace.focus_tab(1), second_pane);
+        assert_eq!(workspace.active_tab().display_title(), "Renamed second");
+
+        workspace.set_active_tab_custom_title(None);
+        assert_eq!(workspace.active_tab().display_title(), "Terminal 2");
+        let definition = workspace.definition();
+        assert_eq!(definition.tabs[0].title, "Configured title");
+        assert_eq!(definition.tabs[1].title, "Terminal 2");
     }
     #[test]
     fn definition_recreates_layout_and_focus() {

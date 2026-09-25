@@ -95,6 +95,11 @@ pub const COMMANDS: &[CommandInfo] = &[
         name: "Close Pane",
         in_palette: true,
     },
+    CommandInfo {
+        command: Command::RenameTab,
+        name: "Rename Tab",
+        in_palette: true,
+    },
 ];
 
 /// Terminal output is untrusted. Only an explicit user gesture may pass an

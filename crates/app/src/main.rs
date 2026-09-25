@@ -73,6 +73,7 @@ struct Application {
     project_root_override: Option<PathBuf>,
     palette: Option<Palette>,
     search: Option<Search>,
+    tab_rename: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -426,6 +427,7 @@ impl Default for Application {
             project_root_override: None,
             palette: None,
             search: None,
+            tab_rename: None,
         }
     }
 }
@@ -576,7 +578,7 @@ impl Application {
         };
         let tab = self.workspace.active_tab();
         let panes = tab.panes();
-        if self.workspace.tabs().len() == 1 && panes.len() == 1 {
+        if self.workspace.tabs().len() == 1 && panes.len() == 1 && tab.custom_title.is_none() {
             window.set_title("Terminal");
         } else {
             let pane_index = panes
@@ -586,7 +588,7 @@ impl Application {
                 + 1;
             window.set_title(&format!(
                 "Terminal — {} ({}/{}) — Pane {}/{}",
-                tab.title,
+                tab.display_title(),
                 self.workspace.active_tab_index() + 1,
                 self.workspace.tabs().len(),
                 pane_index,
@@ -725,6 +727,10 @@ impl Application {
                 self.activate_pane(next);
             }
             Command::ClosePane => self.close_pane(),
+            Command::RenameTab => {
+                self.tab_rename = Some(String::new());
+                self.invalidate_frame();
+            }
         }
     }
 
@@ -855,6 +861,51 @@ impl Application {
                 .viewport_match(&self.terminal)
                 .is_some_and(|(row, _)| row == 0),
             highlight: search.viewport_match(&self.terminal),
+        })
+    }
+
+    fn handle_tab_rename_key(&mut self, key: &Key, text: Option<&str>) {
+        let Some(mut title) = self.tab_rename.take() else {
+            return;
+        };
+        match key {
+            Key::Named(NamedKey::Escape) => {
+                self.invalidate_frame();
+            }
+            Key::Named(NamedKey::Enter) => {
+                self.workspace
+                    .set_active_tab_custom_title((!title.is_empty()).then_some(title));
+                self.update_workspace_title();
+                self.invalidate_frame();
+            }
+            Key::Named(NamedKey::Backspace) => {
+                title.pop();
+                self.tab_rename = Some(title);
+                self.invalidate_frame();
+            }
+            _ => {
+                if !self.modifiers.control_key()
+                    && !self.modifiers.alt_key()
+                    && !self.modifiers.super_key()
+                    && let Some(text) = text
+                {
+                    title.push_str(text);
+                }
+                self.tab_rename = Some(title);
+                self.invalidate_frame();
+            }
+        }
+    }
+
+    fn tab_rename_overlay(&self) -> Option<TextOverlay> {
+        let title = self.tab_rename.as_ref()?;
+        Some(TextOverlay {
+            lines: vec![OverlayLine {
+                text: format!(" Rename Tab: {title}  Enter save  Esc cancel  empty resets"),
+                selected: true,
+            }],
+            bottom: false,
+            highlight: None,
         })
     }
 
@@ -1556,7 +1607,9 @@ impl ApplicationHandler<PtyWake> for Application {
                     "app event=keyboard logical={:?} physical={:?} text={:?}",
                     event.logical_key, event.physical_key, event.text
                 ));
-                if self.search.is_some() {
+                if self.tab_rename.is_some() {
+                    self.handle_tab_rename_key(&event.logical_key, event.text.as_deref());
+                } else if self.search.is_some() {
                     self.handle_search_key(&event.logical_key, event.text.as_deref());
                 } else if self.palette.is_some() {
                     self.handle_palette_key(&event.logical_key, event.text.as_deref());
@@ -1622,7 +1675,10 @@ impl ApplicationHandler<PtyWake> for Application {
                         false
                     };
                 self.frame.begin_redraw();
-                let overlay = self.search_overlay().or_else(|| self.palette_overlay());
+                let overlay = self
+                    .tab_rename_overlay()
+                    .or_else(|| self.search_overlay())
+                    .or_else(|| self.palette_overlay());
                 let Some(renderer) = self.renderer.as_mut() else {
                     return;
                 };
@@ -2855,6 +2911,35 @@ mod tests {
         app.handle_palette_key(&Key::Named(NamedKey::Enter), None);
         assert!(app.palette.is_none());
         assert_eq!(app.terminal.viewport_offset(), 0);
+    }
+
+    #[test]
+    fn palette_renames_tabs_and_custom_titles_survive_tab_switches() {
+        let mut app = Application::default();
+        app.dispatch_command(Command::OpenPalette);
+        app.handle_palette_key(&Key::Character("rename tab".into()), Some("rename tab"));
+        assert_eq!(
+            app.palette.as_ref().unwrap().chosen(),
+            Some(PaletteAction::Command(Command::RenameTab))
+        );
+        app.handle_palette_key(&Key::Named(NamedKey::Enter), None);
+        assert!(app.palette.is_none());
+        assert_eq!(app.tab_rename.as_deref(), Some(""));
+
+        app.handle_tab_rename_key(&Key::Character("First".into()), Some("First"));
+        app.handle_tab_rename_key(&Key::Named(NamedKey::Enter), None);
+        assert_eq!(app.workspace.active_tab().display_title(), "First");
+
+        app.dispatch_command(Command::NewTab);
+        app.dispatch_command(Command::RenameTab);
+        app.handle_tab_rename_key(&Key::Character("Second".into()), Some("Second"));
+        app.handle_tab_rename_key(&Key::Named(NamedKey::Enter), None);
+        assert_eq!(app.workspace.active_tab().display_title(), "Second");
+
+        app.dispatch_command(Command::PreviousTab);
+        assert_eq!(app.workspace.active_tab().display_title(), "First");
+        app.dispatch_command(Command::NextTab);
+        assert_eq!(app.workspace.active_tab().display_title(), "Second");
     }
 
     #[test]
