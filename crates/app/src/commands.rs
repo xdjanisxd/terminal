@@ -91,6 +91,11 @@ pub const COMMANDS: &[CommandInfo] = &[
         in_palette: true,
     },
     CommandInfo {
+        command: Command::TogglePaneZoom,
+        name: "Toggle Pane Zoom",
+        in_palette: true,
+    },
+    CommandInfo {
         command: Command::ClosePane,
         name: "Close Pane",
         in_palette: true,
