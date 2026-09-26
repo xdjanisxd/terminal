@@ -113,6 +113,28 @@ fn output_tail(output: &str) -> String {
         .collect()
 }
 
+fn observed_cwd(output: &[u8]) -> PathBuf {
+    let (text, _) = observed_output(output);
+    let value = text
+        .rsplit_once("__OBSERVED_CWD__")
+        .and_then(|(_, after_start)| after_start.split_once("__CWD_END__"))
+        .map(|(path, _)| path)
+        .unwrap_or_else(|| {
+            panic!(
+                "missing observed CWD; normalized tail {:?}",
+                output_tail(&text)
+            )
+        });
+    PathBuf::from(value)
+}
+
+fn same_test_directory(expected: &Path, observed: &Path, sentinel: &str) -> bool {
+    let expected_contents =
+        fs::read(expected.join(sentinel)).expect("test CWD sentinel is missing");
+    fs::read(observed.join(sentinel))
+        .is_ok_and(|observed_contents| observed_contents == expected_contents)
+}
+
 #[test]
 fn vt_observation_ignores_repaint_and_osc_around_split_output_markers() {
     let chunks: [&[u8]; 4] = [
@@ -129,6 +151,31 @@ fn vt_observation_ignores_repaint_and_osc_around_split_output_markers() {
     assert!(text.contains("__STARTUP_EXECUTED__"), "{text:?}");
     assert_eq!(ready_count, 2);
     assert!(!text.contains("PowerShell"), "{text:?}");
+}
+
+#[test]
+fn directory_identity_accepts_case_changes_in_paths_with_spaces_and_unicode() {
+    let root = std::env::temp_dir().join(format!("terminal-identity-{}", std::process::id()));
+    let directory = root.join("with spaces 目录");
+    let other_directory = root.join("other").join("with spaces 目录");
+    fs::create_dir_all(&directory).unwrap();
+    fs::create_dir_all(&other_directory).unwrap();
+    let sentinel = ".terminal-test-directory-identity";
+    fs::write(directory.join(sentinel), b"same directory").unwrap();
+    let changed_case = PathBuf::from(directory.to_string_lossy().to_uppercase());
+    assert!(same_test_directory(&directory, &changed_case, sentinel));
+    assert!(!same_test_directory(&directory, &other_directory, sentinel));
+    fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn observed_cwd_preserves_spaces_and_unicode_after_vt_normalization() {
+    let raw =
+        "\x1b]0;PowerShell\x07__OBSERVED_CWD__C:\\with spaces\\目\x1b[32m录\x1b[0m__CWD_END__\r\n";
+    assert_eq!(
+        observed_cwd(raw.as_bytes()),
+        PathBuf::from("C:\\with spaces\\目录")
+    );
 }
 
 fn run_script(directory: &Path, body: &str, custom_prompt: bool) -> String {
@@ -198,8 +245,19 @@ fn sourcing_twice_does_not_wrap_recursively_and_unavailable_locations_are_safe()
 
 #[test]
 fn saved_command_runs_in_fresh_shell_at_cwd_and_shell_survives_exit() {
-    let directory = std::env::temp_dir().join(format!("terminal-startup-{}", std::process::id()));
+    let directory =
+        std::env::temp_dir().join(format!("terminal startup 目录-{}", std::process::id()));
     fs::create_dir_all(&directory).unwrap();
+    // Reading this file through the reported path confirms the directory even
+    // when Windows uses different short/long names or letter case for it.
+    let sentinel = format!(
+        ".terminal-cwd-identity-{}",
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    );
+    fs::write(directory.join(&sentinel), b"startup test directory").unwrap();
     let config = PtySpawnConfig::new(
         PathBuf::from("powershell.exe"),
         PtySize::new(24, 80).unwrap(),
@@ -266,7 +324,7 @@ fn saved_command_runs_in_fresh_shell_at_cwd_and_shell_survives_exit() {
         &mut session,
         &mut answered_cursor_query,
     );
-    session.write(b"Write-Output ('__STARTUP_' + 'EXECUTED__'); Write-Output ('__OBSERVED_' + 'CWD__' + (Get-Location).Path); cmd.exe /d /c exit 0; Write-Output ('__CHILD_' + 'EXITED__')\r").unwrap();
+    session.write(b"Write-Output ('__STARTUP_' + 'EXECUTED__'); Write-Output ('__OBSERVED_' + 'CWD__' + (Get-Location).Path + '__CWD_' + 'END__'); cmd.exe /d /c exit 0; Write-Output ('__CHILD_' + 'EXITED__')\r").unwrap();
     wait_for(
         "__STARTUP_EXECUTED__",
         1,
@@ -275,14 +333,21 @@ fn saved_command_runs_in_fresh_shell_at_cwd_and_shell_survives_exit() {
         &mut session,
         &mut answered_cursor_query,
     );
-    let expected_cwd = format!("__OBSERVED_CWD__{}", directory.display());
     wait_for(
-        &expected_cwd,
+        "__CWD_END__",
         1,
         &mut output,
         &receiver,
         &mut session,
         &mut answered_cursor_query,
+    );
+    let actual_cwd = observed_cwd(&output);
+    assert!(
+        same_test_directory(&directory, &actual_cwd, &sentinel),
+        "startup CWD differs: expected {:?}, observed {:?}; normalized tail {:?}",
+        directory,
+        actual_cwd,
+        output_tail(&observed_output(&output).0)
     );
     wait_for(
         "__CHILD_EXITED__",
