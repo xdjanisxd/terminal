@@ -147,6 +147,82 @@ fn scripted_worker(
 }
 
 #[test]
+fn exited_child_output_is_drained_across_reads_before_eof() {
+    struct GatedReader {
+        chunks: VecDeque<Vec<u8>>,
+        final_read_started: SyncSender<()>,
+        final_read_gate: Receiver<()>,
+    }
+
+    impl PtyOutputReader for GatedReader {
+        fn read(&mut self, bytes: &mut [u8]) -> Result<usize, PtyError> {
+            if self.chunks.len() == 1 {
+                self.final_read_started.send(()).unwrap();
+                self.final_read_gate
+                    .recv_timeout(DEADLINE)
+                    .map_err(|_| PtyError::ReadFailed)?;
+            }
+            let Some(chunk) = self.chunks.pop_front() else {
+                // portable-pty normalizes Unix PTY EIO to this EOF result.
+                return Ok(0);
+            };
+            assert!(chunk.len() <= bytes.len());
+            bytes[..chunk.len()].copy_from_slice(&chunk);
+            Ok(chunk.len())
+        }
+    }
+
+    let (started_sender, started_receiver) = mpsc::sync_channel(1);
+    let (gate_sender, gate_receiver) = mpsc::sync_channel(0);
+    let state = Arc::new(Mutex::new(TestState {
+        lifecycle: PtyLifecycle::Exited(PtyExitStatus::code(23)),
+        ..TestState::default()
+    }));
+    let session = TestSession {
+        state,
+        reader: Some(Box::new(GatedReader {
+            chunks: [HELPER_MARKER[..10].to_vec(), HELPER_MARKER[10..].to_vec()].into(),
+            final_read_started: started_sender,
+            final_read_gate: gate_receiver,
+        })),
+        first_write_started: None,
+        first_write_gate: None,
+    };
+    let mut worker = PtyWorker::start(session).unwrap();
+    started_receiver.recv_timeout(DEADLINE).unwrap();
+
+    let deadline = Instant::now() + DEADLINE;
+    let mut output = Vec::new();
+    let mut saw_exit = false;
+    while !saw_exit || output.len() < 10 {
+        assert!(Instant::now() < deadline, "exit event deadline elapsed");
+        match worker.recv_timeout(Duration::from_millis(50)).unwrap() {
+            Some(PtyWorkerEvent::Output(PtyOutput::Bytes(bytes))) => output.extend(bytes),
+            Some(PtyWorkerEvent::Output(PtyOutput::Exited(status))) => {
+                assert_eq!(status, PtyExitStatus::code(23));
+                saw_exit = true;
+            }
+            Some(event) => panic!("unexpected event before final read: {event:?}"),
+            None => {}
+        }
+    }
+    assert_eq!(output, HELPER_MARKER[..10]);
+
+    gate_sender.send(()).unwrap();
+    loop {
+        assert!(Instant::now() < deadline, "output drain deadline elapsed");
+        match worker.recv_timeout(Duration::from_millis(50)).unwrap() {
+            Some(PtyWorkerEvent::Output(PtyOutput::Bytes(bytes))) => output.extend(bytes),
+            Some(PtyWorkerEvent::Output(PtyOutput::Eof)) => break,
+            Some(event) => panic!("unexpected event while draining output: {event:?}"),
+            None => {}
+        }
+    }
+    assert_eq!(output, HELPER_MARKER);
+    worker.join().unwrap();
+}
+
+#[test]
 fn bounded_event_queue_backpressures_without_dropping_terminal_events() {
     let chunks = (0_u8..10).map(|byte| vec![byte]).collect::<Vec<_>>();
     let (mut worker, _) = scripted_worker(PtyLifecycle::Exited(PtyExitStatus::code(7)), chunks);
