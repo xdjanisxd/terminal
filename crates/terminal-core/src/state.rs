@@ -688,20 +688,19 @@ impl TerminalState {
         self.screen.set_wrap_pending(false);
     }
 
-    /// Moves down one row, scrolling the full active screen at its bottom edge.
+    /// Moves down one row, scrolling the active region at its bottom margin.
     ///
-    /// On Primary, this captures the displaced top row as history; Alternate
-    /// scrolls internally without history. The cursor column and any delayed-wrap
-    /// condition are unchanged.
+    /// At the bottom scrolling margin, only the active region scrolls. On
+    /// Primary, a full-screen scroll captures the displaced top row as history;
+    /// Alternate scrolls without history. The cursor column and any
+    /// delayed-wrap condition are unchanged.
     pub fn line_feed(&mut self) {
         let cursor = self.cursor();
-        if cursor.row() + 1 < self.dimensions().rows() {
+        let margins = self.screen.vertical_scrolling_margins();
+        if cursor.row() == margins.bottom() {
+            self.screen.scroll_region_up(margins, 1);
+        } else if cursor.row() + 1 < self.dimensions().rows() {
             self.screen.move_cursor(1, 0);
-        } else {
-            self.screen.scroll_region_up(
-                VerticalScrollingMargins::full_screen(self.dimensions().rows()),
-                1,
-            );
         }
     }
 
