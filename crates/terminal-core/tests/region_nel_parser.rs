@@ -1,4 +1,6 @@
-use terminal_core::{TerminalDimensions, TerminalParser, TerminalState, VerticalScrollingMargins};
+use terminal_core::{
+    ScreenKind, TerminalDimensions, TerminalParser, TerminalState, VerticalScrollingMargins,
+};
 
 fn labeled_state() -> TerminalState {
     let mut state = TerminalState::new(TerminalDimensions::new(3, 6).unwrap());
@@ -122,4 +124,83 @@ fn incomplete_and_malformed_nel_escapes_keep_safe_existing_behavior() {
         (malformed.cursor().row(), malformed.cursor().column()),
         (2, 1)
     );
+}
+
+#[test]
+fn vim_alternate_screen_cr_lf_scrolls_only_the_edit_region_across_chunks() {
+    let input = b"\x1b[1;5r\x1b[5;1H\r\n\x1b[1;6r\x1b[5;1Hnew";
+    for chunk_size in [1, 2, 7, input.len()] {
+        let mut parser = TerminalParser::new();
+        let mut state = labeled_state();
+        state.set_cursor_position(5, 0).unwrap();
+        state.index();
+        assert!(state.page_up());
+        let primary_offset = state.viewport_offset();
+        let primary_history = state.scrollback_len();
+        parser.advance(&mut state, b"\x1b[?1049h").unwrap();
+        assert_eq!(state.active_screen(), ScreenKind::Alternate);
+        for (row, text) in ["aaa", "bbb", "ccc", "ddd", "eee", "fff"]
+            .into_iter()
+            .enumerate()
+        {
+            state.set_cursor_position(row, 0).unwrap();
+            for character in text.chars() {
+                state.print_character(character).unwrap();
+            }
+        }
+        for chunk in input.chunks(chunk_size) {
+            parser.advance(&mut state, chunk).unwrap();
+        }
+        assert_eq!(state.viewport_offset(), 0);
+        assert_eq!((state.cursor().row(), state.cursor().column()), (4, 2));
+        assert_eq!(
+            (0..6).map(|row| row_text(&state, row)).collect::<Vec<_>>(),
+            ["bbb", "ccc", "ddd", "eee", "new", "fff"]
+        );
+        parser.advance(&mut state, b"\x1b[?1049l").unwrap();
+        assert_eq!(state.active_screen(), ScreenKind::Primary);
+        assert_eq!(state.viewport_offset(), primary_offset);
+        assert_eq!(state.scrollback_len(), primary_history);
+    }
+}
+
+#[test]
+fn alternate_lf_respects_margin_edges_and_resize_restores_full_height_region() {
+    let mut parser = TerminalParser::new();
+    let mut state = labeled_state();
+    parser.advance(&mut state, b"\x1b[?1049h").unwrap();
+    for (row, text) in ["aaa", "bbb", "ccc", "ddd", "eee", "fff"]
+        .into_iter()
+        .enumerate()
+    {
+        state.set_cursor_position(row, 0).unwrap();
+        for character in text.chars() {
+            state.print_character(character).unwrap();
+        }
+    }
+    parser.advance(&mut state, b"\x1b[2;5r\x1b[1;1H\n").unwrap();
+    assert_eq!((state.cursor().row(), state.cursor().column()), (1, 0));
+    assert_eq!(row_text(&state, 0), "aaa");
+    parser.advance(&mut state, b"\x1b[6;1H\n").unwrap();
+    assert_eq!((state.cursor().row(), state.cursor().column()), (5, 0));
+    assert_eq!(row_text(&state, 5), "fff");
+    parser.advance(&mut state, b"\x1b[5;1H\n").unwrap();
+    assert_eq!(
+        (0..6).map(|row| row_text(&state, row)).collect::<Vec<_>>(),
+        ["aaa", "ccc", "ddd", "eee", "   ", "fff"]
+    );
+
+    state.resize(TerminalDimensions::new(3, 4).unwrap());
+    assert_eq!(
+        state.vertical_scrolling_margins(),
+        VerticalScrollingMargins::full_screen(4)
+    );
+    assert_eq!(state.viewport_offset(), 0);
+    parser.advance(&mut state, b"\x1b[4;1H\r\n").unwrap();
+    assert_eq!(
+        (0..4).map(|row| row_text(&state, row)).collect::<Vec<_>>(),
+        ["ccc", "ddd", "eee", "   "]
+    );
+    assert_eq!((state.cursor().row(), state.cursor().column()), (3, 0));
+    assert_eq!(state.scrollback_len(), 0);
 }

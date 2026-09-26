@@ -391,8 +391,8 @@ fn indexed_color(index: u8) -> Rgba {
 mod tests {
     use super::*;
     use terminal_core::{
-        CellColor, CursorVisibility, InverseVideo, TerminalDimensions, TerminalState,
-        UnderlineStyle,
+        CellColor, CursorVisibility, InverseVideo, TerminalDimensions, TerminalParser,
+        TerminalState, UnderlineStyle,
     };
 
     #[test]
@@ -751,6 +751,47 @@ mod tests {
         );
         state.reset();
         assert_eq!(TerminalRenderData::from_terminal(&state).scrollbar, None);
+    }
+
+    #[test]
+    fn alternate_region_scroll_projects_current_cells_despite_primary_scrollback() {
+        let mut state = TerminalState::new(TerminalDimensions::new(2, 3).unwrap());
+        let mut parser = TerminalParser::new();
+        state.set_cursor_position(2, 0).unwrap();
+        state.index();
+        assert!(state.page_up());
+        parser.advance(&mut state, b"\x1b[?1049h").unwrap();
+        for (row, character) in ['a', 'b', 'c'].into_iter().enumerate() {
+            state.set_cursor_position(row, 0).unwrap();
+            state.print_character(character).unwrap();
+        }
+        parser
+            .advance(&mut state, b"\x1b[1;2r\x1b[2;1H\r\n\x1b[1;3r\x1b[2;1Hx")
+            .unwrap();
+
+        let projection = TerminalRenderData::from_terminal(&state);
+        assert_eq!(projection.scrollbar, None);
+        assert_eq!(
+            projection.cursor,
+            Some(CursorRenderData { row: 1, column: 1 })
+        );
+        assert_eq!(
+            projection
+                .cells
+                .iter()
+                .map(|cell| (cell.row, cell.column, cell.character))
+                .collect::<Vec<_>>(),
+            [(0, 0, 'b'), (1, 0, 'x'), (2, 0, 'c')]
+        );
+
+        parser.advance(&mut state, b"\x1b[?1049l").unwrap();
+        assert_eq!(
+            TerminalRenderData::from_terminal(&state)
+                .scrollbar
+                .unwrap()
+                .viewport_offset,
+            1
+        );
     }
 
     #[test]
