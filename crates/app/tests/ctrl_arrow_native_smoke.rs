@@ -71,6 +71,7 @@ impl PtyOutput {
 }
 
 fn wait_for(
+    phase: &str,
     marker: &str,
     since: usize,
     output: &mut PtyOutput,
@@ -85,7 +86,7 @@ fn wait_for(
         let remaining = deadline.saturating_duration_since(Instant::now());
         assert!(
             !remaining.is_zero(),
-            "PowerShell output marker {marker:?} missing; normalized output tail {:?}",
+            "{phase}: marker {marker:?} missing; normalized output tail {:?}",
             output.tail()
         );
         match receiver.recv_timeout(remaining.min(Duration::from_millis(100))) {
@@ -97,7 +98,7 @@ fn wait_for(
             Err(RecvTimeoutError::Timeout) => {}
             Err(RecvTimeoutError::Disconnected) => {
                 panic!(
-                    "PTY output closed while waiting for {marker:?}; normalized output tail {:?}",
+                    "{phase}: PTY output closed while waiting for {marker:?}; normalized output tail {:?}",
                     output.tail()
                 )
             }
@@ -107,11 +108,32 @@ fn wait_for(
 
 #[test]
 fn powershell_psreadline_moves_by_words_for_control_arrows() {
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let prompt = format!("__CTRL_ARROW_PROMPT_{nonce:x}__");
+    let ready = format!("__CTRL_ARROW_READY_{nonce:x}__");
+
+    // Setup runs before the interactive reader starts. The markers are assembled by PowerShell,
+    // so neither startup source text nor later command echo can satisfy the assertions.
+    let setup = format!(
+        "function prompt {{ ('__CTRL_ARROW_PROMPT_' + '{nonce:x}__') }}; \
+         function EmitArrowResult {{ param($Direction, $First, $Second) \
+         Write-Output ('__CTRL_ARROW_' + $Direction + '_' + $First + '_' + $Second + '_{nonce:x}__') }}; \
+         Write-Output ('__CTRL_ARROW_READY_' + '{nonce:x}__')"
+    );
     let config = PtySpawnConfig::new(
         PathBuf::from("powershell.exe"),
         PtySize::new(24, 80).unwrap(),
     )
-    .with_arguments([OsString::from("-NoLogo"), OsString::from("-NoProfile")]);
+    .with_arguments([
+        OsString::from("-NoLogo"),
+        OsString::from("-NoProfile"),
+        OsString::from("-NoExit"),
+        OsString::from("-Command"),
+        OsString::from(setup),
+    ]);
     let mut session = PortablePtyBackend::new().spawn(config).unwrap();
     let mut reader = session.take_output_reader().unwrap();
     let (sender, receiver) = mpsc::channel();
@@ -129,30 +151,29 @@ fn powershell_psreadline_moves_by_words_for_control_arrows() {
         }
     });
 
-    let nonce = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    let prompt = format!("__CTRL_ARROW_PROMPT_{nonce:x}__");
-    let ready = format!("__CTRL_ARROW_READY_{nonce:x}__");
     let mut output = PtyOutput::default();
-
-    // PowerShell assembles the markers, so command echo cannot satisfy the assertions.
-    let setup = format!(
-        "function prompt {{ ('__CTRL_ARROW_PROMPT_' + '{nonce:x}__') }}; \
-         function EmitArrowResult {{ param($Direction, $First, $Second) \
-         Write-Output ('__CTRL_ARROW_' + $Direction + '_' + $First + '_' + $Second + '_{nonce:x}__') }}; \
-         Write-Output ('__CTRL_ARROW_READY_' + '{nonce:x}__')\r"
+    wait_for(
+        "PowerShell startup setup did not execute",
+        &ready,
+        0,
+        &mut output,
+        &receiver,
+        &mut session,
     );
-    let setup_start = output.visible.len();
-    session.write(setup.as_bytes()).unwrap();
-    wait_for(&ready, setup_start, &mut output, &receiver, &mut session);
-    wait_for(&prompt, setup_start, &mut output, &receiver, &mut session);
+    wait_for(
+        "PowerShell interactive prompt not ready",
+        &prompt,
+        0,
+        &mut output,
+        &receiver,
+        &mut session,
+    );
 
     let left = format!("__CTRL_ARROW_LEFT_alpha_Xbeta_{nonce:x}__");
     let left_start = output.visible.len();
     session.write(b"EmitArrowResult LEFT alpha beta").unwrap();
     wait_for(
+        "Ctrl+Left edit line not visible",
         "EmitArrowResult LEFT alpha beta",
         left_start,
         &mut output,
@@ -160,12 +181,20 @@ fn powershell_psreadline_moves_by_words_for_control_arrows() {
         &mut session,
     );
     session.write(b"\x1b[1;5DX\r").unwrap();
-    wait_for(&left, left_start, &mut output, &receiver, &mut session);
+    wait_for(
+        "Ctrl+Left result missing",
+        &left,
+        left_start,
+        &mut output,
+        &receiver,
+        &mut session,
+    );
 
     let right = format!("__CTRL_ARROW_RIGHT_alpha_Xbeta_{nonce:x}__");
     let right_start = output.visible.len();
     session.write(b"EmitArrowResult RIGHT alpha beta").unwrap();
     wait_for(
+        "Ctrl+Right edit line not visible",
         "EmitArrowResult RIGHT alpha beta",
         right_start,
         &mut output,
@@ -173,7 +202,14 @@ fn powershell_psreadline_moves_by_words_for_control_arrows() {
         &mut session,
     );
     session.write(b"\x1b[1;5D\x1b[1;5D\x1b[1;5CX\r").unwrap();
-    wait_for(&right, right_start, &mut output, &receiver, &mut session);
+    wait_for(
+        "Ctrl+Right result missing",
+        &right,
+        right_start,
+        &mut output,
+        &receiver,
+        &mut session,
+    );
     session.terminate().unwrap();
 }
 
