@@ -72,7 +72,7 @@ def write_tar_gz(path: Path, files: dict[str, bytes]) -> None:
 
 
 def smoke_archive(path: Path, files: dict[str, bytes], windows: bool) -> None:
-    extracted = path.parent / f".terminal-smoke-{uuid.uuid4().hex}"
+    extracted = (path.parent / f".terminal-smoke-{uuid.uuid4().hex}").resolve()
     extracted.mkdir()
     try:
         if windows:
@@ -102,7 +102,7 @@ def smoke_archive(path: Path, files: dict[str, bytes], windows: bool) -> None:
         for name, expected in files.items():
             if (extracted / name).read_bytes() != expected:
                 raise RuntimeError(f"archive member changed: {name}")
-        executable = extracted / ("terminal.exe" if windows else "terminal")
+        executable = (extracted / ("terminal.exe" if windows else "terminal")).resolve()
         if not windows and not executable.stat().st_mode & stat.S_IXUSR:
             raise RuntimeError("packaged executable is not executable")
         env = os.environ.copy()
