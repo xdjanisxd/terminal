@@ -510,6 +510,7 @@ fn parse_chord(value: &str) -> Result<KeyChord, String> {
                     "insert" => "Insert".into(),
                     "delete" => "Delete".into(),
                     "backspace" => "Backspace".into(),
+                    "enter" => "Enter".into(),
                     "space" => "Space".into(),
                     "tab" => "Tab".into(),
                     "arrowright" => "ArrowRight".into(),
@@ -713,6 +714,26 @@ mod tests {
         assert!(config.bindings[0].key.shift);
         assert_eq!(config.bindings[0].command, Command::ClosePane);
     }
+
+    #[test]
+    fn enter_is_a_supported_physical_binding_key_with_modifiers() {
+        for (key, control, shift, alt) in [
+            ("Enter", false, false, false),
+            ("Ctrl+Enter", true, false, false),
+            ("Shift+Enter", false, true, false),
+            ("Alt+Enter", false, false, true),
+            ("Ctrl+Shift+Enter", true, true, false),
+        ] {
+            let source = format!("[[bindings]]\nkey = '{key}'\ncommand = 'toggle_pane_zoom'");
+            let config = Config::parse(&source).unwrap();
+            let chord = &config.bindings[0].key;
+            assert_eq!(chord.key, "Enter");
+            assert_eq!(chord.control, control);
+            assert_eq!(chord.shift, shift);
+            assert_eq!(chord.alt, alt);
+            assert_eq!(config.bindings[0].command, Command::TogglePaneZoom);
+        }
+    }
     #[test]
     fn validation_names_the_bad_field() {
         for (source, field) in [
@@ -720,6 +741,10 @@ mod tests {
             ("[theme]\nansi = ['#000000']", "theme.ansi"),
             (
                 "[[bindings]]\nkey = 'Ctrl+Nope'\naction = 'copy'",
+                "bindings[0].key",
+            ),
+            (
+                "[[bindings]]\nkey = 'Ctrl+Enteer'\naction = 'copy'",
                 "bindings[0].key",
             ),
             (
