@@ -1,234 +1,227 @@
-# Copy this file to the platform config path described in docs/CONFIG.md.
-
-# Omitted top-level sections use built-in defaults. Within an explicit workspace,
-
-# tab titles, layouts, pane sessions, and split children are required.
-
-# Unknown fields reject the file.
+# Copy to the platform config path described in docs/CONFIG.md.
+# This example is equivalent to the built-in defaults. Optional fields are
+# commented out. Unknown fields reject the whole file.
 
 [font]
-
-# Omit family to use the platform-selected monospace font (default).
-
-# family = "Cascadia Mono" # Installed monospace family; restart to apply.
-
-size = 16 # Logical pixels; integer from 1 to 256. Runtime shortcuts change size; this is the reset size. Restart to apply edits.
+# family = "Cascadia Mono" # Installed monospace family; default: platform choice.
+size = 16 # Logical pixels, 1..=256. Restart after editing [font].
 
 [theme]
+# Every color is #RRGGBB. Omitted fields use their built-in defaults.
+foreground = "#e6e6e6"
+background = "#000000"
+cursor = "#e6e6e6"
+selection_foreground = "#ffffff"
+selection_background = "#2e59a6"
 
-# Colors use #RRGGBB.
-
-foreground = "#e6e6e6"           # Text color.
-background = "#000000"           # Terminal background.
-cursor = "#e6e6e6"               # Cursor color.
-selection_foreground = "#ffffff" # Selected text.
-selection_background = "#2e59a6" # Selection background.
-
-# Exactly 16 ANSI colors, indexes 0 through 15.
-
+# ANSI colors 0–15: black, red, green, yellow, blue, magenta, cyan, white,
+# then their bright variants. The array must have exactly 16 colors.
 ansi = [
-"#000000", "#cd3131", "#0dbc79", "#e5e510",
-"#2472c8", "#bc3fbc", "#11a8cd", "#e5e5e5",
-"#666666", "#f14c4c", "#23d18b", "#f5f543",
-"#3b8eea", "#d670d6", "#29b8db", "#ffffff",
+    "#000000", "#cd3131", "#0dbc79", "#e5e510",
+    "#2472c8", "#bc3fbc", "#11a8cd", "#e5e5e5",
+    "#666666", "#f14c4c", "#23d18b", "#f5f543",
+    "#3b8eea", "#d670d6", "#29b8db", "#ffffff",
 ]
 
-# Optional app UI colors. Set only the values you care about; omitted values
-# keep sensible defaults derived from the terminal theme or existing UI colors.
-# ui_background = "#000000"          # Picker and prompt surfaces.
-# ui_foreground = "#e6e6e6"          # Picker and prompt text.
-# ui_selected_background = "#2e59a6" # Selected picker rows and active search.
-# ui_muted = "#b3b3b3"               # Scrollbar thumb.
-# ui_accent = "#ff79c6"              # Activity, search, and focus accents.
-# ui_border = "#404040"              # Scrollbar track.
-# More specific optional colors take precedence over semantic UI colors:
+# Optional semantic app UI colors. They override related defaults:
+# ui_background = "#000000"          # App surfaces; falls back to background.
+# ui_foreground = "#e6e6e6"          # App text; falls back to foreground.
+# ui_selected_background = "#2e59a6" # Selected rows and active search.
+# ui_muted = "#b3b3b3"               # Muted text and scrollbar thumb.
+# ui_accent = "#ff79c6"              # Accent, focus border, search matches.
+# ui_border = "#404040"              # Borders and scrollbar track/track hover.
+# Specific overrides below take precedence over the related UI colors:
 # search_match_background = "#4d380a"
 # search_active_background = "#2e59a6"
 # scrollbar_thumb = "#b3b3b3"
 # scrollbar_thumb_hover = "#f2f2f2"
+# See docs/CONFIG.md for the complete fallback chain.
 
-# Binding entries replace the entire default list; keep any shortcuts you want.
+# IMPORTANT: any [[bindings]] entries replace the entire built-in binding list.
+# Keep every default shortcut you still want. bindings = [] disables them all.
+# Chords use Ctrl (or Control), Shift, and Alt in any order, then a key.
+# Keys: A–Z, 0–9, = (Equal), - (Minus), PageUp, PageDown, Home, End,
+# Insert, Delete, Backspace, Tab, Space, ArrowLeft, ArrowRight, ArrowUp,
+# ArrowDown. Plain letters and digits require a modifier.
+# "action" is accepted as an alias for "command".
+# All commands (including those without a default binding):
+# copy, paste, page_up, page_down, increase_font_size, decrease_font_size,
+# reset_font_size, open_palette, open_tab_picker, save_current_workspace,
+# set_pane_startup_command, clear_pane_startup_command, open_workspace_picker,
+# delete_workspace, open_target, new_tab, split_horizontal, split_vertical,
+# next_tab, previous_tab, next_pane, previous_pane, resize_pane_left,
+# resize_pane_right, resize_pane_up, resize_pane_down, focus_pane_left,
+# focus_pane_right, focus_pane_up, focus_pane_down, toggle_pane_zoom,
+# close_pane, rename_tab.
 
-# A chord uses optional Ctrl, Shift, Alt, then a physical key. Supported keys:
-
-# A-Z, 0-9, PageUp, PageDown, Home, End, Insert, Delete, Backspace, Tab,
-
-# ArrowLeft, ArrowRight, ArrowUp, ArrowDown, Space, Equal, Minus. Plain letters and
-
-# digits require a modifier.
-
-# Example custom binding: key = "Ctrl+Shift+Backspace", command = "close_pane".
-
-# Commands include copy, paste, page_up, page_down, open_palette, open_tab_picker, open_target,
-
-# new_tab, split_horizontal, split_vertical, next_tab, previous_tab, next_pane,
-
-# previous_pane, focus_pane_left, focus_pane_right, focus_pane_up,
-
-# focus_pane_down, resize_pane_left, resize_pane_right, resize_pane_up,
-
-# resize_pane_down, toggle_pane_zoom, close_pane, rename_tab,
-
-# increase_font_size, decrease_font_size, reset_font_size.
-
-# "action" aliases "command".
-
+# Copy the current terminal selection to the clipboard.
 [[bindings]]
 key = "Ctrl+Shift+C"
 command = "copy"
 
+# Paste clipboard text into the focused pane.
 [[bindings]]
 key = "Ctrl+Shift+V"
 command = "paste"
 
+# Scroll local scrollback up one page.
 [[bindings]]
 key = "PageUp"
 command = "page_up"
 
+# Scroll local scrollback down one page.
 [[bindings]]
 key = "PageDown"
 command = "page_down"
 
+# Increase the current font size.
 [[bindings]]
 key = "Ctrl+="
 command = "increase_font_size"
 
+# Increase the current font size with the shifted equal key.
 [[bindings]]
-key = "Ctrl++"
+key = "Ctrl+Shift+="
 command = "increase_font_size"
 
+# Decrease the current font size.
 [[bindings]]
 key = "Ctrl+-"
 command = "decrease_font_size"
 
+# Reset the font size to [font].size.
 [[bindings]]
 key = "Ctrl+0"
 command = "reset_font_size"
 
+# Open the searchable command palette.
 [[bindings]]
 key = "Ctrl+Shift+P"
 command = "open_palette"
 
+# Open the searchable tab picker.
 [[bindings]]
 key = "Ctrl+Shift+Space"
 command = "open_tab_picker"
 
+# Open a new tab with a fresh local shell.
 [[bindings]]
 key = "Ctrl+Shift+T"
 command = "new_tab"
 
+# Split the focused pane into left and right panes.
 [[bindings]]
 key = "Ctrl+Shift+E"
 command = "split_vertical"
 
+# Split the focused pane into top and bottom panes.
 [[bindings]]
 key = "Ctrl+Shift+O"
 command = "split_horizontal"
 
+# Focus the next tab.
 [[bindings]]
 key = "Ctrl+Tab"
 command = "next_tab"
 
+# Focus the previous tab.
 [[bindings]]
 key = "Ctrl+Shift+Tab"
 command = "previous_tab"
 
+# Focus the next pane in layout traversal order.
 [[bindings]]
 key = "Ctrl+Shift+ArrowRight"
 command = "next_pane"
 
+# Focus the previous pane in layout traversal order.
 [[bindings]]
 key = "Ctrl+Shift+ArrowLeft"
 command = "previous_pane"
 
+# Focus a pane to the left.
 [[bindings]]
 key = "Ctrl+Shift+H"
 command = "focus_pane_left"
 
+# Focus a pane to the right.
 [[bindings]]
 key = "Ctrl+Shift+L"
 command = "focus_pane_right"
 
+# Focus a pane above.
 [[bindings]]
 key = "Ctrl+Shift+K"
 command = "focus_pane_up"
 
+# Focus a pane below.
 [[bindings]]
 key = "Ctrl+Shift+J"
 command = "focus_pane_down"
 
+# Move the nearest applicable split boundary left.
 [[bindings]]
 key = "Ctrl+Alt+H"
 command = "resize_pane_left"
 
+# Move the nearest applicable split boundary right.
 [[bindings]]
 key = "Ctrl+Alt+L"
 command = "resize_pane_right"
 
+# Move the nearest applicable split boundary up.
 [[bindings]]
 key = "Ctrl+Alt+K"
 command = "resize_pane_up"
 
+# Move the nearest applicable split boundary down.
 [[bindings]]
 key = "Ctrl+Alt+J"
 command = "resize_pane_down"
 
+# Zoom or restore the focused pane within its tab.
 [[bindings]]
 key = "Ctrl+Shift+Z"
 command = "toggle_pane_zoom"
 
+# Close the focused pane.
 [[bindings]]
 key = "Ctrl+Shift+W"
 command = "close_pane"
 
+# This is the config-defined startup workspace, not a Saved Workspace.
+# Saved Workspaces live separately in app-managed workspaces.toml.
 [workspace]
-
-# Default: no project_root. Set a path to choose the working directory for
-
-# panes without a more specific tab or pane root. Relative paths resolve from
-
-# the config file directory. Example: project_root = "../my-project"
-
-active_tab = 0 # Zero-based index of the initially focused tab.
+# project_root = "../my-project" # Workspace-level default directory.
+active_tab = 0 # Zero-based initial tab index.
 
 [[workspace.tabs]]
-title = "Terminal 1" # Initial tab title.
-
-# Default: no tab project_root. It overrides workspace.project_root.
-
-# Example: project_root = "../my-project"
-
-active_pane = 0 # Zero-based initial pane index, in layout leaf order.
+title = "Terminal 1"
+# custom_title = "Custom title" # Optional user title, separate from title.
+# project_root = "../my-project" # Overrides workspace.project_root.
+active_pane = 0 # Zero-based leaf index, first child before second.
 
 [workspace.tabs.layout]
-kind = "pane" # "pane" or "split"; a split has axis, first, and second.
+kind = "pane" # A layout is a pane leaf or a recursive split node.
+# project_root = "../my-project" # Overrides tab and workspace roots.
+session = "local_shell" # Starts the normal local shell in a fresh PTY.
+# startup_command = "nvim" # Optional explicit shell input after shell startup.
 
-# Default: no pane project_root. It overrides tab and workspace roots.
-
-# Example: project_root = "../my-project"
-
-session = "local_shell" # Required for a pane; or use the command table below.
-
-# To start a command in this pane, replace the session line above with:
-
+# For a direct-command pane, replace session = "local_shell" with a table:
 # [workspace.tabs.layout.session.command]
+# program = "cargo" # Executable name or path; no shell interpolation.
+# args = ["--version"] # Optional; defaults to [].
 
-# program = "cargo" # Executable path or name; no shell interpolation.
+# A split layout can replace the pane table above, for example:
+# layout = { kind = "split", axis = "vertical", first_share = 500000, first = { kind = "pane", session = "local_shell" }, second = { kind = "pane", session = "local_shell" } }
+# axis: "vertical" means left/right; "horizontal" means top/bottom.
+# first_share is optional, 1..=999999 millionths; default 500000.
+# Either child can itself be a split. Each pane needs a session.
 
-# args = ["--version"] # Default: []; arguments passed directly.
+# Root precedence: pane > tab > workspace. Relative roots resolve from this
+# config file's directory. project_root is optional at every level.
 
-#
-
-# A split layout can be written inline in a tab instead of the layout table:
-
-# layout = { kind = "split", axis = "vertical", first = { kind = "pane", session = "local_shell" }, second = { kind = "pane", session = "local_shell" } }
-
-# axis accepts "vertical" or "horizontal"; each child can itself be a split.
-
-# Optional project palette entry (default: no projects):
-
+# Optional project palette entry; default is no projects:
 # [[projects]]
-
-# name = "My project" # Must be nonempty and unique.
-
-# path = "../my-project" # Nonempty; relative to the config file directory.
+# name = "My project" # Nonempty and unique.
+# path = "../my-project" # Nonempty; relative to this config file's directory.

@@ -1,124 +1,190 @@
 # Configuration
 
-`terminal-config` owns the typed defaults, TOML parsing, and validation. The app loads the file at startup, retains the last valid configuration, resolves configured keys to typed commands, and passes font settings and colors to the renderer. Terminal state and command execution remain outside the config crate.
+The app reads `config.toml` at startup. It does not create the file; when it is
+missing, built-in defaults provide one local-shell tab, default bindings, a
+default font and theme, and no project palette entries. The complete annotated
+[example](../config.example.toml) reproduces those defaults.
 
-The config file is `%APPDATA%\terminal\config.toml` on Windows and `${XDG_CONFIG_HOME:-$HOME/.config}/terminal/config.toml` elsewhere. `TERMINAL_CONFIG` overrides the full path. A missing file uses defaults; the app does not create one.
+## Location and loading
 
-The complete, ready-to-copy example is [`config.example.toml`](../config.example.toml) at the repository root. Copy it to the config file location above, then edit the values you want. Omitted font and theme fields use their individual defaults; omitting `[workspace]`, `bindings`, or `projects` uses the default single-pane workspace, default shortcuts, or no projects, respectively. The example lists the actual defaults and valid values in comments.
+| Platform | Default path |
+| --- | --- |
+| Windows | `%APPDATA%\terminal\config.toml` |
+| Linux and macOS | `$XDG_CONFIG_HOME/terminal/config.toml` when set; otherwise `$HOME/.config/terminal/config.toml` |
 
-```toml
-[font]
-# Omit family to use the platform-selected monospace font.
-# family = "Cascadia Mono"
-size = 16
+`TERMINAL_CONFIG` overrides the full file path. Relative project paths in
+the file resolve against the directory containing that file. The same rules
+apply to a file loaded with `--workspace`. See [CLI options](#cli-options).
+If neither platform base-directory environment variable is available, the
+app uses `./terminal` as its storage directory.
 
-[theme]
-foreground = "#e6e6e6"
-background = "#000000"
-cursor = "#e6e6e6"
-selection_foreground = "#ffffff"
-selection_background = "#2e59a6"
-# Optional: exactly 16 #RRGGBB strings for ANSI colors 0 through 15.
-# ansi = ["#000000", ...]
+TOML is parsed into a typed schema. Unknown fields, malformed TOML, invalid
+colors, unsupported or duplicate key chords, unknown commands, invalid font
+values, and invalid workspace definitions reject the whole file. Errors name
+the file and relevant source location or field. On a reload error the app
+reports the error to stderr and retains the last valid configuration. A
+missing file restores defaults for live-reloaded settings.
 
-[[bindings]]
-key = "Ctrl+Shift+C"
-command = "copy"
+The app reloads valid changes to theme, bindings, and project palette entries
+while running. Font settings and startup workspace definitions are applied
+when the app starts; restart after editing those. Runtime font shortcuts change
+the current size without editing the file, and reset returns to the configured
+startup size. Existing running panes are not rebuilt when the file changes.
 
-[[bindings]]
-key = "Ctrl+Shift+V"
-command = "paste"
+## Font
 
-[[bindings]]
-key = "PageUp"
-command = "page_up"
+`[font]` has two optional fields:
 
-[[bindings]]
-key = "PageDown"
-command = "page_down"
+| Field | Value | Default |
+| --- | --- | --- |
+| `family` | Name of an installed monospace font | Platform-selected monospace font |
+| `size` | Integer logical pixels from 1 through 256 | `16` |
 
-[[bindings]]
-key = "Ctrl+Shift+P"
-command = "open_palette"
-```
+The renderer scales the size for display DPI. A missing or proportional family
+can prevent renderer initialization. The font shortcuts adjust size during the
+current run; editing `[font]` requires a restart.
 
-All theme fields are optional and independently fall back to defaults. If `bindings` is present, it replaces the entire default list; `bindings = []` disables all shortcuts. Defaults are Ctrl+Shift+C/V for copy/paste, PageUp/PageDown for local scrollback, Ctrl+Shift+P for the command palette, Ctrl+Shift+Space for the tab picker, Ctrl+Shift+T for a new tab, Ctrl+Shift+E/O for vertical/horizontal splits, Ctrl+Tab and Ctrl+Shift+Tab for tab switching, Ctrl+Shift+ArrowRight/ArrowLeft for cycling panes, Alt+Shift+ArrowLeft/ArrowRight/ArrowUp/ArrowDown for directional pane focus, Ctrl+Shift+Z for pane zoom, Ctrl+Shift+W for closing a pane, and Ctrl+=/Ctrl++/Ctrl+-/Ctrl+0 for font size. The tab picker filters by title, moves with j/k or Up/Down, switches with Enter, and closes with Escape. Chords use physical keys: a letter A–Z, digit 0–9, Space, Equal, Minus, PageUp, PageDown, Home, End, Insert, Delete, Backspace, Tab, ArrowLeft, ArrowRight, ArrowUp, or ArrowDown, optionally preceded by Ctrl, Shift, and/or Alt. Modifiers must match exactly. Plain letters and digits need a modifier so ordinary text still reaches the PTY. For example, `key = "Ctrl+Shift+Backspace"` with `command = "close_pane"` binds that physical chord; unbound Backspace still goes to the terminal. Commands include `focus_pane_left`, `focus_pane_right`, `focus_pane_up`, and `focus_pane_down`; the complete list is in [`config.example.toml`](../config.example.toml). The older `action` field remains accepted as an alias for `command`. The app executes commands in one dispatcher.
+## Theme
 
-`toggle_pane_zoom` expands the focused pane to the workspace viewport for its tab. The split layout and all pane sessions stay in place; background panes continue receiving PTY output. Toggling again restores the exact split geometry. Zoom belongs to each running tab and is not saved in workspace definitions. Switching tabs preserves each tab's zoom state. Focusing another pane while zoomed shows that pane full size. Splitting while zoomed keeps zoom active on the new pane; closing a pane while zoomed keeps zoom active on the newly focused pane. Closing a tab discards its zoom state.
+All `[theme]` fields are optional. Colors are six-digit `#RRGGBB` strings.
+The terminal color fields are `foreground`, `background`, `cursor`,
+`selection_foreground`, `selection_background`, and `ansi`. The `ansi`
+array contains exactly 16 colors for indexes 0–15. Omitted values use the
+built-in defaults shown in the [example](../config.example.toml).
 
-Directional focus chooses among panes whose layout rectangles share an edge in the requested direction and overlap by at least one pixel on the other axis. It chooses the greatest overlap, then the closest center on that axis, then the uppermost pane for left/right or leftmost pane for up/down. At a boundary, focus stays put. Navigation uses the current viewport and split layout, including uneven and nested splits, without changing the layout. While zoomed, it uses the underlying split geometry and keeps zoom on; the newly focused pane fills the viewport. Each tab retains its own focus and zoom when switching tabs.
+The optional semantic app UI fields are `ui_background`, `ui_foreground`,
+`ui_selected_background`, `ui_muted`, `ui_accent`, and `ui_border`. They
+control app-owned surfaces and text, selected rows, muted text, accents and
+focus borders, and borders. Their fallback and override relationships are:
 
-The palette lists copy, paste, scrollback, and workspace commands from the app command registry, including all four pane resize commands. **Rename Tab** opens a local title prompt; type a title and press Enter to save, Escape to cancel, or leave the title empty to restore the tab's configured/generated title. Each `[[projects]]` entry also adds **New Tab: NAME**, **Split Horizontal: NAME**, and **Split Vertical: NAME** actions. Type to filter names (case insensitive), use Up/Down to select, Enter to run, or Escape to close. Palette and rename-prompt input are consumed locally and do not reach the PTY. Custom titles stay with their tab while the app is running and are not written into the startup workspace definition. `open_palette` is omitted from its own list. The palette is drawn over the top terminal rows without changing terminal contents. If custom bindings replace the defaults, include an `open_palette` binding to retain the shortcut.
+| Field | Fallback or related use |
+| --- | --- |
+| `ui_background` | Defaults to terminal `background`. |
+| `ui_foreground` | Defaults to terminal `foreground`; when set, also supplies selected UI text and the scrollbar thumb hover color. |
+| `ui_selected_background` | Defaults to `selection_background`; also supplies active search color. |
+| `ui_muted` | Supplies muted UI text and the scrollbar thumb. |
+| `ui_accent` | Defaults to `selection_foreground`; supplies focus and search accents. |
+| `ui_border` | Supplies borders, scrollbar track, and scrollbar track hover color. |
 
-`resize_pane_left`, `resize_pane_right`, `resize_pane_up`, and `resize_pane_down` move the nearest split boundary controlling the focused pane in the requested direction. This lets either side of a split grow or shrink without changing focus, and opposite commands reverse each other while geometry permits. Defaults are Alt+Shift+ArrowLeft/Right/Up/Down; these do not overlap the existing Ctrl+Shift pane switching shortcuts. Each horizontal invocation moves the boundary by at most two cell widths, and each vertical invocation by at most one cell height. The last step may be smaller to retain at least 10 columns or 3 rows per pane, including panes inside nested splits. When either side has reached its minimum or while the tab is zoomed, the command does nothing. Resize ratios belong to the running tab; the startup layout definition still records split structure only. Pane sessions stay in place, and changed geometry updates terminal grids and PTY sizes.
+Any remaining UI values keep renderer defaults. The more specific optional
+`search_match_background`, `search_active_background`,
+`scrollbar_thumb`, and `scrollbar_thumb_hover` fields override their
+related semantic UI colors. The example includes every theme field.
 
-Unknown fields or commands, malformed TOML, invalid colors, incomplete ANSI palettes, unsupported chords, and duplicate chords reject the whole file. Errors include the file path and either TOML's source location or the field/binding index. On a reload error, the app writes the error to stderr and keeps the last valid config.
+## Key bindings and commands
 
-The app checks the file contents every 500 ms and posts a change event to its main loop. Theme, keybindings, and project palette entries apply after a valid reload without restarting the PTY. Removing the file restores defaults for those live settings. A short lived invalid file during editing can produce an error; a later valid save is applied. An open palette retains its query; changed bindings affect the next keypress outside the palette. Editing font settings and workspace definitions requires an app restart. Runtime font shortcuts resize the renderer and terminal grids without writing `config.toml`; reset returns to the configured `[font].size` captured at startup.
+Omitting `bindings` retains all built-in shortcuts in the
+[README table](../README.md#default-keyboard-shortcuts). **Any
+`[[bindings]]` entries replace the entire built-in list.** Include every
+default shortcut you still want; `bindings = []` disables them all. Each
+entry has a `key` and a `command`. The older `action` field is an alias
+for `command`.
 
-## UI theme colors
+A key chord puts optional `Ctrl` (or `Control`), `Shift`, and `Alt` in
+any order before the physical key, separated by `+`. Modifier and key names
+are case-insensitive. Supported keys are A–Z, 0–9, `=`/`Equal`,
+`-`/`Minus`, `PageUp`, `PageDown`, `Home`, `End`, `Insert`,
+`Delete`, `Backspace`, `Tab`, `Space`, `ArrowLeft`,
+`ArrowRight`, `ArrowUp`, and `ArrowDown`. Plain letters and digits need a
+modifier so typing them still reaches the PTY. Exact modifier sets matter;
+duplicate chords are rejected. `Ctrl+F` opens scrollback search through app
+input handling rather than a configurable default binding.
 
-Under `[theme]`, `ui_background`, `ui_foreground`, `ui_selected_background`, `ui_muted`, `ui_accent`, and `ui_border` optionally color app-owned pickers, prompts, activity, search, scrollbars, and focus borders. Set only the values you care about. The optional `search_match_background`, `search_active_background`, `scrollbar_thumb`, and `scrollbar_thumb_hover` values take precedence over related semantic UI colors. Omitted UI colors retain the terminal theme or existing UI defaults. All colors use `#RRGGBB`.
+The complete command names accepted in a binding are:
 
-## Font settings
+| Area | Commands |
+| --- | --- |
+| Clipboard and scrollback | `copy`, `paste`, `page_up`, `page_down` |
+| Font | `increase_font_size`, `decrease_font_size`, `reset_font_size` |
+| Pickers and workspaces | `open_palette`, `open_tab_picker`, `save_current_workspace`, `set_pane_startup_command`, `clear_pane_startup_command`, `open_workspace_picker`, `delete_workspace`, `open_target` |
+| Tabs and panes | `new_tab`, `split_horizontal`, `split_vertical`, `next_tab`, `previous_tab`, `next_pane`, `previous_pane`, `focus_pane_left`, `focus_pane_right`, `focus_pane_up`, `focus_pane_down`, `resize_pane_left`, `resize_pane_right`, `resize_pane_up`, `resize_pane_down`, `toggle_pane_zoom`, `close_pane`, `rename_tab` |
 
-`font.family` selects an installed monospace family by name. If omitted, the renderer uses its platform monospace selection. A missing or proportional family fails renderer initialization. `font.size` is an integer in logical pixels from 1 to 256; it defaults to 16. The renderer scales that size with window DPI when calculating cell metrics and grid dimensions. Fallback faces are selected automatically and cannot be configured. Font family and size are applied when the renderer starts; restart the app after editing `[font]`.
+These are command names, not all default shortcuts. The example has every
+default binding with a short comment. The command palette also lists app
+commands and project actions. `rename_tab` prompts for a local title;
+palette and prompt input do not reach the PTY.
 
-## Workspace definitions
+## Startup workspace
 
-The default workspace is one tab with one local shell pane. An optional `[workspace]` table declares ordered tabs and a recursive pane layout. Each `pane` leaf starts an independent PTY session; `split` nodes record `horizontal` or `vertical` structure. `active_tab` and each tab's `active_pane` are zero-based indexes. Pane indexes follow leaves in first-then-second traversal order. The app rejects empty tab lists and out-of-range focus indexes.
+An optional `[workspace]` defines the layout created at app startup. It is
+distinct from app-managed Saved Workspaces. Without it, startup creates one
+local-shell tab. Its fields are:
 
-```toml
-[workspace]
-active_tab = 0
+| Level | Fields |
+| --- | --- |
+| `[workspace]` | Optional `project_root`, `active_tab` (default `0`), required nonempty `tabs` when present |
+| `[[workspace.tabs]]` | Required `title` and `layout`; optional `custom_title`, `project_root`, `active_pane` (default `0`) |
+| Pane layout (`kind = "pane"`) | Required `session`; optional `project_root`, `startup_command` |
+| Split layout (`kind = "split"`) | Required `axis`, `first`, and `second`; optional `first_share` (default `500000`) |
 
-[[workspace.tabs]]
-title = "Development"
-active_pane = 1
-layout = { kind = "split", axis = "vertical", first = { kind = "pane", session = "local_shell" }, second = { kind = "pane", session = "local_shell" } }
+`active_tab` and `active_pane` are zero-based and must refer to existing
+tabs and panes. Pane indices follow the first child and then the second child
+recursively. A split's `axis` is `vertical` (left and right) or
+`horizontal` (top and bottom). Each child can be another split or a pane.
+`first_share` is the first child's share in millionths, from 1 through
+999999. The app rejects empty tab lists, missing sessions or split children,
+and invalid focus indices or share values.
 
-[[workspace.tabs]]
-title = "Notes"
-layout = { kind = "pane", session = "local_shell" }
-```
+`project_root` may appear on the workspace, a tab, or a pane. A pane root
+wins over its tab root, which wins over the workspace root. Relative roots
+resolve against the config file's directory. The effective root becomes the
+pane PTY's initial working directory.
 
-An optional `project_root` can be set on `[workspace]`, `[[workspace.tabs]]`, or a `pane` leaf. The pane root takes precedence over the tab root, then the workspace root. Relative roots resolve from the configuration file's directory. A root sets that pane's PTY working directory. The default workspace uses `local_shell`; each explicit pane requires a `session`. A command session starts the specified program directly with its argument array, with no shell interpolation:
+A pane's `session = "local_shell"` starts the normal local shell in a fresh
+PTY. A direct-command session uses a `command` table with required
+`program` and optional `args` (default `[]`), and launches the program
+directly without shell interpolation:
 
 ```toml
 [workspace]
 project_root = "../repo"
 
 [[workspace.tabs]]
-title = "Server"
-[workspace.tabs.layout]
-kind = "pane"
-[workspace.tabs.layout.session.command]
-program = "cargo"
-args = ["run", "--bin", "server"]
-
-[[projects]]
-name = "Repository"
-path = "../repo"
+title = "Development"
+active_pane = 0
+layout = { kind = "split", axis = "vertical", first_share = 500000, first = { kind = "pane", session = "local_shell", startup_command = "nvim" }, second = { kind = "pane", session = { command = { program = "cargo", args = ["run"] } } } }
 ```
 
-`[[projects]]` names must be unique and paths must be nonempty. Their paths also resolve from the configuration file's directory. Palette project actions start a fresh local shell in the selected project root; a new tab owns its root, while a split records its root on the new pane. Ordinary new tab and split commands inherit the applicable workspace or tab root.
+`startup_command` is an explicit, nonempty, single-line shell command for a
+local-shell pane. It is sent inside the fresh shell after shell startup; it
+does not convert the pane into a direct-command session. Once that program
+exits, the shell remains usable. It is not inferred from a running process.
+A direct-command session keeps its existing direct launch behavior.
 
-Definitions reproduce the tab, split, focus, root, and startup command structure on startup. They do not restore live process state or terminal contents. The running workspace keeps its live state when the config file changes; restart the app to apply changes to `[workspace]`. Project palette entries update after a valid config reload. The active tab's split panes render simultaneously, and the title shows its focused tab and pane position.
+## Project palette entries
 
-## CLI
+Each `[[projects]]` entry has a nonempty, unique `name` and a nonempty
+`path`. The path may be relative to the config file's directory. Entries
+add **New Tab: NAME**, **Split Horizontal: NAME**, and **Split Vertical:
+NAME** actions to the command palette. These launch fresh local shells rooted
+at that project; a new tab owns its root, and a split records it on its new
+pane. The default is no project entries.
 
-`terminal-app --project-root DIRECTORY` opens the default workspace in that directory. `terminal-app --workspace FILE.toml` loads a config-shaped TOML file that contains `[workspace]`; it can also include `[[projects]]`, font, theme, and bindings. The two options can be combined. `--project-root` replaces the workspace-level root from the file, while explicit tab and pane roots retain their precedence. `--help` prints usage. Invalid paths and arguments fail before the window opens. There is no external control of an already-running app.
+## Saved Workspaces and shell directories
 
-## Manual smoke
+**Save Current Workspace** stores a reusable template in app-managed
+`workspaces.toml` in the same platform config directory. Saved Workspaces are
+not defined in `config.toml`, and `TERMINAL_CONFIG` does not move their
+storage. Arrange panes, set their working directories, optionally use **Set
+Pane Startup Command**, then save and name the workspace. **Clear Pane Startup
+Command** removes the explicit command for future launches without changing
+the running process. Reopening through **Open Workspace** creates fresh PTYs
+and shells. Layout, focus, known directories, and explicit startup commands
+can be reused; terminal contents, scrollback, live processes, shell history,
+editor buffers, and SSH state are not restored. The app never inspects the
+process tree to infer a command.
 
-1. Set `TERMINAL_CONFIG` to a temporary TOML file and start `terminal-app`. Try the default copy/paste, PageUp/PageDown, and Ctrl+Shift+P shortcuts.
-2. Change `[theme] background` and `foreground` to visibly different colors and save. Check that blank cells and text repaint without restarting the shell.
-3. Replace the bindings list with `key = "Alt+PageUp"` and `command = "page_down"` in a `[[bindings]]` entry. Check that Alt+PageUp runs the new command and the old PageUp binding no longer runs.
-4. Save an invalid color, verify the error on stderr and that the prior theme and bindings remain active. Correct the file and verify the new values apply.
-5. Remove the file and verify defaults return.
-6. Open the palette with Ctrl+Shift+P, type `page down`, choose it with Enter, and confirm scrollback moves without sending the query to the shell. Reopen it, try Up/Down selection and Escape, and confirm the terminal content remains intact.
-7. Start with no `[workspace]`. Create a tab with Ctrl+Shift+T and a split with Ctrl+Shift+E. Run a different command in each pane; switch with Ctrl+Shift+ArrowLeft/ArrowRight and Ctrl+Tab/Ctrl+Shift+Tab. Check that each pane retains its own prompt and output, and that the window title identifies the focused tab and pane.
-8. Close a pane with Ctrl+Shift+W and verify its session ends while the remaining pane stays usable. Closing the sole pane of the sole tab leaves that terminal running.
-9. Add the two-tab workspace definition above and restart. Check that its tab and pane counts and initial focus match the file. Edit only `[workspace]` while running and verify the current sessions remain intact; restart to apply the new definition.
-10. On Windows, create a temporary workspace file with a `[workspace] project_root` pointing to an existing directory, a pane command using `program = "cmd.exe"` and `args = ["/K", "cd"]`, and a `[[projects]]` entry pointing to a second directory. Run `cargo run -q -p terminal-app -- --workspace PATH_TO_FILE`. The command should print the first directory and leave an interactive prompt.
-11. Open Ctrl+Shift+P and use **New Tab: NAME**, **Split Horizontal: NAME**, and **Split Vertical: NAME**. Run `cd` in each created shell and check that it prints the second directory. Check that all panes remain responsive, output continues in an unfocused pane, focus and cursor follow pane switching, and Close Pane leaves the others running. Run `cargo run -q -p terminal-app -- --project-root PATH_TO_DIRECTORY` separately and check the initial shell directory with `cd`.
+On Windows, the normal PowerShell profile remains enabled. The app's
+session-local prompt integration reports the shell's current directory via
+OSC 7, allowing Saved Workspaces to capture CWD changes. This integration is
+currently PowerShell-specific; Bash, Zsh, and Fish CWD reporting is not
+implemented.
+
+## CLI options
+
+`terminal-app --project-root DIRECTORY` starts with that workspace-level
+root. `terminal-app --workspace FILE.toml` loads a config-shaped TOML file
+containing `[workspace]`; it may also contain font, theme, bindings, and
+projects. The options can be combined: `--project-root` replaces the
+workspace-level root, while explicit tab and pane roots still win. `--help`
+prints usage. Invalid paths or arguments fail before the window opens.
