@@ -14,6 +14,13 @@ fn main() -> io::Result<()> {
     output.write_all(b"TERMINAL_PTY_HELPER_MARKER")?;
     output.flush()?;
 
+    // macOS can discard unread PTY output when the slave closes immediately.
+    // Wait for this short-lived helper's output to reach the master before exit.
+    #[cfg(target_os = "macos")]
+    if command == Some("exit") && unsafe { libc::tcdrain(libc::STDOUT_FILENO) } == -1 {
+        return Err(io::Error::last_os_error());
+    }
+
     if command == Some("wait") {
         loop {
             std::thread::sleep(Duration::from_secs(60));

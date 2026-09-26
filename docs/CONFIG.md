@@ -182,8 +182,8 @@ implemented.
 
 ## CLI options
 
-`terminal-app --project-root DIRECTORY` starts with that workspace-level
-root. `terminal-app --workspace FILE.toml` loads a config-shaped TOML file
+`terminal --project-root DIRECTORY` starts with that workspace-level
+root. `terminal --workspace FILE.toml` loads a config-shaped TOML file
 containing `[workspace]`; it may also contain font, theme, bindings, and
 projects. The options can be combined: `--project-root` replaces the
 workspace-level root, while explicit tab and pane roots still win. `--help`

@@ -3524,12 +3524,12 @@ fn main() {
     let cli = match CliOptions::parse(std::env::args_os().skip(1)) {
         Ok(Some(cli)) => cli,
         Ok(None) => {
-            println!("Usage: terminal-app [--project-root DIRECTORY] [--workspace CONFIG.toml]");
+            println!("Usage: terminal [--project-root DIRECTORY] [--workspace CONFIG.toml]");
             return;
         }
         Err(error) => {
             eprintln!(
-                "{error}\nUsage: terminal-app [--project-root DIRECTORY] [--workspace CONFIG.toml]"
+                "{error}\nUsage: terminal [--project-root DIRECTORY] [--workspace CONFIG.toml]"
             );
             std::process::exit(2);
         }
