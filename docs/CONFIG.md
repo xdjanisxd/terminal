@@ -84,7 +84,7 @@ A key chord puts optional `Ctrl` (or `Control`), `Shift`, and `Alt` in
 any order before the physical key, separated by `+`. Modifier and key names
 are case-insensitive. Supported keys are A–Z, 0–9, `=`/`Equal`,
 `-`/`Minus`, `PageUp`, `PageDown`, `Home`, `End`, `Insert`,
-`Delete`, `Backspace`, `Tab`, `Space`, `ArrowLeft`,
+`Delete`, `Backspace`, `Enter`, `Tab`, `Space`, `ArrowLeft`,
 `ArrowRight`, `ArrowUp`, and `ArrowDown`. Plain letters and digits need a
 modifier so typing them still reaches the PTY. Exact modifier sets matter;
 duplicate chords are rejected. `Ctrl+F` opens scrollback search through app

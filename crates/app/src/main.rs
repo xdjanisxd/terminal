@@ -4622,6 +4622,40 @@ mod tests {
     }
 
     #[test]
+    fn configured_ctrl_shift_enter_binding_dispatches_pane_zoom() {
+        let mut app = Application {
+            config: Config::parse(
+                "[[bindings]]\nkey = 'Ctrl+Shift+Enter'\ncommand = 'toggle_pane_zoom'",
+            )
+            .unwrap(),
+            ..Application::default()
+        };
+        let enter = PhysicalKey::Code(KeyCode::Enter);
+        let command = configured_command(
+            &app.config,
+            enter,
+            ModifiersState::CONTROL | ModifiersState::SHIFT,
+        )
+        .expect("configured Enter chord should resolve");
+
+        app.dispatch_command(command);
+        assert!(app.workspace.active_tab().is_zoomed());
+    }
+
+    #[test]
+    fn unbound_enter_keeps_sending_carriage_return_to_the_terminal() {
+        let enter = PhysicalKey::Code(KeyCode::Enter);
+        assert_eq!(
+            configured_command(&Config::default(), enter, ModifiersState::empty()),
+            None
+        );
+        assert_eq!(
+            terminal_key_input(None, Some(BasicKey::Enter), enter, ModifiersState::empty(),),
+            Some(vec![b'\r'])
+        );
+    }
+
+    #[test]
     fn page_navigation_is_app_local_and_not_basic_pty_input() {
         assert_eq!(
             configured_command(

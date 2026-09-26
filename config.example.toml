@@ -41,7 +41,7 @@ ansi = [
 # Keep every default shortcut you still want. bindings = [] disables them all.
 # Chords use Ctrl (or Control), Shift, and Alt in any order, then a key.
 # Keys: A–Z, 0–9, = (Equal), - (Minus), PageUp, PageDown, Home, End,
-# Insert, Delete, Backspace, Tab, Space, ArrowLeft, ArrowRight, ArrowUp,
+# Insert, Delete, Backspace, Enter, Tab, Space, ArrowLeft, ArrowRight, ArrowUp,
 # ArrowDown. Plain letters and digits require a modifier.
 # "action" is accepted as an alias for "command".
 # All commands (including those without a default binding):
