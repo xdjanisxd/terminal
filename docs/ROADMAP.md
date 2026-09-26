@@ -150,7 +150,7 @@ later performance/polish work.
 - [x] Add shell title and working-directory integration.
   - Track OSC 0/2 titles per pane and show the active pane's title unless the tab has an explicit user rename.
   - Track each pane's latest validated OSC 7 `file://` URI independently, including background panes.
-- [ ] Use a reported CWD to launch new splits or tabs after validating URI host and local path semantics against the target platform and configured project roots.
+  - Local PowerShell prompts report the current filesystem directory through OSC 7 without profile edits or polling; Saved Workspace snapshots use the reported pane CWD.
 - [x] Improve scrollback search.
   - Literal search is case-insensitive by default, with wrap-around next/previous navigation and an active/total match count.
   - Highlight full matched spans and all visible matches, with the active match styled distinctly.
