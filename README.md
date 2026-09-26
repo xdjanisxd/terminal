@@ -1,6 +1,6 @@
 # Terminal
 
-Terminal is a keyboard-focused, GPU-rendered terminal emulator with tabs, split panes, and reusable workspaces. It is built in Rust for Windows, Linux, and macOS. The app is under active development; build it from source today.
+Terminal is a keyboard-focused, GPU-rendered terminal emulator with tabs, split panes, and reusable workspaces. It is built in Rust for Windows, Linux, and macOS. Portable archives are configured for GitHub Releases; source builds are also supported.
 
 ## Features
 
@@ -11,9 +11,32 @@ Terminal is a keyboard-focused, GPU-rendered terminal emulator with tabs, split 
 - Shell-reported titles and PowerShell current-directory tracking.
 - Saved Workspaces that recreate layouts, working directories, and explicit per-pane shell startup commands.
 
-## Build from source
+## Installation
 
-Install a current stable Rust toolchain with Cargo. Native graphics, window-system, and font support must be available on the build host. The repository runs CI on Windows, Linux, and macOS; packaged installers are still planned.
+Download a portable archive from [GitHub Releases](https://github.com/xdjanisxd/terminal/releases) for your operating system and CPU. Each archive contains the `terminal` executable, this README, `config.example.toml`, and the MIT license. Extract it to a directory you keep; you can run the executable there or put it on PATH. You do not need to copy `config.example.toml`: Terminal uses built-in defaults when no user config exists.
+
+### Windows
+
+Download `terminal-windows-x86_64.zip` for x64 Windows or `terminal-windows-aarch64.zip` for Windows ARM64. Extract the ZIP, then run `terminal.exe`. You can move the executable to a permanent directory and add that directory to PATH as described below.
+
+### Linux
+
+Download `terminal-linux-x86_64.tar.gz` for x64 Linux or `terminal-linux-aarch64.tar.gz` for ARM64 Linux. Extract and run it, for example:
+
+```sh
+tar -xzf terminal-linux-x86_64.tar.gz
+./terminal
+```
+
+The Linux archive uses the GNU libc target and needs compatible system graphics, window-system, and font libraries. It is not a fully static binary; see [release requirements](docs/RELEASE.md).
+
+### macOS
+
+Download `terminal-macos-x86_64.tar.gz` for Intel or `terminal-macos-aarch64.tar.gz` for Apple Silicon. Extract the archive with `tar -xzf <archive-name>`, then run `./terminal` from Terminal. This command-line application is currently unsigned and not notarized. macOS Gatekeeper may warn or block it; see [Apple's guidance for opening an unverified app](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unidentified-developer-mh40616/mac).
+
+### Build from source
+
+Install a current stable Rust toolchain with Cargo. Native graphics, window-system, and font support must be available on the build host.
 
 ```sh
 git clone https://github.com/xdjanisxd/terminal.git
@@ -22,11 +45,26 @@ cargo build --release -p terminal-app
 cargo run --release -p terminal-app
 ```
 
-The executable is `target/release/terminal-app` (`target/release/terminal-app.exe` on Windows).
+The executable is `target/release/terminal` (`target/release/terminal.exe` on Windows).
+
+### Add Terminal to PATH
+
+**Windows:** Keep `terminal.exe` in a stable directory such as `%LOCALAPPDATA%\Programs\Terminal`. Open **Edit environment variables for your account**, edit the user **Path**, and add that directory. Open a new terminal session and verify with `terminal --help`.
+
+**Linux:** For a user-local install without `sudo`:
+
+```sh
+mkdir -p ~/.local/bin
+install -m 755 terminal ~/.local/bin/terminal
+```
+
+If `~/.local/bin` is not on PATH, add `export PATH="$HOME/.local/bin:$PATH"` to your shell startup file (`~/.bashrc` for Bash or `~/.zshrc` for Zsh), then reopen the shell or source that file. For a system-wide install instead, run `sudo install -m 755 terminal /usr/local/bin/terminal`.
+
+**macOS:** Install to your user-local directory with `mkdir -p ~/.local/bin` and `install -m 755 terminal ~/.local/bin/terminal`. If needed, add `export PATH="$HOME/.local/bin:$PATH"` to `~/.zshrc`, then reopen the shell or run `source ~/.zshrc`. A common system-wide alternative is `sudo install -m 755 terminal /usr/local/bin/terminal`. Run `terminal --help` from a new shell to check PATH.
 
 ## Configuration
 
-The default file is `%APPDATA%\terminal\config.toml` on Windows and `${XDG_CONFIG_HOME:-$HOME/.config}/terminal/config.toml` on Linux and macOS. `TERMINAL_CONFIG` selects a different file. A missing file uses built-in defaults; the app does not create it. Copy [config.example.toml](config.example.toml) to get a complete, annotated starting point, and see the [configuration reference](docs/CONFIG.md) for validation, paths, and reload behavior.
+The default file is `%APPDATA%\terminal\config.toml` on Windows and `${XDG_CONFIG_HOME:-$HOME/.config}/terminal/config.toml` on Linux and macOS. `TERMINAL_CONFIG` selects a different file. A missing file uses built-in defaults; the app does not create it. To customize Terminal, create a config at that path using [config.example.toml](config.example.toml) as a reference. See the [configuration reference](docs/CONFIG.md) for validation, paths, and reload behavior.
 
 Adding any `[[bindings]]` entries replaces the entire built-in shortcut list. Keep every default binding you still want.
 
@@ -84,7 +122,7 @@ There are no required built-in theme presets. Configure terminal foreground, bac
 
 ## Project status and development
 
-The application and cross-platform CI exist, but distribution packaging and release artifacts are future work. See [current state](docs/CURRENT_STATE.md) and the [roadmap](docs/ROADMAP.md) for details. Repository validation uses:
+Portable release packaging is configured for Windows, Linux, and macOS. Installer formats and signing are future work. See [release engineering](docs/RELEASE.md), [current state](docs/CURRENT_STATE.md), and the [roadmap](docs/ROADMAP.md) for details. Repository validation uses:
 
 ```sh
 cargo fmt --all -- --check

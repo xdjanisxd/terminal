@@ -1,0 +1,114 @@
+name: Portable release
+
+on:
+  push:
+    branches: [master]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: windows-2025, target: x86_64-pc-windows-msvc }
+          - { runner: windows-11-vs2026-arm, target: aarch64-pc-windows-msvc }
+          - { runner: ubuntu-24.04, target: x86_64-unknown-linux-gnu }
+          - { runner: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu }
+          - { runner: macos-15-intel, target: x86_64-apple-darwin }
+          - { runner: macos-15, target: aarch64-apple-darwin }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install stable Rust and components
+        run: rustup toolchain install stable --profile minimal --component rustfmt,clippy --no-self-update
+      - name: Select stable Rust
+        run: rustup default stable
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      - name: Check workspace
+        run: cargo check --workspace --all-targets
+      - name: Run workspace tests (includes native PTY and PowerShell integration tests)
+        run: cargo test --workspace --all-targets
+      - name: Run doc tests
+        run: cargo test --workspace --doc
+      - name: Run Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+  package:
+    name: Package ${{ matrix.target }}
+    needs: verify
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: windows-2025, target: x86_64-pc-windows-msvc, asset: terminal-windows-x86_64.zip }
+          - { runner: windows-11-vs2026-arm, target: aarch64-pc-windows-msvc, asset: terminal-windows-aarch64.zip }
+          - { runner: ubuntu-24.04, target: x86_64-unknown-linux-gnu, asset: terminal-linux-x86_64.tar.gz }
+          - { runner: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu, asset: terminal-linux-aarch64.tar.gz }
+          - { runner: macos-15-intel, target: x86_64-apple-darwin, asset: terminal-macos-x86_64.tar.gz }
+          - { runner: macos-15, target: aarch64-apple-darwin, asset: terminal-macos-aarch64.tar.gz }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install stable Rust target
+        run: rustup toolchain install stable --profile minimal --target ${{ matrix.target }} --no-self-update
+      - name: Select stable Rust
+        run: rustup default stable
+      - name: Build release executable
+        run: cargo build --locked --release -p terminal-app --bin terminal --target ${{ matrix.target }}
+      - name: Inspect Linux shared libraries
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          ldd "target/${{ matrix.target }}/release/terminal" | tee linux-shared-libraries.txt
+          if grep -q 'not found' linux-shared-libraries.txt; then exit 1; fi
+      - name: Create archive and smoke-test extracted executable
+        run: python scripts/package_release.py ${{ matrix.target }}
+      - name: Upload portable archive for inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: dist/${{ matrix.asset }}
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish GitHub Release
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Validate release tag
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Expected vX.Y.Z tag" >&2; exit 1; }
+      - name: Download validated archives
+        uses: actions/download-artifact@v4
+        with:
+          pattern: terminal-*
+          path: dist
+          merge-multiple: true
+      - name: Verify the complete release set
+        shell: bash
+        run: |
+          expected=(terminal-windows-x86_64.zip terminal-windows-aarch64.zip terminal-linux-x86_64.tar.gz terminal-linux-aarch64.tar.gz terminal-macos-x86_64.tar.gz terminal-macos-aarch64.tar.gz)
+          test "$(find dist -maxdepth 1 -type f | wc -l)" -eq "${#expected[@]}"
+          for asset in "${expected[@]}"; do test -s "dist/$asset"; done
+      - name: Publish portable archives
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: gh release create "$RELEASE_TAG" dist/* --verify-tag --generate-notes
