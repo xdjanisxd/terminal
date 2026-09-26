@@ -466,6 +466,10 @@ impl vte::Perform for SemanticPerformer<'_> {
             }
             return;
         }
+        if params.len() == 2 && params[0] == b"133" && params[1] == b"A" {
+            self.terminal.mark_shell_prompt();
+            return;
+        }
         if params.len() >= 3 && params[0] == b"8" {
             let mut uri = Vec::new();
             for (index, part) in params[2..].iter().enumerate() {

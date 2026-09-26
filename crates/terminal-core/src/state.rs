@@ -148,6 +148,7 @@ pub struct TerminalState {
     shell_title: Option<String>,
     shell_title_version: u64,
     working_directory_uri: Option<String>,
+    shell_prompt_version: u64,
     targets: std::collections::HashMap<u64, String>,
     current_target: Option<u64>,
     next_target_id: u64,
@@ -178,6 +179,15 @@ impl TerminalState {
 
     pub(crate) fn set_working_directory_uri(&mut self, uri: String) {
         self.working_directory_uri = Some(uri);
+    }
+
+    /// Increments when shell integration reports a prompt (OSC 133;A).
+    pub fn shell_prompt_version(&self) -> u64 {
+        self.shell_prompt_version
+    }
+
+    pub(crate) fn mark_shell_prompt(&mut self) {
+        self.shell_prompt_version = self.shell_prompt_version.wrapping_add(1);
     }
 
     /// Starts or ends an OSC 8 span. The URI is untrusted terminal data.
@@ -236,6 +246,7 @@ impl TerminalState {
             shell_title: None,
             shell_title_version: 0,
             working_directory_uri: None,
+            shell_prompt_version: 0,
             targets: std::collections::HashMap::new(),
             current_target: None,
             next_target_id: 0,

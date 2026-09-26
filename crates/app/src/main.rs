@@ -52,6 +52,7 @@ struct Application {
     parser: TerminalParser,
     terminal: TerminalState,
     pty: Option<PtyWorker>,
+    pending_startup_command: Option<String>,
     workspace: Workspace,
     active_runtime_pane: PaneId,
     inactive_panes: HashMap<PaneId, PaneRuntime>,
@@ -88,6 +89,7 @@ struct Application {
     tab_picker: Option<Palette>,
     saved_workspace_picker: Option<(Palette, SavedPickerMode)>,
     workspace_name: Option<String>,
+    pane_startup_command_prompt: Option<String>,
     workspace_confirmation: Option<WorkspaceConfirmation>,
     workspace_notice: Option<String>,
     unseen_tab_activity: HashSet<TabId>,
@@ -215,6 +217,7 @@ struct PaneRuntime {
     parser: TerminalParser,
     terminal: TerminalState,
     pty: Option<PtyWorker>,
+    pending_startup_command: Option<String>,
 }
 
 impl PaneRuntime {
@@ -223,6 +226,7 @@ impl PaneRuntime {
             parser: TerminalParser::with_osc52_policy(Osc52Policy::Deny),
             terminal: TerminalState::new(dimensions),
             pty: None,
+            pending_startup_command: None,
         }
     }
 }
@@ -563,6 +567,7 @@ impl Default for Application {
             parser: TerminalParser::with_osc52_policy(Osc52Policy::Deny),
             terminal,
             pty: None,
+            pending_startup_command: None,
             workspace,
             active_runtime_pane,
             inactive_panes: HashMap::new(),
@@ -599,6 +604,7 @@ impl Default for Application {
             tab_picker: None,
             saved_workspace_picker: None,
             workspace_name: None,
+            pane_startup_command_prompt: None,
             workspace_confirmation: None,
             workspace_notice: None,
             unseen_tab_activity: HashSet::new(),
@@ -668,6 +674,27 @@ fn queue_pty_write(pty: Option<&PtyWorker>, bytes: Vec<u8>) -> bool {
         false
     } else {
         true
+    }
+}
+
+fn issue_startup_command_if_ready(
+    pending: &mut Option<String>,
+    terminal: &TerminalState,
+    pty: Option<&PtyWorker>,
+) -> bool {
+    if terminal.shell_prompt_version() == 0 || pty.is_none() {
+        return false;
+    }
+    let Some(command) = pending.as_ref() else {
+        return false;
+    };
+    let mut input = command.as_bytes().to_vec();
+    input.push(b'\r');
+    if queue_pty_write(pty, input) {
+        pending.take();
+        true
+    } else {
+        false
     }
 }
 
@@ -757,6 +784,7 @@ impl Application {
         match result {
             Ok(workspace) => {
                 self.pty.take();
+                self.pending_startup_command = None;
                 self.inactive_panes.clear();
                 let dimensions = self.terminal.dimensions();
                 self.terminal = TerminalState::new(dimensions);
@@ -859,6 +887,7 @@ impl Application {
 
     fn load_workspace(&mut self, definition: &WorkspaceDefinition) {
         let workspace = Workspace::from_definition(definition).expect("validated workspace config");
+        self.pending_startup_command = None;
         let active = workspace.active_pane();
         let dimensions = self.terminal.dimensions();
         self.inactive_panes = workspace
@@ -932,6 +961,10 @@ impl Application {
             parser: std::mem::replace(&mut self.parser, next_runtime.parser),
             terminal: std::mem::replace(&mut self.terminal, next_runtime.terminal),
             pty: std::mem::replace(&mut self.pty, next_runtime.pty),
+            pending_startup_command: std::mem::replace(
+                &mut self.pending_startup_command,
+                next_runtime.pending_startup_command,
+            ),
         };
         self.inactive_panes.insert(current, old);
         self.active_runtime_pane = next;
@@ -1071,6 +1104,28 @@ impl Application {
             }
             Command::SaveCurrentWorkspace => {
                 self.workspace_name = Some(String::new());
+                self.invalidate_frame();
+            }
+            Command::SetPaneStartupCommand => {
+                if !matches!(
+                    self.workspace.pane_launch(self.workspace.active_pane()),
+                    Some((_, SessionDefinition::LocalShell))
+                ) {
+                    self.workspace_notice =
+                        Some("Startup commands require a local-shell pane".into());
+                    self.invalidate_frame();
+                    return;
+                }
+                self.pane_startup_command_prompt = Some(
+                    self.workspace
+                        .focused_pane_startup_command()
+                        .unwrap_or("")
+                        .to_owned(),
+                );
+                self.invalidate_frame();
+            }
+            Command::ClearPaneStartupCommand => {
+                self.workspace.set_focused_pane_startup_command(None);
                 self.invalidate_frame();
             }
             Command::OpenWorkspacePicker => self.open_saved_workspace_picker(SavedPickerMode::Open),
@@ -1731,6 +1786,10 @@ impl Application {
         if self.pty.is_none()
             && let Some((root, startup)) = self.workspace.pane_launch(self.active_runtime_pane)
         {
+            self.pending_startup_command = self
+                .workspace
+                .pane_startup_command(self.active_runtime_pane)
+                .map(str::to_owned);
             self.pty = spawn_local_shell(
                 proxy.clone(),
                 Arc::clone(&self.pty_wake_pending),
@@ -1743,6 +1802,10 @@ impl Application {
             if runtime.pty.is_none()
                 && let Some((root, startup)) = self.workspace.pane_launch(*pane_id)
             {
+                runtime.pending_startup_command = self
+                    .workspace
+                    .pane_startup_command(*pane_id)
+                    .map(str::to_owned);
                 runtime.pty = spawn_local_shell(
                     proxy.clone(),
                     Arc::clone(&self.pty_wake_pending),
@@ -1851,6 +1914,11 @@ impl Application {
                 self.terminal.clear_selection();
                 let previous_title_version = self.terminal.shell_title_version();
                 let replies = parse_terminal_output(&mut self.parser, &mut self.terminal, &bytes);
+                issue_startup_command_if_ready(
+                    &mut self.pending_startup_command,
+                    &self.terminal,
+                    self.pty.as_ref(),
+                );
                 if self.terminal.shell_title_version() != previous_title_version {
                     self.update_workspace_title();
                 }
@@ -2437,6 +2505,8 @@ impl ApplicationHandler<PtyWake> for Application {
                     self.handle_workspace_confirmation_key(&event.logical_key);
                 } else if self.workspace_name.is_some() {
                     self.handle_workspace_name_key(&event.logical_key, event.text.as_deref());
+                } else if self.pane_startup_command_prompt.is_some() {
+                    self.handle_pane_startup_command_key(&event.logical_key, event.text.as_deref());
                 } else if self.saved_workspace_picker.is_some() {
                     self.handle_saved_workspace_picker_key(
                         &event.logical_key,
@@ -2654,6 +2724,11 @@ fn handle_background_pty_event(runtime: &mut PaneRuntime, event: PtyWorkerEvent)
         PtyWorkerEvent::Output(PtyOutput::Bytes(bytes)) => {
             runtime.terminal.clear_selection();
             let replies = parse_terminal_output(&mut runtime.parser, &mut runtime.terminal, &bytes);
+            issue_startup_command_if_ready(
+                &mut runtime.pending_startup_command,
+                &runtime.terminal,
+                runtime.pty.as_ref(),
+            );
             // OSC 52 is denied by the parser for every pane.
             runtime.terminal.take_osc52_write();
             if let Some(pty) = runtime.pty.as_ref() {
@@ -3033,6 +3108,39 @@ fn apply_pane_roots(
 }
 
 impl Application {
+    fn handle_pane_startup_command_key(&mut self, key: &Key, text: Option<&str>) {
+        let Some(mut command) = self.pane_startup_command_prompt.take() else {
+            return;
+        };
+        match key {
+            Key::Named(NamedKey::Escape) => {}
+            Key::Named(NamedKey::Enter) => {
+                let trimmed = command.trim();
+                if trimmed.is_empty() || trimmed.chars().any(char::is_control) {
+                    self.pane_startup_command_prompt = Some(command);
+                } else {
+                    self.workspace
+                        .set_focused_pane_startup_command(Some(trimmed.to_owned()));
+                }
+            }
+            Key::Named(NamedKey::Backspace) => {
+                command.pop();
+                self.pane_startup_command_prompt = Some(command);
+            }
+            _ => {
+                if !self.modifiers.control_key()
+                    && !self.modifiers.alt_key()
+                    && !self.modifiers.super_key()
+                    && let Some(text) = text
+                {
+                    command.extend(text.chars().filter(|character| !character.is_control()));
+                }
+                self.pane_startup_command_prompt = Some(command);
+            }
+        }
+        self.invalidate_frame();
+    }
+
     fn handle_workspace_name_key(&mut self, key: &Key, text: Option<&str>) {
         let Some(mut name) = self.workspace_name.take() else {
             return;
@@ -3154,6 +3262,12 @@ impl Application {
         } else if let Some(name) = &self.workspace_name {
             vec![OverlayLine {
                 text: format!(" Save Current Workspace: {name}  Enter save  Esc cancel"),
+                selected: true,
+                accent_column: None,
+            }]
+        } else if let Some(command) = &self.pane_startup_command_prompt {
+            vec![OverlayLine {
+                text: format!(" Set Pane Startup Command: {command}  Enter set  Esc cancel"),
                 selected: true,
                 accent_column: None,
             }]
@@ -3552,6 +3666,7 @@ mod tests {
             && let LayoutDefinition::Pane {
                 session,
                 project_root,
+                ..
             } = first.as_mut()
         {
             *session = terminal_workspace::SessionDefinition::Command {
@@ -3588,18 +3703,20 @@ mod tests {
             assert!(matches!(first.as_ref(), LayoutDefinition::Pane {
                 session: terminal_workspace::SessionDefinition::Command { program, args },
                 project_root: Some(root),
+                ..
             } if program == "nvim" && args == &["notes.txt"] && root == &std::path::PathBuf::from("project")));
             assert!(matches!(second.as_ref(), LayoutDefinition::Pane {
                 session: terminal_workspace::SessionDefinition::LocalShell,
                 project_root: Some(root),
+                ..
             } if root == &super::local_cwd_from_osc7("file:///C:/reported%20cwd").unwrap()));
         } else {
             panic!("split missing");
         }
         assert!(
             matches!(&snapshot.tabs[1].layout, LayoutDefinition::Split { first, second, .. }
-            if matches!(first.as_ref(), LayoutDefinition::Pane { session: terminal_workspace::SessionDefinition::LocalShell, project_root: None })
-            && matches!(second.as_ref(), LayoutDefinition::Pane { session: terminal_workspace::SessionDefinition::LocalShell, project_root: None }))
+            if matches!(first.as_ref(), LayoutDefinition::Pane { session: terminal_workspace::SessionDefinition::LocalShell, project_root: None, .. })
+            && matches!(second.as_ref(), LayoutDefinition::Pane { session: terminal_workspace::SessionDefinition::LocalShell, project_root: None, .. }))
         );
         app.save_workspace("Mine".into());
         assert!(app.workspace_notice.is_none(), "{:?}", app.workspace_notice);
@@ -3664,6 +3781,52 @@ mod tests {
         reopened.open_saved_workspace("After cd");
         assert!(matches!(&reopened.workspace.definition().tabs[0].layout,
             LayoutDefinition::Pane { project_root: Some(root), .. } if root == &reported));
+        fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn pane_startup_prompt_sets_replaces_clears_and_persists_explicit_metadata() {
+        let path = saved_state_path();
+        let mut app = Application {
+            saved_workspaces_path: path.clone(),
+            ..Application::default()
+        };
+        app.dispatch_command(Command::SetPaneStartupCommand);
+        app.handle_pane_startup_command_key(&Key::Character(" ".into()), Some("  nvim  "));
+        assert_eq!(app.workspace.focused_pane_startup_command(), None);
+        assert!(app.pty.is_none());
+        app.handle_pane_startup_command_key(&Key::Named(NamedKey::Enter), None);
+        assert_eq!(app.workspace.focused_pane_startup_command(), Some("nvim"));
+        app.dispatch_command(Command::SetPaneStartupCommand);
+        assert_eq!(app.pane_startup_command_prompt.as_deref(), Some("nvim"));
+        app.handle_pane_startup_command_key(&Key::Named(NamedKey::Backspace), None);
+        app.handle_pane_startup_command_key(&Key::Named(NamedKey::Backspace), None);
+        app.handle_pane_startup_command_key(&Key::Named(NamedKey::Backspace), None);
+        app.handle_pane_startup_command_key(&Key::Named(NamedKey::Backspace), None);
+        app.handle_pane_startup_command_key(&Key::Character("x".into()), Some("npm run dev"));
+        app.handle_pane_startup_command_key(&Key::Named(NamedKey::Enter), None);
+        assert_eq!(
+            app.workspace.focused_pane_startup_command(),
+            Some("npm run dev")
+        );
+        app.dispatch_command(Command::SplitVertical);
+        assert_eq!(app.workspace.focused_pane_startup_command(), None);
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
+            b"nvim\r\n".to_vec(),
+        )));
+        app.save_workspace("Explicit".into());
+        let mut restarted = Application {
+            saved_workspaces_path: path.clone(),
+            ..Application::default()
+        };
+        restarted.open_saved_workspace("Explicit");
+        assert!(matches!(&restarted.workspace.definition().tabs[0].layout,
+            LayoutDefinition::Split { first, second, .. }
+            if matches!(first.as_ref(), LayoutDefinition::Pane { startup_command: Some(command), .. } if command == "npm run dev")
+            && matches!(second.as_ref(), LayoutDefinition::Pane { startup_command: None, .. })));
+        restarted.workspace.focus_pane(-1);
+        restarted.dispatch_command(Command::ClearPaneStartupCommand);
+        assert_eq!(restarted.workspace.focused_pane_startup_command(), None);
         fs::remove_file(path).unwrap();
     }
 

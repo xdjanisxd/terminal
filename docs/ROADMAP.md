@@ -158,10 +158,6 @@ later performance/polish work.
 - [x] Improve mouse selection behavior.
   - Double-click selects words, triple-click selects lines, Shift+click extends selection, and edge dragging scrolls the viewport.
   - Selection remains terminal-owned across live content and Primary scrollback, including wide and combining cells.
-- [ ] Design and add a Vim-inspired terminal navigation/copy mode.
-  - Treat this as a broader navigation mode rather than copy-only behavior.
-  - Plan for Vim-like movement, search integration, visual selection, and copy/yank behavior over scrollback.
-  - Keep exact keybindings and scope for a dedicated design/implementation task.
 - [x] Add tab activity indicators.
   - Indicate when an unfocused tab receives new terminal output in the tab picker.
   - Clear the indicator when the user focuses the tab.
@@ -183,3 +179,4 @@ later performance/polish work.
   - Add a searchable workspace picker opened by a shortcut or command palette action.
   - Selecting a saved workspace should recreate its layout and start fresh pane sessions from the saved definitions.
   - Do not attempt to infer or restore arbitrary command history or previously running processes.
+  - [x] Add explicit per-pane local-shell startup commands through palette Set/Clear actions. Save them in `workspaces.toml` as user-defined template metadata, and run them through the fresh shell after its prompt-ready signal; never detect running processes.

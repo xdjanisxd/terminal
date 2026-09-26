@@ -126,6 +126,12 @@ mod tests {
             .save("Mine".into(), WorkspaceDefinition::default())
             .unwrap();
         store.write(&path).unwrap();
+        assert!(
+            !fs::read_to_string(&path)
+                .unwrap()
+                .contains("startup_command")
+        );
+        assert!(SavedWorkspaces::load(&path).unwrap().contains("Mine"));
         let backup = path.with_extension("toml.bak");
         fs::rename(&path, &backup).unwrap();
         assert!(SavedWorkspaces::load(&path).unwrap().contains("Mine"));

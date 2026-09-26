@@ -42,6 +42,21 @@ fn osc_7_preserves_the_latest_valid_file_uri() {
 }
 
 #[test]
+fn osc_133_prompt_ready_signal_is_incremental_and_pane_local() {
+    let (mut parser, mut terminal) = session();
+    parser.advance(&mut terminal, b"\x1b]133;").unwrap();
+    assert_eq!(terminal.shell_prompt_version(), 0);
+    parser.advance(&mut terminal, b"A\x07").unwrap();
+    assert_eq!(terminal.shell_prompt_version(), 1);
+    parser
+        .advance(&mut terminal, b"\x1b]133;B\x07\x1b]133;A\x1b\\")
+        .unwrap();
+    assert_eq!(terminal.shell_prompt_version(), 2);
+    let (_, other) = session();
+    assert_eq!(other.shell_prompt_version(), 0);
+}
+
+#[test]
 fn invalid_or_unsupported_osc_does_not_replace_reported_metadata() {
     let (mut parser, mut terminal) = session();
     parser

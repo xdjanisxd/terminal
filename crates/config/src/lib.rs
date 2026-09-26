@@ -80,6 +80,8 @@ pub enum Command {
     OpenPalette,
     OpenTabPicker,
     SaveCurrentWorkspace,
+    SetPaneStartupCommand,
+    ClearPaneStartupCommand,
     OpenWorkspacePicker,
     DeleteWorkspace,
     OpenTarget,

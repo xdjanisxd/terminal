@@ -19,6 +19,8 @@ function global:prompt {
     } catch {
         # Metadata must never prevent the original prompt from rendering.
     }
+    # The app queues saved startup input only after the first prompt is ready.
+    [Console]::Write(('{0}]133;A{1}' -f [char]27, [char]7))
     $promptText
 }
 $global:__terminalOsc7Installed = $true
