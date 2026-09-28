@@ -11,6 +11,8 @@ import tarfile
 import uuid
 import zipfile
 
+from windows_resources import validate_windows_icon
+
 
 TARGETS = {
     "x86_64-pc-windows-msvc": ("windows", "x86_64", ".zip"),
@@ -32,14 +34,18 @@ def native_target(target: str) -> None:
         raise RuntimeError(f"release smoke requires a native runner: host={host}, target={target}")
 
 
-def archive_members(binary: Path, windows: bool) -> dict[str, bytes]:
+def archive_members(binary: Path, system: str) -> dict[str, bytes]:
     root = Path(__file__).resolve().parent.parent
     files = {
-        "terminal.exe" if windows else "terminal": binary,
+        "terminal.exe" if system == "windows" else "terminal": binary,
         "README.md": root / "README.md",
         "config.example.toml": root / "config.example.toml",
         "LICENSE": root / "LICENSE",
     }
+    if system == "linux":
+        share = root / "assets" / "branding" / "linux" / "share"
+        files.update({f"share/{path.relative_to(share).as_posix()}": path
+                      for path in sorted(share.rglob("*")) if path.is_file()})
     for name, path in files.items():
         if not path.is_file() or not path.stat().st_size:
             raise FileNotFoundError(f"missing or empty release file: {name}: {path}")
@@ -83,6 +89,7 @@ def smoke_archive(path: Path, files: dict[str, bytes], windows: bool) -> None:
                     expected_mode = 0o755 if name == "terminal.exe" else 0o644
                     if archive.getinfo(name).external_attr >> 16 != expected_mode:
                         raise RuntimeError(f"incorrect ZIP member mode: {name}")
+                    (extracted / name).parent.mkdir(parents=True, exist_ok=True)
                     (extracted / name).write_bytes(archive.read(name))
         else:
             with tarfile.open(path, "r:gz") as archive:
@@ -96,6 +103,7 @@ def smoke_archive(path: Path, files: dict[str, bytes], windows: bool) -> None:
                     member = archive.extractfile(entry)
                     if member is None:
                         raise RuntimeError(f"missing archive member: {name}")
+                    (extracted / name).parent.mkdir(parents=True, exist_ok=True)
                     (extracted / name).write_bytes(member.read())
                     (extracted / name).chmod(entry.mode)
 
@@ -103,6 +111,8 @@ def smoke_archive(path: Path, files: dict[str, bytes], windows: bool) -> None:
             if (extracted / name).read_bytes() != expected:
                 raise RuntimeError(f"archive member changed: {name}")
         executable = (extracted / ("terminal.exe" if windows else "terminal")).resolve()
+        if windows:
+            validate_windows_icon(executable)
         if not windows and not executable.stat().st_mode & stat.S_IXUSR:
             raise RuntimeError("packaged executable is not executable")
         env = os.environ.copy()
@@ -128,7 +138,7 @@ def main() -> None:
     binary = Path("target") / args.target / "release" / (
         "terminal.exe" if windows else "terminal"
     )
-    files = archive_members(binary, windows)
+    files = archive_members(binary, system)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     archive = args.output_dir / f"terminal-{system}-{architecture}{extension}"
     if windows:

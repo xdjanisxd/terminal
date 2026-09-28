@@ -30,6 +30,20 @@ jobs:
         run: rustup toolchain install stable --profile minimal --component rustfmt,clippy --no-self-update
       - name: Select stable Rust
         run: rustup default stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - name: Verify committed branding assets and metadata
+        run: |
+          python -m pip install -r scripts/branding-requirements.txt
+          python scripts/generate_branding.py --check
+          python scripts/test_package_release.py
+      - name: Validate Linux desktop entry
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq desktop-file-utils
+          desktop-file-validate assets/branding/linux/share/applications/io.github.xdjanisxd.terminal.desktop
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Check workspace

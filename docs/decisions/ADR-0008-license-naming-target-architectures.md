@@ -2,6 +2,8 @@
 
 Status: Accepted
 
+Public application naming is now established by [ADR-0009](ADR-0009-application-branding.md). The license, internal package naming, architecture matrix, and deferred OS support floor in this decision remain in force.
+
 ## Context
 
 The repository needs a license and an explicit release architecture matrix before cross-platform quality gates are established. The public product name and minimum operating-system versions are not yet supported by implementation evidence.

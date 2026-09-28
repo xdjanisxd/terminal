@@ -2,6 +2,8 @@
 
 Terminal is a keyboard-focused, GPU-rendered terminal emulator with tabs, split panes, and reusable workspaces. It is built in Rust for Windows, Linux, and macOS. Portable archives are configured for GitHub Releases; source builds are also supported.
 
+The application display name is **Terminal**; its executable is `terminal`. Windows builds embed the application icon. Linux archives include desktop and icon assets for future desktop packaging; macOS bundle preparation is available in the repository. The current icon is a project-owned placeholder. See [branding assets](assets/branding/README.md) for the canonical source and platform variants.
+
 ## Features
 
 - Tabs, nested horizontal and vertical splits, a searchable tab picker, directional pane focus and resizing, and per-tab pane zoom.

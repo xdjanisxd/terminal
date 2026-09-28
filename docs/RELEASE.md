@@ -1,6 +1,8 @@
 # Portable releases
 
-The `Portable release` GitHub Actions workflow verifies, builds, packages, and smoke-tests native binaries. Every archive contains exactly `terminal` (`terminal.exe` on Windows), `README.md`, `config.example.toml`, and `LICENSE`. The example config is reference material and is not installed as an active `config.toml`.
+The `Portable release` GitHub Actions workflow verifies, builds, packages, and smoke-tests native binaries. Every archive contains `terminal` (`terminal.exe` on Windows), `README.md`, `config.example.toml`, and `LICENSE`. Linux archives also contain a `share/applications` desktop entry and `share/icons/hicolor` icons. These are staging assets; extraction does not install desktop integration, and the desktop entry expects `terminal` on PATH. The example config is reference material and is not installed as an active `config.toml`.
+
+The display name is Terminal, with the stable desktop/bundle identifier `io.github.xdjanisxd.terminal`. Windows executables embed the icon and Terminal product metadata during compilation; packaging verifies the embedded icon against the repository ICO before launching the extracted executable. The window and taskbar use that same resource. macOS portable archives remain bare binaries; the committed ICNS and bundle metadata template are ready for the future app bundle task. [Branding assets](../assets/branding/README.md) describes regeneration and replacement of the project-owned placeholder. CI checks committed variants and validates the Linux desktop entry.
 
 | Runner | Rust target | Release asset |
 | --- | --- | --- |
