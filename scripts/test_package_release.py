@@ -18,10 +18,15 @@ class PackagingTests(unittest.TestCase):
             binary = root / "terminal"
             binary.write_bytes(b"test executable")
             linux = release.archive_members(binary, "linux")
-            desktop = "share/applications/io.github.xdjanisxd.terminal.desktop"
-            icon = "share/icons/hicolor/256x256/apps/io.github.xdjanisxd.terminal.png"
+            app_id = "io.github.xdjanisxd.terminal"
+            desktop = f"share/applications/{app_id}.desktop"
+            icons = {
+                f"share/icons/hicolor/{size}x{size}/apps/{app_id}.png"
+                for size in (16, 24, 32, 48, 64, 128, 256, 512)
+            }
             self.assertIn(desktop, linux)
-            self.assertIn(icon, linux)
+            self.assertEqual(set(linux) - {"terminal", "README.md", "config.example.toml", "LICENSE"},
+                             {desktop, *icons})
             for platform in ("windows", "macos"):
                 members = release.archive_members(binary, platform)
                 self.assertEqual(len(members), 4)
@@ -36,7 +41,8 @@ class PackagingTests(unittest.TestCase):
                 self.assertEqual(set(contents.getnames()), set(linux))
                 self.assertEqual(contents.getmember("terminal").mode, 0o755)
                 self.assertEqual(contents.extractfile(desktop).read(), linux[desktop])
-                self.assertEqual(contents.extractfile(icon).read(), linux[icon])
+                for icon in icons:
+                    self.assertEqual(contents.extractfile(icon).read(), linux[icon])
             if os.name == "nt":
                 # Windows chmod cannot represent POSIX execute permissions.
                 # Unix CI additionally exercises the nested smoke extraction.
@@ -45,7 +51,8 @@ class PackagingTests(unittest.TestCase):
             def smoke_command(command, **options):
                 extracted = Path(options["cwd"])
                 self.assertEqual((extracted / desktop).read_bytes(), linux[desktop])
-                self.assertEqual((extracted / icon).read_bytes(), linux[icon])
+                for icon in icons:
+                    self.assertEqual((extracted / icon).read_bytes(), linux[icon])
                 self.assertEqual(Path(command[0]).name, "terminal")
                 self.assertEqual(command[1:], ["--help"])
                 return subprocess.CompletedProcess(command, 0, "Usage: terminal [OPTIONS]\n")
