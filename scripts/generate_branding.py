@@ -73,16 +73,22 @@ def variants(images: dict[int, Image.Image]) -> dict[Path, bytes]:
 
 
 def check_png(path: Path, expected: Image.Image) -> None:
+    label = str(path.relative_to(ROOT))
     if not path.is_file():
-        raise RuntimeError(f"missing branding asset: {path.relative_to(ROOT)}")
-    validate_png_chunks(path.read_bytes(), str(path.relative_to(ROOT)))
+        raise RuntimeError(f"missing branding asset: {label}")
+    validate_png_chunks(path.read_bytes(), label)
     with Image.open(path) as actual:
         actual.load()
-        if (actual.format != "PNG" or actual.mode != "RGBA" or
-                actual.size != expected.size or actual.info):
-            raise RuntimeError(f"unexpected PNG properties: {path.relative_to(ROOT)}")
+        if actual.format != "PNG":
+            raise RuntimeError(f"{label}: format is {actual.format}, expected PNG")
+        if actual.mode != "RGBA":
+            raise RuntimeError(f"{label}: mode is {actual.mode}, expected RGBA")
+        if actual.size != expected.size:
+            raise RuntimeError(f"{label}: dimensions are {actual.size}, expected {expected.size}")
+        if actual.info:
+            raise RuntimeError(f"{label}: unexpected PNG metadata: {sorted(actual.info)}")
         if actual.tobytes() != expected.tobytes():
-            raise RuntimeError(f"stale branding pixels: {path.relative_to(ROOT)}")
+            raise RuntimeError(f"{label}: decoded RGBA pixels differ from canonical source")
 
 
 def check_generated_assets(images: dict[int, Image.Image]) -> None:
@@ -93,26 +99,46 @@ def check_generated_assets(images: dict[int, Image.Image]) -> None:
     }
     actual_paths = {path for path in linux_icons.rglob("*") if path.is_file()}
     if actual_paths != expected_paths:
-        raise RuntimeError("Linux hicolor icon paths do not match the generated size set")
+        missing = sorted(path.relative_to(ROOT).as_posix()
+                         for path in expected_paths - actual_paths)
+        unexpected = sorted(path.relative_to(ROOT).as_posix()
+                            for path in actual_paths - expected_paths)
+        raise RuntimeError(f"Linux hicolor paths differ; missing={missing}, unexpected={unexpected}")
     for size in SIZES:
         check_png(linux_icons / f"{size}x{size}" / "apps" / f"{APP_ID}.png",
                  images[size])
 
     windows_path = ASSETS / "windows" / "terminal.ico"
+    if not windows_path.is_file():
+        raise RuntimeError(f"missing branding asset: {windows_path.relative_to(ROOT)}")
     with Image.open(windows_path) as icon:
         expected_sizes = {(size, size) for size in SIZES if size <= 256}
-        if icon.format != "ICO" or icon.ico.sizes() != expected_sizes:
-            raise RuntimeError("Windows ICO resolutions do not match the generated size set")
+        if icon.format != "ICO":
+            raise RuntimeError(f"{windows_path.relative_to(ROOT)}: format is {icon.format}, expected ICO")
+        if icon.ico.sizes() != expected_sizes:
+            raise RuntimeError(f"{windows_path.relative_to(ROOT)}: embedded sizes are "
+                               f"{sorted(icon.ico.sizes())}, expected {sorted(expected_sizes)}")
         for size in sorted(SIZES):
             if size <= 256:
                 embedded = icon.ico.getimage((size, size))
-                if embedded.info or embedded.convert("RGBA").tobytes() != images[size].tobytes():
-                    raise RuntimeError(f"stale branding pixels: {windows_path.relative_to(ROOT)} ({size}x{size})")
+                label = f"{windows_path.relative_to(ROOT)} ({size}x{size})"
+                if embedded.size != (size, size):
+                    raise RuntimeError(f"{label}: dimensions are {embedded.size}")
+                if embedded.info:
+                    raise RuntimeError(f"{label}: unexpected image metadata: {sorted(embedded.info)}")
+                if embedded.convert("RGBA").tobytes() != images[size].tobytes():
+                    raise RuntimeError(f"{label}: decoded RGBA pixels differ from canonical source")
 
     macos_path = ASSETS / "macos" / "terminal.icns"
+    if not macos_path.is_file():
+        raise RuntimeError(f"missing branding asset: {macos_path.relative_to(ROOT)}")
     data = macos_path.read_bytes()
-    if data[:4] != b"icns" or struct.unpack(">I", data[4:8])[0] != len(data):
-        raise RuntimeError("invalid macOS ICNS container")
+    if len(data) < 8 or data[:4] != b"icns":
+        raise RuntimeError(f"{macos_path.relative_to(ROOT)}: invalid ICNS signature/header")
+    declared_size = struct.unpack(">I", data[4:8])[0]
+    if declared_size != len(data):
+        raise RuntimeError(f"{macos_path.relative_to(ROOT)}: declared length {declared_size}, "
+                           f"actual length {len(data)}")
     offset = 8
     chunks = {}
     while offset < len(data):
@@ -123,15 +149,27 @@ def check_generated_assets(images: dict[int, Image.Image]) -> None:
         chunks[kind] = data[offset + 8:offset + length]
         offset += length
     if offset != len(data) or set(chunks) != set(ICNS_SIZES):
-        raise RuntimeError("macOS ICNS resolutions do not match the generated size set")
+        missing = sorted(kind.decode("ascii", errors="replace")
+                         for kind in set(ICNS_SIZES) - set(chunks))
+        unexpected = sorted(kind.decode("ascii", errors="replace")
+                            for kind in set(chunks) - set(ICNS_SIZES))
+        raise RuntimeError(f"{macos_path.relative_to(ROOT)}: ICNS representations differ; "
+                           f"missing={missing}, unexpected={unexpected}, trailing_bytes={len(data) - offset}")
     for kind, size in ICNS_SIZES.items():
         with Image.open(io.BytesIO(chunks[kind])) as embedded:
             validate_png_chunks(chunks[kind], f"{macos_path.relative_to(ROOT)} ({kind.decode('ascii')})")
             embedded.load()
-            if (embedded.format != "PNG" or embedded.mode != "RGBA" or
-                    embedded.size != (size, size) or embedded.info or
-                    embedded.tobytes() != images[size].tobytes()):
-                raise RuntimeError(f"stale branding pixels: {macos_path.relative_to(ROOT)} ({kind.decode('ascii')})")
+            label = f"{macos_path.relative_to(ROOT)} ({kind.decode('ascii')})"
+            if embedded.format != "PNG":
+                raise RuntimeError(f"{label}: format is {embedded.format}, expected PNG")
+            if embedded.mode != "RGBA":
+                raise RuntimeError(f"{label}: mode is {embedded.mode}, expected RGBA")
+            if embedded.size != (size, size):
+                raise RuntimeError(f"{label}: dimensions are {embedded.size}, expected {(size, size)}")
+            if embedded.info:
+                raise RuntimeError(f"{label}: unexpected PNG metadata: {sorted(embedded.info)}")
+            if embedded.tobytes() != images[size].tobytes():
+                raise RuntimeError(f"{label}: decoded RGBA pixels differ from canonical source")
 
 
 def placeholder() -> Image.Image:
