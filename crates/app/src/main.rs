@@ -22,10 +22,11 @@ use std::time::{Duration, Instant};
 use terminal_config::{Command, Config, FontConfig, Rgb};
 
 use terminal_core::{
-    CellColor, CursorKey, InputModes, MAX_COLUMNS, MAX_GRID_CELLS, MAX_ROWS,
+    CellColor, CursorKey, EditingKey, InputModes, MAX_COLUMNS, MAX_GRID_CELLS, MAX_ROWS,
     MouseButton as TerminalMouseButton, MouseEvent, MouseModifiers, MouseTracking, Osc52Policy,
     ScreenKind, TerminalDimensions, TerminalParser, TerminalState, UnderlineStyle,
-    encode_control_cursor_key, encode_cursor_key, encode_focus, encode_mouse, encode_paste,
+    encode_control_cursor_key, encode_cursor_key, encode_editing_key, encode_focus, encode_mouse,
+    encode_paste,
 };
 use terminal_pty::{
     PortablePtyBackend, PtyBackend, PtyOutput, PtySize, PtySpawnConfig, PtyWorker, PtyWorkerEvent,
@@ -2531,6 +2532,12 @@ impl ApplicationHandler<PtyWake> for Application {
                 {
                     self.search = Some(Search::default());
                     self.invalidate_frame();
+                } else if let Some(editing_key) =
+                    editing_key_from_event(&event.logical_key, event.physical_key)
+                {
+                    self.write_terminal_input(
+                        encode_editing_key(*self.terminal.input_modes(), editing_key).to_vec(),
+                    );
                 } else if let Some(cursor_key) = cursor_key_from_logical_key(&event.logical_key) {
                     self.write_terminal_input(
                         terminal_cursor_key_input(
@@ -2844,6 +2851,21 @@ fn cursor_key_from_logical_key(key: &Key) -> Option<CursorKey> {
         Key::Named(NamedKey::ArrowLeft) => Some(CursorKey::Left),
         _ => None,
     }
+}
+
+fn editing_key_from_event(key: &Key, physical_key: PhysicalKey) -> Option<EditingKey> {
+    let logical = match key {
+        Key::Named(NamedKey::Delete) => Some(EditingKey::Delete),
+        Key::Named(NamedKey::Home) => Some(EditingKey::Home),
+        Key::Named(NamedKey::End) => Some(EditingKey::End),
+        _ => None,
+    };
+    logical.or(match physical_key {
+        PhysicalKey::Code(KeyCode::Delete) => Some(EditingKey::Delete),
+        PhysicalKey::Code(KeyCode::Home) => Some(EditingKey::Home),
+        PhysicalKey::Code(KeyCode::End) => Some(EditingKey::End),
+        _ => None,
+    })
 }
 
 fn terminal_mouse_button(button: MouseButton) -> Option<TerminalMouseButton> {
@@ -3614,11 +3636,12 @@ mod tests {
         Application, BasicKey, CliOptions, FrameState, PaletteAction, PendingResize,
         PhysicalSizeSync, RecoveryRedraw, SurfaceRestore, WindowsShellSource,
         basic_backspace_byte_for_platform, basic_key_input, configured_command,
-        cursor_key_from_logical_key, font_request, pane_dimensions, parse_terminal_output,
-        pty_size_for_terminal, queue_terminal_input, scroll_terminal_for_wheel,
-        select_windows_shell, spawn_config_for_session, target_at_pointer, terminal_cell_at,
-        terminal_cursor_key_input, terminal_dimensions_for_viewport, terminal_key_input,
-        wheel_scroll_rows, windows_local_shell_spawn_config,
+        cursor_key_from_logical_key, editing_key_from_event, font_request, pane_dimensions,
+        parse_terminal_output, pty_size_for_terminal, queue_terminal_input,
+        scroll_terminal_for_wheel, select_windows_shell, spawn_config_for_session,
+        target_at_pointer, terminal_cell_at, terminal_cursor_key_input,
+        terminal_dimensions_for_viewport, terminal_key_input, wheel_scroll_rows,
+        windows_local_shell_spawn_config,
     };
     use terminal_config::{Command, Config, Rgb};
     use terminal_core::{CursorKey, TerminalDimensions, TerminalParser, TerminalState};
@@ -4442,6 +4465,64 @@ mod tests {
             Some(vec![0x1b])
         );
         assert_eq!(basic_key_input(None, None), None);
+    }
+
+    #[test]
+    fn unbound_home_end_delete_are_pty_input_and_backspace_stays_distinct() {
+        let cases = [
+            (
+                NamedKey::Delete,
+                KeyCode::Delete,
+                terminal_core::EditingKey::Delete,
+                b"\x1b[3~".as_slice(),
+            ),
+            (
+                NamedKey::Home,
+                KeyCode::Home,
+                terminal_core::EditingKey::Home,
+                b"\x1b[H".as_slice(),
+            ),
+            (
+                NamedKey::End,
+                KeyCode::End,
+                terminal_core::EditingKey::End,
+                b"\x1b[F".as_slice(),
+            ),
+        ];
+        for (logical, physical, encoded_key, expected) in cases {
+            let key = editing_key_from_event(&Key::Named(logical), PhysicalKey::Code(physical))
+                .expect("physical editing key should reach PTY input");
+            assert_eq!(key, encoded_key);
+            assert_eq!(
+                terminal_core::encode_editing_key(terminal_core::InputModes::default(), key),
+                expected
+            );
+        }
+        assert_eq!(
+            basic_key_input(None, Some(BasicKey::Backspace)),
+            Some(vec![basic_backspace_byte_for_platform(cfg!(windows))])
+        );
+    }
+
+    #[test]
+    fn configured_home_binding_precedes_terminal_input() {
+        let config = Config::parse("[[bindings]]\nkey = 'Home'\ncommand = 'focus_pane_left'")
+            .expect("Home should remain a valid binding key");
+        assert_eq!(
+            configured_command(
+                &config,
+                PhysicalKey::Code(KeyCode::Home),
+                ModifiersState::empty()
+            ),
+            Some(Command::FocusPaneLeft)
+        );
+        assert_eq!(
+            editing_key_from_event(
+                &Key::Named(NamedKey::Home),
+                PhysicalKey::Code(KeyCode::Home),
+            ),
+            Some(terminal_core::EditingKey::Home)
+        );
     }
 
     #[test]

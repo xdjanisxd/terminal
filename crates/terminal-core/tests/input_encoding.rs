@@ -1,7 +1,7 @@
 use terminal_core::{
-    CursorKey, CursorKeyMode, MouseButton, MouseEncoding, MouseEvent, MouseModifiers,
+    CursorKey, CursorKeyMode, EditingKey, MouseButton, MouseEncoding, MouseEvent, MouseModifiers,
     MouseTracking, TerminalDimensions, TerminalParser, TerminalState, encode_control_cursor_key,
-    encode_cursor_key, encode_focus, encode_mouse, encode_paste,
+    encode_cursor_key, encode_editing_key, encode_focus, encode_mouse, encode_paste,
 };
 
 fn terminal() -> (TerminalParser, TerminalState) {
@@ -9,6 +9,31 @@ fn terminal() -> (TerminalParser, TerminalState) {
         TerminalParser::new(),
         TerminalState::new(TerminalDimensions::new(80, 24).unwrap()),
     )
+}
+
+#[test]
+fn delete_home_and_end_use_conventional_sequences_in_both_cursor_modes() {
+    let (mut parser, mut terminal) = terminal();
+    let normal = *terminal.input_modes();
+    assert_eq!(encode_editing_key(normal, EditingKey::Delete), b"\x1b[3~");
+    assert_eq!(encode_editing_key(normal, EditingKey::Home), b"\x1b[H");
+    assert_eq!(encode_editing_key(normal, EditingKey::End), b"\x1b[F");
+
+    assert!(parser.advance(&mut terminal, b"\x1b[?1h").is_ok());
+    let application = *terminal.input_modes();
+    assert_eq!(
+        encode_editing_key(application, EditingKey::Delete),
+        b"\x1b[3~"
+    );
+    assert_eq!(encode_editing_key(application, EditingKey::Home), b"\x1b[H");
+    assert_eq!(encode_editing_key(application, EditingKey::End), b"\x1b[F");
+
+    // Later terminal state and parser chunking do not affect input encoding.
+    assert!(parser.advance(&mut terminal, b"\x1b[?1l").is_ok());
+    assert_eq!(
+        encode_editing_key(*terminal.input_modes(), EditingKey::Delete),
+        b"\x1b[3~"
+    );
 }
 
 #[test]
