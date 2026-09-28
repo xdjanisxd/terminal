@@ -10,6 +10,22 @@ pub enum CursorKey {
     Left,
 }
 
+/// Editing keys whose conventional encodings do not depend on cursor-key mode.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum EditingKey {
+    Delete,
+    Home,
+    End,
+}
+
+pub fn encode_editing_key(_modes: InputModes, key: EditingKey) -> &'static [u8] {
+    match key {
+        EditingKey::Delete => b"\x1b[3~",
+        EditingKey::Home => b"\x1b[H",
+        EditingKey::End => b"\x1b[F",
+    }
+}
+
 pub fn encode_cursor_key(modes: InputModes, key: CursorKey) -> &'static [u8] {
     match (modes.cursor_keys(), key) {
         (CursorKeyMode::Normal, CursorKey::Up) => b"\x1b[A",
