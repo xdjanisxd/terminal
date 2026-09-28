@@ -28,6 +28,36 @@ function Invoke-Msi([string[]]$Arguments, [string]$Label) {
 function Assert-Smoke([bool]$Condition, [string]$Message) {
     if (-not $Condition) { throw "MSI smoke: $Message" }
 }
+function Invoke-InstalledHelp([string]$Executable, [string]$Label) {
+    $stdoutPath = Join-Path $env:RUNNER_TEMP ("terminal-help-$Label-" + [Guid]::NewGuid().ToString('N') + '.out')
+    $stderrPath = Join-Path $env:RUNNER_TEMP ("terminal-help-$Label-" + [Guid]::NewGuid().ToString('N') + '.err')
+    $exitCode = $null
+    $stdout = ''
+    $stderr = ''
+    try {
+        try {
+            $process = Start-Process -FilePath $Executable -ArgumentList @('--help') -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -Wait -PassThru -WindowStyle Hidden
+            $exitCode = $process.ExitCode
+        } catch {
+            $stderr = $_.ToString()
+        }
+        if (Test-Path -LiteralPath $stdoutPath) { $stdout = [IO.File]::ReadAllText($stdoutPath) }
+        if (Test-Path -LiteralPath $stderrPath) {
+            $capturedStderr = [IO.File]::ReadAllText($stderrPath)
+            if ($stderr) { $stderr += "`n" }
+            $stderr += $capturedStderr
+        }
+        # Keep line breaks and tabs, while removing terminal control characters from diagnostics.
+        $safeStdout = [regex]::Replace($stdout, '[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '')
+        $safeStderr = [regex]::Replace($stderr, '[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '')
+        $valid = ($exitCode -eq 0) -and $safeStdout.StartsWith('Usage: terminal ') -and ($safeStderr -notmatch 'panicked at|failed printing to stdout')
+        if (-not $valid) {
+            throw "MSI smoke: $Label --help failed`nExecutable: $Executable`nExit code: $exitCode`nstdout:`n$safeStdout`nstderr:`n$safeStderr"
+        }
+    } finally {
+        Remove-Item -LiteralPath $stdoutPath, $stderrPath -Force -ErrorAction SilentlyContinue
+    }
+}
 function Read-PackageIdentity([string]$Path) {
     $installer = New-Object -ComObject WindowsInstaller.Installer
     $database = $installer.OpenDatabase($Path, 0)
@@ -64,8 +94,7 @@ try {
     Invoke-Msi -Arguments @('/i', "`"$msiPath`"") -Label 'install'
     $exe = Join-Path $installDir 'terminal.exe'
     Assert-Smoke (Test-Path -LiteralPath $exe -PathType Leaf) 'installed executable'
-    $help = & $exe --help
-    Assert-Smoke ($LASTEXITCODE -eq 0 -and ($help -join "`n").StartsWith('Usage: terminal ')) 'installed --help'
+    Invoke-InstalledHelp -Executable $exe -Label 'installed'
     Assert-Smoke (-not (Test-Path -LiteralPath (Join-Path $installDir 'config.toml'))) 'config remains optional'
     Assert-Smoke (Test-Path -LiteralPath $shortcut -PathType Leaf) 'Start Menu shortcut'
     $shell = New-Object -ComObject WScript.Shell
@@ -85,8 +114,7 @@ try {
     Assert-Smoke ([Environment]::GetEnvironmentVariable('Path', 'Machine') -eq $pathInstalled) 'upgrade retains exactly one owned PATH entry'
     Assert-Smoke ((Get-ItemProperty $registry).InstallerPathOwned -eq 1) 'upgrade retains PATH ownership'
     Assert-Smoke ((Test-Path -LiteralPath $exe) -and (Test-Path -LiteralPath $shortcut)) 'upgrade retains executable and shortcut'
-    $help = & $exe --help
-    Assert-Smoke ($LASTEXITCODE -eq 0 -and ($help -join "`n").StartsWith('Usage: terminal ')) 'upgraded executable --help'
+    Invoke-InstalledHelp -Executable $exe -Label 'upgraded'
     $installer = New-Object -ComObject WindowsInstaller.Installer
     try {
         Assert-Smoke ($installer.ProductState($identity.ProductCode) -eq -1) 'old product removed by major upgrade'
