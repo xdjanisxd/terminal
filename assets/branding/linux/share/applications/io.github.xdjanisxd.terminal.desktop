@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Terminal
+GenericName=Terminal Emulator
+Comment=Keyboard-focused terminal with tabs and split panes
+Exec=terminal
+TryExec=terminal
+Icon=io.github.xdjanisxd.terminal
+Type=Application
+Terminal=false
+Categories=System;TerminalEmulator;
+StartupWMClass=io.github.xdjanisxd.terminal
