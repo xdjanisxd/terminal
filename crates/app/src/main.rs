@@ -3653,20 +3653,14 @@ mod tests {
         LayoutDefinition, PaneDirection, PaneRect, SessionDefinition, SplitAxis,
     };
 
-    fn saved_state_path() -> PathBuf {
-        std::env::temp_dir().join(format!(
-            "terminal-saved-workspaces-{}-{}.toml",
-            std::process::id(),
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_nanos()
-        ))
+    fn saved_state_path() -> super::saved_workspaces::TestWorkspaceState {
+        super::saved_workspaces::TestWorkspaceState::new()
     }
 
     #[test]
     fn saved_workspace_round_trips_layout_focus_titles_sessions_and_fresh_runtime() {
-        let path = saved_state_path();
+        let state = saved_state_path();
+        let path = state.path();
         let mut app = Application {
             saved_workspaces_path: path.clone(),
             ..Application::default()
@@ -3766,7 +3760,8 @@ mod tests {
 
     #[test]
     fn prompt_osc7_updates_pane_cwd_used_by_saved_workspace() {
-        let path = saved_state_path();
+        let state = saved_state_path();
+        let path = state.path();
         let mut app = Application {
             saved_workspaces_path: path.clone(),
             ..Application::default()
@@ -3810,7 +3805,8 @@ mod tests {
 
     #[test]
     fn pane_startup_prompt_sets_replaces_clears_and_persists_explicit_metadata() {
-        let path = saved_state_path();
+        let state = saved_state_path();
+        let path = state.path();
         let mut app = Application {
             saved_workspaces_path: path.clone(),
             ..Application::default()
@@ -3856,7 +3852,8 @@ mod tests {
 
     #[test]
     fn saved_workspace_confirmations_delete_and_corrupt_state_are_safe() {
-        let path = saved_state_path();
+        let state = saved_state_path();
+        let path = state.path();
         let mut app = Application {
             saved_workspaces_path: path.clone(),
             ..Application::default()
@@ -3910,14 +3907,24 @@ mod tests {
 
     #[test]
     fn saved_workspace_picker_filters_and_owns_its_input() {
-        let path = saved_state_path();
+        let state = saved_state_path();
+        let path = state.path();
         let mut app = Application {
             saved_workspaces_path: path.clone(),
             ..Application::default()
         };
         app.save_workspace("Alpha".into());
+        assert!(app.workspace_notice.is_none(), "{:?}", app.workspace_notice);
         app.dispatch_command(Command::NewTab);
         app.save_workspace("Beta".into());
+        assert!(app.workspace_notice.is_none(), "{:?}", app.workspace_notice);
+        assert_eq!(
+            super::saved_workspaces::SavedWorkspaces::load(&path)
+                .unwrap()
+                .workspaces
+                .len(),
+            2
+        );
         app.dispatch_command(Command::OpenWorkspacePicker);
         let before = app.terminal.screen().cell(0, 0).unwrap().character();
         app.handle_saved_workspace_picker_key(&Key::Character("beta".into()), Some("beta"));
