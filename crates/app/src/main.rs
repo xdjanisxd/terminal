@@ -5,6 +5,7 @@
 
 //! Native application lifecycle and component wiring.
 
+mod branding;
 mod commands;
 mod saved_workspaces;
 mod search;
@@ -1618,7 +1619,7 @@ impl Application {
     fn create_window_and_renderer(&mut self, event_loop: &ActiveEventLoop) {
         let recreating_surface = self.window.is_some();
         if self.window.is_none() {
-            let attributes = Window::default_attributes().with_title("Terminal");
+            let attributes = branding::window_attributes();
             match event_loop.create_window(attributes) {
                 Ok(window) => self.window = Some(Arc::new(window)),
                 Err(error) => {

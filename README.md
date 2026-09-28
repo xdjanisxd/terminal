@@ -1,6 +1,6 @@
 # Terminal
 
-Terminal is a keyboard-focused, GPU-rendered terminal emulator with tabs, split panes, and reusable workspaces. It is built in Rust for Windows, Linux, and macOS. Portable archives are configured for GitHub Releases; source builds are also supported.
+Terminal is a keyboard-focused, GPU-rendered terminal emulator with tabs, split panes, and reusable workspaces. It is built in Rust for Windows, Linux, and macOS. Portable archives and Windows MSI installers are configured for GitHub Releases; source builds are also supported.
 
 ## Features
 
@@ -13,11 +13,17 @@ Terminal is a keyboard-focused, GPU-rendered terminal emulator with tabs, split 
 
 ## Installation
 
-Download a portable archive from [GitHub Releases](https://github.com/xdjanisxd/terminal/releases) for your operating system and CPU. Each archive contains the `terminal` executable, this README, `config.example.toml`, and the MIT license. Extract it to a directory you keep; you can run the executable there or put it on PATH. You do not need to copy `config.example.toml`: Terminal uses built-in defaults when no user config exists.
+Download a release asset from [GitHub Releases](https://github.com/xdjanisxd/terminal/releases) for your operating system and CPU. Windows offers MSI installation or a portable ZIP; Linux and macOS offer portable archives. Each archive contains the `terminal` executable, this README, `config.example.toml`, and the MIT license. Extract it to a directory you keep; you can run the executable there or put it on PATH. You do not need to copy `config.example.toml`: Terminal uses built-in defaults when no user config exists.
 
 ### Windows
 
-Download `terminal-windows-x86_64.zip` for x64 Windows or `terminal-windows-aarch64.zip` for Windows ARM64. Extract the ZIP, then run `terminal.exe`. You can move the executable to a permanent directory and add that directory to PATH as described below.
+**Installer:** Download `terminal-windows-x86_64.msi` for x64 Windows or `terminal-windows-aarch64.msi` for Windows ARM64. Run the MSI and approve the normal administrator prompt. It installs Terminal for all users into the native `Program Files\Terminal` directory and creates a **Terminal** Start Menu shortcut using the application icon. No desktop shortcut is created. The installer adds its directory to the system PATH by default; open a new PowerShell session and run `terminal --help`. An existing matching PATH entry is preserved. Existing shell processes are not modified; signing out and back in may be needed if a parent process retains an old PATH.
+
+Uninstall **Terminal** through Windows **Installed Apps**. The installer removes its files, Start Menu shortcut, metadata, and the PATH entry it owns. User config and Saved Workspaces remain intact. Newer MSI versions upgrade the installed application; older versions are rejected. No `config.toml` is installed, and built-in defaults remain available.
+
+The MSI and executable are unsigned. Windows SmartScreen or other Windows security prompts may warn; no signing or reputation claim is implied.
+
+**Portable:** Download `terminal-windows-x86_64.zip` for x64 Windows or `terminal-windows-aarch64.zip` for Windows ARM64. Extract the ZIP, then run `terminal.exe`. You can move the executable to a permanent directory and add that directory to PATH as described below. The ZIP remains a separate distribution option and does not register an installation.
 
 ### Linux
 
@@ -122,7 +128,7 @@ There are no required built-in theme presets. Configure terminal foreground, bac
 
 ## Project status and development
 
-Portable release packaging is configured for Windows, Linux, and macOS. Installer formats and signing are future work. See [release engineering](docs/RELEASE.md), [current state](docs/CURRENT_STATE.md), and the [roadmap](docs/ROADMAP.md) for details. Repository validation uses:
+Portable release packaging is configured for Windows, Linux, and macOS, with additional Windows MSI installers. Signing remains future work. See [release engineering](docs/RELEASE.md), [current state](docs/CURRENT_STATE.md), and the [roadmap](docs/ROADMAP.md) for details. Repository validation uses:
 
 ```sh
 cargo fmt --all -- --check

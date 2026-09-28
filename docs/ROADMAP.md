@@ -138,7 +138,7 @@ later performance/polish work.
   - Completed: the Rename Tab command palette action edits the active tab title; custom titles remain separate from configured or generated base titles.
 - [x] Add pane zoom so the focused pane temporarily fills the workspace; toggling zoom off restores the prior split layout and preserves all panes and sessions.
 - [ ] Package and validate supported Windows, Linux, and macOS releases
-  - Portable archives and the six-target native GitHub Actions matrix are configured. Local Windows x86_64 release packaging passes; complete this item after the first successful six-target CI/release run and interactive platform smoke tests.
+  - Portable archives, additive Windows x86_64/ARM64 MSI installers, and the six-target native GitHub Actions matrix are configured. Local Windows x86_64 archive smoke and MSI metadata/payload checks pass; complete this item after the first successful six-target CI/release run, hosted installer smoke tests, and interactive platform acceptance.
 
 ## M7: Usability, shell integration, and workspace workflows
 
