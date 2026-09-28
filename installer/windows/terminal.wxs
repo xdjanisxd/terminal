@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <!-- One application identity across releases and native architectures. Never regenerate. -->
+  <Package Name="Terminal" Manufacturer="Terminal contributors" Language="1033"
+           Version="$(var.Version)" UpgradeCode="3A57FB13-D5F0-4A85-8CD0-768A2B988F9C"
+           Scope="perMachine" InstallerVersion="500">
+    <MajorUpgrade DowngradeErrorMessage="A newer version of Terminal is already installed."
+                  Schedule="afterInstallInitialize" />
+    <MediaTemplate EmbedCab="yes" />
+    <Icon Id="TerminalIcon" SourceFile="$(var.Icon)" />
+    <Property Id="ARPPRODUCTICON" Value="TerminalIcon" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/xdjanisxd/terminal" />
+    <!-- Normalize away the directory property's trailing slash before costing evaluates
+         component conditions. The first slice uses a fixed application directory. -->
+    <SetProperty Id="TERMINAL_INSTALL_PATH" Value="[ProgramFiles64Folder]Terminal"
+                 Before="CostFinalize" Sequence="both" />
+    <Property Id="EXISTING_SYSTEM_PATH" Secure="yes">
+      <RegistrySearch Id="SystemPathSearch" Root="HKLM"
+                      Key="SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
+                      Name="Path" Type="raw" Bitness="always64" />
+    </Property>
+    <Property Id="EXISTING_PATH_OWNED" Secure="yes">
+      <RegistrySearch Id="PathOwnershipSearch" Root="HKLM"
+                      Key="Software\io.github.xdjanisxd.terminal"
+                      Name="InstallerPathOwned" Type="raw" Bitness="always64" />
+    </Property>
+    <ui:WixUI Id="WixUI_Minimal" />
+    <WixVariable Id="WixUILicenseRtf" Value="$(var.LicenseRtf)" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Terminal">
+        <Component Id="Executable" Guid="*" Bitness="always64">
+          <File Id="TerminalExe" Source="$(var.Binary)" Name="terminal.exe" KeyPath="yes" />
+        </Component>
+        <Component Id="License" Guid="*" Bitness="always64">
+          <File Id="LicenseFile" Source="$(var.License)" Name="LICENSE" KeyPath="yes" />
+        </Component>
+        <!-- Non-transitive: a repair does not acquire a pre-existing user-managed entry.
+             Conservative substring detection also preserves entries with a trailing slash. -->
+        <Component Id="SystemPath" Guid="*" Bitness="always64"
+                   Condition="NOT (EXISTING_SYSTEM_PATH ~&gt;&lt; TERMINAL_INSTALL_PATH) OR (WIX_UPGRADE_DETECTED AND EXISTING_PATH_OWNED)">
+          <RegistryValue Root="HKLM" Key="Software\io.github.xdjanisxd.terminal"
+                         Name="InstallerPathOwned" Type="integer" Value="1" KeyPath="yes" />
+          <Environment Id="TerminalPath" Name="PATH" Value="[TERMINAL_INSTALL_PATH]"
+                       Action="set" Part="last" System="yes" Permanent="no" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Component Id="StartMenu" Guid="*" Bitness="always64">
+        <Shortcut Id="TerminalShortcut" Name="Terminal" Target="[#TerminalExe]"
+                  WorkingDirectory="INSTALLFOLDER" Icon="TerminalIcon" IconIndex="0">
+          <ShortcutProperty Key="System.AppUserModel.ID" Value="io.github.xdjanisxd.terminal" />
+        </Shortcut>
+        <RegistryValue Root="HKLM" Key="Software\io.github.xdjanisxd.terminal"
+                       Name="InstallerShortcut" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </StandardDirectory>
+    <Feature Id="Terminal" Title="Terminal" Level="1">
+      <ComponentRef Id="Executable" />
+      <ComponentRef Id="License" />
+      <ComponentRef Id="SystemPath" />
+      <ComponentRef Id="StartMenu" />
+    </Feature>
+  </Package>
+</Wix>

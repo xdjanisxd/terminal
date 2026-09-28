@@ -129,6 +129,10 @@ def main() -> None:
         "terminal.exe" if windows else "terminal"
     )
     files = archive_members(binary, windows)
+    if windows:
+        from windows_resources import validate_windows_icon
+
+        validate_windows_icon(binary)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     archive = args.output_dir / f"terminal-{system}-{architecture}{extension}"
     if windows:

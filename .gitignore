@@ -1,4 +1,6 @@
 /target/
+/dist/
+/.wix/
 
 # Rust backup files
 **/*.rs.bk
