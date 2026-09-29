@@ -1,0 +1,3 @@
+# Session handoff
+
+Startup work on perf/startup-first-frame is complete and validated. All required automated checks passed; user-reported manual Windows release acceptance confirms no white flash, immediate typing, normal focus/taskbar behavior, and normal sizing/placement. Five baseline/final release samples show median first presentation 1,482/231 ms; see docs/STARTUP.md for the full timing breakdown and limitations. Native Linux/macOS startup was not checked locally. The final diff is limited to startup presentation, opt-in diagnostics, focused tests and related documentation/state. No commit or push. Prior unrelated ARM64 Saved Workspace handoff is retained in docs/active/ARM64_SAVED_WORKSPACES.md.

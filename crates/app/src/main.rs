@@ -35,7 +35,7 @@ use terminal_renderer::{
     CellMetrics, FontRequest, OverlayLine, PaneRenderInput, RedrawOutcome, RenderTheme, Renderer,
     RendererDiagnosticState, Rgba, ScrollbarGeometry, ScrollbarHit, ScrollbarRenderData,
     SearchHighlight, SearchMarker, SurfaceSize, TextOverlay, UiRenderTheme, diagnostics_enabled,
-    emit_diagnostic,
+    emit_diagnostic, initialize_startup_diagnostics, startup_milestone,
 };
 use terminal_workspace::{
     LayoutDefinition, PaneDirection, PaneId, PaneRect, SessionDefinition, SplitAxis, Tab, TabId,
@@ -51,6 +51,8 @@ use winit::window::{Window, WindowId};
 struct Application {
     window: Option<Arc<Window>>,
     renderer: Option<Renderer>,
+    startup_presentation: StartupPresentation,
+    startup_redraw_requested: bool,
     parser: TerminalParser,
     terminal: TerminalState,
     pty: Option<PtyWorker>,
@@ -258,6 +260,28 @@ enum WindowsShellSource {
     WindowsPowerShell,
     ComSpec,
     Cmd,
+}
+
+/// App-owned visibility gate; no PTY output is required for an empty first frame.
+#[derive(Debug, Default)]
+struct StartupPresentation {
+    presented: bool,
+}
+
+impl StartupPresentation {
+    fn presented(&mut self, outcome: RedrawOutcome) -> bool {
+        if !self.presented
+            && matches!(
+                outcome,
+                RedrawOutcome::Presented | RedrawOutcome::PresentedSuboptimal
+            )
+        {
+            self.presented = true;
+            true
+        } else {
+            false
+        }
+    }
 }
 
 /// App-owned redraw coalescing; it has no terminal semantics.
@@ -566,6 +590,8 @@ impl Default for Application {
         Self {
             window: None,
             renderer: None,
+            startup_presentation: StartupPresentation::default(),
+            startup_redraw_requested: false,
             parser: TerminalParser::with_osc52_policy(Osc52Policy::Deny),
             terminal,
             pty: None,
@@ -838,7 +864,9 @@ impl Application {
             project_root_override: cli.project_root,
             ..Self::default()
         };
+        startup_milestone("terminal-state-created");
         app.reload_config();
+        startup_milestone("config-loaded");
         let path = app.config_path.clone();
         std::thread::spawn(move || {
             let mut previous = config_fingerprint(&path);
@@ -1620,10 +1648,15 @@ impl Application {
     fn create_window_and_renderer(&mut self, event_loop: &ActiveEventLoop) {
         let recreating_surface = self.window.is_some();
         if self.window.is_none() {
-            let attributes = branding::window_attributes();
+            let attributes =
+                branding::window_attributes().with_visible(self.startup_presentation.presented);
             match event_loop.create_window(attributes) {
-                Ok(window) => self.window = Some(Arc::new(window)),
+                Ok(window) => {
+                    self.window = Some(Arc::new(window));
+                    startup_milestone("window-created");
+                }
                 Err(error) => {
+                    startup_milestone("window-creation-failed");
                     eprintln!("could not create terminal window: {error}");
                     event_loop.exit();
                     return;
@@ -1640,21 +1673,148 @@ impl Application {
             Ok(mut renderer) => {
                 renderer.set_theme(render_theme(&self.config.theme));
                 self.renderer = Some(renderer);
+                startup_milestone("renderer-ready");
                 self.fullscreen.observe(window.fullscreen().is_some());
                 if recreating_surface {
                     self.recovery_redraw.begin();
                 }
                 self.resize_terminal_to_viewport(window.inner_size());
+                startup_milestone("initial-grid-ready");
+                self.update_workspace_title();
+                self.frame.rearm();
+                self.invalidate_frame();
+                // Hidden windows need not receive native paint events. Present
+                // directly, before synchronous shell startup, using the actual
+                // configured theme, font, DPI and workspace grid. A transient
+                // surface error can recover without waiting for PTY output.
+                if !self.startup_presentation.presented {
+                    for _ in 0..3 {
+                        if self.redraw_window(event_loop) == Some(RedrawOutcome::Exit) {
+                            return;
+                        }
+                        if self.startup_presentation.presented {
+                            break;
+                        }
+                    }
+                    if !self.startup_presentation.presented {
+                        eprintln!(
+                            "could not present the initial terminal frame after surface recovery"
+                        );
+                        startup_milestone("first-frame-failed");
+                        event_loop.exit();
+                        return;
+                    }
+                }
+                startup_milestone("pty-started");
                 self.start_local_shell();
+                startup_milestone("pty-spawn-complete");
                 self.update_workspace_title();
                 self.invalidate_frame();
                 self.diagnose("renderer-created");
             }
             Err(error) => {
+                startup_milestone("renderer-failed");
                 eprintln!("could not initialize terminal renderer: {error}");
                 event_loop.exit();
             }
         }
+    }
+
+    fn redraw_window(&mut self, event_loop: &ActiveEventLoop) -> Option<RedrawOutcome> {
+        emit_diagnostic(format_args!("app event=redraw-requested"));
+        self.diagnose("redraw-requested-received");
+        // During a live resize, redraws can arrive before about_to_wait.
+        // Apply the latest queued size before acquiring a surface frame;
+        // otherwise a suboptimal present can reconfigure the old size
+        // repeatedly while newer Resized events wait in the queue.
+        self.apply_pending_resize();
+        // A PTY worker may have queued another chunk after its wake was
+        // handled but before this redraw. Include it in this present.
+        let output_drained_before_redraw = if self.pty_wake_pending.swap(false, Ordering::AcqRel) {
+            self.drain_pty_events(false)
+        } else {
+            false
+        };
+        self.frame.begin_redraw();
+        let overlay = self
+            .workspace_overlay()
+            .or_else(|| self.tab_rename_overlay())
+            .or_else(|| self.search_overlay())
+            .or_else(|| self.palette_overlay())
+            .or_else(|| self.tab_picker_overlay());
+
+        let scrollback_input_enabled = self.scrollbar_input_enabled();
+
+        let renderer = self.renderer.as_mut()?;
+        let size = self
+            .window
+            .as_ref()
+            .map(|window| window.inner_size())
+            .unwrap_or(PhysicalSize::new(0, 0));
+        let surface = PaneRect {
+            x: 0,
+            y: 0,
+            width: size.width,
+            height: size.height,
+        };
+        let panes: Vec<_> = self
+            .workspace
+            .active_tab()
+            .pane_rects(surface)
+            .into_iter()
+            .filter_map(|(pane_id, rect)| {
+                let terminal = if pane_id == self.active_runtime_pane {
+                    &self.terminal
+                } else {
+                    &self.inactive_panes.get(&pane_id)?.terminal
+                };
+                Some(PaneRenderInput {
+                    terminal,
+                    rect: [rect.x, rect.y, rect.width, rect.height],
+                    focused: pane_id == self.workspace.active_pane(),
+                    scrollbar_hover: (pane_id == self.workspace.active_pane()
+                        && scrollback_input_enabled)
+                        .then_some(self.scrollbar_hover)
+                        .flatten(),
+                })
+            })
+            .collect();
+        let outcome = renderer.redraw_panes(&panes, overlay.as_ref());
+        emit_diagnostic(format_args!(
+            "app event=redraw-complete outcome={outcome:?}"
+        ));
+        if self.startup_presentation.presented(outcome) {
+            startup_milestone("first-frame-presented");
+            if let Some(window) = &self.window {
+                window.set_visible(true);
+                window.focus_window();
+                startup_milestone("window-shown");
+            }
+        }
+        match outcome {
+            RedrawOutcome::Reconfigured => {
+                if self.recovery_redraw.reconfigured() || output_drained_before_redraw {
+                    self.invalidate_frame();
+                }
+            }
+            RedrawOutcome::Exit => event_loop.exit(),
+            RedrawOutcome::Presented | RedrawOutcome::PresentedSuboptimal => {
+                if outcome == RedrawOutcome::PresentedSuboptimal {
+                    self.recovery_redraw.begin();
+                }
+                if self.recovery_redraw.presented() {
+                    self.invalidate_frame();
+                }
+            }
+            RedrawOutcome::Skipped => {
+                self.recovery_redraw.skipped();
+                if output_drained_before_redraw {
+                    self.invalidate_frame();
+                }
+            }
+        }
+        self.diagnose("redraw-handled");
+        Some(outcome)
     }
 
     fn invalidate_frame(&mut self) -> bool {
@@ -1662,6 +1822,10 @@ impl Application {
             && let Some(window) = self.window.as_ref()
         {
             window.request_redraw();
+            if !self.startup_redraw_requested {
+                self.startup_redraw_requested = true;
+                startup_milestone("first-redraw-requested");
+            }
             self.diagnose("redraw-requested");
             true
         } else {
@@ -2574,91 +2738,7 @@ impl ApplicationHandler<PtyWake> for Application {
                 }
             }
             WindowEvent::RedrawRequested => {
-                emit_diagnostic(format_args!("app event=redraw-requested"));
-                self.diagnose("redraw-requested-received");
-                // During a live resize, redraws can arrive before about_to_wait.
-                // Apply the latest queued size before acquiring a surface frame;
-                // otherwise a suboptimal present can reconfigure the old size
-                // repeatedly while newer Resized events wait in the queue.
-                self.apply_pending_resize();
-                // A PTY worker may have queued another chunk after its wake was
-                // handled but before this redraw. Include it in this present.
-                let output_drained_before_redraw =
-                    if self.pty_wake_pending.swap(false, Ordering::AcqRel) {
-                        self.drain_pty_events(false)
-                    } else {
-                        false
-                    };
-                self.frame.begin_redraw();
-                let overlay = self
-                    .workspace_overlay()
-                    .or_else(|| self.tab_rename_overlay())
-                    .or_else(|| self.search_overlay())
-                    .or_else(|| self.palette_overlay())
-                    .or_else(|| self.tab_picker_overlay());
-
-                let scrollback_input_enabled = self.scrollbar_input_enabled();
-
-                let Some(renderer) = self.renderer.as_mut() else {
-                    return;
-                };
-                let size = self
-                    .window
-                    .as_ref()
-                    .map(|window| window.inner_size())
-                    .unwrap_or(PhysicalSize::new(0, 0));
-                let surface = PaneRect {
-                    x: 0,
-                    y: 0,
-                    width: size.width,
-                    height: size.height,
-                };
-                let panes: Vec<_> = self
-                    .workspace
-                    .active_tab()
-                    .pane_rects(surface)
-                    .into_iter()
-                    .filter_map(|(pane_id, rect)| {
-                        let terminal = if pane_id == self.active_runtime_pane {
-                            &self.terminal
-                        } else {
-                            &self.inactive_panes.get(&pane_id)?.terminal
-                        };
-                        Some(PaneRenderInput {
-                            terminal,
-                            rect: [rect.x, rect.y, rect.width, rect.height],
-                            focused: pane_id == self.workspace.active_pane(),
-                            scrollbar_hover: (pane_id == self.workspace.active_pane()
-                                && scrollback_input_enabled)
-                                .then_some(self.scrollbar_hover)
-                                .flatten(),
-                        })
-                    })
-                    .collect();
-                let outcome = renderer.redraw_panes(&panes, overlay.as_ref());
-                emit_diagnostic(format_args!(
-                    "app event=redraw-complete outcome={outcome:?}"
-                ));
-                match outcome {
-                    RedrawOutcome::Reconfigured => {
-                        if self.recovery_redraw.reconfigured() || output_drained_before_redraw {
-                            self.invalidate_frame();
-                        }
-                    }
-                    RedrawOutcome::Exit => event_loop.exit(),
-                    RedrawOutcome::Presented => {
-                        if self.recovery_redraw.presented() {
-                            self.invalidate_frame();
-                        }
-                    }
-                    RedrawOutcome::Skipped => {
-                        self.recovery_redraw.skipped();
-                        if output_drained_before_redraw {
-                            self.invalidate_frame();
-                        }
-                    }
-                }
-                self.diagnose("redraw-handled");
+                self.redraw_window(event_loop);
             }
             _ => {}
         }
@@ -2696,17 +2776,16 @@ fn spawn_local_shell(
     emit_diagnostic(format_args!("app event=pty-backend-start"));
     let backend = PortablePtyBackend::new();
     emit_diagnostic(format_args!("app event=pty-session-spawn-start"));
-    let session = match backend.spawn(spawn_config_for_session(
-        pty_size_for_terminal(dimensions),
-        root,
-        startup,
-    )) {
+    let configuration = spawn_config_for_session(pty_size_for_terminal(dimensions), root, startup);
+    startup_milestone("pty-config-ready");
+    let session = match backend.spawn(configuration) {
         Ok(session) => session,
         Err(error) => {
             eprintln!("could not start local shell: {error}");
             return None;
         }
     };
+    startup_milestone("pty-spawned");
     emit_diagnostic(format_args!("app event=pty-session-spawn-complete"));
     emit_diagnostic(format_args!("app event=pty-worker-start"));
     match PtyWorker::start_with_notifier(session, move || {
@@ -3544,6 +3623,8 @@ fn configured_command(
 }
 
 fn main() {
+    let started = Instant::now();
+    initialize_startup_diagnostics(started);
     let cli = match CliOptions::parse(std::env::args_os().skip(1)) {
         Ok(Some(cli)) => cli,
         Ok(None) => {
@@ -3574,9 +3655,9 @@ mod tests {
     use std::path::PathBuf;
     use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-    use super::Search;
+    use super::{Search, StartupPresentation};
     use super::{scrollbar_page_delta, selection_click_count, selection_edge_direction};
-    use terminal_renderer::ScrollbarHit;
+    use terminal_renderer::{RedrawOutcome, ScrollbarHit};
 
     #[test]
     fn scrollbar_track_click_pages_in_the_expected_direction() {
@@ -5850,6 +5931,45 @@ mod tests {
         frame.begin_redraw();
         assert!(!recovery.presented());
         assert_eq!(recovery, RecoveryRedraw::Idle);
+    }
+
+    #[test]
+    fn startup_window_is_hidden_until_an_empty_frame_is_presented() {
+        let mut startup = StartupPresentation::default();
+        assert!(!startup.presented);
+        // The decision has no PTY or shell-output dependency.
+        assert!(startup.presented(RedrawOutcome::Presented));
+        assert!(startup.presented);
+        assert!(!startup.presented(RedrawOutcome::Presented));
+    }
+
+    #[test]
+    fn startup_surface_failures_do_not_show_or_consume_the_first_present() {
+        let mut startup = StartupPresentation::default();
+        for outcome in [
+            RedrawOutcome::Skipped,
+            RedrawOutcome::Reconfigured,
+            RedrawOutcome::Exit,
+        ] {
+            assert!(!startup.presented(outcome));
+            assert!(!startup.presented);
+        }
+        assert!(startup.presented(RedrawOutcome::PresentedSuboptimal));
+        assert!(!startup.presented(RedrawOutcome::Reconfigured));
+        assert!(!startup.presented(RedrawOutcome::Skipped));
+        assert!(!startup.presented(RedrawOutcome::PresentedSuboptimal));
+        assert!(startup.presented);
+    }
+
+    #[test]
+    fn startup_rearms_damage_queued_before_window_creation() {
+        let mut frame = FrameState::default();
+        assert!(frame.invalidate());
+        assert!(!frame.invalidate());
+        frame.rearm();
+        assert!(frame.invalidate());
+        frame.begin_redraw();
+        assert!(!frame.redraw_requested);
     }
 
     #[test]
