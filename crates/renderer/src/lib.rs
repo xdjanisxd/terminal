@@ -4,6 +4,8 @@
 //! protocol semantics.
 
 mod font;
+mod startup;
+pub use startup::{initialize_startup_diagnostics, startup_milestone};
 mod gpu;
 mod scrollbar;
 mod snapshot;
@@ -77,6 +79,8 @@ impl SurfaceSize {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RedrawOutcome {
     Presented,
+    /// A frame was presented, then its suboptimal surface was reconfigured.
+    PresentedSuboptimal,
     Reconfigured,
     Skipped,
     Exit,
@@ -166,6 +170,7 @@ impl Renderer {
         font_request: FontRequest,
         logical_font_size: f32,
     ) -> Result<Self, RendererInitError> {
+        startup_milestone("fonts-started");
         let font_system = FontSystem::load_system(font_request).map_err(|error| {
             RendererInitError::new(format!("could not load terminal font: {error}"))
         })?;
@@ -174,8 +179,11 @@ impl Renderer {
             .map_err(|error| {
                 RendererInitError::new(format!("could not derive terminal cell metrics: {error}"))
             })?;
+        startup_milestone("fonts-ready");
         let size = SurfaceSize::new(window.inner_size().width, window.inner_size().height);
+        startup_milestone("gpu-started");
         let (surface, adapter, device, queue) = initialize_gpu(&window)?;
+        startup_milestone("gpu-ready");
         let adapter_info = adapter.get_info();
         emit_diagnostic(format_args!(
             "renderer event=adapter backend={:?} name={:?} driver={:?}",
@@ -447,7 +455,7 @@ impl Renderer {
                         "renderer frame={frame_id} event=frame-presented suboptimal=true outcome=reconfigured state={:?}",
                         self.diagnostic_state()
                     ));
-                    RedrawOutcome::Reconfigured
+                    RedrawOutcome::PresentedSuboptimal
                 } else {
                     emit_diagnostic(format_args!(
                         "renderer frame={frame_id} event=frame-presented suboptimal={suboptimal} outcome=presented"
