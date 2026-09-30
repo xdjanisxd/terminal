@@ -25,11 +25,83 @@ the file and relevant source location or field. On a reload error the app
 reports the error to stderr and retains the last valid configuration. A
 missing file restores defaults for live-reloaded settings.
 
-The app reloads valid changes to theme, bindings, and project palette entries
+The app reloads valid changes to theme, bindings, project palette entries, and shell selection
 while running. Font settings and startup workspace definitions are applied
 when the app starts; restart after editing those. Runtime font shortcuts change
 the current size without editing the file, and reset returns to the configured
 startup size. Existing running panes are not rebuilt when the file changes.
+
+## Shell
+
+The entire `[shell]` section is optional. When absent, Terminal keeps its existing
+platform selection: Windows searches PATH for `pwsh.exe`, then uses Windows
+PowerShell from `SystemRoot` or PATH, then `COMSPEC`/the system `cmd.exe`, finally
+`cmd.exe`. Linux and macOS use `$SHELL` when set, otherwise `/bin/sh`, without
+adding arguments. Terminal does not change the account's default shell.
+
+| Field | Value | Default |
+| --- | --- | --- |
+| `program` | Nonempty executable name or path; required when `[shell]` exists | No override |
+| `args` | Array of separate argument strings | `[]` |
+
+Choose **one** of these examples:
+
+```toml
+[shell]
+program = "pwsh"
+args = ["-NoLogo"]
+```
+
+```toml
+[shell]
+program = "cmd.exe"
+```
+
+```toml
+[shell]
+program = "C:\\Program Files\\PowerShell\\7\\pwsh.exe"
+args = ["-NoLogo"]
+```
+
+```toml
+[shell]
+program = "/usr/bin/zsh"
+```
+
+Executable names such as `bash`, `zsh`, or `fish` use the PTY backend's platform
+PATH lookup (including PATHEXT on Windows). Absolute paths launch that executable.
+Paths are not rebased against the config directory; there is no tilde or
+environment-variable expansion. In TOML double-quoted strings, escape each
+Windows backslash as `\\`; single-quoted literal strings allow unescaped paths,
+for example `program = 'C:\Program Files\PowerShell\7\pwsh.exe'`.
+
+Arguments are passed separately and retain spaces and quoting characters as
+literal data. Terminal does not split a command string or insert `cmd /C`,
+`sh -c`, or another wrapper. The process inherits Terminal's environment and
+the pane's existing working-directory rules. A failed explicit launch reports
+the configured program in the app notice and stderr; it never retries a default
+shell. Invalid types, missing/blank `program`, NUL characters, and unknown shell
+fields reject the config.
+
+For interactive PowerShell, Terminal appends its existing `-NoExit -Command`
+prompt hook after configured options. This preserves profiles and emits OSC 7
+working-directory reports and OSC 133 prompt readiness. Recognition uses only
+the executable basename: `pwsh` or `powershell` on Unix; those names with optional
+`.exe`, case-insensitively, on Windows. Other shells receive exactly `args`, with
+no PowerShell script. Explicit PowerShell command/file modes (including option
+abbreviations, encoded commands, or a positional `.ps1` script) retain their
+arguments without the interactive hook. Renamed executables and wrappers are
+not detected. Existing Unix default launches are unchanged, even for `$SHELL`
+pointing to PowerShell.
+
+Shell edits apply to future local-shell tabs, splits, and reopened Saved
+Workspaces. Running processes stay as they are. Saved Workspace files continue
+to store `local_shell` or a direct command with its own executable and arguments;
+they do not capture the global shell override. Direct command sessions ignore
+`[shell]`. Startup commands still rely on the shell's existing OSC 133 prompt
+readiness support; Terminal adds no integration for other shells. Per-pane
+selection, presets, WSL management, and automatic login-shell flags are not
+provided; any desired flags or launcher arguments must be explicit.
 
 ## Font
 

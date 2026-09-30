@@ -9,6 +9,7 @@ mod branding;
 mod commands;
 mod saved_workspaces;
 mod search;
+mod shell;
 mod startup;
 
 use commands::{Palette, PaletteAction, PaletteEntry};
@@ -20,7 +21,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
-use terminal_config::{Command, Config, FontConfig, Rgb};
+use terminal_config::{Command, Config, FontConfig, Rgb, ShellConfig};
 
 use terminal_core::{
     CellColor, CursorKey, EditingKey, InputModes, MAX_COLUMNS, MAX_GRID_CELLS, MAX_ROWS,
@@ -1975,14 +1976,22 @@ impl Application {
                 .workspace
                 .pane_startup_command(self.active_runtime_pane)
                 .map(str::to_owned);
-            self.pty = spawn_local_shell(
+            self.pty = match spawn_local_shell(
                 proxy.clone(),
                 Arc::clone(&self.pty_wake_pending),
                 self.terminal.dimensions(),
                 self.active_runtime_pane,
                 root,
                 startup,
-            );
+                self.config.shell.as_ref(),
+            ) {
+                Ok(worker) => Some(worker),
+                Err(error) => {
+                    eprintln!("{error}");
+                    self.workspace_notice = Some(error);
+                    None
+                }
+            };
         }
         for (pane_id, runtime) in &mut self.inactive_panes {
             if runtime.pty.is_none()
@@ -1992,14 +2001,22 @@ impl Application {
                     .workspace
                     .pane_startup_command(*pane_id)
                     .map(str::to_owned);
-                runtime.pty = spawn_local_shell(
+                runtime.pty = match spawn_local_shell(
                     proxy.clone(),
                     Arc::clone(&self.pty_wake_pending),
                     runtime.terminal.dimensions(),
                     *pane_id,
                     root,
                     startup,
-                );
+                    self.config.shell.as_ref(),
+                ) {
+                    Ok(worker) => Some(worker),
+                    Err(error) => {
+                        eprintln!("{error}");
+                        self.workspace_notice = Some(error);
+                        None
+                    }
+                };
             }
         }
     }
@@ -2797,22 +2814,23 @@ fn spawn_local_shell(
     pane_id: PaneId,
     root: Option<PathBuf>,
     startup: SessionDefinition,
-) -> Option<PtyWorker> {
+    shell: Option<&ShellConfig>,
+) -> Result<PtyWorker, String> {
     let observer = startup::observer(pane_id);
     startup::milestone(pane_id, "session-preparation-begin");
     emit_diagnostic(format_args!("app event=pty-backend-start"));
     let backend = PortablePtyBackend::new();
     startup::milestone(pane_id, "pty-backend-created");
     emit_diagnostic(format_args!("app event=pty-session-spawn-start"));
-    let configuration = spawn_config_for_session(pty_size_for_terminal(dimensions), root, startup);
+    let configuration =
+        spawn_config_for_session(pty_size_for_terminal(dimensions), root, startup, shell);
     startup_milestone("pty-config-ready");
     startup::milestone(pane_id, "session-config-ready");
-    let session = match backend.spawn_observed(configuration, observer) {
+    let session = match shell::spawn(&backend, configuration, observer) {
         Ok(session) => session,
         Err(error) => {
             startup::milestone(pane_id, "session-spawn-failed");
-            eprintln!("could not start local shell: {error}");
-            return None;
+            return Err(error);
         }
     };
     startup_milestone("pty-spawned");
@@ -2828,12 +2846,11 @@ fn spawn_local_shell(
         Ok(worker) => {
             startup::milestone(pane_id, "pty-worker-ready");
             emit_diagnostic(format_args!("app event=pty-worker-start-complete"));
-            Some(worker)
+            Ok(worker)
         }
         Err(error) => {
             startup::milestone(pane_id, "pty-worker-failed");
-            eprintln!("could not start local shell worker: {error}");
-            None
+            Err(format!("could not start local shell worker: {error}"))
         }
     }
 }
@@ -2895,12 +2912,9 @@ fn windows_local_shell_spawn_config(
     startup_milestone("shell-integration-preparation-begin");
     let config = PtySpawnConfig::new(program, size);
     let config = match source {
-        WindowsShellSource::PowerShellCore | WindowsShellSource::WindowsPowerShell => config
-            .with_arguments([
-                OsString::from("-NoExit"),
-                OsString::from("-Command"),
-                OsString::from(include_str!("powershell_osc7.ps1")),
-            ]),
+        WindowsShellSource::PowerShellCore | WindowsShellSource::WindowsPowerShell => {
+            shell::with_powershell_integration(config)
+        }
         WindowsShellSource::ComSpec | WindowsShellSource::Cmd => config,
     };
     startup_milestone("shell-integration-preparation-end");
@@ -2911,9 +2925,18 @@ fn spawn_config_for_session(
     size: PtySize,
     root: Option<PathBuf>,
     startup: SessionDefinition,
+    shell: Option<&ShellConfig>,
 ) -> PtySpawnConfig {
     let config = match startup {
-        SessionDefinition::LocalShell => local_shell_spawn_config(size),
+        SessionDefinition::LocalShell => match shell {
+            Some(shell) => {
+                startup_milestone("shell-integration-preparation-begin");
+                let config = shell::configured_spawn_config(shell, size);
+                startup_milestone("shell-integration-preparation-end");
+                config
+            }
+            None => local_shell_spawn_config(size),
+        },
         SessionDefinition::Command { program, args } => {
             PtySpawnConfig::new(program, size).with_arguments(args.into_iter().map(OsString::from))
         }
@@ -3793,6 +3816,7 @@ mod tests {
         assert_eq!(selection_edge_direction(4, 5), Some(-1));
         assert_eq!(selection_edge_direction(2, 5), None);
     }
+    use super::saved_workspaces;
     use super::{
         Application, BasicKey, CliOptions, FrameState, PaletteAction, PendingResize,
         PhysicalSizeSync, RecoveryRedraw, SurfaceRestore, WindowsShellSource,
@@ -3804,12 +3828,13 @@ mod tests {
         terminal_dimensions_for_viewport, terminal_key_input, wheel_scroll_rows,
         windows_local_shell_spawn_config,
     };
-    use terminal_config::{Command, Config, Rgb};
+    use terminal_config::{Command, Config, Rgb, ShellConfig};
     use terminal_core::{CursorKey, TerminalDimensions, TerminalParser, TerminalState};
     use terminal_pty::{PtyOutput, PtySize, PtyWorkerEvent};
     use terminal_renderer::{
         CellMetrics, FontRequest, ScrollbarGeometry, ScrollbarRenderData, SurfaceSize,
     };
+    use terminal_workspace::Workspace;
     use terminal_workspace::{
         LayoutDefinition, PaneDirection, PaneRect, SessionDefinition, SplitAxis,
     };
@@ -4181,6 +4206,165 @@ mod tests {
     }
 
     #[test]
+    fn local_shell_sessions_use_current_config_without_changing_saved_metadata() {
+        let size = terminal_pty::PtySize::new(24, 80).unwrap();
+        let default = super::local_shell_spawn_config(size);
+        let absent =
+            super::spawn_config_for_session(size, None, SessionDefinition::LocalShell, None);
+        assert_eq!(absent.program(), default.program());
+        assert_eq!(absent.arguments(), default.arguments());
+        let saved = saved_workspaces::SavedWorkspaces {
+            workspaces: vec![saved_workspaces::SavedWorkspace {
+                name: "Local".into(),
+                definition: terminal_workspace::WorkspaceDefinition::default(),
+            }],
+        };
+        let serialized = toml::to_string(&saved).unwrap();
+        assert!(serialized.contains("local_shell"));
+        assert!(!serialized.contains("shell.program"));
+        let reopened: saved_workspaces::SavedWorkspaces = toml::from_str(&serialized).unwrap();
+        let workspace = Workspace::from_definition(&reopened.workspaces[0].definition).unwrap();
+        let (root, session) = workspace.pane_launch(workspace.active_pane()).unwrap();
+        for program in ["first-shell", "second-shell"] {
+            let shell = ShellConfig {
+                program: program.into(),
+                args: vec!["two words".into()],
+            };
+            let config =
+                super::spawn_config_for_session(size, root.clone(), session.clone(), Some(&shell));
+            assert_eq!(config.program(), std::path::Path::new(program));
+            assert_eq!(config.arguments(), &["two words"]);
+        }
+        let shell = ShellConfig {
+            program: "ignored".into(),
+            args: vec![],
+        };
+        let direct = super::spawn_config_for_session(
+            size,
+            None,
+            SessionDefinition::Command {
+                program: "pwsh".into(),
+                args: vec!["-Command".into(), "build".into()],
+            },
+            Some(&shell),
+        );
+        assert_eq!(direct.program(), std::path::Path::new("pwsh"));
+        assert_eq!(direct.arguments(), &["-Command", "build"]);
+    }
+
+    // Exercise the same config-to-PTY path as a new tab. Optional shells are
+    // probed only when installed; cmd.exe and /bin/sh are platform baselines.
+    #[test]
+    fn native_shell_launch_smoke() {
+        use std::time::{Duration, Instant};
+        let mut cases: Vec<(Option<ShellConfig>, bool)> = vec![(None, cfg!(windows))];
+        #[cfg(windows)]
+        {
+            cases.push((
+                Config::parse("[shell]\nprogram = 'cmd.exe'\nargs = ['/d']")
+                    .unwrap()
+                    .shell,
+                false,
+            ));
+            for program in [
+                super::executable_on_path("pwsh.exe"),
+                super::executable_on_path("powershell.exe"),
+            ]
+            .into_iter()
+            .flatten()
+            {
+                cases.push((
+                    Some(ShellConfig {
+                        program: program.to_string_lossy().into_owned(),
+                        args: vec!["-NoLogo".into(), "-NoProfile".into()],
+                    }),
+                    true,
+                ));
+            }
+            if super::executable_on_path("pwsh.exe").is_some() {
+                cases.push((
+                    Config::parse("[shell]\nprogram = 'pwsh'\nargs = ['-NoLogo', '-NoProfile']")
+                        .unwrap()
+                        .shell,
+                    true,
+                ));
+            }
+        }
+        #[cfg(not(windows))]
+        for program in ["sh", "/bin/sh"] {
+            cases.push((
+                Some(ShellConfig {
+                    program: program.into(),
+                    args: vec![],
+                }),
+                false,
+            ));
+        }
+        for (shell, powershell) in cases {
+            let config = super::spawn_config_for_session(
+                PtySize::new(24, 80).unwrap(),
+                None,
+                SessionDefinition::LocalShell,
+                shell.as_ref(),
+            );
+            let program = config.program().to_owned();
+            // The Windows default may be cmd on systems without PowerShell.
+            let powershell = powershell && config.arguments().iter().any(|arg| arg == "-Command");
+            let mut worker = terminal_pty::PtyWorker::start(
+                super::shell::spawn(&super::PortablePtyBackend::new(), config, None).unwrap(),
+            )
+            .unwrap();
+            let command = if powershell {
+                "Write-Output ('TERMINAL_' + 'SHELL_SMOKE')\r\n"
+            } else {
+                "echo TERMINAL_SHELL_SMOKE\r\n"
+            };
+            worker.write(command.as_bytes().to_vec()).unwrap();
+            let deadline = Instant::now() + Duration::from_secs(15);
+            let mut bytes = Vec::new();
+            let mut parser = TerminalParser::new();
+            let mut terminal = TerminalState::new(TerminalDimensions::new(80, 24).unwrap());
+            let mut passed = false;
+            while Instant::now() < deadline {
+                match worker.recv_timeout(Duration::from_millis(100)).unwrap() {
+                    Some(PtyWorkerEvent::Output(PtyOutput::Bytes(chunk))) => {
+                        for reply in
+                            super::parse_terminal_output(&mut parser, &mut terminal, &chunk)
+                        {
+                            worker.write(reply).unwrap();
+                        }
+                        bytes.extend(chunk);
+                    }
+                    Some(PtyWorkerEvent::Error(error)) => panic!("{program:?}: {error}"),
+                    _ => {}
+                }
+                let output = String::from_utf8_lossy(&bytes);
+                let marker = if powershell {
+                    output.contains("TERMINAL_SHELL_SMOKE")
+                } else {
+                    output.matches("TERMINAL_SHELL_SMOKE").count() >= 2
+                };
+                if marker
+                    && (!powershell
+                        || (output.contains("\x1b]7;file:") && output.contains("\x1b]133;A")))
+                {
+                    passed = true;
+                    break;
+                }
+            }
+            worker.shutdown_and_join().unwrap();
+            assert!(
+                passed,
+                "{program:?}: output {:?}",
+                String::from_utf8_lossy(&bytes)
+            );
+            if !powershell {
+                assert!(!String::from_utf8_lossy(&bytes).contains("__TerminalOsc7"));
+            }
+        }
+    }
+
+    #[test]
     fn startup_command_builds_a_direct_pty_launch_in_its_project_root() {
         let config = super::spawn_config_for_session(
             terminal_pty::PtySize::new(24, 80).unwrap(),
@@ -4189,6 +4373,7 @@ mod tests {
                 program: "builder".into(),
                 args: vec!["--watch".into(), "two words".into()],
             },
+            None,
         );
         assert_eq!(config.program(), std::path::Path::new("builder"));
         assert_eq!(config.arguments(), &["--watch", "two words"]);
@@ -5840,6 +6025,7 @@ mod tests {
                 program: PathBuf::from("powershell.exe"),
                 args: vec!["-File".into(), "task.ps1".into()],
             },
+            None,
         );
         assert_eq!(
             direct.arguments(),
