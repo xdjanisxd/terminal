@@ -5,7 +5,7 @@
 
 mod font;
 mod startup;
-pub use startup::{initialize_startup_diagnostics, startup_milestone};
+pub use startup::{initialize_startup_diagnostics, startup_diagnostics_enabled, startup_milestone};
 mod gpu;
 mod scrollbar;
 mod snapshot;

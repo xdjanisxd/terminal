@@ -32,6 +32,11 @@ pub fn initialize_startup_diagnostics(started: Instant) {
     startup_milestone("application-started");
 }
 
+/// Whether startup timing was explicitly enabled at application entry.
+pub fn startup_diagnostics_enabled() -> bool {
+    matches!(STARTUP.get(), Some(Some(_)))
+}
+
 /// Records a milestone without clock reads or output on the normal startup path.
 pub fn startup_milestone(stage: &str) {
     let Some(Some(diagnostics)) = STARTUP.get() else {

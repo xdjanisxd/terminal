@@ -1,25 +1,18 @@
 use std::ffi::OsString;
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
 use terminal_pty::{
-    PortablePtyBackend, PtyBackend, PtyError, PtyExitStatus, PtyLifecycle, PtyOutput, PtySession,
-    PtySize, PtySizeError, PtySpawnConfig,
+    PortablePtyBackend, PtyError, PtyExitStatus, PtyLifecycle, PtyOutput, PtySession, PtySize,
+    PtySizeError, PtySpawnConfig,
 };
 
 const HELPER_OUTPUT: &[u8] = b"TERMINAL_PTY_HELPER_MARKER";
 const CONPTY_CURSOR_POSITION_QUERY: &[u8] = b"\x1b[6n";
 const TEST_DEADLINE: Duration = Duration::from_secs(5);
 const MAX_READS: usize = 16;
-
-fn helper_session() -> impl PtySession {
-    let configuration = PtySpawnConfig::new(
-        PathBuf::from(env!("CARGO_BIN_EXE_pty_test_helper")),
-        PtySize::new(24, 80).unwrap(),
-    );
-    PortablePtyBackend::new().spawn(configuration).unwrap()
-}
 
 fn contains_subsequence(bytes: &[u8], expected: &[u8]) -> bool {
     bytes
@@ -66,7 +59,30 @@ fn output_preserves_arbitrary_bytes_and_distinguishes_eof_from_exit() {
 
 #[test]
 fn portable_backend_streams_helper_output_without_assuming_read_boundaries() {
-    let mut session = helper_session();
+    let stages = Arc::new(Mutex::new(Vec::new()));
+    let recorded = Arc::clone(&stages);
+    let configuration = PtySpawnConfig::new(
+        PathBuf::from(env!("CARGO_BIN_EXE_pty_test_helper")),
+        PtySize::new(24, 80).unwrap(),
+    );
+    let mut session = PortablePtyBackend::new()
+        .spawn_observed(
+            configuration,
+            Some(Arc::new(move |stage| recorded.lock().unwrap().push(stage))),
+        )
+        .unwrap();
+    assert_eq!(
+        *stages.lock().unwrap(),
+        [
+            "pty-create-begin",
+            "pty-created",
+            "initial-size-sent",
+            "environment-build-begin",
+            "environment-build-end",
+            "child-spawn-requested",
+            "child-spawned",
+        ]
+    );
     let mut reader = session.take_output_reader().unwrap();
     assert!(matches!(
         session.take_output_reader(),
@@ -99,6 +115,15 @@ fn portable_backend_streams_helper_output_without_assuming_read_boundaries() {
         "raw PTY stream did not contain the helper marker: {output:?}"
     );
 
+    assert_eq!(
+        stages
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|&&stage| stage == "first-pty-bytes")
+            .count(),
+        1
+    );
     while !matches!(session.lifecycle(), PtyLifecycle::Exited(_)) {
         assert!(Instant::now() < deadline, "child exit deadline elapsed");
         thread::sleep(Duration::from_millis(10));
@@ -125,4 +150,29 @@ fn lifecycle_keeps_exit_and_termination_distinct() {
     assert!(!PtyLifecycle::TerminationRequested.allows_operations());
     assert!(!PtyLifecycle::Exited(PtyExitStatus::unknown()).allows_operations());
     assert!(PtyLifecycle::TerminationRequested.termination_is_idempotent());
+}
+
+#[test]
+fn observed_spawn_failure_does_not_report_child_or_wait_for_output() {
+    let stages = Arc::new(Mutex::new(Vec::new()));
+    let recorded = Arc::clone(&stages);
+    let result = PortablePtyBackend::new().spawn_observed(
+        PtySpawnConfig::new(
+            PathBuf::from(env!("CARGO_BIN_EXE_pty_test_helper"))
+                .with_file_name("missing-terminal-startup-helper"),
+            PtySize::new(24, 80).unwrap(),
+        ),
+        Some(Arc::new(move |stage| recorded.lock().unwrap().push(stage))),
+    );
+    assert!(matches!(result, Err(PtyError::SpawnFailed)));
+    let stages = stages.lock().unwrap();
+    assert_eq!(
+        stages
+            .iter()
+            .filter(|&&s| s == "child-spawn-requested")
+            .count(),
+        1
+    );
+    assert!(!stages.contains(&"child-spawned"));
+    assert!(!stages.contains(&"first-pty-bytes"));
 }
