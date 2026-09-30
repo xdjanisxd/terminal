@@ -3713,6 +3713,8 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(windows)]
+    mod windows_shell_diagnostics;
     use std::ffi::OsString;
     use std::fs;
     use std::path::PathBuf;
