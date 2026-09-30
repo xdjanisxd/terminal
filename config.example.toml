@@ -2,6 +2,20 @@
 # This example is equivalent to the built-in defaults. Optional fields are
 # commented out. Unknown fields reject the whole file.
 
+# Optional shell override. Leave the entire section absent for platform defaults.
+# Choose one program; args are separate literal arguments, defaulting to [].
+# [shell]
+# program = "pwsh"
+# args = ["-NoLogo"]
+# Other choices (use only one [shell] section):
+# program = "cmd.exe"
+# program = "C:\\Program Files\\PowerShell\\7\\pwsh.exe"
+# args = ["-NoLogo"]
+# program = "/usr/bin/zsh"
+# Windows literal strings also work: 'C:\Program Files\PowerShell\7\pwsh.exe'.
+# Changes affect future local-shell sessions, including reopened workspaces.
+# Explicit launch failures never fall back. See docs/CONFIG.md for integration.
+
 [font]
 # family = "Cascadia Mono" # Installed monospace family; default: platform choice.
 size = 16 # Logical pixels, 1..=256. Restart after editing [font].

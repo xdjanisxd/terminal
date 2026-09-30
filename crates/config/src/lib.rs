@@ -122,11 +122,21 @@ pub struct Binding {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Config {
+    pub shell: Option<ShellConfig>,
     pub font: FontConfig,
     pub theme: Theme,
     pub bindings: Vec<Binding>,
     pub workspace: WorkspaceDefinition,
     pub projects: Vec<ProjectRoot>,
+}
+
+/// Global launch policy for fresh local-shell sessions, never runtime state.
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ShellConfig {
+    pub program: String,
+    #[serde(default)]
+    pub args: Vec<String>,
 }
 
 /// Terminal font selection and size in logical pixels.
@@ -155,6 +165,7 @@ pub struct ProjectRoot {
 impl Default for Config {
     fn default() -> Self {
         Self {
+            shell: None,
             font: FontConfig::default(),
             theme: Theme::default(),
             workspace: WorkspaceDefinition::default(),
@@ -216,6 +227,19 @@ impl Config {
         let raw: RawConfig =
             toml::from_str(source).map_err(|error| ConfigError(error.to_string()))?;
         let mut config = Self::default();
+        if let Some(shell) = raw.shell {
+            if shell.program.trim().is_empty() || shell.program.contains('\0') {
+                return Err(ConfigError(
+                    "shell.program: expected a nonempty executable without NUL".into(),
+                ));
+            }
+            if shell.args.iter().any(|arg| arg.contains('\0')) {
+                return Err(ConfigError(
+                    "shell.args: arguments must not contain NUL".into(),
+                ));
+            }
+            config.shell = Some(shell);
+        }
         if let Some(font) = raw.font {
             if let Some(family) = font.family {
                 if family.trim().is_empty() {
@@ -423,6 +447,7 @@ impl std::error::Error for ConfigError {}
 #[derive(Deserialize, Default)]
 #[serde(default, deny_unknown_fields)]
 struct RawConfig {
+    shell: Option<ShellConfig>,
     font: Option<RawFont>,
     theme: Option<RawTheme>,
     bindings: Option<Vec<RawBinding>>,
@@ -545,6 +570,56 @@ fn parse_chord(value: &str) -> Result<KeyChord, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn optional_shell_parses_names_paths_and_separate_arguments() {
+        assert_eq!(Config::parse("").unwrap().shell, None);
+        assert_eq!(Config::default().shell, None);
+        for program in [
+            "cmd.exe",
+            "zsh",
+            "/usr/bin/fish",
+            r"C:\Program Files\PowerShell\7\pwsh.exe",
+        ] {
+            let source = format!("[shell]\nprogram = '{program}'");
+            let shell = Config::parse(&source).unwrap().shell.unwrap();
+            assert_eq!(shell.program, program);
+            assert!(shell.args.is_empty());
+        }
+        let shell = Config::parse(
+            r#"[shell]
+program = "C:\\Program Files\\PowerShell\\7\\pwsh.exe"
+args = ["-NoLogo", "two words", "", "'literal'"]
+"#,
+        )
+        .unwrap()
+        .shell
+        .unwrap();
+        assert_eq!(shell.program, r"C:\Program Files\PowerShell\7\pwsh.exe");
+        assert_eq!(shell.args, ["-NoLogo", "two words", "", "'literal'"]);
+    }
+
+    #[test]
+    fn malformed_shell_configuration_names_the_field() {
+        for (source, field) in [
+            ("[shell]", "program"),
+            ("shell = 'pwsh'", "string"),
+            ("[shell]\nprogram = 123", "program"),
+            ("[shell]\nprogram = ''", "shell.program"),
+            ("[shell]\nprogram = '   '", "shell.program"),
+            ("[shell]\nprogram = 'pwsh'\nargs = '-NoLogo'", "args"),
+            ("[shell]\nprogram = 'pwsh'\nargs = [1]", "args"),
+            ("[shell]\nprogram = 'pwsh'\nunknown = true", "unknown"),
+            ("[shell]\nprogram = \"bad\\u0000name\"", "shell.program"),
+            (
+                "[shell]\nprogram = 'pwsh'\nargs = [\"\\u0000\"]",
+                "shell.args",
+            ),
+        ] {
+            let error = Config::parse(source).unwrap_err().to_string();
+            assert!(error.contains(field), "{source}: {error}");
+        }
+    }
+
     #[test]
     fn workspace_startup_and_project_roots_parse() {
         let source = "[workspace]\nproject_root = 'repo'\nactive_tab = 0\n[[workspace.tabs]]\ntitle = 'Build'\nproject_root = 'tab'\nactive_pane = 0\n[workspace.tabs.layout]\nkind = 'pane'\nproject_root = 'pane'\n[workspace.tabs.layout.session.command]\nprogram = 'cargo'\nargs = ['watch']\n[[projects]]\nname = 'Core'\npath = 'core'";

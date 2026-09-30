@@ -72,6 +72,16 @@ If `~/.local/bin` is not on PATH, add `export PATH="$HOME/.local/bin:$PATH"` to 
 
 The default file is `%APPDATA%\terminal\config.toml` on Windows and `${XDG_CONFIG_HOME:-$HOME/.config}/terminal/config.toml` on Linux and macOS. `TERMINAL_CONFIG` selects a different file. A missing file uses built-in defaults; the app does not create it. To customize Terminal, create a config at that path using [config.example.toml](config.example.toml) as a reference. See the [configuration reference](docs/CONFIG.md) for validation, paths, and reload behavior.
 
+An optional shell override selects the executable and separate arguments for future local-shell tabs, splits, and reopened Saved Workspaces:
+
+```toml
+[shell]
+program = "pwsh"
+args = ["-NoLogo"]
+```
+
+Executable names use platform PATH lookup; absolute paths are supported. Without `[shell]`, the existing Windows PowerShell/default selection or Unix `$SHELL` (otherwise `/bin/sh`) behavior remains unchanged. Explicit launch failures report the program without falling back. See the [shell reference](docs/CONFIG.md#shell) for Windows path escaping, examples, and integration behavior.
+
 Adding any `[[bindings]]` entries replaces the entire built-in shortcut list. Keep every default binding you still want.
 
 ## Default keyboard shortcuts
