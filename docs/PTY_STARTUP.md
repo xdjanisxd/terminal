@@ -2,7 +2,7 @@
 
 ## Result
 
-No latency optimization was implemented. Measurements justify keeping the current deterministic startup sequence. App-owned discovery, argument preparation and environment construction are submillisecond; native PTY creation takes about 8 ms. PowerShell's native spawn boundary takes about 370 ms, followed by substantially more shell initialization. The spawn boundary remains unresolved between native process/ConPTY work and shell-specific interaction; it must not be described as entirely profile-owned.
+No latency optimization was implemented. Measurements justify keeping the current deterministic startup sequence. App-owned discovery, argument preparation and environment construction are submillisecond; native PTY creation takes about 8 ms. PowerShell's native spawn boundary takes about 370 ms, followed by substantially more shell initialization. The subsequent [Windows native spawn investigation](WINDOWS_POWERSHELL_SPAWN.md) subdivides this boundary: almost all measured PowerShell time is inside CreateProcessW with ConPTY, and the standalone ConPTY probe reproduces the delay. Its internal Windows/PowerShell cause remains unmeasured; it must not be described as entirely profile-owned.
 
 Default shell selection, profiles, PSReadLine, integration, startup commands and workspace behavior are unchanged. This task adds opt-in diagnostics, ordering tests and a reproducible release measurement harness.
 
@@ -104,12 +104,12 @@ Five configured startup-command launches queued the command immediately after pr
 
 - Discovery probes PATH and fallback executable locations per local pane. Measured discovery is about 0.2 ms; caching or changing shell selection is unjustified.
 - The embedded integration hook needs no runtime script-file generation/loading or path canonicalization. Argument preparation is about 0.01 ms.
-- CommandBuilder builds the inherited environment and applies overrides once. Backend Windows command-line resolution, cwd validation and environment serialization remain inside the native spawn boundary. The installed portable-pty backend uses CreateProcessW with STARTUPINFOEX/ConPTY attributes; available instrumentation does not subdivide that boundary.
+- CommandBuilder builds the inherited environment and applies overrides once. Backend Windows command-line resolution, cwd validation and environment serialization remain inside the native spawn boundary. The installed portable-pty backend uses CreateProcessW with STARTUPINFOEX/ConPTY attributes; the follow-up [native spawn diagnostics](WINDOWS_POWERSHELL_SPAWN.md) subdivide that boundary using an opt-in temporary dependency overlay.
 - Initial dimensions are passed into openpty. No extra initial resize was introduced. Subsequent worker resizes retain their existing path.
 - Spawn remains synchronous after first presentation. Worker output is drained through the existing reader/event path. Observed first-byte processing is submillisecond for the measured single-pane configuration; no measured lock contention justifies speculative concurrency.
 - Saved Workspace opening reconstructs fresh sessions through the existing path. The measured configured model construction does not include palette-driven saved-file loading. Multiple synchronous pane spawns could delay earlier panes' app processing; that scenario was not measured here.
 
-No optimization, no before/after effect claimed. The remaining dominant measured costs are PowerShell initialization before integration and its unresolved native spawn boundary. Useful follow-ups are native ETW profiling inside that boundary, shell-side profile/module profiling, and separately measuring multi-pane Saved Workspace restoration.
+No optimization, no before/after effect claimed. The remaining dominant measured costs are PowerShell initialization before integration and its native spawn boundary, now attributed by the follow-up measurements predominantly to CreateProcessW with ConPTY. Useful follow-ups are native ETW profiling inside that boundary, shell-side profile/module profiling, and separately measuring multi-pane Saved Workspace restoration.
 
 ## Tests and validation
 
