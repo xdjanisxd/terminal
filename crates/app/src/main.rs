@@ -4257,15 +4257,14 @@ mod tests {
     #[test]
     fn native_shell_launch_smoke() {
         use std::time::{Duration, Instant};
-        let mut cases: Vec<(Option<ShellConfig>, bool)> = vec![(None, cfg!(windows))];
+        let mut cases: Vec<Option<ShellConfig>> = vec![None];
         #[cfg(windows)]
         {
-            cases.push((
+            cases.push(
                 Config::parse("[shell]\nprogram = 'cmd.exe'\nargs = ['/d']")
                     .unwrap()
                     .shell,
-                false,
-            ));
+            );
             for program in [
                 super::executable_on_path("pwsh.exe"),
                 super::executable_on_path("powershell.exe"),
@@ -4273,34 +4272,27 @@ mod tests {
             .into_iter()
             .flatten()
             {
-                cases.push((
-                    Some(ShellConfig {
-                        program: program.to_string_lossy().into_owned(),
-                        args: vec!["-NoLogo".into(), "-NoProfile".into()],
-                    }),
-                    true,
-                ));
+                cases.push(Some(ShellConfig {
+                    program: program.to_string_lossy().into_owned(),
+                    args: vec!["-NoLogo".into(), "-NoProfile".into()],
+                }));
             }
             if super::executable_on_path("pwsh.exe").is_some() {
-                cases.push((
+                cases.push(
                     Config::parse("[shell]\nprogram = 'pwsh'\nargs = ['-NoLogo', '-NoProfile']")
                         .unwrap()
                         .shell,
-                    true,
-                ));
+                );
             }
         }
         #[cfg(not(windows))]
         for program in ["sh", "/bin/sh"] {
-            cases.push((
-                Some(ShellConfig {
-                    program: program.into(),
-                    args: vec![],
-                }),
-                false,
-            ));
+            cases.push(Some(ShellConfig {
+                program: program.into(),
+                args: vec![],
+            }));
         }
-        for (shell, powershell) in cases {
+        for (case, shell) in cases.into_iter().enumerate() {
             let config = super::spawn_config_for_session(
                 PtySize::new(24, 80).unwrap(),
                 None,
@@ -4308,43 +4300,103 @@ mod tests {
                 shell.as_ref(),
             );
             let program = config.program().to_owned();
-            // The Windows default may be cmd on systems without PowerShell.
-            let powershell = powershell && config.arguments().iter().any(|arg| arg == "-Command");
+            let marker = format!("TERMINAL_SHELL_SMOKE_{}_{}", std::process::id(), case);
+            // Keep executable selection and the production-injected integration
+            // script under test, but avoid racing interactive readline startup.
+            // Invoke the installed prompt hook explicitly; prompt text and user
+            // profiles are not part of this smoke test's readiness contract.
+            let powershell = config.arguments().iter().any(|arg| arg == "-Command");
+            let config = if powershell {
+                let mut args = config.arguments().to_vec();
+                let integration = args.pop().unwrap();
+                assert_eq!(integration, include_str!("powershell_osc7.ps1"));
+                assert_eq!(args.pop().unwrap(), "-Command");
+                args.retain(|arg| arg != "-NoExit");
+                if !args.iter().any(|arg| arg == "-NoProfile") {
+                    args.push("-NoProfile".into());
+                }
+                args.extend([
+                    OsString::from("-NonInteractive"),
+                    OsString::from("-Command"),
+                    OsString::from(format!(
+                        "& {{ {} }}; if (!$global:__terminalOsc7Installed) {{ exit 1 }}; & prompt | Out-Null; Write-Output '{marker}'; exit 0",
+                        integration.to_string_lossy()
+                    )),
+                ]);
+                config.with_arguments(args)
+            } else {
+                #[cfg(windows)]
+                let args = [
+                    OsString::from("/d"),
+                    "/c".into(),
+                    format!("echo {marker}").into(),
+                ];
+                #[cfg(not(windows))]
+                let args = [
+                    OsString::from("-c"),
+                    format!("printf '%s\\n' '{marker}'").into(),
+                ];
+                config.with_arguments(args)
+            };
+            let args = config.arguments().to_vec();
+            let started = Instant::now();
             let mut worker = terminal_pty::PtyWorker::start(
-                super::shell::spawn(&super::PortablePtyBackend::new(), config, None).unwrap(),
+                super::shell::spawn(&super::PortablePtyBackend::new(), config, None)
+                    .unwrap_or_else(|error| {
+                        panic!(
+                            "{program:?} args={args:?} elapsed={:?}: {error}",
+                            started.elapsed()
+                        )
+                    }),
             )
             .unwrap();
-            let command = if powershell {
-                "Write-Output ('TERMINAL_' + 'SHELL_SMOKE')\r\n"
-            } else {
-                "echo TERMINAL_SHELL_SMOKE\r\n"
-            };
-            worker.write(command.as_bytes().to_vec()).unwrap();
-            let deadline = Instant::now() + Duration::from_secs(15);
+            let deadline = started + Duration::from_secs(15);
             let mut bytes = Vec::new();
             let mut parser = TerminalParser::new();
             let mut terminal = TerminalState::new(TerminalDimensions::new(80, 24).unwrap());
             let mut passed = false;
+            let mut process_state = "no exit observed".to_owned();
+            let mut visible = String::new();
+            let mut marker_observed = false;
             while Instant::now() < deadline {
-                match worker.recv_timeout(Duration::from_millis(100)).unwrap() {
-                    Some(PtyWorkerEvent::Output(PtyOutput::Bytes(chunk))) => {
+                match worker.recv_timeout(Duration::from_millis(100)) {
+                    Ok(Some(PtyWorkerEvent::Output(PtyOutput::Bytes(chunk)))) => {
                         for reply in
                             super::parse_terminal_output(&mut parser, &mut terminal, &chunk)
                         {
-                            worker.write(reply).unwrap();
+                            // A short-lived command may exit before a VT query
+                            // reply is delivered; retain that fact for diagnosis.
+                            if let Err(error) = worker.write(reply) {
+                                process_state = format!("query reply failed: {error}");
+                            }
                         }
                         bytes.extend(chunk);
                     }
-                    Some(PtyWorkerEvent::Error(error)) => panic!("{program:?}: {error}"),
+                    Ok(Some(PtyWorkerEvent::Output(PtyOutput::Exited(status)))) => {
+                        process_state = format!("exited: {status:?}");
+                    }
+                    Ok(Some(PtyWorkerEvent::Output(PtyOutput::Eof))) => {
+                        process_state.push_str("; output EOF");
+                    }
+                    Ok(Some(PtyWorkerEvent::Error(error))) | Err(error) => {
+                        process_state = format!("worker error: {error}");
+                        break;
+                    }
                     _ => {}
                 }
                 let output = String::from_utf8_lossy(&bytes);
-                let marker = if powershell {
-                    output.contains("TERMINAL_SHELL_SMOKE")
-                } else {
-                    output.matches("TERMINAL_SHELL_SMOKE").count() >= 2
-                };
-                if marker
+                visible = (0..24)
+                    .map(|row| {
+                        (0..80)
+                            .map(|column| terminal.screen().cell(row, column).unwrap().character())
+                            .collect::<String>()
+                            .trim_end()
+                            .to_owned()
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                marker_observed = visible.lines().any(|line| line.trim() == marker);
+                if marker_observed
                     && (!powershell
                         || (output.contains("\x1b]7;file:") && output.contains("\x1b]133;A")))
                 {
@@ -4352,10 +4404,11 @@ mod tests {
                     break;
                 }
             }
-            worker.shutdown_and_join().unwrap();
+            let elapsed = started.elapsed();
+            let shutdown = worker.shutdown_and_join();
             assert!(
-                passed,
-                "{program:?}: output {:?}",
+                passed && shutdown.is_ok(),
+                "program={program:?} args={args:?} elapsed={elapsed:?} process_state={process_state} marker={marker:?} marker_observed={marker_observed} shutdown={shutdown:?} visible={visible:?} raw_vt={:?}",
                 String::from_utf8_lossy(&bytes)
             );
             if !powershell {
