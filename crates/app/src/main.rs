@@ -4252,6 +4252,195 @@ mod tests {
         assert_eq!(direct.arguments(), &["-Command", "build"]);
     }
 
+    struct SmokeTerminal {
+        parser: TerminalParser,
+        terminal: TerminalState,
+        raw: Vec<u8>,
+        replies_generated: Vec<Vec<u8>>,
+        replies_queued: Vec<Vec<u8>>,
+        reply_queue_failures: Vec<String>,
+    }
+
+    impl SmokeTerminal {
+        fn new() -> Self {
+            Self {
+                parser: TerminalParser::new(),
+                terminal: TerminalState::new(TerminalDimensions::new(80, 24).unwrap()),
+                raw: Vec::new(),
+                replies_generated: Vec::new(),
+                replies_queued: Vec::new(),
+                reply_queue_failures: Vec::new(),
+            }
+        }
+
+        fn feed(
+            &mut self,
+            chunk: &[u8],
+            mut write: impl FnMut(Vec<u8>) -> Result<(), terminal_pty::PtyWorkerError>,
+        ) {
+            self.raw.extend_from_slice(chunk);
+            // Exactly the production parser, PendingReplies FIFO and typed
+            // TerminalReply encoding; diagnostics never generate responses.
+            for reply in parse_terminal_output(&mut self.parser, &mut self.terminal, chunk) {
+                self.replies_generated.push(reply.clone());
+                match write(reply.clone()) {
+                    Ok(()) => self.replies_queued.push(reply),
+                    Err(error) => self.reply_queue_failures.push(error.to_string()),
+                }
+            }
+        }
+
+        fn visible(&self) -> String {
+            (0..24)
+                .map(|row| {
+                    (0..80)
+                        .map(|column| {
+                            self.terminal
+                                .screen()
+                                .cell(row, column)
+                                .unwrap()
+                                .character()
+                        })
+                        .collect::<String>()
+                        .trim_end()
+                        .to_owned()
+                })
+                .collect::<Vec<_>>()
+                .join("\n")
+        }
+
+        fn marker_observed(&self, marker: &str) -> bool {
+            self.visible().lines().any(|line| line.trim() == marker)
+        }
+
+        fn query_candidates(&self) -> Vec<String> {
+            // Diagnostic-only extraction from accumulated output, so requests
+            // split across reads remain visible, including unsupported DA/DSR.
+            self.raw
+                .split(|byte| *byte == 0x1b)
+                .filter_map(|sequence| {
+                    let csi = sequence.strip_prefix(b"[")?;
+                    let end = csi.iter().position(|byte| (0x40..=0x7e).contains(byte))?;
+                    matches!(csi[end], b'c' | b'n')
+                        .then(|| format!("\x1b[{}", String::from_utf8_lossy(&csi[..=end])))
+                })
+                .collect()
+        }
+    }
+
+    #[derive(Debug, Default)]
+    struct SmokeTransport {
+        process_state: Option<terminal_pty::PtyLifecycle>,
+        writes_started: Vec<Vec<u8>>,
+        replies_written: Vec<Vec<u8>>,
+        reply_write_failures: Vec<(Vec<u8>, terminal_pty::PtyError)>,
+    }
+
+    // Observe the real session.write result, not just acceptance by the worker
+    // queue. No production API or worker scheduling changes are needed.
+    struct SmokeSession<S> {
+        session: S,
+        transport: std::sync::Arc<std::sync::Mutex<SmokeTransport>>,
+    }
+
+    impl<S: terminal_pty::PtySession> terminal_pty::PtySession for SmokeSession<S> {
+        fn lifecycle(&self) -> terminal_pty::PtyLifecycle {
+            let state = self.session.lifecycle();
+            self.transport.lock().unwrap().process_state = Some(state);
+            state
+        }
+
+        fn take_output_reader(
+            &mut self,
+        ) -> Result<Box<dyn terminal_pty::PtyOutputReader + Send>, terminal_pty::PtyError> {
+            self.session.take_output_reader()
+        }
+
+        fn write(&mut self, bytes: &[u8]) -> Result<(), terminal_pty::PtyError> {
+            self.transport
+                .lock()
+                .unwrap()
+                .writes_started
+                .push(bytes.to_vec());
+            let result = self.session.write(bytes);
+            let mut transport = self.transport.lock().unwrap();
+            match &result {
+                Ok(()) => transport.replies_written.push(bytes.to_vec()),
+                Err(error) => transport
+                    .reply_write_failures
+                    .push((bytes.to_vec(), error.clone())),
+            }
+            result
+        }
+
+        fn resize(&mut self, size: PtySize) -> Result<(), terminal_pty::PtyError> {
+            self.session.resize(size)
+        }
+
+        fn terminate(&mut self) -> Result<(), terminal_pty::PtyError> {
+            self.session.terminate()
+        }
+    }
+
+    #[test]
+    fn smoke_terminal_replies_in_order_and_continues_to_marker() {
+        use terminal_core::TerminalReply;
+        let mut smoke = SmokeTerminal::new();
+        let mut written = Vec::new();
+        let mut write = |reply| {
+            written.push(reply);
+            Ok(())
+        };
+        smoke.feed(b"hello\x1b[3;7H\x1b[", &mut write);
+        assert!(smoke.replies_generated.is_empty());
+        smoke.feed(b"6n\x1b[5n\x1b[c\x1b[>c", &mut write);
+        smoke.feed(b"\r\nSMOKE_MARKER\r\n", &mut write);
+        let expected: Vec<_> = [
+            TerminalReply::CursorPosition { row: 3, column: 7 },
+            TerminalReply::TerminalStatus,
+            TerminalReply::PrimaryDeviceAttributes,
+            TerminalReply::SecondaryDeviceAttributes,
+        ]
+        .iter()
+        .map(|reply| reply.as_bytes().as_slice().to_vec())
+        .collect();
+        assert_eq!(written, expected);
+        assert_eq!(smoke.replies_generated, expected);
+        assert_eq!(smoke.replies_queued, expected);
+        assert_eq!(smoke.terminal.pending_reply_count(), 0);
+        assert!(smoke.visible().starts_with("hello"));
+        assert!(smoke.marker_observed("SMOKE_MARKER"));
+        assert_eq!(
+            smoke.query_candidates(),
+            ["\x1b[6n", "\x1b[5n", "\x1b[c", "\x1b[>c"]
+        );
+    }
+
+    #[test]
+    fn smoke_terminal_does_not_fabricate_replies_for_modes_titles_or_text() {
+        let mut smoke = SmokeTerminal::new();
+        smoke.feed(
+            b"\x1b[?9001h\x1b[?1004h\x1b[m\x1b]0;title\x07\x1b[?25hMARKER",
+            |_| panic!("no terminal query was requested"),
+        );
+        assert!(smoke.replies_generated.is_empty());
+        assert!(smoke.query_candidates().is_empty());
+        assert!(smoke.marker_observed("MARKER"));
+    }
+
+    #[test]
+    fn smoke_terminal_retains_reply_queue_failures() {
+        let mut smoke = SmokeTerminal::new();
+        smoke.feed(b"\x1b[6n", |_| {
+            Err(terminal_pty::PtyWorkerError::WorkerUnavailable)
+        });
+        smoke.feed(b"MARKER", |_| panic!("no second query"));
+        assert_eq!(smoke.replies_generated.len(), 1);
+        assert!(smoke.replies_queued.is_empty());
+        assert_eq!(smoke.reply_queue_failures.len(), 1);
+        assert!(smoke.marker_observed("MARKER"));
+    }
+
     // Exercise the same config-to-PTY path as a new tab. Optional shells are
     // probed only when installed; cmd.exe and /bin/sh are platform baselines.
     #[test]
@@ -4340,37 +4529,27 @@ mod tests {
             };
             let args = config.arguments().to_vec();
             let started = Instant::now();
-            let mut worker = terminal_pty::PtyWorker::start(
-                super::shell::spawn(&super::PortablePtyBackend::new(), config, None)
+            let transport = std::sync::Arc::new(std::sync::Mutex::new(SmokeTransport::default()));
+            let mut worker = terminal_pty::PtyWorker::start(SmokeSession {
+                session: super::shell::spawn(&super::PortablePtyBackend::new(), config, None)
                     .unwrap_or_else(|error| {
                         panic!(
                             "{program:?} args={args:?} elapsed={:?}: {error}",
                             started.elapsed()
                         )
                     }),
-            )
+                transport: transport.clone(),
+            })
             .unwrap();
             let deadline = started + Duration::from_secs(15);
-            let mut bytes = Vec::new();
-            let mut parser = TerminalParser::new();
-            let mut terminal = TerminalState::new(TerminalDimensions::new(80, 24).unwrap());
+            let mut smoke = SmokeTerminal::new();
             let mut passed = false;
             let mut process_state = "no exit observed".to_owned();
-            let mut visible = String::new();
             let mut marker_observed = false;
             while Instant::now() < deadline {
                 match worker.recv_timeout(Duration::from_millis(100)) {
                     Ok(Some(PtyWorkerEvent::Output(PtyOutput::Bytes(chunk)))) => {
-                        for reply in
-                            super::parse_terminal_output(&mut parser, &mut terminal, &chunk)
-                        {
-                            // A short-lived command may exit before a VT query
-                            // reply is delivered; retain that fact for diagnosis.
-                            if let Err(error) = worker.write(reply) {
-                                process_state = format!("query reply failed: {error}");
-                            }
-                        }
-                        bytes.extend(chunk);
+                        smoke.feed(&chunk, |reply| worker.write(reply));
                     }
                     Ok(Some(PtyWorkerEvent::Output(PtyOutput::Exited(status)))) => {
                         process_state = format!("exited: {status:?}");
@@ -4384,18 +4563,8 @@ mod tests {
                     }
                     _ => {}
                 }
-                let output = String::from_utf8_lossy(&bytes);
-                visible = (0..24)
-                    .map(|row| {
-                        (0..80)
-                            .map(|column| terminal.screen().cell(row, column).unwrap().character())
-                            .collect::<String>()
-                            .trim_end()
-                            .to_owned()
-                    })
-                    .collect::<Vec<_>>()
-                    .join("\n");
-                marker_observed = visible.lines().any(|line| line.trim() == marker);
+                let output = String::from_utf8_lossy(&smoke.raw);
+                marker_observed = smoke.marker_observed(&marker);
                 if marker_observed
                     && (!powershell
                         || (output.contains("\x1b]7;file:") && output.contains("\x1b]133;A")))
@@ -4405,14 +4574,26 @@ mod tests {
                 }
             }
             let elapsed = started.elapsed();
+            let process_before_shutdown = transport.lock().unwrap().process_state;
             let shutdown = worker.shutdown_and_join();
+            let transport = transport.lock().unwrap();
+            eprintln!(
+                "native shell program={program:?} elapsed={elapsed:?} marker_observed={marker_observed} terminal_query_candidates={:?} replies_generated={:?} transport={transport:?}",
+                smoke.query_candidates(),
+                smoke.replies_generated
+            );
             assert!(
                 passed && shutdown.is_ok(),
-                "program={program:?} args={args:?} elapsed={elapsed:?} process_state={process_state} marker={marker:?} marker_observed={marker_observed} shutdown={shutdown:?} visible={visible:?} raw_vt={:?}",
-                String::from_utf8_lossy(&bytes)
+                "program={program:?} args={args:?} elapsed={elapsed:?} process_state={process_state} process_before_shutdown={process_before_shutdown:?} marker={marker:?} marker_observed={marker_observed} shutdown={shutdown:?} terminal_query_candidates={:?} replies_generated={:?} replies_queued={:?} reply_queue_failures={:?} transport={transport:?} visible={:?} raw_vt={:?}",
+                smoke.query_candidates(),
+                smoke.replies_generated,
+                smoke.replies_queued,
+                smoke.reply_queue_failures,
+                smoke.visible(),
+                String::from_utf8_lossy(&smoke.raw)
             );
             if !powershell {
-                assert!(!String::from_utf8_lossy(&bytes).contains("__TerminalOsc7"));
+                assert!(!String::from_utf8_lossy(&smoke.raw).contains("__TerminalOsc7"));
             }
         }
     }
