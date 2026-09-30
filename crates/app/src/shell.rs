@@ -2,7 +2,9 @@
 
 use std::{ffi::OsString, path::Path};
 use terminal_config::ShellConfig;
-use terminal_pty::{PortablePtyBackend, PortablePtySession, PtyBackend, PtySize, PtySpawnConfig};
+use terminal_pty::{
+    PortablePtyBackend, PortablePtySession, PtySize, PtySpawnConfig, PtyStartupObserver,
+};
 
 pub(crate) fn configured_spawn_config(shell: &ShellConfig, size: PtySize) -> PtySpawnConfig {
     let config = PtySpawnConfig::new(shell.program.clone().into(), size)
@@ -57,10 +59,14 @@ pub(crate) fn with_powershell_integration(config: PtySpawnConfig) -> PtySpawnCon
     config.with_arguments(args)
 }
 
-pub(crate) fn spawn(config: PtySpawnConfig) -> Result<PortablePtySession, String> {
+pub(crate) fn spawn(
+    backend: &PortablePtyBackend,
+    config: PtySpawnConfig,
+    observer: Option<PtyStartupObserver>,
+) -> Result<PortablePtySession, String> {
     let program = config.program().to_owned();
-    PortablePtyBackend::new()
-        .spawn(config)
+    backend
+        .spawn_observed(config, observer)
         .map_err(|error| format!("could not start local session program {program:?}: {error}"))
 }
 
@@ -160,10 +166,23 @@ mod tests {
     #[test]
     fn missing_configured_executable_reports_program_without_fallback() {
         let program = "terminal-intentionally-missing-shell-9c80d2";
-        let error = spawn(request(program, &[]))
-            .err()
-            .expect("must fail, never fall back");
+        let stages = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+        let observed = std::sync::Arc::clone(&stages);
+        let observer: PtyStartupObserver = std::sync::Arc::new(move |stage| {
+            observed.lock().unwrap().push(stage);
+        });
+        let error = spawn(
+            &PortablePtyBackend::new(),
+            request(program, &[]),
+            Some(observer),
+        )
+        .err()
+        .expect("must fail, never fall back");
         assert!(error.contains(program), "{error}");
         assert!(error.contains("PTY spawn failed"), "{error}");
+        let stages = stages.lock().unwrap();
+        assert_eq!(stages.first(), Some(&"pty-create-begin"));
+        assert!(stages.contains(&"child-spawn-requested"));
+        assert!(!stages.contains(&"child-spawned"));
     }
 }

@@ -1,5 +1,10 @@
 # Loaded after the user's profile by the local PowerShell launch command.
 if ($global:__terminalOsc7Installed) { return }
+$__terminalStartupTimer = $null
+if ($env:TERMINAL_STARTUP_DIAGNOSTICS -eq '1') {
+    $__terminalStartupTimer = [System.Diagnostics.Stopwatch]::StartNew()
+    [Console]::Write(("{0}]9;terminal-startup;shell-integration-begin{1}" -f [char]27, [char]7))
+}
 
 $originalPrompt = (Get-Command prompt -CommandType Function -ErrorAction SilentlyContinue).ScriptBlock
 if ($null -eq $originalPrompt) { return }
@@ -24,3 +29,9 @@ function global:prompt {
     $promptText
 }
 $global:__terminalOsc7Installed = $true
+
+if ($null -ne $__terminalStartupTimer) {
+    $__terminalStartupTimer.Stop()
+    $__terminalStartupUs = [long]($__terminalStartupTimer.ElapsedTicks * 1000000 / [System.Diagnostics.Stopwatch]::Frequency)
+    [Console]::Write(("{0}]9;terminal-startup;shell-integration-end shell_duration_us={1}{2}" -f [char]27, $__terminalStartupUs, [char]7))
+}
