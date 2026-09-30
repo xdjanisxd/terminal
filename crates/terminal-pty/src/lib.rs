@@ -239,13 +239,28 @@ pub struct PortablePtySession {
     child: Mutex<Box<dyn portable_pty::Child + Send + Sync>>,
     writer: Option<Box<dyn Write + Send>>,
     reader: Option<Box<dyn Read + Send>>,
+    startup_observer: Option<PtyStartupObserver>,
     lifecycle: Mutex<PtyLifecycle>,
 }
 
-struct PortableOutputReader(Box<dyn Read + Send>);
+/// Optional mechanism-only startup observation. Callbacks should be brief and must not panic.
+/// Stages describe PTY creation, initial sizing, command construction, child
+/// creation, and the first nonempty raw read. No terminal decoding is performed.
+pub type PtyStartupObserver = Arc<dyn Fn(&'static str) + Send + Sync>;
+
+struct PortableOutputReader {
+    reader: Box<dyn Read + Send>,
+    observer: Option<PtyStartupObserver>,
+}
 impl PtyOutputReader for PortableOutputReader {
     fn read(&mut self, bytes: &mut [u8]) -> Result<usize, PtyError> {
-        self.0.read(bytes).map_err(|_| PtyError::ReadFailed)
+        let count = self.reader.read(bytes).map_err(|_| PtyError::ReadFailed)?;
+        if count != 0
+            && let Some(observer) = self.observer.take()
+        {
+            observer("first-pty-bytes");
+        }
+        Ok(count)
     }
 }
 
@@ -253,6 +268,23 @@ impl PtyBackend for PortablePtyBackend {
     type Session = PortablePtySession;
 
     fn spawn(&self, configuration: PtySpawnConfig) -> Result<Self::Session, PtyError> {
+        self.spawn_observed(configuration, None)
+    }
+}
+
+impl PortablePtyBackend {
+    /// Spawns as in PtyBackend::spawn, with optional startup observation.
+    pub fn spawn_observed(
+        &self,
+        configuration: PtySpawnConfig,
+        observer: Option<PtyStartupObserver>,
+    ) -> Result<PortablePtySession, PtyError> {
+        let observe = |stage| {
+            if let Some(observer) = &observer {
+                observer(stage);
+            }
+        };
+        observe("pty-create-begin");
         let size = portable_pty::PtySize {
             rows: configuration.initial_size.rows(),
             cols: configuration.initial_size.columns(),
@@ -263,10 +295,13 @@ impl PtyBackend for PortablePtyBackend {
             .system
             .openpty(size)
             .map_err(|_| PtyError::SpawnFailed)?;
+        observe("pty-created");
+        observe("initial-size-sent");
         let reader = master
             .try_clone_reader()
             .map_err(|_| PtyError::SpawnFailed)?;
         let writer = master.take_writer().map_err(|_| PtyError::SpawnFailed)?;
+        observe("environment-build-begin");
         let mut command = CommandBuilder::new(configuration.program());
         command.args(configuration.arguments());
         if let Some(directory) = configuration.working_directory() {
@@ -275,14 +310,18 @@ impl PtyBackend for PortablePtyBackend {
         for (key, value) in configuration.environment() {
             command.env(key, value);
         }
+        observe("environment-build-end");
+        observe("child-spawn-requested");
         let child = slave
             .spawn_command(command)
             .map_err(|_| PtyError::SpawnFailed)?;
+        observe("child-spawned");
         Ok(PortablePtySession {
             master: Mutex::new(Some(master)),
             child: Mutex::new(child),
             writer: Some(writer),
             reader: Some(reader),
+            startup_observer: observer,
             lifecycle: Mutex::new(PtyLifecycle::Running),
         })
     }
@@ -321,7 +360,12 @@ impl PtySession for PortablePtySession {
     fn take_output_reader(&mut self) -> Result<Box<dyn PtyOutputReader + Send>, PtyError> {
         self.reader
             .take()
-            .map(|reader| Box::new(PortableOutputReader(reader)) as Box<dyn PtyOutputReader + Send>)
+            .map(|reader| {
+                Box::new(PortableOutputReader {
+                    reader,
+                    observer: self.startup_observer.take(),
+                }) as Box<dyn PtyOutputReader + Send>
+            })
             .ok_or(PtyError::NotRunning)
     }
 

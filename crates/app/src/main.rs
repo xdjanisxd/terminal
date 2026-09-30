@@ -9,6 +9,7 @@ mod branding;
 mod commands;
 mod saved_workspaces;
 mod search;
+mod startup;
 
 use commands::{Palette, PaletteAction, PaletteEntry};
 use saved_workspaces::SavedWorkspaces;
@@ -29,7 +30,7 @@ use terminal_core::{
     encode_paste,
 };
 use terminal_pty::{
-    PortablePtyBackend, PtyBackend, PtyOutput, PtySize, PtySpawnConfig, PtyWorker, PtyWorkerEvent,
+    PortablePtyBackend, PtyOutput, PtySize, PtySpawnConfig, PtyWorker, PtyWorkerEvent,
 };
 use terminal_renderer::{
     CellMetrics, FontRequest, OverlayLine, PaneRenderInput, RedrawOutcome, RenderTheme, Renderer,
@@ -710,7 +711,18 @@ fn issue_startup_command_if_ready(
     terminal: &TerminalState,
     pty: Option<&PtyWorker>,
 ) -> bool {
-    if terminal.shell_prompt_version() == 0 || pty.is_none() {
+    if pty.is_none() {
+        return false;
+    }
+    dispatch_startup_command(pending, terminal, |input| queue_pty_write(pty, input))
+}
+
+fn dispatch_startup_command(
+    pending: &mut Option<String>,
+    terminal: &TerminalState,
+    write: impl FnOnce(Vec<u8>) -> bool,
+) -> bool {
+    if terminal.shell_prompt_version() == 0 {
         return false;
     }
     let Some(command) = pending.as_ref() else {
@@ -718,7 +730,7 @@ fn issue_startup_command_if_ready(
     };
     let mut input = command.as_bytes().to_vec();
     input.push(b'\r');
-    if queue_pty_write(pty, input) {
+    if write(input) {
         pending.take();
         true
     } else {
@@ -896,7 +908,9 @@ impl Application {
                     config.workspace.project_root = Some(root.clone());
                 }
                 if !self.workspace_loaded {
+                    startup_milestone("workspace-restore-begin");
                     self.load_workspace(&config.workspace);
+                    startup_milestone("workspace-restore-end");
                     self.workspace_loaded = true;
                 }
                 if config.theme != self.config.theme {
@@ -1799,6 +1813,11 @@ impl Application {
             }
             RedrawOutcome::Exit => event_loop.exit(),
             RedrawOutcome::Presented | RedrawOutcome::PresentedSuboptimal => {
+                if terminal_renderer::startup_diagnostics_enabled() {
+                    for (pane_id, _) in self.workspace.active_tab().pane_rects(surface) {
+                        startup::presented(pane_id);
+                    }
+                }
                 if outcome == RedrawOutcome::PresentedSuboptimal {
                     self.recovery_redraw.begin();
                 }
@@ -1960,6 +1979,7 @@ impl Application {
                 proxy.clone(),
                 Arc::clone(&self.pty_wake_pending),
                 self.terminal.dimensions(),
+                self.active_runtime_pane,
                 root,
                 startup,
             );
@@ -1976,6 +1996,7 @@ impl Application {
                     proxy.clone(),
                     Arc::clone(&self.pty_wake_pending),
                     runtime.terminal.dimensions(),
+                    *pane_id,
                     root,
                     startup,
                 );
@@ -2047,7 +2068,7 @@ impl Application {
                         background_output.insert(*pane_id);
                     }
                 }
-                handle_background_pty_event(runtime, event);
+                handle_background_pty_event(*pane_id, runtime, event);
             }
         }
         for pane_id in background_output {
@@ -2080,11 +2101,14 @@ impl Application {
                 self.terminal.clear_selection();
                 let previous_title_version = self.terminal.shell_title_version();
                 let replies = parse_terminal_output(&mut self.parser, &mut self.terminal, &bytes);
-                issue_startup_command_if_ready(
+                startup::output(self.active_runtime_pane, &bytes, &self.terminal);
+                if issue_startup_command_if_ready(
                     &mut self.pending_startup_command,
                     &self.terminal,
                     self.pty.as_ref(),
-                );
+                ) {
+                    startup::milestone(self.active_runtime_pane, "startup-command-dispatched");
+                }
                 if self.terminal.shell_title_version() != previous_title_version {
                     self.update_workspace_title();
                 }
@@ -2770,17 +2794,23 @@ fn spawn_local_shell(
     proxy: EventLoopProxy<PtyWake>,
     wake_pending: Arc<AtomicBool>,
     dimensions: TerminalDimensions,
+    pane_id: PaneId,
     root: Option<PathBuf>,
     startup: SessionDefinition,
 ) -> Option<PtyWorker> {
+    let observer = startup::observer(pane_id);
+    startup::milestone(pane_id, "session-preparation-begin");
     emit_diagnostic(format_args!("app event=pty-backend-start"));
     let backend = PortablePtyBackend::new();
+    startup::milestone(pane_id, "pty-backend-created");
     emit_diagnostic(format_args!("app event=pty-session-spawn-start"));
     let configuration = spawn_config_for_session(pty_size_for_terminal(dimensions), root, startup);
     startup_milestone("pty-config-ready");
-    let session = match backend.spawn(configuration) {
+    startup::milestone(pane_id, "session-config-ready");
+    let session = match backend.spawn_observed(configuration, observer) {
         Ok(session) => session,
         Err(error) => {
+            startup::milestone(pane_id, "session-spawn-failed");
             eprintln!("could not start local shell: {error}");
             return None;
         }
@@ -2796,26 +2826,31 @@ fn spawn_local_shell(
         }
     }) {
         Ok(worker) => {
+            startup::milestone(pane_id, "pty-worker-ready");
             emit_diagnostic(format_args!("app event=pty-worker-start-complete"));
             Some(worker)
         }
         Err(error) => {
+            startup::milestone(pane_id, "pty-worker-failed");
             eprintln!("could not start local shell worker: {error}");
             None
         }
     }
 }
 
-fn handle_background_pty_event(runtime: &mut PaneRuntime, event: PtyWorkerEvent) {
+fn handle_background_pty_event(pane_id: PaneId, runtime: &mut PaneRuntime, event: PtyWorkerEvent) {
     match event {
         PtyWorkerEvent::Output(PtyOutput::Bytes(bytes)) => {
             runtime.terminal.clear_selection();
             let replies = parse_terminal_output(&mut runtime.parser, &mut runtime.terminal, &bytes);
-            issue_startup_command_if_ready(
+            startup::output(pane_id, &bytes, &runtime.terminal);
+            if issue_startup_command_if_ready(
                 &mut runtime.pending_startup_command,
                 &runtime.terminal,
                 runtime.pty.as_ref(),
-            );
+            ) {
+                startup::milestone(pane_id, "startup-command-dispatched");
+            }
             // OSC 52 is denied by the parser for every pane.
             runtime.terminal.take_osc52_write();
             if let Some(pty) = runtime.pty.as_ref() {
@@ -2857,8 +2892,9 @@ fn windows_local_shell_spawn_config(
     source: WindowsShellSource,
     size: PtySize,
 ) -> PtySpawnConfig {
+    startup_milestone("shell-integration-preparation-begin");
     let config = PtySpawnConfig::new(program, size);
-    match source {
+    let config = match source {
         WindowsShellSource::PowerShellCore | WindowsShellSource::WindowsPowerShell => config
             .with_arguments([
                 OsString::from("-NoExit"),
@@ -2866,7 +2902,9 @@ fn windows_local_shell_spawn_config(
                 OsString::from(include_str!("powershell_osc7.ps1")),
             ]),
         WindowsShellSource::ComSpec | WindowsShellSource::Cmd => config,
-    }
+    };
+    startup_milestone("shell-integration-preparation-end");
+    config
 }
 
 fn spawn_config_for_session(
@@ -3107,6 +3145,7 @@ fn select_windows_shell(
 
 #[cfg(windows)]
 fn windows_shell_program() -> (PathBuf, WindowsShellSource) {
+    startup_milestone("shell-discovery-begin");
     let pwsh = executable_on_path("pwsh.exe");
     let windows_powershell = std::env::var_os("SystemRoot")
         .map(PathBuf::from)
@@ -3127,6 +3166,7 @@ fn windows_shell_program() -> (PathBuf, WindowsShellSource) {
                 .map(|root| root.join("System32").join("cmd.exe"))
                 .filter(|program| program.is_file())
         });
+    startup_milestone("shell-discovery-end");
     select_windows_shell(pwsh, windows_powershell, comspec)
 }
 
@@ -3658,6 +3698,46 @@ mod tests {
     use super::{Search, StartupPresentation};
     use super::{scrollbar_page_delta, selection_click_count, selection_edge_direction};
     use terminal_renderer::{RedrawOutcome, ScrollbarHit};
+
+    #[test]
+    fn startup_command_waits_for_prompt_and_is_consumed_only_after_one_successful_write() {
+        let mut terminal = terminal_core::TerminalState::new(
+            terminal_core::TerminalDimensions::new(80, 24).unwrap(),
+        );
+        let mut pending = Some("Write-Output ready".to_owned());
+        assert!(!super::dispatch_startup_command(
+            &mut pending,
+            &terminal,
+            |_| panic!("premature write")
+        ));
+        let mut parser = terminal_core::TerminalParser::new();
+        parser.advance(&mut terminal, b"\x1b]133;A\x07").unwrap();
+        assert!(!super::issue_startup_command_if_ready(
+            &mut pending,
+            &terminal,
+            None
+        ));
+        assert!(!super::dispatch_startup_command(
+            &mut pending,
+            &terminal,
+            |_| false
+        ));
+        assert!(pending.is_some());
+        assert!(super::dispatch_startup_command(
+            &mut pending,
+            &terminal,
+            |bytes| {
+                assert_eq!(bytes, b"Write-Output ready\r");
+                true
+            }
+        ));
+        assert!(pending.is_none());
+        assert!(!super::dispatch_startup_command(
+            &mut pending,
+            &terminal,
+            |_| panic!("duplicate write")
+        ));
+    }
 
     #[test]
     fn scrollbar_track_click_pages_in_the_expected_direction() {
@@ -4209,6 +4289,7 @@ mod tests {
         assert_eq!(app.terminal.screen().cell(0, 0).unwrap().character(), 'C');
 
         super::handle_background_pty_event(
+            first,
             app.inactive_panes.get_mut(&first).unwrap(),
             PtyWorkerEvent::Output(PtyOutput::Bytes(b"B".to_vec())),
         );
@@ -4970,6 +5051,7 @@ mod tests {
         assert_eq!(app.active_tab_title(), "Updated shell");
 
         super::handle_background_pty_event(
+            first,
             app.inactive_panes.get_mut(&first).unwrap(),
             PtyWorkerEvent::Output(PtyOutput::Bytes(
                 b"\x1b]2;Background shell\x07\x1b]7;file:///background\x07".to_vec(),
