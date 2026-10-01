@@ -106,9 +106,25 @@ pub struct InputModes {
     mouse_drag: bool,
     mouse_any: bool,
     mouse_encoding: MouseEncoding,
+    keyboard_reporting: u16,
+    modify_other_keys: u16,
 }
 
 impl InputModes {
+    /// Reporting requests give shortcut ownership to the foreground app.
+    /// This does not advertise full Kitty or modifyOtherKeys protocol support.
+    pub const fn keyboard_reporting_requested(self) -> bool {
+        self.keyboard_reporting != 0 || self.modify_other_keys != 0
+    }
+    pub(crate) fn set_keyboard_reporting(&mut self, flags: u16) {
+        self.keyboard_reporting = flags;
+    }
+    pub(crate) fn set_modify_other_keys(&mut self, level: u16) {
+        self.modify_other_keys = level;
+    }
+    pub const fn modify_other_keys(self) -> u16 {
+        self.modify_other_keys
+    }
     /// Returns the cursor-key encoding mode.
     pub const fn cursor_keys(self) -> CursorKeyMode {
         self.cursor_keys

@@ -8,6 +8,7 @@ use crate::{
 pub struct ScreenGrid {
     dimensions: TerminalDimensions,
     cells: Vec<Cell>,
+    wrapped: Vec<usize>,
     cursor: Cursor,
 }
 
@@ -29,6 +30,7 @@ impl ScreenGrid {
         Self {
             dimensions,
             cells: vec![Cell::default(); dimensions.cell_count()],
+            wrapped: vec![0; dimensions.rows()],
             cursor: Cursor::origin(),
         }
     }
@@ -95,6 +97,15 @@ impl ScreenGrid {
     /// Replaces every cell with the default blank cell without moving the cursor.
     pub fn clear(&mut self) {
         self.cells.fill(Cell::default());
+        self.wrapped.fill(0);
+    }
+
+    pub(crate) fn row_wrap_columns(&self, row: usize) -> usize {
+        self.wrapped.get(row).copied().unwrap_or(0)
+    }
+
+    pub(crate) fn mark_row_wrapped(&mut self, row: usize, columns: usize) {
+        self.wrapped[row] = columns;
     }
 
     pub(crate) fn cell_mut_for_target(&mut self, row: usize, column: usize) -> Option<&mut Cell> {
@@ -203,6 +214,9 @@ impl ScreenGrid {
         let first_row = start / columns;
         let last_row = (end - 1) / columns;
         for row in first_row..=last_row {
+            if end >= (row + 1) * columns {
+                self.wrapped[row] = 0;
+            }
             self.normalize_row(row);
         }
     }
@@ -327,16 +341,25 @@ impl ScreenGrid {
         let shifted_cells = rows * columns;
         if rows == region_height {
             self.cells[region_start..region_end].fill(Cell::default());
+            self.wrapped[margins.top()..=margins.bottom()].fill(0);
             return;
         }
 
         match direction {
             ScrollDirection::Up => {
+                self.wrapped
+                    .copy_within(margins.top() + rows..margins.bottom() + 1, margins.top());
+                self.wrapped[margins.bottom() + 1 - rows..=margins.bottom()].fill(0);
                 self.cells
                     .copy_within(region_start + shifted_cells..region_end, region_start);
                 self.cells[region_end - shifted_cells..region_end].fill(Cell::default());
             }
             ScrollDirection::Down => {
+                self.wrapped.copy_within(
+                    margins.top()..margins.bottom() + 1 - rows,
+                    margins.top() + rows,
+                );
+                self.wrapped[margins.top()..margins.top() + rows].fill(0);
                 self.cells.copy_within(
                     region_start..region_end - shifted_cells,
                     region_start + shifted_cells,
@@ -367,6 +390,10 @@ impl ScreenGrid {
                 .clone_from_slice(&self.cells[old_start..old_start + preserved_columns]);
         }
 
+        if old_columns != dimensions.columns() {
+            self.wrapped.fill(0);
+        }
+        self.wrapped.resize(dimensions.rows(), 0);
         self.dimensions = dimensions;
         self.cells = cells;
         for row in 0..dimensions.rows() {

@@ -27,9 +27,8 @@ use terminal_config::{Command, Config, FontConfig, Rgb, ShellConfig};
 use terminal_core::{
     CellColor, CursorKey, EditingKey, InputModes, MAX_COLUMNS, MAX_GRID_CELLS, MAX_ROWS,
     MouseButton as TerminalMouseButton, MouseEvent, MouseModifiers, MouseTracking, Osc52Policy,
-    ScreenKind, TerminalDimensions, TerminalParser, TerminalState, UnderlineStyle,
-    encode_control_cursor_key, encode_cursor_key, encode_editing_key, encode_focus, encode_mouse,
-    encode_paste,
+    ScreenKind, TerminalDimensions, TerminalParser, TerminalState, UnderlineStyle, encode_focus,
+    encode_modified_cursor_key, encode_modified_editing_key, encode_mouse, encode_paste,
 };
 use terminal_pty::{
     PortablePtyBackend, PtyOutput, PtySize, PtySpawnConfig, PtyWorker, PtyWorkerEvent,
@@ -1096,6 +1095,31 @@ impl Application {
 
     fn dispatch_command(&mut self, command: Command) {
         match command {
+            Command::SelectLeft
+            | Command::SelectRight
+            | Command::SelectWordLeft
+            | Command::SelectWordRight => {
+                let right = matches!(command, Command::SelectRight | Command::SelectWordRight);
+                let word = matches!(command, Command::SelectWordLeft | Command::SelectWordRight);
+                if terminal_owns_editing_shortcuts(
+                    self.terminal.active_screen(),
+                    *self.terminal.input_modes(),
+                ) {
+                    if self.terminal.extend_keyboard_selection(right, word) {
+                        self.invalidate_frame();
+                    }
+                } else {
+                    self.write_terminal_input(terminal_cursor_key_input(
+                        *self.terminal.input_modes(),
+                        if right {
+                            CursorKey::Right
+                        } else {
+                            CursorKey::Left
+                        },
+                        self.modifiers,
+                    ));
+                }
+            }
             Command::Copy => {
                 if let Some(text) = self.terminal.selected_text()
                     && let Err(error) =
@@ -2842,26 +2866,37 @@ impl ApplicationHandler<PtyWake> for Application {
                 } else if let Some(editing_key) =
                     editing_key_from_event(&event.logical_key, event.physical_key)
                 {
-                    self.write_terminal_input(
-                        encode_editing_key(*self.terminal.input_modes(), editing_key).to_vec(),
-                    );
+                    self.write_terminal_input(terminal_editing_key_input(
+                        self.terminal.active_screen(),
+                        *self.terminal.input_modes(),
+                        editing_key,
+                        self.modifiers,
+                    ));
                 } else if let Some(cursor_key) = cursor_key_from_logical_key(&event.logical_key) {
-                    self.write_terminal_input(
-                        terminal_cursor_key_input(
-                            *self.terminal.input_modes(),
-                            cursor_key,
-                            self.modifiers,
-                        )
-                        .to_vec(),
-                    );
+                    self.write_terminal_input(terminal_cursor_key_input(
+                        *self.terminal.input_modes(),
+                        cursor_key,
+                        self.modifiers,
+                    ));
                 } else {
                     let key = basic_key_from_logical_key(&event.logical_key);
-                    if let Some(bytes) = terminal_key_input(
-                        event.text.as_deref(),
-                        key,
-                        event.physical_key,
-                        self.modifiers,
-                    ) {
+                    let backspace = key == Some(BasicKey::Backspace)
+                        || event.physical_key == PhysicalKey::Code(KeyCode::Backspace);
+                    let bytes = if backspace {
+                        Some(terminal_backspace_input(
+                            self.terminal.active_screen(),
+                            *self.terminal.input_modes(),
+                            self.modifiers,
+                        ))
+                    } else {
+                        terminal_key_input(
+                            event.text.as_deref(),
+                            key,
+                            event.physical_key,
+                            self.modifiers,
+                        )
+                    };
+                    if let Some(bytes) = bytes {
                         emit_diagnostic(format_args!("app event=key-input bytes={}", bytes.len()));
                         let is_backspace = key == Some(BasicKey::Backspace)
                             || event.physical_key == PhysicalKey::Code(KeyCode::Backspace);
@@ -3208,13 +3243,68 @@ fn terminal_cursor_key_input(
     modes: InputModes,
     key: CursorKey,
     modifiers: ModifiersState,
-) -> &'static [u8] {
-    if modifiers == ModifiersState::CONTROL
-        && let Some(bytes) = encode_control_cursor_key(key)
+) -> Vec<u8> {
+    encode_modified_cursor_key(modes, key, xterm_modifier(modifiers))
+}
+
+fn xterm_modifier(modifiers: ModifiersState) -> u8 {
+    1 + u8::from(modifiers.shift_key())
+        + 2 * u8::from(modifiers.alt_key())
+        + 4 * u8::from(modifiers.control_key())
+}
+
+fn terminal_owns_editing_shortcuts(screen: ScreenKind, modes: InputModes) -> bool {
+    screen == ScreenKind::Primary
+        && modes.cursor_keys() == terminal_core::CursorKeyMode::Normal
+        && modes.mouse_tracking() == MouseTracking::Off
+        && !modes.keyboard_reporting_requested()
+}
+
+fn terminal_editing_key_input(
+    screen: ScreenKind,
+    modes: InputModes,
+    key: EditingKey,
+    modifiers: ModifiersState,
+) -> Vec<u8> {
+    if key == EditingKey::Delete
+        && modifiers == ModifiersState::CONTROL
+        && terminal_owns_editing_shortcuts(screen, modes)
     {
-        return bytes;
+        return b"\x1bd".to_vec();
     }
-    encode_cursor_key(modes, key)
+    encode_modified_editing_key(modes, key, xterm_modifier(modifiers))
+}
+
+fn terminal_backspace_input(
+    screen: ScreenKind,
+    modes: InputModes,
+    modifiers: ModifiersState,
+) -> Vec<u8> {
+    if modes.keyboard_reporting_requested() && !modifiers.is_empty() {
+        let modifier = xterm_modifier(modifiers);
+        return if modes.modify_other_keys() != 0 {
+            format!("\x1b[27;{modifier};127~").into_bytes()
+        } else {
+            format!("\x1b[127;{modifier}u").into_bytes()
+        };
+    }
+    if modifiers == ModifiersState::CONTROL {
+        return if terminal_owns_editing_shortcuts(screen, modes) {
+            vec![0x17]
+        } else {
+            vec![0x08]
+        };
+    }
+    let mut bytes = Vec::new();
+    if modifiers.alt_key() {
+        bytes.push(0x1b);
+    }
+    bytes.push(if modifiers.control_key() {
+        0x08
+    } else {
+        basic_backspace_byte_for_platform(cfg!(windows))
+    });
+    bytes
 }
 
 fn terminal_key_input(
@@ -3882,6 +3972,97 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn editing_shortcuts_preserve_application_ownership_and_modifiers() {
+        use super::{
+            terminal_backspace_input, terminal_editing_key_input, terminal_owns_editing_shortcuts,
+        };
+        use terminal_core::{EditingKey, ScreenKind};
+        let mut terminal = TerminalState::new(TerminalDimensions::new(80, 24).unwrap());
+        let modes = *terminal.input_modes();
+        assert_eq!(
+            terminal_editing_key_input(
+                ScreenKind::Primary,
+                modes,
+                EditingKey::Delete,
+                ModifiersState::empty()
+            ),
+            b"\x1b[3~"
+        );
+        assert_eq!(
+            terminal_editing_key_input(
+                ScreenKind::Primary,
+                modes,
+                EditingKey::Delete,
+                ModifiersState::CONTROL
+            ),
+            b"\x1bd"
+        );
+        assert_eq!(
+            terminal_backspace_input(ScreenKind::Primary, modes, ModifiersState::empty()),
+            [0x7f]
+        );
+        assert_eq!(
+            terminal_backspace_input(ScreenKind::Primary, modes, ModifiersState::CONTROL),
+            [0x17]
+        );
+        assert_eq!(
+            terminal_backspace_input(ScreenKind::Primary, modes, ModifiersState::ALT),
+            b"\x1b\x7f"
+        );
+        assert_eq!(
+            terminal_editing_key_input(
+                ScreenKind::Alternate,
+                modes,
+                EditingKey::Delete,
+                ModifiersState::CONTROL
+            ),
+            b"\x1b[3;5~"
+        );
+        assert_eq!(
+            terminal_backspace_input(ScreenKind::Alternate, modes, ModifiersState::CONTROL),
+            [0x08]
+        );
+        assert_eq!(
+            terminal_backspace_input(
+                ScreenKind::Alternate,
+                modes,
+                ModifiersState::CONTROL | ModifiersState::ALT
+            ),
+            b"\x1b\x08"
+        );
+        for request in [
+            b"\x1b[?1h".as_slice(),
+            b"\x1b[?1000h",
+            b"\x1b[>1u",
+            b"\x1b[>4;2m",
+        ] {
+            TerminalParser::new()
+                .advance(&mut terminal, request)
+                .unwrap();
+            let modes = *terminal.input_modes();
+            assert!(!terminal_owns_editing_shortcuts(ScreenKind::Primary, modes));
+            assert_eq!(
+                terminal_editing_key_input(
+                    ScreenKind::Primary,
+                    modes,
+                    EditingKey::Delete,
+                    ModifiersState::CONTROL
+                ),
+                b"\x1b[3;5~"
+            );
+            assert_eq!(
+                terminal_cursor_key_input(
+                    modes,
+                    CursorKey::Left,
+                    ModifiersState::CONTROL | ModifiersState::SHIFT
+                ),
+                b"\x1b[1;6D"
+            );
+            terminal.reset();
+        }
+    }
+
     #[cfg(windows)]
     mod windows_shell_diagnostics;
     use std::ffi::OsString;
@@ -5633,6 +5814,60 @@ mod tests {
     }
 
     #[test]
+    fn editing_bindings_override_defaults_and_selection_uses_shared_state() {
+        for (chord, key, modifiers) in [
+            ("Ctrl+Delete", KeyCode::Delete, ModifiersState::CONTROL),
+            (
+                "Ctrl+Backspace",
+                KeyCode::Backspace,
+                ModifiersState::CONTROL,
+            ),
+            ("Shift+ArrowLeft", KeyCode::ArrowLeft, ModifiersState::SHIFT),
+            (
+                "Shift+ArrowRight",
+                KeyCode::ArrowRight,
+                ModifiersState::SHIFT,
+            ),
+            (
+                "Ctrl+Shift+ArrowLeft",
+                KeyCode::ArrowLeft,
+                ModifiersState::CONTROL | ModifiersState::SHIFT,
+            ),
+            (
+                "Ctrl+Shift+ArrowRight",
+                KeyCode::ArrowRight,
+                ModifiersState::CONTROL | ModifiersState::SHIFT,
+            ),
+        ] {
+            let config =
+                Config::parse(&format!("[[bindings]]\nkey = '{chord}'\ncommand = 'copy'")).unwrap();
+            assert_eq!(
+                configured_command(&config, PhysicalKey::Code(key), modifiers),
+                Some(Command::Copy)
+            );
+            assert_eq!(config.bindings.len(), 1);
+        }
+        let config = Config::parse("[[bindings]]\nkey = 'Ctrl+B'\ncommand = 'copy'").unwrap();
+        assert_eq!(
+            configured_command(
+                &config,
+                PhysicalKey::Code(KeyCode::ArrowLeft),
+                ModifiersState::SHIFT
+            ),
+            None
+        );
+        let mut app = Application::default();
+        app.parser.advance(&mut app.terminal, b"foo bar").unwrap();
+        app.dispatch_command(Command::SelectWordLeft);
+        assert_eq!(app.terminal.selected_text().as_deref(), Some("bar"));
+        app.dispatch_command(Command::SelectRight);
+        assert_eq!(app.terminal.selected_text().as_deref(), Some("ar"));
+        app.terminal.switch_to_alternate_screen();
+        app.dispatch_command(Command::SelectLeft);
+        assert_eq!(app.terminal.selected_text(), None);
+    }
+
+    #[test]
     fn binding_and_palette_share_the_page_command_dispatcher() {
         let mut app = Application {
             terminal: TerminalState::new(TerminalDimensions::new(2, 2).unwrap()),
@@ -6110,7 +6345,7 @@ mod tests {
                     CursorKey::Left,
                     ModifiersState::CONTROL | ModifiersState::SHIFT
                 ),
-                plain_left
+                b"\x1b[1;6D"
             );
         }
 
@@ -6121,7 +6356,7 @@ mod tests {
                 PhysicalKey::Code(KeyCode::ArrowRight),
                 ModifiersState::CONTROL | ModifiersState::SHIFT
             ),
-            Some(Command::NextPane)
+            Some(Command::SelectWordRight)
         );
         assert_eq!(
             configured_command(
@@ -6129,7 +6364,7 @@ mod tests {
                 PhysicalKey::Code(KeyCode::ArrowLeft),
                 ModifiersState::CONTROL | ModifiersState::SHIFT
             ),
-            Some(Command::PreviousPane)
+            Some(Command::SelectWordLeft)
         );
         for key in [KeyCode::ArrowLeft, KeyCode::ArrowRight] {
             assert_eq!(

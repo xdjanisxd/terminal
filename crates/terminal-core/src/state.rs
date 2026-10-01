@@ -140,6 +140,7 @@ pub struct TerminalState {
     screen: ScreenSet,
     terminal_modes: TerminalModes,
     input_modes: InputModes,
+    keyboard_reporting_stacks: [Vec<u16>; 2],
     current_rendition: CellAttributes,
     horizontal_tab_stops: HorizontalTabStops,
     pending_replies: PendingReplies,
@@ -155,6 +156,47 @@ pub struct TerminalState {
 }
 
 impl TerminalState {
+    // Ownership detection only: this does not advertise complete Kitty support.
+    pub(crate) fn keyboard_reporting_request(&mut self, action: u8, flags: u16, mode: u16) {
+        let index = usize::from(self.active_screen() == ScreenKind::Alternate);
+        let stack = &mut self.keyboard_reporting_stacks[index];
+        match action {
+            b'>' => {
+                if stack.len() == 16 {
+                    stack.remove(0);
+                }
+                stack.push(flags);
+            }
+            b'=' => {
+                if stack.is_empty() {
+                    stack.push(0);
+                }
+                let current = stack.last_mut().unwrap();
+                match mode {
+                    1 => *current = flags,
+                    2 => *current |= flags,
+                    3 => *current &= !flags,
+                    _ => return,
+                }
+            }
+            b'<' => stack.truncate(stack.len().saturating_sub(usize::from(flags.max(1)))),
+            _ => return,
+        }
+        self.sync_keyboard_reporting();
+    }
+
+    fn sync_keyboard_reporting(&mut self) {
+        let index = usize::from(self.active_screen() == ScreenKind::Alternate);
+        self.input_modes.set_keyboard_reporting(
+            self.keyboard_reporting_stacks[index]
+                .last()
+                .copied()
+                .unwrap_or(0),
+        );
+    }
+    pub(crate) fn modify_other_keys_request(&mut self, level: u16) {
+        self.input_modes.set_modify_other_keys(level);
+    }
     /// Aggregate work on the active screen when throughput diagnostics are enabled.
     pub fn throughput_stats(&self) -> Option<crate::CoreThroughputStats> {
         self.screen.throughput_stats()
@@ -249,6 +291,7 @@ impl TerminalState {
             screen: ScreenSet::new(dimensions),
             terminal_modes: TerminalModes::default(),
             input_modes: InputModes::default(),
+            keyboard_reporting_stacks: [Vec::new(), Vec::new()],
             current_rendition: CellAttributes::default(),
             horizontal_tab_stops: HorizontalTabStops::new(dimensions.columns()),
             pending_replies: PendingReplies::default(),
@@ -336,6 +379,18 @@ impl TerminalState {
         self.screen.selection_history_origin()
     }
 
+    pub(crate) fn selection_row_wrapped(&self, row: usize) -> bool {
+        self.selection_row_wrap_columns(row) != 0
+    }
+
+    pub(crate) fn selection_row_wrap_columns(&self, row: usize) -> usize {
+        self.screen.selection_row_wrap_columns(row)
+    }
+
+    pub(crate) fn selection_cursor_at_wrap(&self) -> bool {
+        self.screen.wrap_pending()
+    }
+
     /// Returns a cell from the current viewport projection.
     ///
     /// Historical rows retain their capture-time widths. A column outside a historical
@@ -358,12 +413,14 @@ impl TerminalState {
     pub fn switch_to_primary_screen(&mut self) {
         self.clear_selection();
         self.screen.switch_to(ScreenKind::Primary);
+        self.sync_keyboard_reporting();
     }
 
     /// Activates the independent alternate screen without modifying either screen.
     pub fn switch_to_alternate_screen(&mut self) {
         self.clear_selection();
         self.screen.switch_to(ScreenKind::Alternate);
+        self.sync_keyboard_reporting();
     }
 
     /// Saves the active screen's cursor and current rendition in its bounded local slot.
@@ -395,12 +452,14 @@ impl TerminalState {
     pub fn enter_alternate_screen_1047(&mut self) {
         self.clear_selection();
         self.screen.enter_alternate_screen_1047();
+        self.sync_keyboard_reporting();
     }
 
     /// Activates the primary screen for DEC private mode 1047 without restoring saved state.
     pub fn leave_alternate_screen_1047(&mut self) {
         self.clear_selection();
         self.screen.leave_alternate_screen_1047();
+        self.sync_keyboard_reporting();
     }
 
     /// Saves Primary and resets then activates Alternate for DEC private mode 1049.
@@ -413,6 +472,7 @@ impl TerminalState {
             self.clear_selection();
             self.save_cursor();
             self.screen.enter_alternate_screen_1047();
+            self.sync_keyboard_reporting();
         }
     }
 
@@ -424,6 +484,7 @@ impl TerminalState {
     pub fn leave_alternate_screen_1049(&mut self) {
         self.clear_selection();
         self.screen.leave_alternate_screen_1047();
+        self.sync_keyboard_reporting();
         self.restore_cursor();
     }
 
@@ -1047,6 +1108,13 @@ impl TerminalState {
     }
 
     fn wrap_before_print(&mut self) {
+        let row = self.cursor().row();
+        let columns = if self.screen.wrap_pending() {
+            self.dimensions().columns()
+        } else {
+            self.cursor().column()
+        };
+        self.screen.mark_row_wrapped(row, columns);
         debug_assert_eq!(
             self.terminal_modes.auto_wrap(),
             AutoWrapMode::Enabled,

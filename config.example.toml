@@ -66,7 +66,8 @@ ansi = [
 # next_tab, previous_tab, next_pane, previous_pane, resize_pane_left,
 # resize_pane_right, resize_pane_up, resize_pane_down, focus_pane_left,
 # focus_pane_right, focus_pane_up, focus_pane_down, toggle_pane_zoom,
-# close_pane, rename_tab.
+# close_pane, rename_tab, select_left, select_right, select_word_left,
+# select_word_right.
 
 # Copy the current terminal selection to the clipboard.
 [[bindings]]
@@ -143,15 +144,25 @@ command = "next_tab"
 key = "Ctrl+Shift+Tab"
 command = "previous_tab"
 
-# Focus the next pane in layout traversal order.
+# Extend terminal selection one character left.
 [[bindings]]
-key = "Ctrl+Shift+ArrowRight"
-command = "next_pane"
+key = "Shift+ArrowLeft"
+command = "select_left"
 
-# Focus the previous pane in layout traversal order.
+# Extend terminal selection one character right.
+[[bindings]]
+key = "Shift+ArrowRight"
+command = "select_right"
+
+# Extend terminal selection one word left.
 [[bindings]]
 key = "Ctrl+Shift+ArrowLeft"
-command = "previous_pane"
+command = "select_word_left"
+
+# Extend terminal selection one word right.
+[[bindings]]
+key = "Ctrl+Shift+ArrowRight"
+command = "select_word_right"
 
 # Focus a pane to the left.
 [[bindings]]

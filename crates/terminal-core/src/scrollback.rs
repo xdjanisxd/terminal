@@ -12,6 +12,7 @@ pub const MAX_SCROLLBACK_ROWS: usize = 10_000;
 #[derive(Debug)]
 pub(crate) struct Scrollback {
     rows: VecDeque<Vec<Cell>>,
+    wrapped: VecDeque<usize>,
     capacity: usize,
 }
 
@@ -19,6 +20,7 @@ impl Scrollback {
     pub(crate) fn new() -> Self {
         Self {
             rows: VecDeque::with_capacity(MAX_SCROLLBACK_ROWS),
+            wrapped: VecDeque::with_capacity(MAX_SCROLLBACK_ROWS),
             capacity: MAX_SCROLLBACK_ROWS,
         }
     }
@@ -32,14 +34,24 @@ impl Scrollback {
     }
 
     pub(crate) fn push(&mut self, row: &[Cell]) {
+        self.push_wrapped(row, 0);
+    }
+
+    pub(crate) fn row_wrap_columns(&self, row: usize) -> usize {
+        self.wrapped.get(row).copied().unwrap_or(0)
+    }
+
+    pub(crate) fn push_wrapped(&mut self, row: &[Cell], wrapped: usize) {
         debug_assert!(row_is_valid(row));
         if self.capacity == 0 {
             return;
         }
         if self.rows.len() == self.capacity {
             self.rows.pop_front();
+            self.wrapped.pop_front();
         }
         self.rows.push_back(row.to_vec());
+        self.wrapped.push_back(wrapped);
         debug_assert!(self.rows.iter().all(|row| row_is_valid(row)));
     }
 
@@ -51,6 +63,7 @@ impl Scrollback {
         assert!(crate::throughput::enabled());
         assert!(capacity <= MAX_SCROLLBACK_ROWS);
         self.rows.clear();
+        self.wrapped.clear();
         self.capacity = capacity;
     }
 }

@@ -96,7 +96,7 @@ impl ScreenState {
                     .expect("scrolling margin row is always in bounds");
                 let full = scrollback.capacity() != 0 && scrollback.len() == scrollback.capacity();
                 let started = self.throughput.as_ref().map(|_| std::time::Instant::now());
-                scrollback.push(displaced);
+                scrollback.push_wrapped(displaced, self.grid.row_wrap_columns(row));
                 if let Some(stats) = &mut self.throughput {
                     stats.history += started.unwrap().elapsed();
                     stats.history_pushes += 1;
@@ -349,6 +349,21 @@ impl ScreenSet {
 
     pub(crate) fn selection_history_origin(&self) -> usize {
         self.active_state().history_origin
+    }
+
+    pub(crate) fn selection_row_wrap_columns(&self, row: usize) -> usize {
+        let state = self.active_state();
+        let Some(row) = row.checked_sub(state.history_origin) else {
+            return 0;
+        };
+        if row < state.scrollback_len() {
+            state
+                .scrollback
+                .as_ref()
+                .map_or(0, |history| history.row_wrap_columns(row))
+        } else {
+            state.grid.row_wrap_columns(row - state.scrollback_len())
+        }
     }
 
     fn active_state(&self) -> &ScreenState {

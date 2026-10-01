@@ -167,6 +167,7 @@ The complete command names accepted in a binding are:
 | Area | Commands |
 | --- | --- |
 | Clipboard and scrollback | `copy`, `paste`, `page_up`, `page_down` |
+| Keyboard selection | `select_left`, `select_right`, `select_word_left`, `select_word_right` |
 | Font | `increase_font_size`, `decrease_font_size`, `reset_font_size` |
 | Pickers and workspaces | `open_palette`, `open_tab_picker`, `save_current_workspace`, `set_pane_startup_command`, `clear_pane_startup_command`, `open_workspace_picker`, `delete_workspace`, `open_target` |
 | Tabs and panes | `new_tab`, `split_horizontal`, `split_vertical`, `next_tab`, `previous_tab`, `next_pane`, `previous_pane`, `focus_pane_left`, `focus_pane_right`, `focus_pane_up`, `focus_pane_down`, `resize_pane_left`, `resize_pane_right`, `resize_pane_up`, `resize_pane_down`, `toggle_pane_zoom`, `close_pane`, `rename_tab` |
@@ -175,6 +176,16 @@ These are command names, not all default shortcuts. The example has every
 default binding with a short comment. The command palette also lists app
 commands and project actions. `rename_tab` prompts for a local title;
 palette and prompt input do not reach the PTY.
+
+The default Shift+Left/Right and Ctrl+Shift+Left/Right bindings extend the
+shared terminal selection. They apply on Primary with normal cursor keys,
+mouse reporting off, and no requested keyboard reporting. Otherwise the
+modified arrows reach the application. Custom `[[bindings]]` replace the
+default set, including these selection bindings; explicit bindings also
+take precedence over Ctrl+Delete and Ctrl+Backspace input handling.
+In the same Primary input context, Ctrl+Delete sends Meta+D and
+Ctrl+Backspace sends Ctrl+W. The shell interprets these word-delete inputs.
+Plain Backspace remains DEL; there is no separate Backspace-byte setting.
 
 ## Startup workspace
 

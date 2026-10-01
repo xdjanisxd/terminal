@@ -567,6 +567,14 @@ impl vte::Perform for SemanticPerformer<'_> {
         }
 
         if action == 'm' {
+            if intermediates == b">"
+                && let Some((values, count)) = simple_csi_parameters(params)
+                && count >= 1
+                && values[0] == 4
+            {
+                self.terminal
+                    .modify_other_keys_request(if count > 1 { values[1] } else { 0 });
+            }
             if intermediates.is_empty() {
                 self.dispatch_sgr(params);
             }
@@ -576,6 +584,18 @@ impl vte::Perform for SemanticPerformer<'_> {
         let Some((values, count)) = simple_csi_parameters(params) else {
             return;
         };
+
+        if action == 'u'
+            && intermediates.len() == 1
+            && matches!(intermediates[0], b'>' | b'=' | b'<')
+        {
+            self.terminal.keyboard_reporting_request(
+                intermediates[0],
+                if count > 0 { values[0] } else { 0 },
+                if count > 1 { values[1] } else { 1 },
+            );
+            return;
+        }
 
         if action == 'c' {
             if count == 0 || (count == 1 && values[0] == 0) {
