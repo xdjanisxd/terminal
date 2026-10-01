@@ -6,6 +6,8 @@
 mod font;
 mod startup;
 pub use startup::{initialize_startup_diagnostics, startup_diagnostics_enabled, startup_milestone};
+mod throughput;
+pub use throughput::ThroughputRenderStats;
 mod gpu;
 mod scrollbar;
 mod snapshot;
@@ -135,6 +137,7 @@ impl Error for RendererInitError {}
 
 /// `wgpu` device, queue, and native surface lifecycle owned by the renderer.
 pub struct Renderer {
+    throughput: Option<ThroughputRenderStats>,
     window: Arc<Window>,
     surface: wgpu::Surface<'static>,
     adapter: wgpu::Adapter,
@@ -151,6 +154,17 @@ pub struct Renderer {
 }
 
 impl Renderer {
+    /// Snapshot/reset opt-in aggregates at a workload boundary.
+    pub fn throughput_stats(&self) -> Option<ThroughputRenderStats> {
+        self.throughput
+    }
+
+    pub fn reset_throughput_stats(&mut self) {
+        if let Some(stats) = &mut self.throughput {
+            *stats = ThroughputRenderStats::default();
+        }
+    }
+
     /// Creates a surface for `window` and configures it when its size is non-zero.
     pub fn new(window: Arc<Window>) -> Result<Self, RendererInitError> {
         Self::new_with_font_request(window, FontRequest::default())
@@ -191,6 +205,7 @@ impl Renderer {
         ));
 
         let mut renderer = Self {
+            throughput: throughput::enabled().then(ThroughputRenderStats::default),
             window,
             surface,
             adapter,
@@ -333,6 +348,9 @@ impl Renderer {
     ) -> RedrawOutcome {
         let projection_start = Instant::now();
         let data = project_panes(panes, overlay, &self.theme);
+        if let Some(stats) = &mut self.throughput {
+            stats.projection += projection_start.elapsed();
+        }
         emit_diagnostic(format_args!(
             "renderer event=pane-projection panes={} cells={} elapsed_us={}",
             data.len(),
@@ -430,6 +448,13 @@ impl Renderer {
                             },
                         );
                         clear_next = false;
+                        if let Some(stats) = &mut self.throughput {
+                            stats.generation += work.instance_generation;
+                            stats.upload += work.buffer_upload;
+                            stats.submission += work.submission;
+                            stats.buffer_allocations += work.buffer_allocations as u64;
+                            stats.buffer_bytes += work.buffer_bytes as u64;
+                        }
                         emit_diagnostic(format_args!(
                             "renderer frame={frame_id} event=pane-rendered pane={index} cells={} instances={:?} draw_resources_created={} queue_submissions={}",
                             pane_data.cells.len(),
@@ -445,7 +470,14 @@ impl Renderer {
                     ));
                 }
                 self.window.pre_present_notify();
+                if let Some(stats) = &mut self.throughput {
+                    stats.rendered += 1;
+                }
                 frame.present();
+                if let Some(stats) = &mut self.throughput {
+                    stats.presented += 1;
+                    stats.render_present += acquire_started.elapsed();
+                }
                 emit_diagnostic(format_args!(
                     "renderer frame={frame_id} event=present-complete elapsed_us={}",
                     frame_start.elapsed().as_micros()

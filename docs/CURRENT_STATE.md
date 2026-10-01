@@ -1,5 +1,7 @@
 # Current State
 
+- Sustained PTY output is drained with a per-pane budget of 64 events or four milliseconds before returning to window/input/redraw processing; a single parser feed always makes progress and can exceed the time budget. Deferred work continues through the event loop without changing PTY byte order or queue capacity. Opt-in aggregate throughput diagnostics and six deterministic release workloads are documented in [LARGE_OUTPUT_THROUGHPUT.md](LARGE_OUTPUT_THROUGHPUT.md), including measured responsiveness gains and throughput tradeoffs.
+
 ## Working
 
 - Startup creates the native window hidden where supported, presents the configured empty terminal/workspace frame before synchronous PTY spawning, then shows and focuses the window once. Startup timing is opt-in via `TERMINAL_STARTUP_DIAGNOSTICS=1`; see [startup diagnostics and measurements](STARTUP.md) and [PTY/shell timing](PTY_STARTUP.md) and the [Windows native spawn investigation](WINDOWS_POWERSHELL_SPAWN.md). Opt-in session diagnostics distinguish native creation/spawn, first bytes, rendered shell text and existing prompt readiness without gating startup. Windows release timing checks and manual acceptance pass: no visible white flash, normal immediate typing, focus/taskbar behavior, sizing and placement.
