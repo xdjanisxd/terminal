@@ -12,12 +12,14 @@ pub const MAX_SCROLLBACK_ROWS: usize = 10_000;
 #[derive(Debug)]
 pub(crate) struct Scrollback {
     rows: VecDeque<Vec<Cell>>,
+    capacity: usize,
 }
 
 impl Scrollback {
     pub(crate) fn new() -> Self {
         Self {
             rows: VecDeque::with_capacity(MAX_SCROLLBACK_ROWS),
+            capacity: MAX_SCROLLBACK_ROWS,
         }
     }
 
@@ -31,11 +33,25 @@ impl Scrollback {
 
     pub(crate) fn push(&mut self, row: &[Cell]) {
         debug_assert!(row_is_valid(row));
-        if self.rows.len() == MAX_SCROLLBACK_ROWS {
+        if self.capacity == 0 {
+            return;
+        }
+        if self.rows.len() == self.capacity {
             self.rows.pop_front();
         }
         self.rows.push_back(row.to_vec());
         debug_assert!(self.rows.iter().all(|row| row_is_valid(row)));
+    }
+
+    pub(crate) fn capacity(&self) -> usize {
+        self.capacity
+    }
+
+    pub(crate) fn configure_diagnostic(&mut self, capacity: usize) {
+        assert!(crate::throughput::enabled());
+        assert!(capacity <= MAX_SCROLLBACK_ROWS);
+        self.rows.clear();
+        self.capacity = capacity;
     }
 }
 
@@ -56,6 +72,22 @@ fn row_is_valid(row: &[Cell]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn diagnostic_capacities_keep_exact_order_or_retain_no_rows() {
+        for capacity in [0, 2] {
+            let mut history = Scrollback::new();
+            history.capacity = capacity;
+            for character in 'a'..='d' {
+                history.push(&[Cell::new(character, Default::default())]);
+            }
+            assert_eq!(history.len(), capacity);
+            if capacity != 0 {
+                assert_eq!(history.row(0).unwrap()[0].character(), 'c');
+                assert_eq!(history.row(1).unwrap()[0].character(), 'd');
+            }
+        }
+    }
 
     #[test]
     fn evicts_the_oldest_row_when_at_capacity() {

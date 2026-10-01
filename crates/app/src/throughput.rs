@@ -3,6 +3,8 @@ use crate::{Application, PtyWake};
 pub const WORKLOADS: [&str; 6] = ["finite", "short", "long", "ansi", "continuous", "input"];
 use std::time::{Duration, Instant};
 use terminal_pty::PtyBackend;
+#[path = "throughput/core.rs"]
+mod core;
 use winit::event_loop::ActiveEventLoop;
 
 const ACK: &[u8] = b"THROUGHPUT_ACK";
@@ -44,6 +46,7 @@ impl Application {
             ..Stats::default()
         };
         self.renderer.as_mut().unwrap().reset_throughput_stats();
+        core::configure_history(&mut self.terminal);
         let session = terminal_pty::PortablePtyBackend::new()
             .spawn(config)
             .unwrap();
@@ -88,6 +91,7 @@ impl Application {
             return;
         };
         let elapsed = stats.started.elapsed();
+        core::report_core(&self.terminal);
         let mut intervals = stats.frame_intervals.clone();
         intervals.sort_unstable();
         let percentile = |percent: usize| {

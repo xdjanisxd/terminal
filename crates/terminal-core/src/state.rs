@@ -155,6 +155,17 @@ pub struct TerminalState {
 }
 
 impl TerminalState {
+    /// Aggregate work on the active screen when throughput diagnostics are enabled.
+    pub fn throughput_stats(&self) -> Option<crate::CoreThroughputStats> {
+        self.screen.throughput_stats()
+    }
+
+    /// Diagnostic harness only: compare history capacities and initial occupancy.
+    /// Production construction always retains the normal fixed history limit.
+    #[doc(hidden)]
+    pub fn configure_throughput_history(&mut self, capacity: usize, prefill: usize) {
+        self.screen.configure_throughput_history(capacity, prefill);
+    }
     /// The latest terminal-provided title for this session.
     pub fn shell_title(&self) -> Option<&str> {
         self.shell_title.as_deref()
@@ -570,6 +581,9 @@ impl TerminalState {
     /// margin wraps before writing only when auto-wrap is enabled; otherwise it
     /// is ignored without changing the grid or cursor.
     pub fn print_character(&mut self, character: char) -> Result<(), PrintError> {
+        if let Some(stats) = self.screen.throughput_mut() {
+            stats.prints += 1;
+        }
         let width = PrintableWidth::classify(character)?;
         if width == PrintableWidth::Zero {
             return self.attach_combining_mark(character);
@@ -681,6 +695,10 @@ impl TerminalState {
 
     /// Moves the cursor to the first column of its current row.
     pub fn carriage_return(&mut self) {
+        if let Some(stats) = self.screen.throughput_mut() {
+            stats.carriage_returns += 1;
+            stats.transition_moves += 1;
+        }
         let row = self.cursor().row();
         self.screen
             .set_cursor_position(row, 0)
@@ -695,12 +713,22 @@ impl TerminalState {
     /// Alternate scrolls without history. The cursor column and any
     /// delayed-wrap condition are unchanged.
     pub fn line_feed(&mut self) {
+        let started = self
+            .screen
+            .throughput_stats()
+            .map(|_| std::time::Instant::now());
         let cursor = self.cursor();
         let margins = self.screen.vertical_scrolling_margins();
         if cursor.row() == margins.bottom() {
             self.screen.scroll_region_up(margins, 1);
         } else if cursor.row() + 1 < self.dimensions().rows() {
             self.screen.move_cursor(1, 0);
+        }
+        let moved = self.cursor() != cursor;
+        if let Some(stats) = self.screen.throughput_mut() {
+            stats.line_feeds += 1;
+            stats.transition_moves += u64::from(moved);
+            stats.line_feed += started.unwrap().elapsed();
         }
     }
 

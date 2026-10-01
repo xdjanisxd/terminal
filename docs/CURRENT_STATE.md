@@ -1,5 +1,7 @@
 # Current State
 
+- Opt-in short-line throughput diagnostics include core LF/scroll/history elapsed scopes and cell-movement/allocation counts, with harness-only history capacity/prefill comparisons. The measured full-grid scroll-copy bottleneck remains unchanged: a row-buffer candidate was rejected after a presentation regression. See [SHORT_LINE_THROUGHPUT.md](SHORT_LINE_THROUGHPUT.md) for release evidence and the outstanding native interactive check.
+
 - Sustained PTY output is drained with a per-pane budget of 64 events or four milliseconds before returning to window/input/redraw processing; a single parser feed always makes progress and can exceed the time budget. Deferred work continues through the event loop without changing PTY byte order or queue capacity. Opt-in aggregate throughput diagnostics and six deterministic release workloads are documented in [LARGE_OUTPUT_THROUGHPUT.md](LARGE_OUTPUT_THROUGHPUT.md), including measured responsiveness gains and throughput tradeoffs.
 
 ## Working
