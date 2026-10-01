@@ -31,6 +31,7 @@ struct ScreenState {
     scrollback: Option<Scrollback>,
     viewport_offset: usize,
     history_origin: usize,
+    throughput: Option<crate::CoreThroughputStats>,
 }
 
 impl ScreenState {
@@ -43,6 +44,7 @@ impl ScreenState {
             scrollback: owns_scrollback.then(Scrollback::new),
             viewport_offset: 0,
             history_origin: 0,
+            throughput: crate::throughput::enabled().then(crate::CoreThroughputStats::default),
         }
     }
 
@@ -92,8 +94,20 @@ impl ScreenState {
                     .grid
                     .row(row)
                     .expect("scrolling margin row is always in bounds");
-                let full = scrollback.len() == crate::MAX_SCROLLBACK_ROWS;
+                let full = scrollback.capacity() != 0 && scrollback.len() == scrollback.capacity();
+                let started = self.throughput.as_ref().map(|_| std::time::Instant::now());
                 scrollback.push(displaced);
+                if let Some(stats) = &mut self.throughput {
+                    stats.history += started.unwrap().elapsed();
+                    stats.history_pushes += 1;
+                    stats.history_trims += u64::from(full);
+                    stats.row_allocations += u64::from(scrollback.capacity() != 0);
+                    stats.history_cells_copied += if scrollback.capacity() == 0 {
+                        0
+                    } else {
+                        displaced.len() as u64
+                    };
+                }
                 if full {
                     self.history_origin += 1;
                 }
@@ -109,7 +123,15 @@ impl ScreenState {
             }
         }
 
+        let started = self.throughput.as_ref().map(|_| std::time::Instant::now());
         self.grid.scroll_region_up(margins, rows);
+        if let Some(stats) = &mut self.throughput {
+            stats.grid_scroll += started.unwrap().elapsed();
+            stats.scrolls += 1;
+            stats.scrolled_rows += rows as u64;
+            stats.grid_cells_moved += ((height - rows) * self.grid.dimensions().columns()) as u64;
+            stats.grid_cells_cleared += (rows * self.grid.dimensions().columns()) as u64;
+        }
     }
 
     fn scrollback_len(&self) -> usize {
@@ -184,6 +206,27 @@ pub(crate) struct ScreenSet {
 }
 
 impl ScreenSet {
+    pub(crate) fn throughput_mut(&mut self) -> Option<&mut crate::CoreThroughputStats> {
+        self.active_state_mut().throughput.as_mut()
+    }
+
+    pub(crate) fn throughput_stats(&self) -> Option<crate::CoreThroughputStats> {
+        self.active_state().throughput
+    }
+
+    pub(crate) fn configure_throughput_history(&mut self, capacity: usize, prefill: usize) {
+        let state = &mut self.primary;
+        let history = state.scrollback.as_mut().unwrap();
+        history.configure_diagnostic(capacity);
+        assert!(prefill <= capacity);
+        let row = vec![Cell::default(); state.grid.dimensions().columns()];
+        for _ in 0..prefill {
+            history.push(&row);
+        }
+        state.history_origin = 0;
+        state.viewport_offset = 0;
+        state.throughput = Some(crate::CoreThroughputStats::default());
+    }
     pub(crate) fn target_ids(&self) -> HashSet<u64> {
         let mut ids = HashSet::new();
         for screen in [&self.primary, &self.alternate] {
@@ -334,5 +377,41 @@ impl Deref for ScreenSet {
 impl DerefMut for ScreenSet {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.active_state_mut().grid
+    }
+}
+
+#[cfg(test)]
+mod throughput_tests {
+    use super::*;
+
+    #[test]
+    fn aggregate_scroll_observation_preserves_screen_history_and_order() {
+        let dimensions = TerminalDimensions::new(2, 3).unwrap();
+        let mut observed = ScreenState::new(dimensions, true);
+        let mut plain = ScreenState::new(dimensions, true);
+        observed.throughput = Some(crate::CoreThroughputStats::default());
+        plain.throughput = None;
+        let margins = VerticalScrollingMargins::full_screen(3);
+        for character in 'a'..='f' {
+            for state in [&mut observed, &mut plain] {
+                *state.grid.cell_mut(0, 0).unwrap() = Cell::new(character, Default::default());
+                state.scroll_region_up(margins, 1);
+            }
+            assert_eq!(observed.grid, plain.grid);
+            assert_eq!(observed.history_origin, plain.history_origin);
+            assert_eq!(observed.scrollback_len(), plain.scrollback_len());
+            for row in 0..plain.scrollback_len() {
+                assert_eq!(observed.scrollback_row(row), plain.scrollback_row(row));
+            }
+        }
+        assert_eq!(observed.scrollback_row(4).unwrap()[0].character(), 'e');
+        assert_eq!(observed.scrollback_row(5).unwrap()[0].character(), 'f');
+        let stats = observed.throughput.unwrap();
+        assert_eq!(stats.scrolls, 6);
+        assert_eq!(stats.history_pushes, 6);
+        assert_eq!(stats.history_trims, 0);
+        assert_eq!(stats.row_allocations, 6);
+        assert_eq!(stats.grid_cells_moved, 24);
+        assert_eq!(stats.grid_cells_cleared, 12);
     }
 }

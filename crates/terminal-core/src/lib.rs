@@ -14,6 +14,7 @@ mod scrolling;
 mod selection;
 mod state;
 mod tabs;
+mod throughput;
 
 pub use cell::{
     Cell, CellAttributes, CellColor, CellOccupancy, InverseVideo, ItalicStyle, MAX_COMBINING_MARKS,
@@ -36,3 +37,4 @@ pub use screens::ScreenKind;
 pub use scrollback::MAX_SCROLLBACK_ROWS;
 pub use scrolling::VerticalScrollingMargins;
 pub use state::{CursorMovement, EraseDirection, EraseRegion, PrintError, TerminalState};
+pub use throughput::CoreThroughputStats;

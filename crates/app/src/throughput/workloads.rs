@@ -1,3 +1,4 @@
+mod core;
 use std::io::{BufRead, Write};
 use std::time::Instant;
 use terminal_core::{TerminalDimensions, TerminalParser, TerminalState};
@@ -53,6 +54,7 @@ pub fn parser_baseline(name: &str) {
         .map(|v| v.parse().unwrap())
         .unwrap_or(80);
     let mut terminal = TerminalState::new(TerminalDimensions::new(columns, rows).unwrap());
+    core::configure_history(&mut terminal);
     let block = block(name);
     let start = Instant::now();
     let mut batches = 0;
@@ -70,4 +72,5 @@ pub fn parser_baseline(name: &str) {
         bytes as f64 / elapsed.as_secs_f64() / 1e6,
         terminal.scrollback_len()
     );
+    core::report_core(&terminal);
 }
