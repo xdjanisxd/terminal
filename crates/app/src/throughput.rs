@@ -1,6 +1,14 @@
 //! Opt-in lifetime aggregates and deterministic, self-hosted release workloads.
 use crate::{Application, PtyWake};
-pub const WORKLOADS: [&str; 6] = ["finite", "short", "long", "ansi", "continuous", "input"];
+pub const WORKLOADS: [&str; 7] = [
+    "finite",
+    "short",
+    "long",
+    "ansi",
+    "continuous",
+    "input",
+    "idle",
+];
 use std::time::{Duration, Instant};
 use terminal_pty::PtyBackend;
 #[path = "throughput/core.rs"]
@@ -86,7 +94,10 @@ impl Application {
         true
     }
 
-    pub(crate) fn report_throughput(&self) {
+    pub(crate) fn report_throughput(&mut self) {
+        if let Some(renderer) = &mut self.renderer {
+            renderer.poll_throughput_completion();
+        }
         let Some(stats) = &self.throughput else {
             return;
         };

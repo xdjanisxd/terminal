@@ -229,6 +229,8 @@ pub(super) struct RenderWork {
     pub(super) instance_generation: Duration,
     pub(super) buffer_upload: Duration,
     pub(super) submission: Duration,
+    pub(super) encoding: Duration,
+    pub(super) submission_started: Option<Instant>,
 }
 
 struct InstanceBuffer<T> {
@@ -331,6 +333,7 @@ pub(super) struct FrameContext<'a> {
     pub(super) surface_size: crate::SurfaceSize,
     pub(super) cell_metrics: crate::CellMetrics,
     pub(super) ui: &'a crate::UiRenderTheme,
+    pub(super) measure: bool,
 }
 
 pub(super) struct PaneDraw {
@@ -682,7 +685,7 @@ impl DrawResources {
             )
         };
         let buffer_upload = upload_start.elapsed();
-        let submission_start = Instant::now();
+        let encoding_start = frame.measure.then(Instant::now);
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("terminal frame encoder"),
         });
@@ -749,8 +752,11 @@ impl DrawResources {
                 pass.draw(0..6, 0..overlays.len() as u32);
             }
         }
-        queue.submit(Some(encoder.finish()));
-        let submission = submission_start.elapsed();
+        let commands = encoder.finish();
+        let encoding = encoding_start.map_or(Duration::ZERO, |start| start.elapsed());
+        let submission_started = frame.measure.then(Instant::now);
+        queue.submit(Some(commands));
+        let submission = submission_started.map_or(Duration::ZERO, |start| start.elapsed());
         RenderWork {
             instances: RenderInstanceCounts {
                 backgrounds: background_count,
@@ -772,6 +778,8 @@ impl DrawResources {
             instance_generation,
             buffer_upload,
             submission,
+            encoding,
+            submission_started,
         }
     }
 }
@@ -1151,6 +1159,7 @@ mod tests {
                 surface_size: SurfaceSize::new(WIDTH, HEIGHT).unwrap(),
                 cell_metrics: crate::CellMetrics::from_physical(96, 25, 25.0),
                 ui: &crate::UiRenderTheme::default(),
+                measure: false,
             },
             &data,
             &mut fonts,

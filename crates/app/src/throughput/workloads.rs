@@ -2,9 +2,18 @@ mod core;
 use std::io::{BufRead, Write};
 use std::time::Instant;
 use terminal_core::{TerminalDimensions, TerminalParser, TerminalState};
-pub const WORKLOADS: [&str; 6] = ["finite", "short", "long", "ansi", "continuous", "input"];
+pub const WORKLOADS: [&str; 7] = [
+    "finite",
+    "short",
+    "long",
+    "ansi",
+    "continuous",
+    "input",
+    "idle",
+];
 pub fn block(name: &str) -> Vec<u8> {
     match name {
+        "idle" => b"IDLE_READY\r\n".to_vec(),
         "short" => b"x\r\n".repeat(1024),
         "long" => [vec![b'x'; 8192], b"\r\n".to_vec()].concat(),
         "ansi" => b"\x1b[31mred\x1b[0m \x1b[38;2;20;40;60mcolor\x1b[0m\r\n".repeat(128),
@@ -13,6 +22,9 @@ pub fn block(name: &str) -> Vec<u8> {
 }
 
 pub fn repetitions(name: &str) -> usize {
+    if name == "idle" {
+        return 1;
+    }
     let target = match name {
         "short" => 1024 * 1024,
         "continuous" | "input" => 32 * 1024 * 1024,
@@ -23,6 +35,15 @@ pub fn repetitions(name: &str) -> usize {
 
 pub fn child(name: &str) {
     assert!(WORKLOADS.contains(&name));
+    if name == "idle" {
+        let mut out = std::io::stdout().lock();
+        out.write_all(&block(name)).unwrap();
+        out.flush().unwrap();
+        // Deliberate quiet interval in the workload, never renderer pacing.
+        std::thread::sleep(std::time::Duration::from_secs(3));
+        out.write_all(b"IDLE_DONE\r\n").unwrap();
+        return;
+    }
     // Only the input workload needs an independent child-side stdin reader.
     // Lock stdout per block so acknowledgement output can make progress.
     let input = (name == "input").then(|| {

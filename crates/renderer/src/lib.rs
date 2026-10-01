@@ -138,6 +138,7 @@ impl Error for RendererInitError {}
 /// `wgpu` device, queue, and native surface lifecycle owned by the renderer.
 pub struct Renderer {
     throughput: Option<ThroughputRenderStats>,
+    gpu_completion: Option<throughput::GpuCompletion>,
     window: Arc<Window>,
     surface: wgpu::Surface<'static>,
     adapter: wgpu::Adapter,
@@ -162,6 +163,7 @@ impl Renderer {
     pub fn reset_throughput_stats(&mut self) {
         if let Some(stats) = &mut self.throughput {
             *stats = ThroughputRenderStats::default();
+            self.gpu_completion = Some(throughput::GpuCompletion::default());
         }
     }
 
@@ -204,8 +206,19 @@ impl Renderer {
             adapter_info.backend, adapter_info.name, adapter_info.driver
         ));
 
+        if throughput::enabled() {
+            eprintln!(
+                "throughput adapter backend={:?} name={:?} driver={:?} driver_info={:?}",
+                adapter_info.backend,
+                adapter_info.name,
+                adapter_info.driver,
+                adapter_info.driver_info
+            );
+        }
+
         let mut renderer = Self {
             throughput: throughput::enabled().then(ThroughputRenderStats::default),
+            gpu_completion: throughput::enabled().then(throughput::GpuCompletion::default),
             window,
             surface,
             adapter,
@@ -314,7 +327,11 @@ impl Renderer {
 
     /// Acquires and presents an empty frame.
     pub fn redraw(&mut self) -> RedrawOutcome {
-        self.redraw_data(None)
+        let started = self.throughput.map(|_| Instant::now());
+        self.poll_throughput_completion();
+        let outcome = self.redraw_data(None);
+        self.record_frame(started, outcome);
+        outcome
     }
 
     /// Converts terminal-core's resolved state and presents it without owning its semantics.
@@ -327,6 +344,8 @@ impl Renderer {
         state: &terminal_core::TerminalState,
         overlay: Option<&TextOverlay>,
     ) -> RedrawOutcome {
+        let frame_started = self.throughput.map(|_| Instant::now());
+        self.poll_throughput_completion();
         let projection_start = Instant::now();
         let mut data = TerminalRenderData::from_terminal_with_theme(state, &self.theme);
         if let Some(overlay) = overlay {
@@ -337,8 +356,13 @@ impl Renderer {
             data.cells.len(),
             projection_start.elapsed().as_micros()
         ));
+        if let Some(stats) = &mut self.throughput {
+            stats.projection += projection_start.elapsed();
+        }
         let size = self.window.inner_size();
-        self.redraw_data(Some(&[(data, [0, 0, size.width, size.height], false)]))
+        let outcome = self.redraw_data(Some(&[(data, [0, 0, size.width, size.height], false)]));
+        self.record_frame(frame_started, outcome);
+        outcome
     }
 
     pub fn redraw_panes(
@@ -346,6 +370,8 @@ impl Renderer {
         panes: &[PaneRenderInput<'_>],
         overlay: Option<&TextOverlay>,
     ) -> RedrawOutcome {
+        let frame_started = self.throughput.map(|_| Instant::now());
+        self.poll_throughput_completion();
         let projection_start = Instant::now();
         let data = project_panes(panes, overlay, &self.theme);
         if let Some(stats) = &mut self.throughput {
@@ -359,7 +385,33 @@ impl Renderer {
                 .sum::<usize>(),
             projection_start.elapsed().as_micros()
         ));
-        self.redraw_data(Some(&data))
+        let outcome = self.redraw_data(Some(&data));
+        self.record_frame(frame_started, outcome);
+        outcome
+    }
+
+    /// Diagnostic-only nonblocking callback delivery, also usable before reporting.
+    /// No wait, redraw request or production-path polling is introduced.
+    pub fn poll_throughput_completion(&mut self) {
+        if let (Some(tracker), Some(stats)) = (&mut self.gpu_completion, &mut self.throughput) {
+            let started = Instant::now();
+            if self.device.poll(wgpu::PollType::Poll).is_err() {
+                stats.completion_poll_errors += 1;
+            }
+            stats.completion_poll += started.elapsed();
+            tracker.collect(stats);
+        }
+    }
+
+    fn record_frame(&mut self, started: Option<Instant>, outcome: RedrawOutcome) {
+        if let (Some(stats), Some(started)) = (&mut self.throughput, started) {
+            let elapsed = started.elapsed();
+            stats.attempted += 1;
+            stats.cpu_frame += elapsed;
+            stats.cpu_frame_max = stats.cpu_frame_max.max(elapsed);
+            stats.skipped += u64::from(outcome == RedrawOutcome::Skipped);
+            stats.reconfigured_frames += u64::from(outcome == RedrawOutcome::Reconfigured);
+        }
     }
 
     pub fn set_theme(&mut self, theme: RenderTheme) {
@@ -401,10 +453,18 @@ impl Renderer {
             "renderer frame={frame_id} event=surface-acquire-complete elapsed_us={}",
             acquire_started.elapsed().as_micros()
         ));
+        if let Some(stats) = &mut self.throughput {
+            stats.acquire += acquire_started.elapsed();
+            stats.surface_errors += u64::from(acquired.is_err());
+        }
         match acquired {
             Ok(frame) => {
                 let frame_start = Instant::now();
+                let mut last_submission = None;
                 let suboptimal = frame.suboptimal;
+                if let Some(stats) = &mut self.throughput {
+                    stats.suboptimal += u64::from(suboptimal);
+                }
                 emit_diagnostic(format_args!(
                     "renderer frame={frame_id} event=surface-acquire result=ok suboptimal={suboptimal} state={:?}",
                     self.diagnostic_state()
@@ -438,6 +498,7 @@ impl Renderer {
                                 surface_size: size,
                                 cell_metrics: self.cell_metrics,
                                 ui: &self.theme.ui,
+                                measure: self.throughput.is_some() || diagnostics_enabled(),
                             },
                             pane_data,
                             &mut self.font_system,
@@ -448,10 +509,21 @@ impl Renderer {
                             },
                         );
                         clear_next = false;
+                        last_submission = work.submission_started;
                         if let Some(stats) = &mut self.throughput {
                             stats.generation += work.instance_generation;
                             stats.upload += work.buffer_upload;
                             stats.submission += work.submission;
+                            stats.encoding += work.encoding;
+                            stats.buffer_writes += work.buffer_writes as u64;
+                            stats.queue_submissions += work.queue_submissions as u64;
+                            stats.glyph_instances += work.instances.glyphs as u64;
+                            stats.rectangle_instances +=
+                                (work.instances.backgrounds + work.instances.decorations) as u64;
+                            stats.shape_calls += work.shape_calls as u64;
+                            stats.shape_misses += work.shape_misses as u64;
+                            stats.raster_calls += work.raster_calls as u64;
+                            stats.atlas_lookups += work.atlas_lookups as u64;
                             stats.buffer_allocations += work.buffer_allocations as u64;
                             stats.buffer_bytes += work.buffer_bytes as u64;
                         }
@@ -464,18 +536,33 @@ impl Renderer {
                         ));
                     }
                 } else {
+                    last_submission = self.throughput.map(|_| Instant::now());
                     self.queue.submit(std::iter::empty());
+                    if let (Some(stats), Some(start)) = (&mut self.throughput, last_submission) {
+                        stats.submission += start.elapsed();
+                        stats.queue_submissions += 1;
+                    }
                     emit_diagnostic(format_args!(
                         "renderer frame={frame_id} event=frame-rendered terminal_data=false"
                     ));
+                }
+                if let (Some(tracker), Some(stats), Some(start)) = (
+                    &mut self.gpu_completion,
+                    &mut self.throughput,
+                    last_submission,
+                ) {
+                    tracker.collect(stats);
+                    tracker.submitted(&self.queue, start, stats);
                 }
                 self.window.pre_present_notify();
                 if let Some(stats) = &mut self.throughput {
                     stats.rendered += 1;
                 }
+                let present_started = self.throughput.map(|_| Instant::now());
                 frame.present();
                 if let Some(stats) = &mut self.throughput {
                     stats.presented += 1;
+                    stats.present += present_started.expect("enabled timing").elapsed();
                     stats.render_present += acquire_started.elapsed();
                 }
                 emit_diagnostic(format_args!(
@@ -558,9 +645,23 @@ impl Renderer {
         let present_mode = configuration.present_mode;
         let configure_started = Instant::now();
         self.surface.configure(&self.device, &configuration);
-        let configure_us = configure_started.elapsed().as_micros();
+        let configure_elapsed = configure_started.elapsed();
+        let configure_us = configure_elapsed.as_micros();
+        if let Some(stats) = &mut self.throughput {
+            stats.reconfiguration += configure_elapsed;
+            stats.reconfigurations += 1;
+        }
         if draw_resources_reset {
             self.draw_resources = None;
+        }
+        if self.throughput.is_some() {
+            eprintln!(
+                "throughput surface present_mode={present_mode:?} maximum_frame_latency={} format={:?} size={}x{}",
+                configuration.desired_maximum_frame_latency,
+                configuration.format,
+                configuration.width,
+                configuration.height
+            );
         }
         self.configuration = Some(configuration);
         emit_diagnostic(format_args!(
