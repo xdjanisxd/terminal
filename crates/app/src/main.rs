@@ -11,6 +11,7 @@ mod saved_workspaces;
 mod search;
 mod shell;
 mod startup;
+mod throughput;
 
 use commands::{Palette, PaletteAction, PaletteEntry};
 use saved_workspaces::SavedWorkspaces;
@@ -51,6 +52,7 @@ use winit::keyboard::{Key, KeyCode, ModifiersState, NamedKey, PhysicalKey};
 use winit::window::{Window, WindowId};
 
 struct Application {
+    throughput: Option<throughput::Stats>,
     window: Option<Arc<Window>>,
     renderer: Option<Renderer>,
     startup_presentation: StartupPresentation,
@@ -65,6 +67,7 @@ struct Application {
     workspace_loaded: bool,
     pty_wake_proxy: Option<EventLoopProxy<PtyWake>>,
     pty_wake_pending: Arc<AtomicBool>,
+    pty_drain_deferred: bool,
     frame: FrameState,
     dpi_size_sync: PhysicalSizeSync,
     pending_resize: PendingResize,
@@ -242,6 +245,7 @@ impl PaneRuntime {
 enum PtyWake {
     OutputAvailable,
     ConfigChanged,
+    ThroughputProbe,
 }
 
 /// The minimal key subset needed to drive a line-oriented local shell.
@@ -590,6 +594,7 @@ impl Default for Application {
             populate_visual_smoke_state(&mut terminal);
         }
         Self {
+            throughput: throughput::enabled().then(throughput::Stats::default),
             window: None,
             renderer: None,
             startup_presentation: StartupPresentation::default(),
@@ -604,6 +609,7 @@ impl Default for Application {
             workspace_loaded: false,
             pty_wake_proxy: None,
             pty_wake_pending: Arc::new(AtomicBool::new(false)),
+            pty_drain_deferred: false,
             frame: FrameState::default(),
             dpi_size_sync: PhysicalSizeSync::default(),
             pending_resize: PendingResize::default(),
@@ -842,6 +848,7 @@ impl Application {
                 self.search = None;
                 self.unseen_tab_activity.clear();
                 self.pty_wake_pending.store(false, Ordering::Release);
+                self.pty_drain_deferred = false;
                 if let Some(size) = self.window.as_ref().map(|window| window.inner_size()) {
                     self.resize_terminal_to_viewport(size);
                 }
@@ -1795,6 +1802,13 @@ impl Application {
             })
             .collect();
         let outcome = renderer.redraw_panes(&panes, overlay.as_ref());
+        if matches!(
+            outcome,
+            RedrawOutcome::Presented | RedrawOutcome::PresentedSuboptimal
+        ) && let Some(stats) = &mut self.throughput
+        {
+            stats.presented();
+        }
         emit_diagnostic(format_args!(
             "app event=redraw-complete outcome={outcome:?}"
         ));
@@ -1842,6 +1856,9 @@ impl Application {
             && let Some(window) = self.window.as_ref()
         {
             window.request_redraw();
+            if let Some(stats) = &mut self.throughput {
+                stats.redraws += 1;
+            }
             if !self.startup_redraw_requested {
                 self.startup_redraw_requested = true;
                 startup_milestone("first-redraw-requested");
@@ -1966,6 +1983,14 @@ impl Application {
     }
 
     fn start_local_shell(&mut self) {
+        if self
+            .throughput
+            .as_ref()
+            .is_some_and(|stats| stats.workload.is_some())
+        {
+            self.start_throughput_workload();
+            return;
+        }
         let Some(proxy) = self.pty_wake_proxy.clone() else {
             return;
         };
@@ -2041,10 +2066,18 @@ impl Application {
 
     fn drain_pty_events(&mut self, request_redraw: bool) -> bool {
         let started = std::time::Instant::now();
+        // Yield between bounded per-pane batches so output cannot monopolize
+        // the event loop. The byte stream and persistent parser are unchanged.
+        let mut budget = PtyDrainBudget::new();
+        let mut yielded = false;
         let mut events = 0;
         let mut bytes = 0;
         let mut visible_output = false;
         while let Some(pty) = self.pty.as_ref() {
+            if budget.exhausted() {
+                yielded = true;
+                break;
+            }
             let event = match pty.recv_timeout(Duration::ZERO) {
                 Ok(Some(event)) => event,
                 Ok(None) => break,
@@ -2054,6 +2087,7 @@ impl Application {
                 }
             };
             events += 1;
+            budget.record_event();
             if let PtyWorkerEvent::Output(PtyOutput::Bytes(chunk)) = &event {
                 bytes += chunk.len();
             }
@@ -2068,7 +2102,12 @@ impl Application {
             .collect();
         let mut background_output = HashSet::new();
         for (pane_id, runtime) in &mut self.inactive_panes {
+            let mut budget = PtyDrainBudget::new();
             while let Some(pty) = runtime.pty.as_ref() {
+                if budget.exhausted() {
+                    yielded = true;
+                    break;
+                }
                 let event = match pty.recv_timeout(Duration::ZERO) {
                     Ok(Some(event)) => event,
                     Ok(None) => break,
@@ -2078,6 +2117,7 @@ impl Application {
                     }
                 };
                 events += 1;
+                budget.record_event();
                 if let PtyWorkerEvent::Output(PtyOutput::Bytes(chunk)) = &event {
                     bytes += chunk.len();
                     visible_output |= visible.contains(pane_id);
@@ -2085,11 +2125,33 @@ impl Application {
                         background_output.insert(*pane_id);
                     }
                 }
+                let parse_started = self.throughput.as_ref().map(|_| Instant::now());
+                let output_bytes = match &event {
+                    PtyWorkerEvent::Output(PtyOutput::Bytes(bytes)) => Some(bytes.as_slice()),
+                    _ => None,
+                };
+                let is_output = output_bytes.is_some();
+                // Record byte totals before moving the event; parsing time below
+                // includes the same app-owned apply/reply work as the active pane.
+                if let (Some(stats), Some(bytes)) = (&mut self.throughput, output_bytes) {
+                    let was_dirty = stats.data_dirty;
+                    stats.output(bytes, Duration::ZERO);
+                    stats.data_dirty = was_dirty || visible.contains(pane_id);
+                }
                 handle_background_pty_event(*pane_id, runtime, event);
+                if is_output && let Some(stats) = &mut self.throughput {
+                    stats.parse += parse_started.unwrap().elapsed();
+                }
             }
         }
         for pane_id in background_output {
             self.record_background_output(pane_id);
+        }
+        // Continue on the next event-loop turn. Repeated proxy notifications can
+        // run ahead of Windows redraw events even when each drain is bounded.
+        if yielded {
+            self.pty_drain_deferred = true;
+            self.pty_wake_pending.store(true, Ordering::Release);
         }
         let output_us = started.elapsed().as_micros();
         let invalidate_started = std::time::Instant::now();
@@ -2102,6 +2164,9 @@ impl Application {
         }
         if visible_output && request_redraw {
             self.invalidate_frame();
+        }
+        if let Some(stats) = &mut self.throughput {
+            stats.max_drain = stats.max_drain.max(started.elapsed());
         }
         emit_diagnostic(format_args!(
             "app event=pty-drain events={events} bytes={bytes} elapsed_us={} output_us={output_us} invalidate_us={}",
@@ -2143,13 +2208,33 @@ impl Application {
                 for reply in replies {
                     self.write_to_pty(reply);
                 }
+                if let Some(stats) = &mut self.throughput {
+                    stats.output(&bytes, parse_started.elapsed());
+                    if stats.workload.as_deref() == Some("input")
+                        && stats.bytes >= 512 * 1024
+                        && stats.probe_requested.is_none()
+                    {
+                        stats.probe_requested = Some(Instant::now());
+                        self.pty_wake_proxy
+                            .as_ref()
+                            .unwrap()
+                            .send_event(PtyWake::ThroughputProbe)
+                            .unwrap();
+                    }
+                }
                 true
             }
             PtyWorkerEvent::Output(PtyOutput::Eof) => {
+                if let Some(stats) = &mut self.throughput {
+                    stats.eof = true;
+                }
                 emit_diagnostic(format_args!("app pty-output=eof"));
                 false
             }
             PtyWorkerEvent::Output(PtyOutput::Exited(status)) => {
+                if let Some(stats) = &mut self.throughput {
+                    stats.exit_code = status.code_value();
+                }
                 emit_diagnostic(format_args!("app pty-output=exited status={status:?}"));
                 false
             }
@@ -2345,6 +2430,13 @@ impl ApplicationHandler<PtyWake> for Application {
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        if std::mem::take(&mut self.pty_drain_deferred) {
+            self.pty_wake_pending.store(false, Ordering::Release);
+            self.drain_pty_events(true);
+        }
+        if self.finish_throughput_workload(event_loop) {
+            return;
+        }
         if self.dpi_size_sync.take() {
             self.queue_window_size();
         }
@@ -2382,8 +2474,18 @@ impl ApplicationHandler<PtyWake> for Application {
             .map(|(_, _, _, deadline)| deadline)
             .into_iter()
             .chain(activity_deadline)
+            .chain(
+                self.throughput
+                    .as_ref()
+                    .filter(|stats| stats.workload.is_some())
+                    .map(|stats| stats.started + Duration::from_secs(60)),
+            )
             .min();
-        event_loop.set_control_flow(deadline.map_or(ControlFlow::Wait, ControlFlow::WaitUntil));
+        event_loop.set_control_flow(if self.pty_drain_deferred {
+            ControlFlow::Poll
+        } else {
+            deadline.map_or(ControlFlow::Wait, ControlFlow::WaitUntil)
+        });
         self.diagnose("about-to-wait");
     }
 
@@ -2780,14 +2882,18 @@ impl ApplicationHandler<PtyWake> for Application {
             }
             WindowEvent::RedrawRequested => {
                 self.redraw_window(event_loop);
+                self.finish_throughput_workload(event_loop);
             }
             _ => {}
         }
     }
 
-    fn user_event(&mut self, _event_loop: &ActiveEventLoop, event: PtyWake) {
+    fn user_event(&mut self, event_loop: &ActiveEventLoop, event: PtyWake) {
         match event {
             PtyWake::OutputAvailable => {
+                if self.pty_drain_deferred {
+                    return;
+                }
                 // Clear before draining: output queued during the drain can arm a
                 // successor wake, so no worker event is stranded by a race.
                 self.pty_wake_pending.store(false, Ordering::Release);
@@ -2795,7 +2901,20 @@ impl ApplicationHandler<PtyWake> for Application {
                 self.drain_pty_events(true);
             }
             PtyWake::ConfigChanged => self.reload_config(),
+            PtyWake::ThroughputProbe => {
+                let queued = self.write_terminal_input(b"probe\r".to_vec());
+                assert!(queued, "throughput input command must be queued");
+                if let Some(stats) = &mut self.throughput {
+                    stats.probe_dispatch = stats.probe_requested.map(|start| start.elapsed());
+                    stats.probe_dispatched = Some(Instant::now());
+                }
+            }
         }
+        self.finish_throughput_workload(event_loop);
+    }
+
+    fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
+        self.report_throughput();
     }
 }
 
@@ -3685,7 +3804,57 @@ fn configured_command(
         .map(|binding| binding.command)
 }
 
+/// Bounds each pane independently, including panes outside the active tab.
+struct PtyDrainBudget {
+    started: Instant,
+    events: usize,
+}
+
+impl PtyDrainBudget {
+    const EVENT_LIMIT: usize = 64;
+    const TIME_LIMIT: Duration = Duration::from_millis(4);
+
+    fn new() -> Self {
+        Self {
+            started: Instant::now(),
+            events: 0,
+        }
+    }
+
+    fn record_event(&mut self) {
+        self.events += 1;
+    }
+
+    fn exhausted(&self) -> bool {
+        self.exhausted_at(self.started.elapsed())
+    }
+
+    fn exhausted_at(&self, elapsed: Duration) -> bool {
+        self.events >= Self::EVENT_LIMIT || (self.events > 0 && elapsed >= Self::TIME_LIMIT)
+    }
+}
+
 fn main() {
+    let args: Vec<_> = std::env::args_os().skip(1).collect();
+    if args.first().is_some_and(|arg| arg == "--throughput-run") {
+        assert!(
+            throughput::enabled(),
+            "set TERMINAL_THROUGHPUT_DIAGNOSTICS=1"
+        );
+        let name = args
+            .get(1)
+            .and_then(|name| name.to_str())
+            .expect("workload name required");
+        assert!(throughput::WORKLOADS.contains(&name));
+        let event_loop = EventLoop::<PtyWake>::with_user_event().build().unwrap();
+        let mut app = Application {
+            pty_wake_proxy: Some(event_loop.create_proxy()),
+            ..Application::default()
+        };
+        app.throughput.as_mut().unwrap().workload = Some(name.to_owned());
+        event_loop.run_app(&mut app).unwrap();
+        return;
+    }
     let started = Instant::now();
     initialize_startup_diagnostics(started);
     let cli = match CliOptions::parse(std::env::args_os().skip(1)) {
@@ -3720,9 +3889,34 @@ mod tests {
     use std::path::PathBuf;
     use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
+    use super::PtyDrainBudget;
     use super::{Search, StartupPresentation};
     use super::{scrollbar_page_delta, selection_click_count, selection_edge_direction};
     use terminal_renderer::{RedrawOutcome, ScrollbarHit};
+
+    #[test]
+    fn pty_drain_budget_always_allows_one_event_and_caps_event_count() {
+        let mut budget = PtyDrainBudget::new();
+        assert!(!budget.exhausted_at(Duration::from_secs(1)));
+
+        for _ in 0..PtyDrainBudget::EVENT_LIMIT - 1 {
+            budget.record_event();
+        }
+        assert!(!budget.exhausted_at(Duration::ZERO));
+
+        budget.record_event();
+        assert!(budget.exhausted_at(Duration::ZERO));
+    }
+
+    #[test]
+    fn pty_drain_budget_caps_elapsed_time_after_an_event() {
+        let mut budget = PtyDrainBudget::new();
+        assert!(!budget.exhausted_at(PtyDrainBudget::TIME_LIMIT));
+
+        budget.record_event();
+        assert!(!budget.exhausted_at(PtyDrainBudget::TIME_LIMIT - Duration::from_nanos(1)));
+        assert!(budget.exhausted_at(PtyDrainBudget::TIME_LIMIT));
+    }
 
     #[test]
     fn startup_command_waits_for_prompt_and_is_consumed_only_after_one_successful_write() {
@@ -4416,6 +4610,66 @@ mod tests {
             smoke.query_candidates(),
             ["\x1b[6n", "\x1b[5n", "\x1b[c", "\x1b[>c"]
         );
+    }
+
+    #[test]
+    fn smoke_terminal_yielded_chunks_match_uninterrupted_parser_state() {
+        let mut stream = Vec::new();
+        for line in 0..30 {
+            if line == 0 {
+                stream.extend_from_slice(b"\x1b[31mRED\x1b[0m ");
+            }
+            stream.extend_from_slice(format!("LINE_{line:02}\r\n").as_bytes());
+        }
+        stream.extend_from_slice(b"\x1b[3;7H\x1b[6n\x1b[5n\x1b[c\x1b[>c\x1b[32mEND\x1b[0m");
+
+        let mut uninterrupted = SmokeTerminal::new();
+        uninterrupted.feed(&stream, |_| Ok(()));
+
+        let mut yielded = SmokeTerminal::new();
+        // One-byte chunks force yields inside CSI sequences, SGR parameters,
+        // CRLF pairs, and queries, as can happen when a drain budget is spent.
+        for byte in &stream {
+            yielded.feed(std::slice::from_ref(byte), |_| Ok(()));
+        }
+
+        assert_eq!(yielded.raw, uninterrupted.raw);
+        assert_eq!(yielded.replies_generated, uninterrupted.replies_generated);
+        assert_eq!(yielded.replies_queued, uninterrupted.replies_queued);
+        assert_eq!(
+            yielded.reply_queue_failures,
+            uninterrupted.reply_queue_failures
+        );
+        assert_eq!(yielded.terminal.cursor(), uninterrupted.terminal.cursor());
+        assert_eq!(
+            yielded.terminal.scrollback_len(),
+            uninterrupted.terminal.scrollback_len()
+        );
+        assert_eq!(
+            yielded.terminal.viewport_offset(),
+            uninterrupted.terminal.viewport_offset()
+        );
+        assert_eq!(yielded.visible(), uninterrupted.visible());
+
+        let dimensions = yielded.terminal.dimensions();
+        for row in 0..dimensions.rows() {
+            for column in 0..dimensions.columns() {
+                assert_eq!(
+                    yielded.terminal.screen().cell(row, column),
+                    uninterrupted.terminal.screen().cell(row, column),
+                    "screen cell differs at ({row}, {column})"
+                );
+            }
+        }
+        for row in 0..yielded.terminal.scrollback_len() {
+            assert_eq!(
+                yielded.terminal.scrollback_row(row),
+                uninterrupted.terminal.scrollback_row(row),
+                "scrollback row differs at {row}"
+            );
+        }
+        assert_eq!(yielded.replies_generated.len(), 4);
+        assert!(yielded.visible().contains("END"));
     }
 
     #[test]

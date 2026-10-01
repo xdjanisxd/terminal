@@ -13,8 +13,10 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, SyncSender, TryRecvError, TrySendError};
 use std::sync::{Arc, Mutex};
+mod throughput;
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
+pub use throughput::PtyThroughputStats;
 
 use portable_pty::{CommandBuilder, MasterPty, PtyPair, PtySystem};
 
@@ -464,12 +466,16 @@ impl Error for PtyWorkerError {}
 /// Project-owned bounded worker handle. The controller owns this sender, receiver,
 /// and join handle; the worker owns the live session and its exclusive reader.
 pub struct PtyWorker {
+    throughput: Option<Arc<throughput::Metrics>>,
     commands: Option<SyncSender<PtyCommand>>,
     events: Option<Receiver<PtyWorkerEvent>>,
     join: Option<JoinHandle<()>>,
 }
 
 impl PtyWorker {
+    pub fn throughput_stats(&self) -> Option<PtyThroughputStats> {
+        self.throughput.as_ref().map(|stats| stats.snapshot())
+    }
     /// Starts one session thread and one blocking-reader thread.
     pub fn start<S>(session: S) -> Result<Self, PtyWorkerError>
     where
@@ -489,6 +495,10 @@ impl PtyWorker {
         N: Fn() + Send + Sync + 'static,
     {
         let reader = session.take_output_reader().map_err(PtyWorkerError::Pty)?;
+        let throughput = std::env::var_os("TERMINAL_THROUGHPUT_DIAGNOSTICS")
+            .is_some_and(|v| v == "1")
+            .then(|| Arc::new(throughput::Metrics::default()));
+        let reader_throughput = throughput.clone();
         let (command_sender, command_receiver) = mpsc::sync_channel(PTY_COMMAND_CAPACITY);
         let (event_sender, event_receiver) = mpsc::sync_channel(PTY_EVENT_CAPACITY);
         let (reader_done_sender, reader_done_receiver) = mpsc::sync_channel(1);
@@ -503,6 +513,7 @@ impl PtyWorker {
         let join = thread::spawn(move || {
             let reader_join = thread::spawn(move || {
                 run_reader(
+                    reader_throughput,
                     reader,
                     reader_events,
                     reader_done_sender,
@@ -524,6 +535,7 @@ impl PtyWorker {
         });
 
         Ok(Self {
+            throughput,
             commands: Some(command_sender),
             events: Some(event_receiver),
             join: Some(join),
@@ -562,7 +574,14 @@ impl PtyWorker {
             return Err(PtyWorkerError::WorkerUnavailable);
         };
         match events.recv_timeout(timeout) {
-            Ok(event) => Ok(Some(event)),
+            Ok(event) => {
+                if let (Some(stats), PtyWorkerEvent::Output(PtyOutput::Bytes(bytes))) =
+                    (&self.throughput, &event)
+                {
+                    stats.received(bytes.len());
+                }
+                Ok(Some(event))
+            }
             Err(RecvTimeoutError::Timeout | RecvTimeoutError::Disconnected) => Ok(None),
         }
     }
@@ -582,7 +601,11 @@ impl PtyWorker {
             let _ = sender.send(PtyCommand::Terminate);
         }
         self.commands.take();
-        self.join()
+        let result = self.join();
+        if let Some(stats) = &self.throughput {
+            stats.clear_pending();
+        }
+        result
     }
 }
 
@@ -593,6 +616,7 @@ impl Drop for PtyWorker {
 }
 
 fn run_reader(
+    throughput: Option<Arc<throughput::Metrics>>,
     mut reader: Box<dyn PtyOutputReader + Send>,
     events: SyncSender<PtyWorkerEvent>,
     done: SyncSender<()>,
@@ -615,6 +639,9 @@ fn run_reader(
                 break;
             }
             Ok(read) => {
+                if let Some(stats) = &throughput {
+                    stats.read(read);
+                }
                 let event = PtyOutput::bytes(bytes[..read].to_vec()).expect("nonzero PTY read");
                 if !send_event(
                     &events,
@@ -622,6 +649,9 @@ fn run_reader(
                     &receiver_disconnected,
                     &notifier,
                 ) {
+                    if let Some(stats) = &throughput {
+                        stats.received(read);
+                    }
                     break;
                 }
             }
