@@ -38,7 +38,7 @@ use terminal_renderer::{
     CellMetrics, FontRequest, OverlayLine, PaneRenderInput, RedrawOutcome, RenderTheme, Renderer,
     RendererDiagnosticState, Rgba, ScrollbarGeometry, ScrollbarHit, ScrollbarRenderData,
     SearchHighlight, SearchMarker, SurfaceSize, TextOverlay, UiRenderTheme, diagnostics_enabled,
-    emit_diagnostic, initialize_startup_diagnostics, startup_milestone,
+    emit_diagnostic, initialize_startup_diagnostics, startup_milestone, startup_stage,
 };
 use terminal_workspace::{
     LayoutDefinition, PaneDirection, PaneId, PaneRect, SessionDefinition, SplitAxis, Tab, TabId,
@@ -586,6 +586,7 @@ fn tab_picker_label(tab: &Tab, terminal: Option<&TerminalState>, index: usize) -
 
 impl Default for Application {
     fn default() -> Self {
+        let _state_stage = startup_stage("application-default-state");
         let workspace = Workspace::default();
         let active_runtime_pane = workspace.active_pane();
         let mut terminal =
@@ -878,12 +879,14 @@ impl Application {
     }
 
     fn with_pty_wake_proxy(pty_wake_proxy: EventLoopProxy<PtyWake>, cli: CliOptions) -> Self {
+        let state_stage = startup_stage("application-state-and-paths");
         let mut app = Self {
             pty_wake_proxy: Some(pty_wake_proxy.clone()),
             config_path: cli.workspace.unwrap_or_else(config_path),
             project_root_override: cli.project_root,
             ..Self::default()
         };
+        drop(state_stage);
         startup_milestone("terminal-state-created");
         app.reload_config();
         startup_milestone("config-loaded");
@@ -905,11 +908,13 @@ impl Application {
     }
 
     fn reload_config(&mut self) {
+        let config_stage = startup_stage("config-read-parse");
         let next = if self.config_path.exists() {
             Config::load(&self.config_path)
         } else {
             Ok(Config::default())
         };
+        drop(config_stage);
         match next {
             Ok(mut config) => {
                 if let Some(root) = &self.project_root_override {
@@ -938,6 +943,7 @@ impl Application {
     }
 
     fn load_workspace(&mut self, definition: &WorkspaceDefinition) {
+        let _workspace_stage = startup_stage("workspace-model-and-runtimes");
         let workspace = Workspace::from_definition(definition).expect("validated workspace config");
         self.pending_startup_command = None;
         let active = workspace.active_pane();
@@ -1670,11 +1676,13 @@ impl Application {
     fn create_window_and_renderer(&mut self, event_loop: &ActiveEventLoop) {
         let recreating_surface = self.window.is_some();
         if self.window.is_none() {
+            let window_stage = startup_stage("window-create-and-branding");
             let attributes =
                 branding::window_attributes().with_visible(self.startup_presentation.presented);
             match event_loop.create_window(attributes) {
                 Ok(window) => {
                     self.window = Some(Arc::new(window));
+                    drop(window_stage);
                     startup_milestone("window-created");
                 }
                 Err(error) => {
@@ -1700,7 +1708,9 @@ impl Application {
                 if recreating_surface {
                     self.recovery_redraw.begin();
                 }
+                let grid_stage = startup_stage("initial-grid-resize");
                 self.resize_terminal_to_viewport(window.inner_size());
+                drop(grid_stage);
                 startup_milestone("initial-grid-ready");
                 self.update_workspace_title();
                 self.frame.rearm();
@@ -1758,6 +1768,7 @@ impl Application {
             false
         };
         self.frame.begin_redraw();
+        let ui_stage = startup_stage("initial-ui-and-pane-layout");
         let overlay = self
             .workspace_overlay()
             .or_else(|| self.tab_rename_overlay())
@@ -1801,6 +1812,7 @@ impl Application {
                 })
             })
             .collect();
+        drop(ui_stage);
         let outcome = renderer.redraw_panes(&panes, overlay.as_ref());
         if matches!(
             outcome,
@@ -3835,6 +3847,7 @@ impl PtyDrainBudget {
 }
 
 fn main() {
+    let started = Instant::now();
     let args: Vec<_> = std::env::args_os().skip(1).collect();
     if args.first().is_some_and(|arg| arg == "--throughput-run") {
         assert!(
@@ -3855,8 +3868,8 @@ fn main() {
         event_loop.run_app(&mut app).unwrap();
         return;
     }
-    let started = Instant::now();
     initialize_startup_diagnostics(started);
+    let cli_stage = startup_stage("cli-parse");
     let cli = match CliOptions::parse(std::env::args_os().skip(1)) {
         Ok(Some(cli)) => cli,
         Ok(None) => {
@@ -3870,9 +3883,12 @@ fn main() {
             std::process::exit(2);
         }
     };
+    drop(cli_stage);
+    let loop_stage = startup_stage("event-loop-create");
     let event_loop = EventLoop::<PtyWake>::with_user_event()
         .build()
         .expect("could not create terminal event loop");
+    drop(loop_stage);
     event_loop.set_control_flow(ControlFlow::Wait);
     let pty_wake_proxy = event_loop.create_proxy();
     event_loop

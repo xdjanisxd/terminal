@@ -27,6 +27,8 @@ Stages include application-started, terminal-state-created, config-loaded (inclu
 
 Main entry excludes OS loading before Rust main. A successful present is a renderer/window-system submission, not proof of compositor scanout or observed pixels. Window-shown records completion of visibility/focus requests. PTY completion does not mean the shell has produced a prompt.
 
+Fine-grained opt-in `cost=... duration_us=...` scopes now separate config/workspace, font discovery, GPU API calls, pipelines, buffers and rendering. These CPU scopes stop at native window show; shell milestones continue. See the [minimal first-frame audit](MINIMAL_FIRST_FRAME.md) for dependencies, classification, fresh-process sample ranges and outstanding cold-cache/manual acceptance. No production initialization was deferred by that audit.
+
 ## Measurements
 
 Five sequential native Windows x86_64 release launches per condition, using the same local default configuration and DX12 backend. The baseline build contained timing instrumentation before lifecycle changes; the final build contains the fix. Validation was idle for these samples. These are warm, non-interleaved launches, with no cold-cache or system-load controls. Sample files are local ignored artifacts under target/startup-baseline-{1..5}.log and target/startup-idle-{1..5}.log. Earlier exploratory/loaded samples are excluded.
