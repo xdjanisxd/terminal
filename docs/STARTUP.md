@@ -73,3 +73,5 @@ Synchronous native PTY/session creation remains the largest startup operation an
 A focused follow-up can investigate portable-pty/ConPTY creation internals and event-loop responsiveness using additional measurements before deciding on worker ownership. Persistent caches, single-instance/server architecture and general performance work are outside this task.
 
 The subsequent [PTY and shell startup investigation](PTY_STARTUP.md) extends these opt-in milestones and reports native shell comparisons, ownership limits and the decision to retain the startup sequence.
+
+The [Terminal / Alacritty comparison](ALACRITTY_STARTUP_COMPARISON.md) is completed with deferred validation and records matched-shell Windows x86_64 release measurements, stock Alacritty marker limitations, external visibility timing, and renderer/font/shell attribution. Its fresh-process samples have warm/uncontrolled caches. Independent cold-start comparison was NOT performed; manual first-frame/background/focus comparison is a recorded deferred follow-up. No relative true-cold performance claim or runtime optimization was made.
