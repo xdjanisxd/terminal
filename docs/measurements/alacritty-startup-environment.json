@@ -1,0 +1,66 @@
+{
+  "DateUtc": "2026-10-05T09:33:42.7638396Z",
+  "Branch": "perf/alacritty-cold-start-compare",
+  "Commit": "a598f0a841c6e340814d167607c8ca288ee6e56b",
+  "WorkingDirectory": "C:\\Users\\gifted\\Documents\\Projects\\terminal",
+  "OS": {
+    "Caption": "Microsoft Windows 11 Pro",
+    "Version": "10.0.26300",
+    "BuildNumber": "26300",
+    "OSArchitecture": "64-bit",
+    "LastBootUpTime": "2026-10-05T10:58:12.5+03:00"
+  },
+  "CPU": {
+    "Name": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "NumberOfCores": 12,
+    "NumberOfLogicalProcessors": 16
+  },
+  "GPU": {
+    "Name": "Intel(R) Iris(R) Xe Graphics",
+    "DriverVersion": "32.0.101.7088"
+  },
+  "Files": [
+    {
+      "Bytes": 9576960,
+      "Path": "C:\\Users\\gifted\\Documents\\Projects\\terminal\\target\\release\\terminal.exe",
+      "Sha256": "C697AACF0E1E91648F0E19A32F124A717B0AF45D3B6850568773A8B0ED35711F",
+      "ModifiedUtc": "2026-10-05T09:20:47.4765583Z"
+    },
+    {
+      "Bytes": 6003200,
+      "Path": "C:\\Program Files\\Alacritty\\alacritty.exe",
+      "Sha256": "5AD70DDC5C2A2BFE84084A2C4C73558E9360914F035A902D7A69277BE7249F1F",
+      "ModifiedUtc": "2026-04-06T16:24:54Z"
+    },
+    {
+      "Bytes": 5851,
+      "Path": "C:\\Users\\gifted\\AppData\\Roaming\\terminal\\config.toml",
+      "Sha256": "9134FDA969EC977C62FDC6BB344A18334E6B1437267233D1C7C62407A326F9A8",
+      "ModifiedUtc": "2026-10-05T08:36:57.3109936Z"
+    },
+    {
+      "Bytes": 1116,
+      "Path": "C:\\Users\\gifted\\AppData\\Roaming\\alacritty\\alacritty.toml",
+      "Sha256": "71D7DF20C1672647819F983D33F805B24ABEA760A15E2745A78E2A6CF3D78F8B",
+      "ModifiedUtc": "2026-09-08T07:19:12.8461528Z"
+    }
+  ],
+  "CmdAutoRun": [
+    {
+      "PSPath": "Microsoft.PowerShell.Core\\Registry::HKEY_CURRENT_USER\\Software\\Microsoft\\Command Processor",
+      "AutoRun": "%USERPROFILE%\\cmd\\init.cmd&\"C:\\Program Files (x86)\\clink\\clink.bat\" inject --autorun --profile ~\\clink"
+    }
+  ],
+  "Rust": "rustc 1.98.1 (48a229cea 2026-09-01)",
+  "Cargo": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+  "Alacritty": "0.17.0 (94e7c88)",
+  "Pwsh": "C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe",
+  "PrimaryBatch": {
+    "Directory": "target/startup-comparison-clean",
+    "Launches": 70,
+    "FirstLaunchUtc": "2026-10-05T09:35:39.9891746Z",
+    "LastLaunchUtc": "2026-10-05T09:40:09.7730236Z",
+    "Cache": "Fresh process, warm/uncontrolled caches; not independently cache-cold",
+    "BackendProbe": "backend=Dx12 name=\"Intel(R) Iris(R) Xe Graphics\" driver=\"32.0.101.7088\""
+  }
+}
