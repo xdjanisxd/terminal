@@ -341,6 +341,7 @@ pub(super) struct PaneDraw {
 
 impl DrawResources {
     pub(super) fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Self {
+        let shader_stage = crate::startup_stage("shader-and-layout");
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("terminal renderer shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("terminal.wgsl").into()),
@@ -367,6 +368,8 @@ impl DrawResources {
                     },
                 ],
             });
+        drop(shader_stage);
+        let rect_stage = crate::startup_stage("rectangle-pipeline");
         let rect_pipeline = pipeline(
             device,
             &shader,
@@ -376,6 +379,8 @@ impl DrawResources {
             &[],
             rect_layout(),
         );
+        drop(rect_stage);
+        let glyph_stage = crate::startup_stage("glyph-pipeline");
         let glyph_pipeline = pipeline(
             device,
             &shader,
@@ -385,7 +390,10 @@ impl DrawResources {
             &[&glyph_bind_group_layout],
             glyph_vertex_layout(),
         );
+        drop(glyph_stage);
+        let atlas_stage = crate::startup_stage("glyph-atlas");
         let glyph_atlas = GlyphAtlas::new(device, &glyph_bind_group_layout);
+        drop(atlas_stage);
         Self {
             rect_pipeline,
             glyph_pipeline,
@@ -437,6 +445,7 @@ impl DrawResources {
         pane_draw: PaneDraw,
     ) -> RenderWork {
         let pane = pane_draw.rect;
+        let generation_stage = crate::startup_stage("instance-generation");
         let generation_start = Instant::now();
         let mut shape_calls = 0;
         let mut shape_misses = 0;
@@ -655,6 +664,8 @@ impl DrawResources {
         let rectangle_count = self.rectangles.len();
         let glyph_count = self.glyphs.len();
         let instance_generation = generation_start.elapsed();
+        drop(generation_stage);
+        let buffer_stage = crate::startup_stage("buffer-create-upload");
         let upload_start = Instant::now();
         let rectangle_upload = InstanceBuffer::upload(
             &mut self.rectangle_buffer,
@@ -682,6 +693,8 @@ impl DrawResources {
             )
         };
         let buffer_upload = upload_start.elapsed();
+        drop(buffer_stage);
+        let encoding_stage = crate::startup_stage("render-encoding");
         let submission_start = Instant::now();
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("terminal frame encoder"),
@@ -749,7 +762,11 @@ impl DrawResources {
                 pass.draw(0..6, 0..overlays.len() as u32);
             }
         }
-        queue.submit(Some(encoder.finish()));
+        let commands = encoder.finish();
+        drop(encoding_stage);
+        let submit_stage = crate::startup_stage("queue-submit");
+        queue.submit(Some(commands));
+        drop(submit_stage);
         let submission = submission_start.elapsed();
         RenderWork {
             instances: RenderInstanceCounts {

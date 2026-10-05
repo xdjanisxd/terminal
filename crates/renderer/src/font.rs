@@ -335,7 +335,9 @@ impl FontSystem {
     /// Discovers platform fonts and selects an initial terminal face.
     pub(super) fn load_system(request: FontRequest) -> Result<Self, FontLoadError> {
         let mut database = Database::new();
+        let discovery_stage = crate::startup_stage("system-font-discovery");
         database.load_system_fonts();
+        drop(discovery_stage);
         #[cfg(target_os = "linux")]
         if matches!(&request, FontRequest::SystemMonospace) {
             if let Some(id) = fontconfig_monospace_face(&mut database) {
@@ -349,7 +351,9 @@ impl FontSystem {
     }
 
     fn from_database(database: Database, request: FontRequest) -> Result<Self, FontLoadError> {
+        let resolution_stage = crate::startup_stage("font-family-resolution");
         let primary_face = select_primary_face(&database, &request)?;
+        drop(resolution_stage);
         Self::with_primary_face(database, primary_face, GLYPH_CACHE_CAPACITY)
     }
 
@@ -358,6 +362,7 @@ impl FontSystem {
         primary_face: ID,
         cache_capacity: usize,
     ) -> Result<Self, FontLoadError> {
+        let fallback_stage = crate::startup_stage("fallback-candidate-ordering");
         let mut fallback_candidates: Vec<_> = database
             .faces()
             .filter(|face| face.id != primary_face)
@@ -367,6 +372,8 @@ impl FontSystem {
             let face = database.face(*id).unwrap();
             (face.post_script_name.clone(), face.id.to_string())
         });
+        drop(fallback_stage);
+        let _cache_stage = crate::startup_stage("font-cache-setup");
         Ok(Self {
             database,
             primary_face,
