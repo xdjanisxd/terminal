@@ -1,7 +1,8 @@
 use terminal_core::{
     CursorKey, CursorKeyMode, EditingKey, MouseButton, MouseEncoding, MouseEvent, MouseModifiers,
     MouseTracking, TerminalDimensions, TerminalParser, TerminalState, encode_control_cursor_key,
-    encode_cursor_key, encode_editing_key, encode_focus, encode_mouse, encode_paste,
+    encode_cursor_key, encode_editing_key, encode_focus, encode_modified_cursor_key, encode_mouse,
+    encode_paste,
 };
 
 fn terminal() -> (TerminalParser, TerminalState) {
@@ -9,6 +10,33 @@ fn terminal() -> (TerminalParser, TerminalState) {
         TerminalParser::new(),
         TerminalState::new(TerminalDimensions::new(80, 24).unwrap()),
     )
+}
+
+#[test]
+fn shifted_horizontal_arrows_keep_modifiers_in_both_screens_and_cursor_modes() {
+    for alternate in [false, true] {
+        for application in [false, true] {
+            let (mut parser, mut terminal) = terminal();
+            if alternate {
+                parser.advance(&mut terminal, b"\x1b[?1049h").unwrap();
+            }
+            if application {
+                parser.advance(&mut terminal, b"\x1b[?1h").unwrap();
+            }
+            for (key, modifier, expected) in [
+                (CursorKey::Left, 2, b"\x1b[1;2D"),
+                (CursorKey::Right, 2, b"\x1b[1;2C"),
+                (CursorKey::Left, 6, b"\x1b[1;6D"),
+                (CursorKey::Right, 6, b"\x1b[1;6C"),
+            ] {
+                assert_eq!(
+                    encode_modified_cursor_key(*terminal.input_modes(), key, modifier),
+                    expected,
+                    "alternate={alternate}, application={application}, key={key:?}"
+                );
+            }
+        }
+    }
 }
 
 #[test]

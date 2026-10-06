@@ -5868,6 +5868,115 @@ mod tests {
     }
 
     #[test]
+    fn shift_arrow_defaults_select_characters_and_words_on_normal_screen() {
+        for (key, modifiers, text, expected) in [
+            (KeyCode::ArrowLeft, ModifiersState::SHIFT, "foo bar", "r"),
+            (KeyCode::ArrowRight, ModifiersState::SHIFT, "foo bar\r", "f"),
+            (
+                KeyCode::ArrowLeft,
+                ModifiersState::CONTROL | ModifiersState::SHIFT,
+                "foo bar",
+                "bar",
+            ),
+            (
+                KeyCode::ArrowRight,
+                ModifiersState::CONTROL | ModifiersState::SHIFT,
+                "foo bar\r",
+                "foo",
+            ),
+        ] {
+            let mut app = Application {
+                modifiers,
+                ..Application::default()
+            };
+            app.parser
+                .advance(&mut app.terminal, text.as_bytes())
+                .unwrap();
+            let command =
+                configured_command(&app.config, PhysicalKey::Code(key), modifiers).unwrap();
+            app.dispatch_command(command);
+            assert_eq!(app.terminal.selected_text().as_deref(), Some(expected));
+        }
+    }
+
+    #[test]
+    fn shift_arrow_selection_commands_yield_to_application_modes() {
+        for request in [
+            b"\x1b[?1049h".as_slice(),
+            b"\x1b[?1h",
+            b"\x1b[?1000h",
+            b"\x1b[>1u",
+            b"\x1b[>4;2m",
+        ] {
+            for (key, cursor, modifiers, expected) in [
+                (
+                    KeyCode::ArrowLeft,
+                    CursorKey::Left,
+                    ModifiersState::SHIFT,
+                    b"\x1b[1;2D",
+                ),
+                (
+                    KeyCode::ArrowRight,
+                    CursorKey::Right,
+                    ModifiersState::SHIFT,
+                    b"\x1b[1;2C",
+                ),
+                (
+                    KeyCode::ArrowLeft,
+                    CursorKey::Left,
+                    ModifiersState::CONTROL | ModifiersState::SHIFT,
+                    b"\x1b[1;6D",
+                ),
+                (
+                    KeyCode::ArrowRight,
+                    CursorKey::Right,
+                    ModifiersState::CONTROL | ModifiersState::SHIFT,
+                    b"\x1b[1;6C",
+                ),
+            ] {
+                let mut app = Application {
+                    modifiers,
+                    ..Application::default()
+                };
+                app.parser.advance(&mut app.terminal, request).unwrap();
+                app.parser.advance(&mut app.terminal, b"foo bar").unwrap();
+                assert!(!super::terminal_owns_editing_shortcuts(
+                    app.terminal.active_screen(),
+                    *app.terminal.input_modes()
+                ));
+                let command =
+                    configured_command(&app.config, PhysicalKey::Code(key), modifiers).unwrap();
+                app.dispatch_command(command);
+                assert_eq!(app.terminal.selected_text(), None);
+                assert_eq!(
+                    terminal_cursor_key_input(*app.terminal.input_modes(), cursor, modifiers),
+                    expected
+                );
+
+                // An explicit command still wins before default selection or input encoding.
+                let chord = if modifiers.control_key() {
+                    "Ctrl+Shift"
+                } else {
+                    "Shift"
+                };
+                let arrow = if key == KeyCode::ArrowLeft {
+                    "ArrowLeft"
+                } else {
+                    "ArrowRight"
+                };
+                let config = Config::parse(&format!(
+                    "[[bindings]]\nkey = '{chord}+{arrow}'\ncommand = 'copy'"
+                ))
+                .unwrap();
+                assert_eq!(
+                    configured_command(&config, PhysicalKey::Code(key), modifiers),
+                    Some(Command::Copy)
+                );
+            }
+        }
+    }
+
+    #[test]
     fn binding_and_palette_share_the_page_command_dispatcher() {
         let mut app = Application {
             terminal: TerminalState::new(TerminalDimensions::new(2, 2).unwrap()),
