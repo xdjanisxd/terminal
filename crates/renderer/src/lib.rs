@@ -187,9 +187,11 @@ impl Renderer {
         logical_font_size: f32,
     ) -> Result<Self, RendererInitError> {
         startup_milestone("fonts-started");
+        let font_stage = startup_stage("font-family-preparation");
         let font_system = FontSystem::load_system(font_request).map_err(|error| {
             RendererInitError::new(format!("could not load terminal font: {error}"))
         })?;
+        drop(font_stage);
         let metrics_stage = startup_stage("font-metrics");
         let cell_metrics = font_system
             .cell_metrics(window.scale_factor(), logical_font_size)
@@ -424,9 +426,11 @@ impl Renderer {
                     let resources = self.draw_resources.get_or_insert_with(|| {
                         DrawResources::new(&self.device, configuration.format)
                     });
+                    let view_stage = startup_stage("frame-texture-view");
                     let view = frame
                         .texture
                         .create_view(&wgpu::TextureViewDescriptor::default());
+                    drop(view_stage);
                     let mut clear_next = true;
                     for (index, (pane_data, rect, focused)) in data.iter().enumerate() {
                         let rect = [
@@ -477,7 +481,9 @@ impl Renderer {
                         "renderer frame={frame_id} event=frame-rendered terminal_data=false"
                     ));
                 }
+                let notify_stage = startup_stage("pre-present-notify");
                 self.window.pre_present_notify();
+                drop(notify_stage);
                 if let Some(stats) = &mut self.throughput {
                     stats.rendered += 1;
                 }
@@ -549,6 +555,7 @@ impl Renderer {
             ));
             return false;
         };
+        let configuration_stage = startup_stage("surface-capabilities-and-config");
         let Some(configuration) =
             self.surface
                 .get_default_config(&self.adapter, size.width(), size.height())
@@ -561,6 +568,7 @@ impl Renderer {
             ));
             return false;
         };
+        drop(configuration_stage);
         let draw_resources_reset = needs_draw_resource_rebuild(
             self.configuration.as_ref().map(|current| current.format),
             configuration.format,

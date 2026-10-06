@@ -2,6 +2,8 @@
 
 The fixed-workload M6 parser/state/projection measurements and reproduction commands are in [BASELINES.md](BASELINES.md). The interactive traces below cover additional app, renderer, and GPU stages.
 
+The [first-frame pipeline cost investigation](FIRST_FRAME_PIPELINE_COSTS.md) separates CPU fonts, wgpu initialization, surface setup, pipelines, resources and first submission, with repeated native Windows release samples and deferral candidates.
+
 Repeated Windows x86_64 release measurements for sustained PTY output, opt-in aggregate diagnostics, and bounded event-loop draining are in [LARGE_OUTPUT_THROUGHPUT.md](LARGE_OUTPUT_THROUGHPUT.md).
 
 Correctness and architectural clarity take priority over performance complexity.

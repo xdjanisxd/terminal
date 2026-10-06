@@ -75,6 +75,7 @@ impl GlyphAtlas {
     }
 
     fn new(device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> Self {
+        let texture_stage = crate::startup_stage("atlas-texture-create");
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("terminal glyph atlas"),
             size: wgpu::Extent3d {
@@ -89,6 +90,8 @@ impl GlyphAtlas {
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
+        drop(texture_stage);
+        let bindings_stage = crate::startup_stage("atlas-view-sampler-bind-group");
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("terminal glyph atlas sampler"),
@@ -110,6 +113,7 @@ impl GlyphAtlas {
                 },
             ],
         });
+        drop(bindings_stage);
         Self {
             texture,
             bind_group,
@@ -262,6 +266,7 @@ impl<T: Pod> InstanceBuffer<T> {
             required,
         );
         if allocation_required {
+            let _allocation_stage = crate::startup_stage("instance-buffer-allocation");
             let capacity = instance_buffer_capacity(required);
             *current = Some(Self {
                 buffer: device.create_buffer(&wgpu::BufferDescriptor {
@@ -283,6 +288,7 @@ impl<T: Pod> InstanceBuffer<T> {
             allocated: allocation_required,
             ..UploadWork::default()
         };
+        let write_stage = crate::startup_stage("instance-buffer-writes");
         for range in ranges {
             let bytes = bytemuck::cast_slice(&instances[range.clone()]);
             queue.write_buffer(
@@ -293,6 +299,7 @@ impl<T: Pod> InstanceBuffer<T> {
             work.writes += 1;
             work.bytes += bytes.len();
         }
+        drop(write_stage);
         buffer.previous.clear();
         buffer.previous.extend_from_slice(instances);
         work
@@ -342,10 +349,13 @@ pub(super) struct PaneDraw {
 impl DrawResources {
     pub(super) fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Self {
         let shader_stage = crate::startup_stage("shader-and-layout");
+        let module_stage = crate::startup_stage("shader-module-create");
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("terminal renderer shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("terminal.wgsl").into()),
         });
+        drop(module_stage);
+        let layout_stage = crate::startup_stage("glyph-bind-group-layout");
         let glyph_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                 label: Some("terminal glyph atlas layout"),
@@ -368,6 +378,7 @@ impl DrawResources {
                     },
                 ],
             });
+        drop(layout_stage);
         drop(shader_stage);
         let rect_stage = crate::startup_stage("rectangle-pipeline");
         let rect_pipeline = pipeline(
