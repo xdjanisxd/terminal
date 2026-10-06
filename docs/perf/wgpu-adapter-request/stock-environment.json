@@ -1,0 +1,15 @@
+{
+  "video": {
+    "Name": "Intel(R) Iris(R) Xe Graphics",
+    "DriverVersion": "32.0.101.7088"
+  },
+  "backendOverride": null,
+  "build": "26300",
+  "architecture": "AMD64",
+  "caches": "unchanged; fresh process each run",
+  "os": "Microsoft Windows 11 Pro",
+  "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8",
+  "executableSha256": "6C2D6A584DBAF4343411B38B8BE8D448D5D10EFB66C157D84BB4530B3BD1B3DE",
+  "rendererDiagnostics": false,
+  "cpu": "12th Gen Intel(R) Core(TM) i5-1250P"
+}

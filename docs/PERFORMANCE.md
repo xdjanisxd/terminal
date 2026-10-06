@@ -2,6 +2,8 @@
 
 The fixed-workload M6 parser/state/projection measurements and reproduction commands are in [BASELINES.md](BASELINES.md). The interactive traces below cover additional app, renderer, and GPU stages.
 
+The [wgpu adapter-request investigation](WGPU_ADAPTER_REQUEST.md) isolates DX12 candidate native-device creation from feature queries and unused cleanup; no application optimization was justified. Retained work is reproducible diagnostics and measurements.
+
 The [first-frame pipeline cost investigation](FIRST_FRAME_PIPELINE_COSTS.md) separates CPU fonts, wgpu initialization, surface setup, pipelines, resources and first submission, with repeated native Windows release samples and deferral candidates.
 
 The [deferred glyph resource experiment](DEFER_GLYPH_RESOURCES.md) measured roughly 8 ms earlier empty presentation, but doubled the median first-text frame and did not improve useful text arrival. The implementation and temporary instrumentation were reverted; 80 native release launch samples are retained.

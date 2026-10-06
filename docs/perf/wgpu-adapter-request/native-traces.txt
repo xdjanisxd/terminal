@@ -1,0 +1,344 @@
+run=1
+terminal-wgpu-adapter cost=dxgi-enumerate duration_us=225
+terminal-wgpu-adapter cost=native-device-create duration_us=92431
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=306
+terminal-wgpu-adapter cost=candidate-expose duration_us=92768
+terminal-wgpu-adapter cost=native-device-create duration_us=2586
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=58
+terminal-wgpu-adapter cost=candidate-expose duration_us=2649
+terminal-wgpu-adapter cost=dx12-enumeration-and-exposure duration_us=95657
+terminal-wgpu-adapter cost=adapter-drop-body duration_us=0
+terminal-wgpu-adapter cost=native-device-release duration_us=387
+terminal-wgpu-adapter cost=backend-enumerate-and-expose duration_us=95685
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=9
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=0
+terminal-wgpu-adapter cost=selection-metadata duration_us=0
+terminal-wgpu-adapter cost=unused-candidates-destroy duration_us=400
+terminal-wgpu-adapter cost=selected-adapter-wrap duration_us=5
+terminal-wgpu-adapter cost=request-total duration_us=96129
+
+run=2
+terminal-wgpu-adapter cost=dxgi-enumerate duration_us=327
+terminal-wgpu-adapter cost=native-device-create duration_us=29164
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=289
+terminal-wgpu-adapter cost=candidate-expose duration_us=29462
+terminal-wgpu-adapter cost=native-device-create duration_us=2846
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=77
+terminal-wgpu-adapter cost=candidate-expose duration_us=2930
+terminal-wgpu-adapter cost=dx12-enumeration-and-exposure duration_us=32736
+terminal-wgpu-adapter cost=adapter-drop-body duration_us=0
+terminal-wgpu-adapter cost=native-device-release duration_us=943
+terminal-wgpu-adapter cost=backend-enumerate-and-expose duration_us=32751
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=6
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=0
+terminal-wgpu-adapter cost=selection-metadata duration_us=0
+terminal-wgpu-adapter cost=unused-candidates-destroy duration_us=953
+terminal-wgpu-adapter cost=selected-adapter-wrap duration_us=1
+terminal-wgpu-adapter cost=request-total duration_us=33736
+
+run=3
+terminal-wgpu-adapter cost=dxgi-enumerate duration_us=255
+terminal-wgpu-adapter cost=native-device-create duration_us=30389
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=294
+terminal-wgpu-adapter cost=candidate-expose duration_us=30692
+terminal-wgpu-adapter cost=native-device-create duration_us=3161
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=69
+terminal-wgpu-adapter cost=candidate-expose duration_us=3238
+terminal-wgpu-adapter cost=dx12-enumeration-and-exposure duration_us=34197
+terminal-wgpu-adapter cost=adapter-drop-body duration_us=0
+terminal-wgpu-adapter cost=native-device-release duration_us=432
+terminal-wgpu-adapter cost=backend-enumerate-and-expose duration_us=34212
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=6
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=0
+terminal-wgpu-adapter cost=selection-metadata duration_us=0
+terminal-wgpu-adapter cost=unused-candidates-destroy duration_us=444
+terminal-wgpu-adapter cost=selected-adapter-wrap duration_us=1
+terminal-wgpu-adapter cost=request-total duration_us=34685
+
+run=4
+terminal-wgpu-adapter cost=dxgi-enumerate duration_us=258
+terminal-wgpu-adapter cost=native-device-create duration_us=32979
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=326
+terminal-wgpu-adapter cost=candidate-expose duration_us=33314
+terminal-wgpu-adapter cost=native-device-create duration_us=4043
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=87
+terminal-wgpu-adapter cost=candidate-expose duration_us=4138
+terminal-wgpu-adapter cost=dx12-enumeration-and-exposure duration_us=37723
+terminal-wgpu-adapter cost=adapter-drop-body duration_us=0
+terminal-wgpu-adapter cost=native-device-release duration_us=1015
+terminal-wgpu-adapter cost=backend-enumerate-and-expose duration_us=37739
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=6
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=0
+terminal-wgpu-adapter cost=selection-metadata duration_us=0
+terminal-wgpu-adapter cost=unused-candidates-destroy duration_us=1029
+terminal-wgpu-adapter cost=selected-adapter-wrap duration_us=2
+terminal-wgpu-adapter cost=request-total duration_us=38799
+
+run=5
+terminal-wgpu-adapter cost=dxgi-enumerate duration_us=244
+terminal-wgpu-adapter cost=native-device-create duration_us=30839
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=253
+terminal-wgpu-adapter cost=candidate-expose duration_us=31101
+terminal-wgpu-adapter cost=native-device-create duration_us=2867
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=69
+terminal-wgpu-adapter cost=candidate-expose duration_us=2942
+terminal-wgpu-adapter cost=dx12-enumeration-and-exposure duration_us=34299
+terminal-wgpu-adapter cost=adapter-drop-body duration_us=0
+terminal-wgpu-adapter cost=native-device-release duration_us=1193
+terminal-wgpu-adapter cost=backend-enumerate-and-expose duration_us=34315
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=6
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=0
+terminal-wgpu-adapter cost=selection-metadata duration_us=0
+terminal-wgpu-adapter cost=unused-candidates-destroy duration_us=1207
+terminal-wgpu-adapter cost=selected-adapter-wrap duration_us=2
+terminal-wgpu-adapter cost=request-total duration_us=35553
+
+run=6
+terminal-wgpu-adapter cost=dxgi-enumerate duration_us=256
+terminal-wgpu-adapter cost=native-device-create duration_us=31809
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=458
+terminal-wgpu-adapter cost=candidate-expose duration_us=32274
+terminal-wgpu-adapter cost=native-device-create duration_us=2887
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=72
+terminal-wgpu-adapter cost=candidate-expose duration_us=2966
+terminal-wgpu-adapter cost=dx12-enumeration-and-exposure duration_us=35509
+terminal-wgpu-adapter cost=adapter-drop-body duration_us=0
+terminal-wgpu-adapter cost=native-device-release duration_us=1090
+terminal-wgpu-adapter cost=backend-enumerate-and-expose duration_us=35526
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=7
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=0
+terminal-wgpu-adapter cost=selection-metadata duration_us=0
+terminal-wgpu-adapter cost=unused-candidates-destroy duration_us=1102
+terminal-wgpu-adapter cost=selected-adapter-wrap duration_us=2
+terminal-wgpu-adapter cost=request-total duration_us=36661
+
+run=7
+terminal-wgpu-adapter cost=dxgi-enumerate duration_us=254
+terminal-wgpu-adapter cost=native-device-create duration_us=31365
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=249
+terminal-wgpu-adapter cost=candidate-expose duration_us=31622
+terminal-wgpu-adapter cost=native-device-create duration_us=3458
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=93
+terminal-wgpu-adapter cost=candidate-expose duration_us=3559
+terminal-wgpu-adapter cost=dx12-enumeration-and-exposure duration_us=35446
+terminal-wgpu-adapter cost=adapter-drop-body duration_us=0
+terminal-wgpu-adapter cost=native-device-release duration_us=1016
+terminal-wgpu-adapter cost=backend-enumerate-and-expose duration_us=35462
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=6
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=0
+terminal-wgpu-adapter cost=selection-metadata duration_us=0
+terminal-wgpu-adapter cost=unused-candidates-destroy duration_us=1029
+terminal-wgpu-adapter cost=selected-adapter-wrap duration_us=2
+terminal-wgpu-adapter cost=request-total duration_us=36522
+
+run=8
+terminal-wgpu-adapter cost=dxgi-enumerate duration_us=261
+terminal-wgpu-adapter cost=native-device-create duration_us=32092
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=289
+terminal-wgpu-adapter cost=candidate-expose duration_us=32392
+terminal-wgpu-adapter cost=native-device-create duration_us=3341
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=92
+terminal-wgpu-adapter cost=candidate-expose duration_us=3440
+terminal-wgpu-adapter cost=dx12-enumeration-and-exposure duration_us=36105
+terminal-wgpu-adapter cost=adapter-drop-body duration_us=0
+terminal-wgpu-adapter cost=native-device-release duration_us=1286
+terminal-wgpu-adapter cost=backend-enumerate-and-expose duration_us=36121
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=8
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=1
+terminal-wgpu-adapter cost=selection-metadata duration_us=0
+terminal-wgpu-adapter cost=unused-candidates-destroy duration_us=1301
+terminal-wgpu-adapter cost=selected-adapter-wrap duration_us=4
+terminal-wgpu-adapter cost=request-total duration_us=37459
+
+run=9
+terminal-wgpu-adapter cost=dxgi-enumerate duration_us=256
+terminal-wgpu-adapter cost=native-device-create duration_us=31397
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=278
+terminal-wgpu-adapter cost=candidate-expose duration_us=31683
+terminal-wgpu-adapter cost=native-device-create duration_us=3600
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=75
+terminal-wgpu-adapter cost=candidate-expose duration_us=3682
+terminal-wgpu-adapter cost=dx12-enumeration-and-exposure duration_us=35633
+terminal-wgpu-adapter cost=adapter-drop-body duration_us=0
+terminal-wgpu-adapter cost=native-device-release duration_us=505
+terminal-wgpu-adapter cost=backend-enumerate-and-expose duration_us=35649
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=6
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=0
+terminal-wgpu-adapter cost=selection-metadata duration_us=0
+terminal-wgpu-adapter cost=unused-candidates-destroy duration_us=516
+terminal-wgpu-adapter cost=selected-adapter-wrap duration_us=1
+terminal-wgpu-adapter cost=request-total duration_us=36192
+
+run=10
+terminal-wgpu-adapter cost=dxgi-enumerate duration_us=255
+terminal-wgpu-adapter cost=native-device-create duration_us=30328
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=254
+terminal-wgpu-adapter cost=candidate-expose duration_us=30590
+terminal-wgpu-adapter cost=native-device-create duration_us=3622
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=81
+terminal-wgpu-adapter cost=candidate-expose duration_us=3711
+terminal-wgpu-adapter cost=dx12-enumeration-and-exposure duration_us=34567
+terminal-wgpu-adapter cost=adapter-drop-body duration_us=0
+terminal-wgpu-adapter cost=native-device-release duration_us=645
+terminal-wgpu-adapter cost=backend-enumerate-and-expose duration_us=34583
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=6
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=0
+terminal-wgpu-adapter cost=selection-metadata duration_us=0
+terminal-wgpu-adapter cost=unused-candidates-destroy duration_us=657
+terminal-wgpu-adapter cost=selected-adapter-wrap duration_us=1
+terminal-wgpu-adapter cost=request-total duration_us=35270
+
+run=11
+terminal-wgpu-adapter cost=dxgi-enumerate duration_us=228
+terminal-wgpu-adapter cost=native-device-create duration_us=30069
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=375
+terminal-wgpu-adapter cost=candidate-expose duration_us=30453
+terminal-wgpu-adapter cost=native-device-create duration_us=3296
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=68
+terminal-wgpu-adapter cost=candidate-expose duration_us=3372
+terminal-wgpu-adapter cost=dx12-enumeration-and-exposure duration_us=34066
+terminal-wgpu-adapter cost=adapter-drop-body duration_us=0
+terminal-wgpu-adapter cost=native-device-release duration_us=450
+terminal-wgpu-adapter cost=backend-enumerate-and-expose duration_us=34078
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=6
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=0
+terminal-wgpu-adapter cost=selection-metadata duration_us=0
+terminal-wgpu-adapter cost=unused-candidates-destroy duration_us=461
+terminal-wgpu-adapter cost=selected-adapter-wrap duration_us=2
+terminal-wgpu-adapter cost=request-total duration_us=34566
+
+run=12
+terminal-wgpu-adapter cost=dxgi-enumerate duration_us=232
+terminal-wgpu-adapter cost=native-device-create duration_us=31856
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=232
+terminal-wgpu-adapter cost=candidate-expose duration_us=32097
+terminal-wgpu-adapter cost=native-device-create duration_us=3144
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=68
+terminal-wgpu-adapter cost=candidate-expose duration_us=3217
+terminal-wgpu-adapter cost=dx12-enumeration-and-exposure duration_us=35557
+terminal-wgpu-adapter cost=adapter-drop-body duration_us=0
+terminal-wgpu-adapter cost=native-device-release duration_us=606
+terminal-wgpu-adapter cost=backend-enumerate-and-expose duration_us=35570
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=6
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=0
+terminal-wgpu-adapter cost=selection-metadata duration_us=0
+terminal-wgpu-adapter cost=unused-candidates-destroy duration_us=618
+terminal-wgpu-adapter cost=selected-adapter-wrap duration_us=2
+terminal-wgpu-adapter cost=request-total duration_us=36216
+
+run=13
+terminal-wgpu-adapter cost=dxgi-enumerate duration_us=268
+terminal-wgpu-adapter cost=native-device-create duration_us=28721
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=242
+terminal-wgpu-adapter cost=candidate-expose duration_us=28972
+terminal-wgpu-adapter cost=native-device-create duration_us=3439
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=89
+terminal-wgpu-adapter cost=candidate-expose duration_us=3536
+terminal-wgpu-adapter cost=dx12-enumeration-and-exposure duration_us=32788
+terminal-wgpu-adapter cost=adapter-drop-body duration_us=0
+terminal-wgpu-adapter cost=native-device-release duration_us=702
+terminal-wgpu-adapter cost=backend-enumerate-and-expose duration_us=32802
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=6
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=0
+terminal-wgpu-adapter cost=selection-metadata duration_us=0
+terminal-wgpu-adapter cost=unused-candidates-destroy duration_us=713
+terminal-wgpu-adapter cost=selected-adapter-wrap duration_us=2
+terminal-wgpu-adapter cost=request-total duration_us=33544
+
+run=14
+terminal-wgpu-adapter cost=dxgi-enumerate duration_us=373
+terminal-wgpu-adapter cost=native-device-create duration_us=32132
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=330
+terminal-wgpu-adapter cost=candidate-expose duration_us=32472
+terminal-wgpu-adapter cost=native-device-create duration_us=4045
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=93
+terminal-wgpu-adapter cost=candidate-expose duration_us=4147
+terminal-wgpu-adapter cost=dx12-enumeration-and-exposure duration_us=37008
+terminal-wgpu-adapter cost=adapter-drop-body duration_us=0
+terminal-wgpu-adapter cost=native-device-release duration_us=977
+terminal-wgpu-adapter cost=backend-enumerate-and-expose duration_us=37022
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=7
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=0
+terminal-wgpu-adapter cost=selection-metadata duration_us=0
+terminal-wgpu-adapter cost=unused-candidates-destroy duration_us=991
+terminal-wgpu-adapter cost=selected-adapter-wrap duration_us=2
+terminal-wgpu-adapter cost=request-total duration_us=38045
+
+run=15
+terminal-wgpu-adapter cost=dxgi-enumerate duration_us=264
+terminal-wgpu-adapter cost=native-device-create duration_us=30384
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=277
+terminal-wgpu-adapter cost=candidate-expose duration_us=30670
+terminal-wgpu-adapter cost=native-device-create duration_us=3015
+terminal-wgpu-adapter exposed-info=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=feature-queries-and-packaging duration_us=77
+terminal-wgpu-adapter cost=candidate-expose duration_us=3101
+terminal-wgpu-adapter cost=dx12-enumeration-and-exposure duration_us=34048
+terminal-wgpu-adapter cost=adapter-drop-body duration_us=0
+terminal-wgpu-adapter cost=native-device-release duration_us=583
+terminal-wgpu-adapter cost=backend-enumerate-and-expose duration_us=34063
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "32.0.101.7088", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter candidate=AdapterInfo { name: "Microsoft Basic Render Driver", vendor: 5140, device: 140, device_type: Cpu, driver: "10.0.26100.9549", driver_info: "", backend: Dx12 }
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=7
+terminal-wgpu-adapter cost=candidate-surface-check duration_us=0
+terminal-wgpu-adapter cost=selection-metadata duration_us=0
+terminal-wgpu-adapter cost=unused-candidates-destroy duration_us=596
+terminal-wgpu-adapter cost=selected-adapter-wrap duration_us=2
+terminal-wgpu-adapter cost=request-total duration_us=34691
