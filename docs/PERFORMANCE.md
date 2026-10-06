@@ -6,6 +6,8 @@ The [first-frame pipeline cost investigation](FIRST_FRAME_PIPELINE_COSTS.md) sep
 
 The [deferred glyph resource experiment](DEFER_GLYPH_RESOURCES.md) measured roughly 8 ms earlier empty presentation, but doubled the median first-text frame and did not improve useful text arrival. The implementation and temporary instrumentation were reverted; 80 native release launch samples are retained.
 
+The [font discovery investigation](FONT_DISCOVERY_STARTUP.md) attributes most CPU font preparation to opening, mapping and releasing 657 font files. A roughly 1 ms fallback-sort saving did not establish a meaningful total CPU improvement and was reverted; 120 valid native launch samples, detailed attribution and profiling-overhead checks are retained.
+
 Repeated Windows x86_64 release measurements for sustained PTY output, opt-in aggregate diagnostics, and bounded event-loop draining are in [LARGE_OUTPUT_THROUGHPUT.md](LARGE_OUTPUT_THROUGHPUT.md).
 
 Correctness and architectural clarity take priority over performance complexity.
