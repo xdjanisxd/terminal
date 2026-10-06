@@ -1,0 +1,344 @@
+{
+  "caches": "unchanged; fresh process each run",
+  "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+  "architecture": "AMD64",
+  "build": "26300",
+  "rendererDiagnostics": false,
+  "backendOverride": null,
+  "os": "Microsoft Windows 11 Pro",
+  "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8",
+  "video": {
+    "Name": "Intel(R) Iris(R) Xe Graphics",
+    "DriverVersion": "32.0.101.7088"
+  },
+  "cpu": "12th Gen Intel(R) Core(TM) i5-1250P",
+  "batches": {
+    "baseline-a": {
+      "executableSha256": "D44FEF600220A238CA9FA278C18FDCA577648DD28B42C938D5E2ED2F0D865C97",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "baseline-b": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "baseline-consolas": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": true,
+      "configuredFamily": "Consolas"
+    },
+    "candidate-b": {
+      "executableSha256": "1FBA1D4727D722403A0C0AAF01638796696AA6C2FDEFD0BF59B69E8599DD5B6E",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "candidate-consolas": {
+      "executableSha256": "1FBA1D4727D722403A0C0AAF01638796696AA6C2FDEFD0BF59B69E8599DD5B6E",
+      "dependencyProfile": true,
+      "configuredFamily": "Consolas"
+    },
+    "coarse-1-baseline": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "coarse-1-candidate": {
+      "executableSha256": "1FBA1D4727D722403A0C0AAF01638796696AA6C2FDEFD0BF59B69E8599DD5B6E",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "coarse-10-baseline": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "coarse-10-candidate": {
+      "executableSha256": "1FBA1D4727D722403A0C0AAF01638796696AA6C2FDEFD0BF59B69E8599DD5B6E",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "coarse-2-baseline": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "coarse-2-candidate": {
+      "executableSha256": "1FBA1D4727D722403A0C0AAF01638796696AA6C2FDEFD0BF59B69E8599DD5B6E",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "coarse-3-baseline": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "coarse-3-candidate": {
+      "executableSha256": "1FBA1D4727D722403A0C0AAF01638796696AA6C2FDEFD0BF59B69E8599DD5B6E",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "coarse-4-baseline": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "coarse-4-candidate": {
+      "executableSha256": "1FBA1D4727D722403A0C0AAF01638796696AA6C2FDEFD0BF59B69E8599DD5B6E",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "coarse-5-baseline": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "coarse-5-candidate": {
+      "executableSha256": "1FBA1D4727D722403A0C0AAF01638796696AA6C2FDEFD0BF59B69E8599DD5B6E",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "coarse-6-baseline": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "coarse-6-candidate": {
+      "executableSha256": "1FBA1D4727D722403A0C0AAF01638796696AA6C2FDEFD0BF59B69E8599DD5B6E",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "coarse-7-baseline": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "coarse-7-candidate": {
+      "executableSha256": "1FBA1D4727D722403A0C0AAF01638796696AA6C2FDEFD0BF59B69E8599DD5B6E",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "coarse-8-baseline": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "coarse-8-candidate": {
+      "executableSha256": "1FBA1D4727D722403A0C0AAF01638796696AA6C2FDEFD0BF59B69E8599DD5B6E",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "coarse-9-baseline": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "coarse-9-candidate": {
+      "executableSha256": "1FBA1D4727D722403A0C0AAF01638796696AA6C2FDEFD0BF59B69E8599DD5B6E",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "overhead-1-off": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "overhead-1-on": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "overhead-10-off": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "overhead-10-on": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "overhead-2-off": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "overhead-2-on": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "overhead-3-off": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "overhead-3-on": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "overhead-4-off": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "overhead-4-on": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "overhead-5-off": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "overhead-5-on": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "overhead-6-off": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "overhead-6-on": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "overhead-7-off": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "overhead-7-on": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "overhead-8-off": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "overhead-8-on": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "overhead-9-off": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": false,
+      "configuredFamily": "default generic monospace"
+    },
+    "overhead-9-on": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "pair-1-baseline": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "pair-1-candidate": {
+      "executableSha256": "1FBA1D4727D722403A0C0AAF01638796696AA6C2FDEFD0BF59B69E8599DD5B6E",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "pair-10-baseline": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "pair-10-candidate": {
+      "executableSha256": "1FBA1D4727D722403A0C0AAF01638796696AA6C2FDEFD0BF59B69E8599DD5B6E",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "pair-2-baseline": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "pair-2-candidate": {
+      "executableSha256": "1FBA1D4727D722403A0C0AAF01638796696AA6C2FDEFD0BF59B69E8599DD5B6E",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "pair-3-baseline": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "pair-3-candidate": {
+      "executableSha256": "1FBA1D4727D722403A0C0AAF01638796696AA6C2FDEFD0BF59B69E8599DD5B6E",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "pair-4-baseline": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "pair-4-candidate": {
+      "executableSha256": "1FBA1D4727D722403A0C0AAF01638796696AA6C2FDEFD0BF59B69E8599DD5B6E",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "pair-5-baseline": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "pair-5-candidate": {
+      "executableSha256": "1FBA1D4727D722403A0C0AAF01638796696AA6C2FDEFD0BF59B69E8599DD5B6E",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "pair-6-baseline": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "pair-6-candidate": {
+      "executableSha256": "1FBA1D4727D722403A0C0AAF01638796696AA6C2FDEFD0BF59B69E8599DD5B6E",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "pair-7-baseline": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "pair-7-candidate": {
+      "executableSha256": "1FBA1D4727D722403A0C0AAF01638796696AA6C2FDEFD0BF59B69E8599DD5B6E",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "pair-8-baseline": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "pair-8-candidate": {
+      "executableSha256": "1FBA1D4727D722403A0C0AAF01638796696AA6C2FDEFD0BF59B69E8599DD5B6E",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "pair-9-baseline": {
+      "executableSha256": "4B322A7795CB6A6A90666261A83819276E24A9723F2FA28F81EE8E13EFD048DC",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    },
+    "pair-9-candidate": {
+      "executableSha256": "1FBA1D4727D722403A0C0AAF01638796696AA6C2FDEFD0BF59B69E8599DD5B6E",
+      "dependencyProfile": true,
+      "configuredFamily": "default generic monospace"
+    }
+  },
+  "baseRevision": "aade3952813c9dc3261bffb17b06849fcbd79561",
+  "excludedBatch": "baseline-a: early stderr report stalls; different instrumentation; not used in comparisons"
+}

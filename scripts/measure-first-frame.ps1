@@ -1,13 +1,14 @@
 # Sequential native Windows release measurements. Startup caches are not cleared.
 param(
     [ValidateRange(1, 100)][int]$Runs = 15,
+    [string]$Executable,
     [string]$OutputDirectory,
     [switch]$RendererDiagnostics,
     [string]$Workspace
 )
 $ErrorActionPreference = 'Stop'
 $repository = Split-Path $PSScriptRoot -Parent
-$executable = Join-Path $repository 'target/release/terminal.exe'
+$executable = if ($Executable) { (Resolve-Path -LiteralPath $Executable).Path } else { Join-Path $repository 'target/release/terminal.exe' }
 if (!(Test-Path -LiteralPath $executable)) { throw 'Build release terminal-app first.' }
 if (!$OutputDirectory) { $OutputDirectory = Join-Path $repository ('target/first-frame-' + [Guid]::NewGuid().ToString('N')) }
 if (Test-Path -LiteralPath $OutputDirectory) { throw 'Use a fresh output directory.' }
