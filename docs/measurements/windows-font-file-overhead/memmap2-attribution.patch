@@ -1,0 +1,116 @@
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -2373,3 +2373,6 @@
+         mmap.copy_from_slice(&incr);
+     }
+ }
++
++#[cfg(target_os = "windows")]
++pub use crate::os::startup_profile;
+--- a/src/windows.rs
++++ b/src/windows.rs
+@@ -1,5 +1,18 @@
+ #![allow(non_camel_case_types)]
+ #![allow(non_snake_case)]
++
++
++// Temporary opt-in Windows mapping attribution. Not used by normal builds.
++pub mod startup_profile {
++    use std::{cell::RefCell, sync::OnceLock, time::Instant, fmt::Write};
++    thread_local! { static COSTS: RefCell<[(u64,u64);10]> = const { RefCell::new([(0,0);10]) }; }
++    fn enabled() -> bool { static ON: OnceLock<bool> = OnceLock::new(); *ON.get_or_init(|| std::env::var_os("TERMINAL_FONTDB_PROFILE").is_some_and(|v| v == "1")) }
++    pub fn reset() { if enabled() { COSTS.with(|c| *c.borrow_mut() = [(0,0);10]); } }
++    pub struct Timer(usize, Option<Instant>);
++    pub fn timer(i: usize) -> Timer { Timer(i, enabled().then(Instant::now)) }
++    impl Drop for Timer { fn drop(&mut self) { if let Some(t)=self.1 { COSTS.with(|c| { let mut c=c.borrow_mut(); c[self.0].0 += t.elapsed().as_nanos() as u64; c[self.0].1 += 1; }); } } }
++    pub fn report() -> String { let mut s=String::new(); COSTS.with(|c| { for (name,(ns,count)) in ["probe-write","probe-exec","create-mapping","map-view","close-mapping","duplicate-handle","unmap-view","close-duplicate","file-length","virtual-protect"].iter().zip(c.borrow().iter()) { let _=writeln!(s,"memmap-profile stage={name} duration_us={} count={count}",ns/1000); } }); s }
++}
+ 
+ use std::fs::File;
+ use std::mem::ManuallyDrop;
+@@ -179,12 +192,15 @@
+             });
+         }
+ 
++        let creating = startup_profile::timer(2);
+         let mapping =
+             unsafe { CreateFileMappingW(handle, ptr::null_mut(), protect, 0, 0, ptr::null()) };
++        drop(creating);
+         if mapping.is_null() {
+             return Err(io::Error::last_os_error());
+         }
+ 
++        let viewing = startup_profile::timer(3);
+         let ptr = unsafe {
+             MapViewOfFile(
+                 mapping,
+@@ -194,13 +210,17 @@
+                 aligned_len as SIZE_T,
+             )
+         };
++        drop(viewing);
++        let closing = startup_profile::timer(4);
+         unsafe { CloseHandle(mapping) };
++        drop(closing);
+         if ptr.is_null() {
+             return Err(io::Error::last_os_error());
+         }
+ 
+         let mut new_handle = 0 as RawHandle;
+         let cur_proc = unsafe { GetCurrentProcess() };
++        let duplicating = startup_profile::timer(5);
+         let ok = unsafe {
+             DuplicateHandle(
+                 cur_proc,
+@@ -212,6 +232,7 @@
+                 DUPLICATE_SAME_ACCESS,
+             )
+         };
++        drop(duplicating);
+         if ok == 0 {
+             unsafe { UnmapViewOfFile(ptr) };
+             return Err(io::Error::last_os_error());
+@@ -235,8 +256,12 @@
+         _populate: bool,
+         _no_reserve: bool,
+     ) -> io::Result<MmapInner> {
++        let probe = startup_profile::timer(0);
+         let write = protection_supported(handle, PAGE_READWRITE);
++        drop(probe);
++        let probe = startup_profile::timer(1);
+         let exec = protection_supported(handle, PAGE_EXECUTE_READ);
++        drop(probe);
+         let mut access = FILE_MAP_READ;
+         let protection = match (write, exec) {
+             (true, true) => {
+@@ -446,6 +471,7 @@
+         let aligned_len = self.len as SIZE_T + alignment as SIZE_T;
+ 
+         let mut old = 0;
++        let _protecting = startup_profile::timer(9);
+         let result = unsafe { VirtualProtect(ptr, aligned_len, protect, &mut old) };
+ 
+         if result != 0 {
+@@ -504,10 +530,14 @@
+         // to report them would be through panicking which is highly discouraged
+         // in Drop impls, c.f. https://github.com/rust-lang/lang-team/issues/97
+         unsafe {
++            let unmapping = startup_profile::timer(6);
+             UnmapViewOfFile(ptr);
++            drop(unmapping);
+ 
+             if let Some(handle) = self.handle {
++                let closing = startup_profile::timer(7);
+                 CloseHandle(handle);
++                drop(closing);
+             }
+         }
+     }
+@@ -536,6 +566,7 @@
+ }
+ 
+ pub fn file_len(handle: RawHandle) -> io::Result<u64> {
++    let _length = startup_profile::timer(8);
+     // SAFETY: We must not close the passed-in fd by dropping the File we create,
+     // we ensure this by immediately wrapping it in a ManuallyDrop.
+     unsafe {

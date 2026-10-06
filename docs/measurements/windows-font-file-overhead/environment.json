@@ -1,0 +1,362 @@
+{
+  "baseline": {
+    "video": {
+      "Name": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "32.0.101.7088"
+    },
+    "build": "26300",
+    "cpu": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8",
+    "os": "Microsoft Windows 11 Pro",
+    "executableSha256": "424691DD230C9D9106C1D7408047EF2D19743F478FE2EFAF0C377AB8E7BE882E",
+    "rendererDiagnostics": false,
+    "architecture": "AMD64",
+    "backendOverride": null,
+    "caches": "unchanged; fresh process each run"
+  },
+  "attribution-v1": {
+    "build": "26300",
+    "caches": "unchanged; fresh process each run",
+    "cpu": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "backendOverride": null,
+    "os": "Microsoft Windows 11 Pro",
+    "video": {
+      "Name": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "32.0.101.7088"
+    },
+    "executableSha256": "6F74F9DA3D5C985CFCC7840817A7B8FA11ACB4A62C50D728D2369A69D33A1A43",
+    "rendererDiagnostics": false,
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8",
+    "architecture": "AMD64"
+  },
+  "consolas-attribution": {
+    "architecture": "AMD64",
+    "cpu": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "executableSha256": "6BAC44ED150C65B61299DDA506BC311D6763C811182B3B9196B2FFE6D9B5045F",
+    "build": "26300",
+    "caches": "unchanged; fresh process each run",
+    "video": {
+      "Name": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "32.0.101.7088"
+    },
+    "backendOverride": null,
+    "rendererDiagnostics": false,
+    "os": "Microsoft Windows 11 Pro",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8"
+  },
+  "final-registry": {
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8",
+    "build": "26300",
+    "backendOverride": null,
+    "rendererDiagnostics": false,
+    "executableSha256": "A473B9187F6F50F89FF5797D9BECD316E18940E1CE540AA7B6D67D13F51D7FE4",
+    "caches": "unchanged; fresh process each run",
+    "os": "Microsoft Windows 11 Pro",
+    "cpu": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "architecture": "AMD64",
+    "video": {
+      "Name": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "32.0.101.7088"
+    }
+  },
+  "paired-1-on": {
+    "cpu": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "build": "26300",
+    "rendererDiagnostics": false,
+    "architecture": "AMD64",
+    "backendOverride": null,
+    "executableSha256": "6BAC44ED150C65B61299DDA506BC311D6763C811182B3B9196B2FFE6D9B5045F",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8",
+    "caches": "unchanged; fresh process each run",
+    "os": "Microsoft Windows 11 Pro",
+    "video": {
+      "Name": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "32.0.101.7088"
+    }
+  },
+  "paired-1-off": {
+    "cpu": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "build": "26300",
+    "rendererDiagnostics": false,
+    "architecture": "AMD64",
+    "backendOverride": null,
+    "executableSha256": "6BAC44ED150C65B61299DDA506BC311D6763C811182B3B9196B2FFE6D9B5045F",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8",
+    "caches": "unchanged; fresh process each run",
+    "os": "Microsoft Windows 11 Pro",
+    "video": {
+      "Name": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "32.0.101.7088"
+    }
+  },
+  "paired-2-on": {
+    "cpu": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "build": "26300",
+    "rendererDiagnostics": false,
+    "architecture": "AMD64",
+    "backendOverride": null,
+    "executableSha256": "6BAC44ED150C65B61299DDA506BC311D6763C811182B3B9196B2FFE6D9B5045F",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8",
+    "caches": "unchanged; fresh process each run",
+    "os": "Microsoft Windows 11 Pro",
+    "video": {
+      "Name": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "32.0.101.7088"
+    }
+  },
+  "paired-2-off": {
+    "cpu": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "build": "26300",
+    "rendererDiagnostics": false,
+    "architecture": "AMD64",
+    "backendOverride": null,
+    "executableSha256": "6BAC44ED150C65B61299DDA506BC311D6763C811182B3B9196B2FFE6D9B5045F",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8",
+    "caches": "unchanged; fresh process each run",
+    "os": "Microsoft Windows 11 Pro",
+    "video": {
+      "Name": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "32.0.101.7088"
+    }
+  },
+  "paired-3-on": {
+    "cpu": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "build": "26300",
+    "rendererDiagnostics": false,
+    "architecture": "AMD64",
+    "backendOverride": null,
+    "executableSha256": "6BAC44ED150C65B61299DDA506BC311D6763C811182B3B9196B2FFE6D9B5045F",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8",
+    "caches": "unchanged; fresh process each run",
+    "os": "Microsoft Windows 11 Pro",
+    "video": {
+      "Name": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "32.0.101.7088"
+    }
+  },
+  "paired-3-off": {
+    "cpu": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "build": "26300",
+    "rendererDiagnostics": false,
+    "architecture": "AMD64",
+    "backendOverride": null,
+    "executableSha256": "6BAC44ED150C65B61299DDA506BC311D6763C811182B3B9196B2FFE6D9B5045F",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8",
+    "caches": "unchanged; fresh process each run",
+    "os": "Microsoft Windows 11 Pro",
+    "video": {
+      "Name": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "32.0.101.7088"
+    }
+  },
+  "paired-4-on": {
+    "cpu": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "build": "26300",
+    "rendererDiagnostics": false,
+    "architecture": "AMD64",
+    "backendOverride": null,
+    "executableSha256": "6BAC44ED150C65B61299DDA506BC311D6763C811182B3B9196B2FFE6D9B5045F",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8",
+    "caches": "unchanged; fresh process each run",
+    "os": "Microsoft Windows 11 Pro",
+    "video": {
+      "Name": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "32.0.101.7088"
+    }
+  },
+  "paired-4-off": {
+    "cpu": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "build": "26300",
+    "rendererDiagnostics": false,
+    "architecture": "AMD64",
+    "backendOverride": null,
+    "executableSha256": "6BAC44ED150C65B61299DDA506BC311D6763C811182B3B9196B2FFE6D9B5045F",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8",
+    "caches": "unchanged; fresh process each run",
+    "os": "Microsoft Windows 11 Pro",
+    "video": {
+      "Name": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "32.0.101.7088"
+    }
+  },
+  "paired-5-on": {
+    "cpu": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "build": "26300",
+    "rendererDiagnostics": false,
+    "architecture": "AMD64",
+    "backendOverride": null,
+    "executableSha256": "6BAC44ED150C65B61299DDA506BC311D6763C811182B3B9196B2FFE6D9B5045F",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8",
+    "caches": "unchanged; fresh process each run",
+    "os": "Microsoft Windows 11 Pro",
+    "video": {
+      "Name": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "32.0.101.7088"
+    }
+  },
+  "paired-5-off": {
+    "cpu": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "build": "26300",
+    "rendererDiagnostics": false,
+    "architecture": "AMD64",
+    "backendOverride": null,
+    "executableSha256": "6BAC44ED150C65B61299DDA506BC311D6763C811182B3B9196B2FFE6D9B5045F",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8",
+    "caches": "unchanged; fresh process each run",
+    "os": "Microsoft Windows 11 Pro",
+    "video": {
+      "Name": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "32.0.101.7088"
+    }
+  },
+  "paired-6-on": {
+    "cpu": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "build": "26300",
+    "rendererDiagnostics": false,
+    "architecture": "AMD64",
+    "backendOverride": null,
+    "executableSha256": "6BAC44ED150C65B61299DDA506BC311D6763C811182B3B9196B2FFE6D9B5045F",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8",
+    "caches": "unchanged; fresh process each run",
+    "os": "Microsoft Windows 11 Pro",
+    "video": {
+      "Name": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "32.0.101.7088"
+    }
+  },
+  "paired-6-off": {
+    "cpu": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "build": "26300",
+    "rendererDiagnostics": false,
+    "architecture": "AMD64",
+    "backendOverride": null,
+    "executableSha256": "6BAC44ED150C65B61299DDA506BC311D6763C811182B3B9196B2FFE6D9B5045F",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8",
+    "caches": "unchanged; fresh process each run",
+    "os": "Microsoft Windows 11 Pro",
+    "video": {
+      "Name": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "32.0.101.7088"
+    }
+  },
+  "paired-7-on": {
+    "cpu": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "build": "26300",
+    "rendererDiagnostics": false,
+    "architecture": "AMD64",
+    "backendOverride": null,
+    "executableSha256": "6BAC44ED150C65B61299DDA506BC311D6763C811182B3B9196B2FFE6D9B5045F",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8",
+    "caches": "unchanged; fresh process each run",
+    "os": "Microsoft Windows 11 Pro",
+    "video": {
+      "Name": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "32.0.101.7088"
+    }
+  },
+  "paired-7-off": {
+    "cpu": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "build": "26300",
+    "rendererDiagnostics": false,
+    "architecture": "AMD64",
+    "backendOverride": null,
+    "executableSha256": "6BAC44ED150C65B61299DDA506BC311D6763C811182B3B9196B2FFE6D9B5045F",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8",
+    "caches": "unchanged; fresh process each run",
+    "os": "Microsoft Windows 11 Pro",
+    "video": {
+      "Name": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "32.0.101.7088"
+    }
+  },
+  "paired-8-on": {
+    "cpu": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "build": "26300",
+    "rendererDiagnostics": false,
+    "architecture": "AMD64",
+    "backendOverride": null,
+    "executableSha256": "6BAC44ED150C65B61299DDA506BC311D6763C811182B3B9196B2FFE6D9B5045F",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8",
+    "caches": "unchanged; fresh process each run",
+    "os": "Microsoft Windows 11 Pro",
+    "video": {
+      "Name": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "32.0.101.7088"
+    }
+  },
+  "paired-8-off": {
+    "cpu": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "build": "26300",
+    "rendererDiagnostics": false,
+    "architecture": "AMD64",
+    "backendOverride": null,
+    "executableSha256": "6BAC44ED150C65B61299DDA506BC311D6763C811182B3B9196B2FFE6D9B5045F",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8",
+    "caches": "unchanged; fresh process each run",
+    "os": "Microsoft Windows 11 Pro",
+    "video": {
+      "Name": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "32.0.101.7088"
+    }
+  },
+  "paired-9-on": {
+    "cpu": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "build": "26300",
+    "rendererDiagnostics": false,
+    "architecture": "AMD64",
+    "backendOverride": null,
+    "executableSha256": "6BAC44ED150C65B61299DDA506BC311D6763C811182B3B9196B2FFE6D9B5045F",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8",
+    "caches": "unchanged; fresh process each run",
+    "os": "Microsoft Windows 11 Pro",
+    "video": {
+      "Name": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "32.0.101.7088"
+    }
+  },
+  "paired-9-off": {
+    "cpu": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "build": "26300",
+    "rendererDiagnostics": false,
+    "architecture": "AMD64",
+    "backendOverride": null,
+    "executableSha256": "6BAC44ED150C65B61299DDA506BC311D6763C811182B3B9196B2FFE6D9B5045F",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8",
+    "caches": "unchanged; fresh process each run",
+    "os": "Microsoft Windows 11 Pro",
+    "video": {
+      "Name": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "32.0.101.7088"
+    }
+  },
+  "paired-10-on": {
+    "cpu": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "build": "26300",
+    "rendererDiagnostics": false,
+    "architecture": "AMD64",
+    "backendOverride": null,
+    "executableSha256": "6BAC44ED150C65B61299DDA506BC311D6763C811182B3B9196B2FFE6D9B5045F",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8",
+    "caches": "unchanged; fresh process each run",
+    "os": "Microsoft Windows 11 Pro",
+    "video": {
+      "Name": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "32.0.101.7088"
+    }
+  },
+  "paired-10-off": {
+    "cpu": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "build": "26300",
+    "rendererDiagnostics": false,
+    "architecture": "AMD64",
+    "backendOverride": null,
+    "executableSha256": "6BAC44ED150C65B61299DDA506BC311D6763C811182B3B9196B2FFE6D9B5045F",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8",
+    "caches": "unchanged; fresh process each run",
+    "os": "Microsoft Windows 11 Pro",
+    "video": {
+      "Name": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "32.0.101.7088"
+    }
+  }
+}
