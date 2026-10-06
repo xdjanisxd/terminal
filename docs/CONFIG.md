@@ -94,12 +94,21 @@ arguments without the interactive hook. Renamed executables and wrappers are
 not detected. Existing Unix default launches are unchanged, even for `$SHELL`
 pointing to PowerShell.
 
+On Windows, interactive `cmd`/`cmd.exe` local shells receive an OSC 133 prompt
+readiness marker through `PROMPT`. The existing visible prompt is retained
+(default `$P$G`), and configured arguments remain exact, including `/k`
+initialization. Explicit `/c` launches and direct command sessions receive no
+hook. AutoRun scripts, `/k` commands, or prompt extensions that replace `PROMPT`
+must retain the marker for Saved Workspace startup commands to dispatch. This
+hook does not add OSC 7 CWD reporting to cmd.
+
 Shell edits apply to future local-shell tabs, splits, and reopened Saved
 Workspaces. Running processes stay as they are. Saved Workspace files continue
 to store `local_shell` or a direct command with its own executable and arguments;
 they do not capture the global shell override. Direct command sessions ignore
-`[shell]`. Startup commands still rely on the shell's existing OSC 133 prompt
-readiness support; Terminal adds no integration for other shells. Per-pane
+`[shell]`. Startup commands rely on OSC 133 prompt readiness; Terminal supplies
+hooks for interactive PowerShell and Windows cmd local shells. Other shells
+need their own readiness integration. Per-pane
 selection, presets, WSL management, and automatic login-shell flags are not
 provided; any desired flags or launcher arguments must be explicit.
 

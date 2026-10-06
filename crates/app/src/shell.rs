@@ -12,8 +12,50 @@ pub(crate) fn configured_spawn_config(shell: &ShellConfig, size: PtySize) -> Pty
     if is_powershell(Path::new(&shell.program)) && !has_command_mode(&shell.args) {
         with_powershell_integration(config)
     } else {
-        config
+        with_cmd_integration(config)
     }
+}
+
+pub(crate) fn with_cmd_integration(config: PtySpawnConfig) -> PtySpawnConfig {
+    // Only cmd local shells need this hook. Explicit /c invocations never
+    // reach an interactive prompt; their arguments must remain untouched.
+    let cmd = config.program().file_name().and_then(|name| name.to_str());
+    if !cfg!(windows)
+        || !cmd.is_some_and(|name| {
+            name.eq_ignore_ascii_case("cmd.exe") || name.eq_ignore_ascii_case("cmd")
+        })
+        || config.arguments().iter().any(|arg| {
+            arg.to_str().is_some_and(|arg| {
+                arg.get(..2)
+                    .is_some_and(|prefix| prefix.eq_ignore_ascii_case("/c"))
+            })
+        })
+    {
+        return config;
+    }
+    with_cmd_prompt(config, std::env::var_os("PROMPT"))
+}
+
+fn with_cmd_prompt(config: PtySpawnConfig, inherited: Option<OsString>) -> PtySpawnConfig {
+    // $e expands to ESC; ESC backslash terminates OSC. Append after the
+    // original visible prompt so readiness follows cmd's initialization /k
+    // command. No startup command is interpolated into shell arguments.
+    const READY: &str = "$e]133;A$e\\";
+    let mut environment = config.environment().to_vec();
+    let existing = environment
+        .iter()
+        .find(|(key, _)| key.eq_ignore_ascii_case("PROMPT"));
+    let mut prompt = existing
+        .map(|(_, value)| value.clone())
+        .or(inherited)
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| "$P$G".into());
+    if !prompt.to_string_lossy().ends_with(READY) {
+        prompt.push(READY);
+    }
+    environment.retain(|(key, _)| !key.eq_ignore_ascii_case("PROMPT"));
+    environment.push(("PROMPT".into(), prompt));
+    config.with_environment(environment)
 }
 
 // Recognize only standard executable basenames, without probing or guessing.
@@ -87,7 +129,6 @@ mod tests {
     #[test]
     fn names_paths_and_exact_arguments_pass_through() {
         for program in [
-            "cmd.exe",
             "bash",
             "/usr/bin/fish",
             r"C:\Program Files\Git\bin\bash.exe",
@@ -102,6 +143,53 @@ mod tests {
                 &["--option", "two words", "", "'literal'"]
             );
             assert!(config.environment().is_empty());
+        }
+    }
+
+    #[test]
+    fn cmd_prompt_preserves_custom_text_environment_and_is_idempotent() {
+        let config = PtySpawnConfig::new("cmd.exe".into(), PtySize::new(24, 80).unwrap())
+            .with_environment([
+                ("KEEP".into(), "value".into()),
+                ("Prompt".into(), "custom $P$G".into()),
+            ]);
+        let hooked = with_cmd_prompt(config, Some("ignored".into()));
+        assert_eq!(
+            hooked.environment(),
+            &[
+                ("KEEP".into(), "value".into()),
+                ("PROMPT".into(), "custom $P$G$e]133;A$e\\".into())
+            ]
+        );
+        let repeated = with_cmd_prompt(hooked.clone(), None);
+        assert_eq!(repeated.environment(), hooked.environment());
+        for inherited in [None, Some(OsString::new()), Some("$P$G".into())] {
+            let config = with_cmd_prompt(
+                PtySpawnConfig::new("cmd.exe".into(), PtySize::new(24, 80).unwrap()),
+                inherited,
+            );
+            assert_eq!(config.environment()[0].1, "$P$G$e]133;A$e\\");
+        }
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn cmd_hook_keeps_args_and_excludes_command_mode_and_other_programs() {
+        for program in ["cmd", "CMD.EXE", r"C:\Windows\System32\cmd.exe"] {
+            let config = request(program, &["/d", "/q", "/v:on", "/k", "echo initialized"]);
+            assert_eq!(
+                config.arguments(),
+                &["/d", "/q", "/v:on", "/k", "echo initialized"]
+            );
+            assert_eq!(config.environment()[0].0, "PROMPT");
+        }
+        for args in [vec!["/c", "echo done"], vec!["/Cecho done"]] {
+            let config = request("cmd.exe", &args);
+            assert_eq!(config.arguments(), args.as_slice());
+            assert!(config.environment().is_empty());
+        }
+        for program in ["mycmd.exe", "cmd.exe.backup", "cmd.cmd"] {
+            assert!(request(program, &[]).environment().is_empty());
         }
     }
 

@@ -3085,7 +3085,9 @@ fn windows_local_shell_spawn_config(
         WindowsShellSource::PowerShellCore | WindowsShellSource::WindowsPowerShell => {
             shell::with_powershell_integration(config)
         }
-        WindowsShellSource::ComSpec | WindowsShellSource::Cmd => config,
+        WindowsShellSource::ComSpec | WindowsShellSource::Cmd => {
+            shell::with_cmd_integration(config)
+        }
     };
     startup_milestone("shell-integration-preparation-end");
     config
@@ -4206,6 +4208,53 @@ mod tests {
     }
 
     #[test]
+    fn startup_dispatch_is_shell_independent_and_handles_fragmented_prompt_markers() {
+        for command in [
+            "echo startup-ok",
+            "codex --no-daemon",
+            "Write-Output 'two words'",
+            "echo \"a & b\"",
+        ] {
+            for marker in [b"\x1b]133;A\x07".as_slice(), b"\x1b]133;A\x1b\\".as_slice()] {
+                let mut terminal = terminal_core::TerminalState::new(
+                    terminal_core::TerminalDimensions::new(80, 24).unwrap(),
+                );
+                let mut parser = terminal_core::TerminalParser::new();
+                let mut pending = Some(command.to_owned());
+                parser
+                    .advance(&mut terminal, b"banner\r\nC:\\saved cwd>")
+                    .unwrap();
+                assert!(!super::dispatch_startup_command(
+                    &mut pending,
+                    &terminal,
+                    |_| panic!("banner is not readiness")
+                ));
+                let mut writes = 0;
+                for (index, byte) in marker.iter().enumerate() {
+                    parser.advance(&mut terminal, &[*byte]).unwrap();
+                    let dispatched =
+                        super::dispatch_startup_command(&mut pending, &terminal, |bytes| {
+                            assert_eq!(bytes, format!("{command}\r").as_bytes());
+                            writes += 1;
+                            true
+                        });
+                    if index < b"\x1b]133;A".len() {
+                        assert!(!dispatched, "unterminated marker");
+                    }
+                }
+                assert_eq!(writes, 1);
+                assert!(pending.is_none());
+                parser.advance(&mut terminal, marker).unwrap();
+                assert!(!super::dispatch_startup_command(
+                    &mut pending,
+                    &terminal,
+                    |_| panic!("second prompt duplicates startup")
+                ));
+            }
+        }
+    }
+
+    #[test]
     fn scrollbar_track_click_pages_in_the_expected_direction() {
         assert_eq!(scrollbar_page_delta(ScrollbarHit::TrackAbove, 24), 24);
         assert_eq!(scrollbar_page_delta(ScrollbarHit::TrackBelow, 24), -24);
@@ -4693,6 +4742,17 @@ mod tests {
         );
         assert_eq!(direct.program(), std::path::Path::new("pwsh"));
         assert_eq!(direct.arguments(), &["-Command", "build"]);
+        let direct_cmd = super::spawn_config_for_session(
+            size,
+            None,
+            SessionDefinition::Command {
+                program: "cmd.exe".into(),
+                args: vec!["/k".into(), "echo direct".into()],
+            },
+            Some(&shell),
+        );
+        assert_eq!(direct_cmd.arguments(), &["/k", "echo direct"]);
+        assert!(direct_cmd.environment().is_empty());
     }
 
     struct SmokeTerminal {
@@ -5097,6 +5157,253 @@ mod tests {
             );
             if !powershell {
                 assert!(!String::from_utf8_lossy(&smoke.raw).contains("__TerminalOsc7"));
+            }
+        }
+    }
+
+    #[cfg(windows)]
+    #[test]
+    #[ignore = "requires the installed external Codex CLI; bounded native acceptance probe"]
+    fn cmd_saved_startup_launches_installed_codex() {
+        use std::time::{Duration, Instant};
+        assert!(super::executable_on_path("codex.exe").is_some());
+        let state = saved_state_path();
+        let root = state.path().parent().unwrap().to_owned();
+        fs::create_dir_all(&root).unwrap();
+        let shell = ShellConfig {
+            program: "cmd.exe".into(),
+            args: vec!["/d".into()],
+        };
+        let config = super::spawn_config_for_session(
+            PtySize::new(24, 80).unwrap(),
+            Some(root.to_owned()),
+            SessionDefinition::LocalShell,
+            Some(&shell),
+        );
+        let mut worker = terminal_pty::PtyWorker::start(
+            super::shell::spawn(&super::PortablePtyBackend::new(), config, None).unwrap(),
+        )
+        .unwrap();
+        let mut smoke = SmokeTerminal::new();
+        let mut pending = Some("codex --no-daemon".to_owned());
+        let deadline = Instant::now() + Duration::from_secs(8);
+        while Instant::now() < deadline {
+            if let Some(PtyWorkerEvent::Output(PtyOutput::Bytes(chunk))) =
+                worker.recv_timeout(Duration::from_millis(20)).unwrap()
+            {
+                smoke.feed(&chunk, |reply| worker.write(reply));
+                super::issue_startup_command_if_ready(&mut pending, &smoke.terminal, Some(&worker));
+                let output = String::from_utf8_lossy(&smoke.raw);
+                if output.contains("unexpected argument '--no-daemon'")
+                    || output.contains("OpenAI Codex")
+                    || output.contains("Codex's interactive TUI")
+                {
+                    break;
+                }
+            }
+        }
+        worker.shutdown_and_join().unwrap();
+        let output = String::from_utf8_lossy(&smoke.raw);
+        assert!(pending.is_none(), "startup command was not dispatched");
+        assert!(
+            output.contains("unexpected argument '--no-daemon'")
+                || output.contains("OpenAI Codex")
+                || output.contains("Codex's interactive TUI"),
+            "installed Codex did not respond: {output}"
+        );
+        eprintln!("Codex native startup response:\n{output}");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn saved_workspace_native_startup_commands_in_foreground_and_background() {
+        use std::time::{Duration, Instant};
+        let mut shells = vec![ShellConfig {
+            program: "cmd.exe".into(),
+            args: vec![
+                "/d".into(),
+                "/u".into(),
+                "/k".into(),
+                "echo initialized>shell-ready.txt".into(),
+            ],
+        }];
+        for program in [
+            super::executable_on_path("pwsh.exe"),
+            super::executable_on_path("powershell.exe"),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            shells.push(ShellConfig {
+                program: program.to_string_lossy().into_owned(),
+                args: vec!["-NoLogo".into(), "-NoProfile".into()],
+            });
+        }
+        for shell in shells {
+            let cmd = shell.program == "cmd.exe";
+            let state = saved_state_path();
+            let path = state.path();
+            let mut definition = terminal_workspace::WorkspaceDefinition::default();
+            let roots: Vec<_> = ["first pane", "second pane"]
+                .iter()
+                .map(|name| path.parent().unwrap().join(name))
+                .collect();
+            for root in &roots {
+                fs::create_dir_all(root).unwrap();
+            }
+            let pane = |index: usize| LayoutDefinition::Pane {
+                session: SessionDefinition::LocalShell,
+                project_root: Some(roots[index].clone()),
+                startup_command: Some(if cmd {
+                    format!(
+                        "echo startup-ok-{index}& (echo startup-ok-{index})>>startup-result.txt & cd>>startup-result.txt"
+                    )
+                } else {
+                    format!(
+                        "Write-Output startup-ok-{index}; Add-Content startup-result.txt startup-ok-{index} -Encoding utf8; (Get-Location).Path | Add-Content startup-result.txt -Encoding utf8"
+                    )
+                }),
+            };
+            definition.tabs[0].layout = LayoutDefinition::Split {
+                axis: SplitAxis::Vertical,
+                first_share: 400_000,
+                first: Box::new(pane(0)),
+                second: Box::new(pane(1)),
+            };
+            definition.tabs[0].active_pane = 1;
+            let mut store = super::SavedWorkspaces::default();
+            store
+                .save("Native startup".into(), definition.clone())
+                .unwrap();
+            store.write(&path).unwrap();
+            let mut app = Application {
+                saved_workspaces_path: path,
+                ..Application::default()
+            };
+            app.open_saved_workspace("Native startup");
+            assert_eq!(app.workspace.definition(), definition);
+            let active = app.active_runtime_pane;
+            // Headless tests have no winit wake proxy. Attach real workers via
+            // the production session config; use the actual foreground and
+            // background event handlers for parsing and command dispatch.
+            for pane in app.workspace.panes() {
+                let (root, session) = app.workspace.pane_launch(pane.id).unwrap();
+                let config = super::spawn_config_for_session(
+                    PtySize::new(24, 80).unwrap(),
+                    root,
+                    session,
+                    Some(&shell),
+                );
+                assert!(
+                    config
+                        .arguments()
+                        .starts_with(&shell.args.iter().map(OsString::from).collect::<Vec<_>>())
+                );
+                let worker = terminal_pty::PtyWorker::start(
+                    super::shell::spawn(&super::PortablePtyBackend::new(), config, None).unwrap(),
+                )
+                .unwrap();
+                let pending = app
+                    .workspace
+                    .pane_startup_command(pane.id)
+                    .map(str::to_owned);
+                if pane.id == active {
+                    app.pty = Some(worker);
+                    app.pending_startup_command = pending;
+                } else {
+                    let runtime = app.inactive_panes.get_mut(&pane.id).unwrap();
+                    runtime.pty = Some(worker);
+                    runtime.pending_startup_command = pending;
+                }
+            }
+            let deadline = Instant::now() + Duration::from_secs(20);
+            let mut ready = false;
+            while Instant::now() < deadline {
+                if let Some(event) = app
+                    .pty
+                    .as_mut()
+                    .unwrap()
+                    .recv_timeout(Duration::from_millis(20))
+                    .unwrap()
+                {
+                    app.handle_pty_event(event);
+                }
+                for (pane_id, runtime) in &mut app.inactive_panes {
+                    if let Some(event) = runtime
+                        .pty
+                        .as_mut()
+                        .unwrap()
+                        .recv_timeout(Duration::from_millis(20))
+                        .unwrap()
+                    {
+                        super::handle_background_pty_event(*pane_id, runtime, event);
+                    }
+                }
+                // Wait for the command to finish and another prompt, proving
+                // later output does not dispatch the pending command twice.
+                ready = app.terminal.shell_prompt_version() >= 2
+                    && app
+                        .inactive_panes
+                        .values()
+                        .all(|runtime| runtime.terminal.shell_prompt_version() >= 2);
+                if ready {
+                    break;
+                }
+            }
+            app.pty.as_mut().unwrap().shutdown_and_join().unwrap();
+            for runtime in app.inactive_panes.values_mut() {
+                runtime.pty.as_mut().unwrap().shutdown_and_join().unwrap();
+            }
+            assert!(
+                ready,
+                "shell {:?}: foreground prompts={} background prompts={:?}",
+                shell.program,
+                app.terminal.shell_prompt_version(),
+                app.inactive_panes
+                    .values()
+                    .map(|runtime| runtime.terminal.shell_prompt_version())
+                    .collect::<Vec<_>>()
+            );
+            assert!(app.pending_startup_command.is_none());
+            assert!(
+                app.inactive_panes
+                    .values()
+                    .all(|runtime| runtime.pending_startup_command.is_none())
+            );
+            assert_eq!(app.workspace.definition(), definition);
+            for (index, root) in roots.iter().enumerate() {
+                let read_result = |name: &str| {
+                    let bytes = fs::read(root.join(name)).unwrap();
+                    if cmd {
+                        String::from_utf16(
+                            &bytes
+                                .as_chunks::<2>()
+                                .0
+                                .iter()
+                                .map(|pair| u16::from_le_bytes(*pair))
+                                .collect::<Vec<_>>(),
+                        )
+                        .unwrap()
+                    } else {
+                        String::from_utf8(bytes)
+                            .unwrap()
+                            .trim_start_matches('\u{feff}')
+                            .to_owned()
+                    }
+                };
+                let result = read_result("startup-result.txt");
+                assert_eq!(
+                    result.lines().collect::<Vec<_>>(),
+                    vec![
+                        format!("startup-ok-{index}"),
+                        root.to_string_lossy().into_owned()
+                    ],
+                    "shell {:?}",
+                    shell.program
+                );
+                if cmd {
+                    assert_eq!(read_result("shell-ready.txt").trim(), "initialized");
+                }
             }
         }
     }
