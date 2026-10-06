@@ -10,8 +10,10 @@ Make Shift+Left/Right usable by terminal applications while retaining normal ter
 2. Recreate the branch on the complete editing-shortcuts prerequisite (done).
 3. Preserve Shift and Ctrl+Shift horizontal-arrow bytes using its existing core modifier encoder (done).
 4. Test normal character/word selection, application-mode ownership, both screens/cursor modes, and configured bindings (done).
-5. Run final Rust validation and build the native executable (results below).
-6. Receive the user's physical-key Codex/TUI results and record compatibility (pending; sole blocker).
+5. Run final Rust validation and build the native executable (done; results below).
+6. Receive the user's physical-key Codex/TUI results and record compatibility (done; user reported success on 2026-10-06).
+
+Goal complete: automated validation and user-reported physical-key acceptance passed.
 
 ## Routing and preserved behavior
 
@@ -34,11 +36,13 @@ Normal-screen character/word selection, contraction and reversal, shared selecti
 
 New tests cover all four default selection chords on normal screen, selection yielding to alternate screen / DECCKM / mouse tracking / keyboard-reporting requests, explicit bindings in those modes, and exact Shift/Ctrl+Shift bytes on both screens and in both cursor modes. Existing core selection tests cover contraction, reversal, Unicode and wrapped rows.
 
-Focused app and core encoding tests passed. Completion validation results are recorded in `docs/active/CURRENT_TASK.md`. Physical-key compatibility is separate from automated byte/routing evidence.
+Validation passed: focused app/core tests, `cargo fmt --all -- --check`, `cargo check --workspace --all-targets -q`, `cargo test --workspace --all-targets -q`, `cargo test --workspace --doc -q` (four doctests), `cargo clippy --workspace --all-targets -- -D warnings`, `git diff --check`, and `cargo build -q -p terminal-app --bin terminal`. Four existing ignored tests remain ignored. Branch ancestry was verified. Physical-key compatibility is separate from automated byte/routing evidence.
 
-## Physical-key verification — pending user results
+## Physical-key verification — passed
 
-Use the rebuilt `target/debug/terminal.exe`. Record application versions and pass/fail observations. No new manual Codex/TUI result is claimed.
+On 2026-10-06 the user reported: "Manual physical-key verification passed." This closes the requested manual acceptance for Codex follow-up input, Vim/Neovim or another TUI, normal terminal selection, and configured binding precedence. Application versions and individual observations were not supplied; this is user-reported acceptance, not agent-performed UI verification.
+
+The verification checklist is retained below for future regression checks with `target/debug/terminal.exe`.
 
 1. In an ordinary shell, type `abc def`; check Shift+Left/Right grows and contracts character selection, Ctrl+Shift+Left/Right selects words, reversal works, highlights match copied text, and mouse selection / Shift+click still work.
 2. In Codex follow-up input, type a disposable draft such as `abc def`. Press Shift+Left repeatedly, then Shift+Right; confirm composer selection grows/shrinks. Replace selected text, then cancel the draft. Check plain arrows and Ctrl+Left/Right as well.
@@ -47,4 +51,4 @@ Use the rebuilt `target/debug/terminal.exe`. Record application versions and pas
 
 ## Compatibility limits
 
-A Primary-screen application that requests none of the ownership signals remains subject to default terminal selection. Raw input mode and process identity alone are not observable through this routing rule. Bracketed paste alone does not transfer ownership because ordinary shells use it too. Applications must recognize xterm modified cursor sequences. Keyboard-reporting requests affect ownership, but this branch does not implement or advertise full Kitty keyboard protocol support. Physical Windows key delivery and Codex/TUI interpretation remain unverified until the user supplies results.
+A Primary-screen application that requests none of the ownership signals remains subject to default terminal selection. Raw input mode and process identity alone are not observable through this routing rule. Bracketed paste alone does not transfer ownership because ordinary shells use it too. Applications must recognize xterm modified cursor sequences. Keyboard-reporting requests affect ownership, but this branch does not implement or advertise full Kitty keyboard protocol support. The user's physical-key acceptance covers the tested environment; broader application/version compatibility is not established.
