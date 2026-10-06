@@ -4,6 +4,8 @@ The fixed-workload M6 parser/state/projection measurements and reproduction comm
 
 The [first-frame pipeline cost investigation](FIRST_FRAME_PIPELINE_COSTS.md) separates CPU fonts, wgpu initialization, surface setup, pipelines, resources and first submission, with repeated native Windows release samples and deferral candidates.
 
+The [deferred glyph resource experiment](DEFER_GLYPH_RESOURCES.md) measured roughly 8 ms earlier empty presentation, but doubled the median first-text frame and did not improve useful text arrival. The implementation and temporary instrumentation were reverted; 80 native release launch samples are retained.
+
 Repeated Windows x86_64 release measurements for sustained PTY output, opt-in aggregate diagnostics, and bounded event-loop draining are in [LARGE_OUTPUT_THROUGHPUT.md](LARGE_OUTPUT_THROUGHPUT.md).
 
 Correctness and architectural clarity take priority over performance complexity.
