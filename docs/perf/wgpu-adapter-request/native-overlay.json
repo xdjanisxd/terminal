@@ -1,0 +1,85 @@
+{
+  "version": "25.0.2",
+  "hal": [
+    {
+      "path": "src/dx12/mod.rs",
+      "append": "mod adapter_timing {\n    use std::{string::String, vec::Vec};\n    static RECORDS: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(Vec::new());\n    pub(super) struct Scope(&'static str, Option<std::time::Instant>);\n    pub(super) fn enabled() -> bool { std::env::var_os(\"TERMINAL_STARTUP_DIAGNOSTICS\").is_some_and(|v| v == \"1\") }\n    pub(super) fn record(s: String) { RECORDS.lock().unwrap().push(s); }\n    pub(super) fn flush() { for s in RECORDS.lock().unwrap().drain(..) { std::eprintln!(\"{}\",s); } }\n    impl Scope { pub(super) fn new(name: &'static str) -> Self { Self(name, enabled().then(std::time::Instant::now)) } }\n    impl Drop for Scope { fn drop(&mut self) { if let Some(start) = self.1 { record(std::format!(\"terminal-wgpu-adapter cost={} duration_us={}\", self.0, start.elapsed().as_micros()));  } } }\n}\n\npub fn flush_adapter_timings() { adapter_timing::flush(); }\nstruct TimedAdapterDevice(Option<Direct3D12::ID3D12Device>);\nimpl Deref for TimedAdapterDevice { type Target = Direct3D12::ID3D12Device; fn deref(&self) -> &Self::Target { self.0.as_ref().unwrap() } }\nimpl TimedAdapterDevice { fn clone(&self) -> Direct3D12::ID3D12Device { self.deref_device().clone() } fn deref_device(&self) -> &Direct3D12::ID3D12Device { self.0.as_ref().unwrap() } }\nimpl Drop for TimedAdapterDevice { fn drop(&mut self) { let _t = adapter_timing::Scope::new(\"native-device-release\"); drop(self.0.take()); } }\n"
+    },
+    {
+      "path": "src/dx12/mod.rs",
+      "old": "pub struct Adapter {\n    raw: DxgiAdapter,\n    device: Direct3D12::ID3D12Device,",
+      "replacement": "pub struct Adapter {\n    raw: DxgiAdapter,\n    device: TimedAdapterDevice,"
+    },
+    {
+      "path": "src/dx12/adapter.rs",
+      "old": "// Create the device so that we can get the capabilities.",
+      "replacement": "let _expose = super::adapter_timing::Scope::new(\"candidate-expose\");\n        // Create the device so that we can get the capabilities."
+    },
+    {
+      "path": "src/dx12/adapter.rs",
+      "old": "profiling::scope!(\"ID3D12Device::create_device\");",
+      "replacement": "let _create = super::adapter_timing::Scope::new(\"native-device-create\");\n            profiling::scope!(\"ID3D12Device::create_device\");"
+    },
+    {
+      "path": "src/dx12/adapter.rs",
+      "old": "profiling::scope!(\"feature queries\");",
+      "replacement": "let _queries = super::adapter_timing::Scope::new(\"feature-queries-and-packaging\");\n        profiling::scope!(\"feature queries\");"
+    },
+    {
+      "path": "src/dx12/adapter.rs",
+      "old": "raw: adapter,\n                device,",
+      "replacement": "raw: adapter,\n                device: super::TimedAdapterDevice(Some(device)),"
+    },
+    {
+      "path": "src/dx12/adapter.rs",
+      "old": "// Debug tracking alive objects",
+      "replacement": "let _drop = super::adapter_timing::Scope::new(\"adapter-drop-body\");\n        // Debug tracking alive objects"
+    },
+    {
+      "path": "src/dx12/instance.rs",
+      "old": "let adapters = auxil::dxgi::factory::enumerate_adapters(self.factory.clone());",
+      "replacement": "let _enumerate = super::adapter_timing::Scope::new(\"dx12-enumeration-and-exposure\");\n        let dxgi = super::adapter_timing::Scope::new(\"dxgi-enumerate\");\n        let adapters = auxil::dxgi::factory::enumerate_adapters(self.factory.clone());\n        drop(dxgi);"
+    },
+    {
+      "path": "src/dx12/adapter.rs",
+      "old": "let mut options = Direct3D12::D3D12_FEATURE_DATA_D3D12_OPTIONS::default();",
+      "replacement": "if super::adapter_timing::enabled() { super::adapter_timing::record(std::format!(\"terminal-wgpu-adapter exposed-info={info:?}\")); }\n        let mut options = Direct3D12::D3D12_FEATURE_DATA_D3D12_OPTIONS::default();"
+    }
+  ],
+  "core": [
+    {
+      "path": "src/instance.rs",
+      "append": "mod adapter_timing {\n    use std::{string::String, vec::Vec};\n    static RECORDS: std::sync::Mutex<Vec<String>> = std::sync::Mutex::new(Vec::new());\n    pub(super) struct Scope(&'static str, Option<std::time::Instant>);\n    pub(super) fn enabled() -> bool { std::env::var_os(\"TERMINAL_STARTUP_DIAGNOSTICS\").is_some_and(|v| v == \"1\") }\n    pub(super) fn record(s: String) { RECORDS.lock().unwrap().push(s); }\n    pub(super) fn flush() { for s in RECORDS.lock().unwrap().drain(..) { std::eprintln!(\"{}\",s); } }\n    impl Scope { pub(super) fn new(name: &'static str) -> Self { Self(name, enabled().then(std::time::Instant::now)) } }\n    impl Drop for Scope { fn drop(&mut self) { if let Some(start) = self.1 { record(std::format!(\"terminal-wgpu-adapter cost={} duration_us={}\", self.0, start.elapsed().as_micros())); if self.0 == \"request-total\" { #[cfg(dx12)] hal::dx12::flush_adapter_timings(); flush(); } } } }\n}\n"
+    },
+    {
+      "path": "src/instance.rs",
+      "old": "let mut backend_adapters =\n                unsafe { instance.enumerate_adapters(compatible_hal_surface) };",
+      "replacement": "let enumerate = adapter_timing::Scope::new(\"backend-enumerate-and-expose\");\n            let mut backend_adapters =\n                unsafe { instance.enumerate_adapters(compatible_hal_surface) };\n            drop(enumerate);\n            if adapter_timing::enabled() { for candidate in &backend_adapters { adapter_timing::record(std::format!(\"terminal-wgpu-adapter candidate={:?}\", candidate.info)); } }"
+    },
+    {
+      "path": "src/instance.rs",
+      "old": "let capabilities = surface.get_capabilities_with_raw(exposed);",
+      "replacement": "let _surface = adapter_timing::Scope::new(\"candidate-surface-check\");\n                    let capabilities = surface.get_capabilities_with_raw(exposed);"
+    },
+    {
+      "path": "src/instance.rs",
+      "old": "match desc.power_preference {",
+      "replacement": "let selection = adapter_timing::Scope::new(\"selection-metadata\");\n        match desc.power_preference {"
+    },
+    {
+      "path": "src/instance.rs",
+      "old": "if let Some(adapter) = adapters.into_iter().next() {",
+      "replacement": "drop(selection);\n        let mut candidates = adapters.into_iter();\n        let chosen = candidates.next();\n        let discard = adapter_timing::Scope::new(\"unused-candidates-destroy\");\n        drop(candidates);\n        drop(discard);\n        if let Some(adapter) = chosen {"
+    },
+    {
+      "path": "src/instance.rs",
+      "old": "let adapter = Adapter::new(adapter);\n            Ok(adapter)",
+      "replacement": "let wrap = adapter_timing::Scope::new(\"selected-adapter-wrap\");\n            let adapter = Adapter::new(adapter);\n            drop(wrap);\n            Ok(adapter)"
+    },
+    {
+      "path": "src/instance.rs",
+      "old": "profiling::scope!(\"Instance::request_adapter\");",
+      "replacement": "let _request = adapter_timing::Scope::new(\"request-total\");\n        profiling::scope!(\"Instance::request_adapter\");"
+    }
+  ]
+}
