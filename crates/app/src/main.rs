@@ -2851,6 +2851,10 @@ impl ApplicationHandler<PtyWake> for Application {
                 {
                     self.search = Some(Search::default());
                     self.invalidate_frame();
+                } else if let Some(bytes) =
+                    function_key_input(&event.logical_key, event.physical_key, self.modifiers)
+                {
+                    self.write_terminal_input(bytes);
                 } else if let Some(editing_key) =
                     editing_key_from_event(&event.logical_key, event.physical_key)
                 {
@@ -3137,6 +3141,52 @@ fn editing_key_from_event(key: &Key, physical_key: PhysicalKey) -> Option<Editin
         PhysicalKey::Code(KeyCode::End) => Some(EditingKey::End),
         _ => None,
     })
+}
+
+fn function_key_input(
+    key: &Key,
+    physical_key: PhysicalKey,
+    modifiers: ModifiersState,
+) -> Option<Vec<u8>> {
+    use terminal_core::FunctionKey;
+    let logical = match key {
+        Key::Named(NamedKey::F1) => Some(FunctionKey::F1),
+        Key::Named(NamedKey::F2) => Some(FunctionKey::F2),
+        Key::Named(NamedKey::F3) => Some(FunctionKey::F3),
+        Key::Named(NamedKey::F4) => Some(FunctionKey::F4),
+        Key::Named(NamedKey::F5) => Some(FunctionKey::F5),
+        Key::Named(NamedKey::F6) => Some(FunctionKey::F6),
+        Key::Named(NamedKey::F7) => Some(FunctionKey::F7),
+        Key::Named(NamedKey::F8) => Some(FunctionKey::F8),
+        Key::Named(NamedKey::F9) => Some(FunctionKey::F9),
+        Key::Named(NamedKey::F10) => Some(FunctionKey::F10),
+        Key::Named(NamedKey::F11) => Some(FunctionKey::F11),
+        Key::Named(NamedKey::F12) => Some(FunctionKey::F12),
+        _ => None,
+    };
+    let key = logical.or(match physical_key {
+        PhysicalKey::Code(KeyCode::F1) => Some(FunctionKey::F1),
+        PhysicalKey::Code(KeyCode::F2) => Some(FunctionKey::F2),
+        PhysicalKey::Code(KeyCode::F3) => Some(FunctionKey::F3),
+        PhysicalKey::Code(KeyCode::F4) => Some(FunctionKey::F4),
+        PhysicalKey::Code(KeyCode::F5) => Some(FunctionKey::F5),
+        PhysicalKey::Code(KeyCode::F6) => Some(FunctionKey::F6),
+        PhysicalKey::Code(KeyCode::F7) => Some(FunctionKey::F7),
+        PhysicalKey::Code(KeyCode::F8) => Some(FunctionKey::F8),
+        PhysicalKey::Code(KeyCode::F9) => Some(FunctionKey::F9),
+        PhysicalKey::Code(KeyCode::F10) => Some(FunctionKey::F10),
+        PhysicalKey::Code(KeyCode::F11) => Some(FunctionKey::F11),
+        PhysicalKey::Code(KeyCode::F12) => Some(FunctionKey::F12),
+        _ => None,
+    })?;
+    Some(terminal_core::encode_function_key(
+        key,
+        terminal_core::KeyModifiers {
+            shift: modifiers.shift_key(),
+            alt: modifiers.alt_key(),
+            control: modifiers.control_key(),
+        },
+    ))
 }
 
 fn terminal_mouse_button(button: MouseButton) -> Option<TerminalMouseButton> {
@@ -5382,6 +5432,83 @@ mod tests {
                 PhysicalKey::Code(KeyCode::Home),
             ),
             Some(terminal_core::EditingKey::Home)
+        );
+    }
+
+    #[test]
+    fn function_key_events_encode_and_explicit_bindings_take_precedence() {
+        let cases = [
+            (NamedKey::F1, KeyCode::F1, "\x1bOP"),
+            (NamedKey::F2, KeyCode::F2, "\x1bOQ"),
+            (NamedKey::F3, KeyCode::F3, "\x1bOR"),
+            (NamedKey::F4, KeyCode::F4, "\x1bOS"),
+            (NamedKey::F5, KeyCode::F5, "\x1b[15~"),
+            (NamedKey::F6, KeyCode::F6, "\x1b[17~"),
+            (NamedKey::F7, KeyCode::F7, "\x1b[18~"),
+            (NamedKey::F8, KeyCode::F8, "\x1b[19~"),
+            (NamedKey::F9, KeyCode::F9, "\x1b[20~"),
+            (NamedKey::F10, KeyCode::F10, "\x1b[21~"),
+            (NamedKey::F11, KeyCode::F11, "\x1b[23~"),
+            (NamedKey::F12, KeyCode::F12, "\x1b[24~"),
+        ];
+        for (logical, physical, expected) in cases {
+            let physical = PhysicalKey::Code(physical);
+            assert_eq!(
+                configured_command(&Config::default(), physical, ModifiersState::empty()),
+                None
+            );
+            assert_eq!(
+                super::function_key_input(&Key::Named(logical), physical, ModifiersState::empty()),
+                Some(expected.as_bytes().to_vec())
+            );
+            assert_eq!(
+                super::function_key_input(
+                    &Key::Unidentified(winit::keyboard::NativeKey::Unidentified),
+                    physical,
+                    ModifiersState::empty()
+                ),
+                Some(expected.as_bytes().to_vec())
+            );
+            let config = Config::parse(&format!(
+                "[[bindings]]\nkey = 'Ctrl+Shift+{logical:?}'\ncommand = 'copy'\n"
+            ))
+            .unwrap();
+            assert_eq!(
+                configured_command(
+                    &config,
+                    physical,
+                    ModifiersState::CONTROL | ModifiersState::SHIFT
+                ),
+                Some(Command::Copy)
+            );
+            assert_eq!(
+                configured_command(&config, physical, ModifiersState::CONTROL),
+                None
+            );
+        }
+        assert_eq!(
+            super::function_key_input(
+                &Key::Named(NamedKey::F1),
+                PhysicalKey::Code(KeyCode::F1),
+                ModifiersState::SHIFT | ModifiersState::ALT | ModifiersState::CONTROL
+            ),
+            Some(b"\x1b[1;8P".to_vec())
+        );
+        assert_eq!(
+            super::function_key_input(
+                &Key::Named(NamedKey::F12),
+                PhysicalKey::Code(KeyCode::F12),
+                ModifiersState::ALT
+            ),
+            Some(b"\x1b[24;3~".to_vec())
+        );
+        assert_eq!(
+            super::function_key_input(
+                &Key::Named(NamedKey::F13),
+                PhysicalKey::Code(KeyCode::F13),
+                ModifiersState::empty()
+            ),
+            None
         );
     }
 

@@ -12,6 +12,63 @@ fn terminal() -> (TerminalParser, TerminalState) {
 }
 
 #[test]
+fn function_keys_use_xterm_sequences_for_all_modifiers_and_screen_modes() {
+    use terminal_core::{FunctionKey::*, KeyModifiers, encode_function_key};
+    let cases = [
+        (F1, "\x1bOP", 1, 'P'),
+        (F2, "\x1bOQ", 1, 'Q'),
+        (F3, "\x1bOR", 1, 'R'),
+        (F4, "\x1bOS", 1, 'S'),
+        (F5, "\x1b[15~", 15, '~'),
+        (F6, "\x1b[17~", 17, '~'),
+        (F7, "\x1b[18~", 18, '~'),
+        (F8, "\x1b[19~", 19, '~'),
+        (F9, "\x1b[20~", 20, '~'),
+        (F10, "\x1b[21~", 21, '~'),
+        (F11, "\x1b[23~", 23, '~'),
+        (F12, "\x1b[24~", 24, '~'),
+    ];
+    let (mut parser, mut terminal) = terminal();
+    for modes in [
+        b"\x1b[?1l".as_slice(),
+        b"\x1b[?1h",
+        b"\x1b[?1049h",
+        b"\x1b[?1l",
+        b"\x1b[?1049l",
+    ] {
+        parser.advance(&mut terminal, modes).unwrap();
+        for (key, plain, number, suffix) in cases {
+            for (bits, parameter) in [
+                (0, 1),
+                (1, 2),
+                (2, 3),
+                (3, 4),
+                (4, 5),
+                (5, 6),
+                (6, 7),
+                (7, 8),
+            ] {
+                let modifiers = KeyModifiers {
+                    shift: bits & 1 != 0,
+                    alt: bits & 2 != 0,
+                    control: bits & 4 != 0,
+                };
+                let expected = if bits == 0 {
+                    plain.to_owned()
+                } else {
+                    format!("\x1b[{number};{parameter}{suffix}")
+                };
+                assert_eq!(
+                    encode_function_key(key, modifiers),
+                    expected.as_bytes(),
+                    "{key:?} modifiers={bits}"
+                );
+            }
+        }
+    }
+}
+
+#[test]
 fn delete_home_and_end_use_conventional_sequences_in_both_cursor_modes() {
     let (mut parser, mut terminal) = terminal();
     let normal = *terminal.input_modes();

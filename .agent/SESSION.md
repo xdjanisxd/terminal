@@ -1,4 +1,8 @@
+Function-key goal is blocked pending human cmd + Clink, PowerShell, and Vim/Neovim acceptance results. Code and automated validation are complete; see docs/active/CURRENT_TASK.md.
+
 # Session handoff
+
+`feat/function-keys`: F1–F12 core xterm encoding, Shift/Alt/Ctrl modifiers, app mapping, and explicit config binding support implemented. Three focused tests and full Rust gates pass; native PowerShell tests needed native process permissions. Debug executable built. Manual cmd + Clink, PowerShell, and Vim/Neovim acceptance remains pending: see docs/FUNCTION_KEYS.md and docs/active/CURRENT_TASK.md. Computer Use forbids terminal automation; human physical-key results are required. Goal active; no commit/push.
 
 `perf/font-discovery-startup` is complete. Across 120 valid Windows x86_64 release launches, discovery dominated CPU font preparation: 657 files, 724 faces, approximately 20.4 ms opening/mapping/releasing files versus 2.5 ms metadata parsing and 0.1 ms metrics. A fallback-sort candidate consistently saved about 1 ms locally, but the final coarse ten-pair median CPU difference was only -0.229 ms; it was fully reverted. Retained changes are opt-in stage scopes, harness executable selection and findings/raw measurements in `docs/FONT_DISCOVERY_STARTUP.md`; the completed goal/plan is `docs/FONT_DISCOVERY_STARTUP_PLAN.md`. Temporary dependency and lockfile changes were restored. Full fmt/check/all-target tests/doc tests/Clippy/diff gates passed, the normal release binary rebuilt, and native smoke reached shell text with normal shutdown. Next: trace native file open/map/release costs under controlled cache conditions before considering a metadata strategy. Wgpu remains the larger overall cost (~79.7 ms). No active task, commit or push.
 
