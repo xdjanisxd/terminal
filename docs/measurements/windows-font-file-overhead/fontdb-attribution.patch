@@ -1,0 +1,134 @@
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -163,6 +163,55 @@
+ impl Default for Database {
+     fn default() -> Self {
+         Self::new()
++    }
++}
++
++
++// Temporary Windows startup attribution only. No behavior changes.
++#[cfg(target_os = "windows")]
++mod startup_profile {
++    use std::{cell::RefCell, sync::OnceLock, time::Instant};
++    thread_local! { static COSTS: RefCell<[(u64, u64); 10]> = const { RefCell::new([(0, 0); 10]) }; }
++    fn enabled() -> bool {
++        static ENABLED: OnceLock<bool> = OnceLock::new();
++        *ENABLED.get_or_init(|| std::env::var_os("TERMINAL_FONTDB_PROFILE").is_some_and(|v| v == "1"))
++    }
++    thread_local! { static PATHS: RefCell<Vec<std::path::PathBuf>> = const { RefCell::new(Vec::new()) }; }
++    pub fn path(path: &std::path::Path) { if enabled() { PATHS.with(|p| p.borrow_mut().push(path.to_path_buf())); } }
++    pub struct Timer(usize, Option<Instant>);
++    pub fn timer(index: usize) -> Timer { Timer(index, enabled().then(Instant::now)) }
++    impl Drop for Timer {
++        fn drop(&mut self) {
++            if let Some(start) = self.1 {
++                COSTS.with(|c| { let mut c = c.borrow_mut(); c[self.0].0 += start.elapsed().as_nanos() as u64; c[self.0].1 += 1; });
++            }
++        }
++    }
++    pub struct Discovery(Option<Instant>);
++    pub fn discovery() -> Discovery {
++        memmap2::startup_profile::reset();
++        if enabled() { COSTS.with(|c| *c.borrow_mut() = [(0,0);10]); }
++        Discovery(enabled().then(Instant::now))
++    }
++    impl Drop for Discovery {
++        fn drop(&mut self) {
++            if let Some(start) = self.0 {
++                let total = start.elapsed().as_micros();
++                COSTS.with(|c| {
++                    use std::fmt::Write;
++                    let mut report = String::new();
++                    let _ = writeln!(report, "fontdb-profile stage=discovery duration_us={total} count=1");
++                    report.push_str(&memmap2::startup_profile::report());
++                    PATHS.with(|p| { let p = p.borrow(); let unique: std::collections::HashSet<_> = p.iter().collect(); let _ = writeln!(report, "fontdb-profile stage=unique-paths duration_us=0 count={}", unique.len()); let _ = writeln!(report, "fontdb-profile stage=duplicate-paths duration_us=0 count={}", p.len()-unique.len()); if let Some(path) = std::env::var_os("TERMINAL_STARTUP_LOG") { let _ = std::fs::write(std::path::PathBuf::from(path).with_extension("paths"), p.iter().map(|x|x.to_string_lossy()).collect::<Vec<_>>().join("\n")); } });
++                    for (name, (ns,count)) in ["file-open-map", "face-metadata-parse", "file-total", "entry-type-canonicalize", "read-dir-open", "file-unmap-close", "file-open", "file-map", "drop-map", "close-file"].iter().zip(c.borrow().iter()) {
++                        let _ = writeln!(report, "fontdb-profile stage={name} duration_us={} count={count}", ns / 1000);
++                    }
++                    if let Some(path) = std::env::var_os("TERMINAL_STARTUP_LOG") {
++                        let _ = std::fs::write(std::path::PathBuf::from(path).with_extension("fontdb"), report);
++                    }
++                });
++            }
++        }
+     }
+ }
+ 
+@@ -267,10 +316,29 @@
+     // A non-generic version.
+     #[cfg(all(feature = "fs", feature = "memmap"))]
+     fn load_font_file_impl(&mut self, path: &std::path::Path) -> Result<(), std::io::Error> {
++        #[cfg(target_os = "windows")]
++        let _file_total = startup_profile::timer(2);
++        startup_profile::path(path);
++        #[cfg(target_os = "windows")]
++        let file_io = startup_profile::timer(0);
++        let opening = startup_profile::timer(6);
+         let file = std::fs::File::open(path)?;
+-        let data: &[u8] = unsafe { &memmap2::MmapOptions::new().map(&file)? };
+-
+-        self.load_fonts_from_file(path, data);
++        drop(opening);
++        let mapping = startup_profile::timer(7);
++        let data = unsafe { memmap2::MmapOptions::new().map(&file)? };
++        drop(mapping);
++        #[cfg(target_os = "windows")]
++        drop(file_io);
++
++        self.load_fonts_from_file(path, &data);
++        let release = startup_profile::timer(5);
++        let unmapping = startup_profile::timer(8);
++        drop(data);
++        drop(unmapping);
++        let closing = startup_profile::timer(9);
++        drop(file);
++        drop(closing);
++        drop(release);
+         Ok(())
+     }
+ 
+@@ -314,6 +382,8 @@
+         entry: std::fs::DirEntry,
+         seen: &mut std::collections::HashSet<std::path::PathBuf>,
+     ) -> Option<(std::path::PathBuf, std::fs::FileType)> {
++        #[cfg(target_os = "windows")]
++        let _entry = startup_profile::timer(3);
+         let file_type = entry.file_type().ok()?;
+         if !file_type.is_symlink() {
+             if !seen.is_empty() {
+@@ -360,10 +430,15 @@
+         dir: &std::path::Path,
+         seen: &mut std::collections::HashSet<std::path::PathBuf>,
+     ) {
++        #[cfg(target_os = "windows")]
++        let dir_open = startup_profile::timer(4);
+         let fonts_dir = match std::fs::read_dir(dir) {
+             Ok(dir) => dir,
+             Err(_) => return,
+         };
++
++        #[cfg(target_os = "windows")]
++        drop(dir_open);
+ 
+         for entry in fonts_dir.flatten() {
+             let (path, file_type) = match self.canonicalize(entry.path(), entry, seen) {
+@@ -400,6 +475,8 @@
+     /// be added manually.
+     #[cfg(feature = "fs")]
+     pub fn load_system_fonts(&mut self) {
++        #[cfg(target_os = "windows")]
++        let _profile = startup_profile::discovery();
+         #[cfg(target_os = "windows")]
+         {
+             let mut seen = Default::default();
+@@ -1034,6 +1111,8 @@
+ }
+ 
+ fn parse_face_info(source: Source, data: &[u8], index: u32) -> Result<FaceInfo, LoadError> {
++    #[cfg(target_os = "windows")]
++    let _parse = startup_profile::timer(1);
+     let raw_face = ttf_parser::RawFace::parse(data, index).map_err(|_| LoadError::MalformedFont)?;
+     let (families, post_script_name) = parse_names(&raw_face).ok_or(LoadError::UnnamedFont)?;
+     let (mut style, weight, stretch) = parse_os2(&raw_face);

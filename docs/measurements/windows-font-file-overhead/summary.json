@@ -1,0 +1,2227 @@
+{
+  "baseline": {
+    "runs": 10,
+    "adapter-request": {
+      "median": 47002.5,
+      "min": 36459.0,
+      "max": 76319.0
+    },
+    "application-default-state": {
+      "median": 193.0,
+      "min": 155.0,
+      "max": 344.0
+    },
+    "application-state-and-paths": {
+      "median": 240.5,
+      "min": 193.0,
+      "max": 403.0
+    },
+    "atlas-texture-create": {
+      "median": 2438.5,
+      "min": 1471.0,
+      "max": 4841.0
+    },
+    "atlas-view-sampler-bind-group": {
+      "median": 445.0,
+      "min": 228.0,
+      "max": 688.0
+    },
+    "buffer-create-upload": {
+      "median": 520.5,
+      "min": 345.0,
+      "max": 1051.0
+    },
+    "cli-parse": {
+      "median": 728.0,
+      "min": 453.0,
+      "max": 14643.0
+    },
+    "config-read-parse": {
+      "median": 224.0,
+      "min": 155.0,
+      "max": 297.0
+    },
+    "cpu-font-preparation": {
+      "median": 40542.0,
+      "min": 30534.0,
+      "max": 50586.0
+    },
+    "device-request": {
+      "median": 61041.0,
+      "min": 45656.0,
+      "max": 81403.0
+    },
+    "event-loop-create": {
+      "median": 4952.5,
+      "min": 3233.0,
+      "max": 6580.0
+    },
+    "fallback-candidate-collection": {
+      "median": 8.5,
+      "min": 6.0,
+      "max": 13.0
+    },
+    "fallback-candidate-ordering": {
+      "median": 1722.5,
+      "min": 1352.0,
+      "max": 3252.0
+    },
+    "fallback-candidate-sort": {
+      "median": 1676.0,
+      "min": 1314.0,
+      "max": 3172.0
+    },
+    "first-present": {
+      "median": 576.0,
+      "min": 370.0,
+      "max": 742.0
+    },
+    "first_frame_us": {
+      "median": 219611.5,
+      "min": 163306.0,
+      "max": 301085.0
+    },
+    "font-cache-setup": {
+      "median": 5.5,
+      "min": 3.0,
+      "max": 20.0
+    },
+    "font-database-create": {
+      "median": 1.5,
+      "min": 1.0,
+      "max": 5.0
+    },
+    "font-family-preparation": {
+      "median": 40434.5,
+      "min": 30444.0,
+      "max": 50438.0
+    },
+    "font-family-resolution": {
+      "median": 40.0,
+      "min": 30.0,
+      "max": 50.0
+    },
+    "font-generic-family-query": {
+      "median": 15.0,
+      "min": 10.0,
+      "max": 19.0
+    },
+    "font-metrics": {
+      "median": 123.5,
+      "min": 72.0,
+      "max": 284.0
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fonts_to_frame_us": {
+      "median": 192105.5,
+      "min": 142530.0,
+      "max": 258106.0
+    },
+    "frame-texture-view": {
+      "median": 16.5,
+      "min": 10.0,
+      "max": 103.0
+    },
+    "glyph-atlas": {
+      "median": 3031.5,
+      "min": 1869.0,
+      "max": 5421.0
+    },
+    "glyph-bind-group-layout": {
+      "median": 63.0,
+      "min": 41.0,
+      "max": 92.0
+    },
+    "glyph-pipeline": {
+      "median": 9093.0,
+      "min": 6429.0,
+      "max": 11269.0
+    },
+    "gpu-preparation": {
+      "median": 116785.5,
+      "min": 88492.0,
+      "max": 164467.0
+    },
+    "initial-grid-resize": {
+      "median": 187.5,
+      "min": 121.0,
+      "max": 303.0
+    },
+    "initial-projection": {
+      "median": 44.5,
+      "min": 31.0,
+      "max": 60.0
+    },
+    "initial-ui-and-pane-layout": {
+      "median": 7.0,
+      "min": 5.0,
+      "max": 17.0
+    },
+    "instance-buffer-allocation": {
+      "median": 243.0,
+      "min": 137.0,
+      "max": 601.0
+    },
+    "instance-buffer-writes": {
+      "median": 235.0,
+      "min": 113.0,
+      "max": 369.0
+    },
+    "instance-generation": {
+      "median": 4.0,
+      "min": 2.0,
+      "max": 11.0
+    },
+    "pre-present-notify": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "queue-submit": {
+      "median": 624.5,
+      "min": 373.0,
+      "max": 797.0
+    },
+    "rectangle-pipeline": {
+      "median": 8409.0,
+      "min": 5769.0,
+      "max": 11027.0
+    },
+    "render-encoding": {
+      "median": 1037.0,
+      "min": 496.0,
+      "max": 1455.0
+    },
+    "shader-and-layout": {
+      "median": 596.5,
+      "min": 392.0,
+      "max": 852.0
+    },
+    "shader-module-create": {
+      "median": 494.0,
+      "min": 325.0,
+      "max": 714.0
+    },
+    "surface-acquire": {
+      "median": 64.5,
+      "min": 40.0,
+      "max": 113.0
+    },
+    "surface-capabilities-and-config": {
+      "median": 13.5,
+      "min": 8.0,
+      "max": 17.0
+    },
+    "surface-configure": {
+      "median": 7558.5,
+      "min": 5146.0,
+      "max": 14480.0
+    },
+    "surface-create": {
+      "median": 38.0,
+      "min": 30.0,
+      "max": 76.0
+    },
+    "system-font-discovery": {
+      "median": 38368.5,
+      "min": 28961.0,
+      "max": 48322.0
+    },
+    "wgpu-instance": {
+      "median": 8514.5,
+      "min": 6216.0,
+      "max": 11040.0
+    },
+    "window-create-and-branding": {
+      "median": 18176.5,
+      "min": 13636.0,
+      "max": 24702.0
+    },
+    "workspace-model-and-runtimes": {
+      "median": 14.0,
+      "min": 11.0,
+      "max": 27.0
+    }
+  },
+  "attribution-v1": {
+    "runs": 10,
+    "adapter-request": {
+      "median": 41446.0,
+      "min": 36087.0,
+      "max": 57917.0
+    },
+    "application-default-state": {
+      "median": 173.0,
+      "min": 157.0,
+      "max": 306.0
+    },
+    "application-state-and-paths": {
+      "median": 212.0,
+      "min": 194.0,
+      "max": 364.0
+    },
+    "atlas-texture-create": {
+      "median": 1935.5,
+      "min": 1658.0,
+      "max": 3791.0
+    },
+    "atlas-view-sampler-bind-group": {
+      "median": 273.0,
+      "min": 199.0,
+      "max": 469.0
+    },
+    "buffer-create-upload": {
+      "median": 408.0,
+      "min": 220.0,
+      "max": 719.0
+    },
+    "cli-parse": {
+      "median": 509.5,
+      "min": 429.0,
+      "max": 1605.0
+    },
+    "config-read-parse": {
+      "median": 173.5,
+      "min": 151.0,
+      "max": 236.0
+    },
+    "cpu-font-preparation": {
+      "median": 35399.5,
+      "min": 32349.0,
+      "max": 50543.0
+    },
+    "device-request": {
+      "median": 48144.5,
+      "min": 45207.0,
+      "max": 74630.0
+    },
+    "event-loop-create": {
+      "median": 4519.5,
+      "min": 3528.0,
+      "max": 9358.0
+    },
+    "fallback-candidate-collection": {
+      "median": 6.5,
+      "min": 6.0,
+      "max": 14.0
+    },
+    "fallback-candidate-ordering": {
+      "median": 1402.5,
+      "min": 1343.0,
+      "max": 2823.0
+    },
+    "fallback-candidate-sort": {
+      "median": 1366.0,
+      "min": 1306.0,
+      "max": 2763.0
+    },
+    "file-operations.us": {
+      "median": 26432.5,
+      "min": 24073.0,
+      "max": 36313.0
+    },
+    "first-present": {
+      "median": 399.0,
+      "min": 323.0,
+      "max": 556.0
+    },
+    "first_frame_us": {
+      "median": 182470.0,
+      "min": 168633.0,
+      "max": 267946.0
+    },
+    "font-cache-setup": {
+      "median": 4.0,
+      "min": 3.0,
+      "max": 12.0
+    },
+    "font-database-create": {
+      "median": 1.0,
+      "min": 1.0,
+      "max": 14.0
+    },
+    "font-family-preparation": {
+      "median": 35276.0,
+      "min": 32226.0,
+      "max": 50384.0
+    },
+    "font-family-resolution": {
+      "median": 42.5,
+      "min": 31.0,
+      "max": 88.0
+    },
+    "font-generic-family-query": {
+      "median": 13.0,
+      "min": 11.0,
+      "max": 33.0
+    },
+    "font-metrics": {
+      "median": 131.5,
+      "min": 96.0,
+      "max": 216.0
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fontdb.discovery.count": {
+      "median": 1.0,
+      "min": 1.0,
+      "max": 1.0
+    },
+    "fontdb.discovery.us": {
+      "median": 32996.0,
+      "min": 29952.0,
+      "max": 47327.0
+    },
+    "fontdb.duplicate-paths.count": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fontdb.duplicate-paths.us": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fontdb.entry-type-canonicalize.count": {
+      "median": 852.0,
+      "min": 852.0,
+      "max": 852.0
+    },
+    "fontdb.entry-type-canonicalize.us": {
+      "median": 36.5,
+      "min": 34.0,
+      "max": 53.0
+    },
+    "fontdb.face-metadata-parse.count": {
+      "median": 724.0,
+      "min": 724.0,
+      "max": 724.0
+    },
+    "fontdb.face-metadata-parse.us": {
+      "median": 3237.0,
+      "min": 2902.0,
+      "max": 4268.0
+    },
+    "fontdb.file-map.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "fontdb.file-map.us": {
+      "median": 8219.0,
+      "min": 7578.0,
+      "max": 11349.0
+    },
+    "fontdb.file-open-map.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "fontdb.file-open-map.us": {
+      "median": 17875.5,
+      "min": 16254.0,
+      "max": 24211.0
+    },
+    "fontdb.file-open.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "fontdb.file-open.us": {
+      "median": 9570.0,
+      "min": 8595.0,
+      "max": 12748.0
+    },
+    "fontdb.file-total.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "fontdb.file-total.us": {
+      "median": 31435.5,
+      "min": 28600.0,
+      "max": 45045.0
+    },
+    "fontdb.file-unmap-close.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "fontdb.file-unmap-close.us": {
+      "median": 8643.5,
+      "min": 7900.0,
+      "max": 12216.0
+    },
+    "fontdb.read-dir-open.count": {
+      "median": 3.0,
+      "min": 3.0,
+      "max": 3.0
+    },
+    "fontdb.read-dir-open.us": {
+      "median": 165.0,
+      "min": 140.0,
+      "max": 354.0
+    },
+    "fontdb.unique-paths.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "fontdb.unique-paths.us": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fonts_to_frame_us": {
+      "median": 159511.0,
+      "min": 148252.0,
+      "max": 235147.0
+    },
+    "frame-texture-view": {
+      "median": 13.0,
+      "min": 10.0,
+      "max": 16.0
+    },
+    "glyph-atlas": {
+      "median": 2266.0,
+      "min": 1923.0,
+      "max": 4344.0
+    },
+    "glyph-bind-group-layout": {
+      "median": 50.5,
+      "min": 41.0,
+      "max": 98.0
+    },
+    "glyph-pipeline": {
+      "median": 6786.5,
+      "min": 6174.0,
+      "max": 9427.0
+    },
+    "gpu-preparation": {
+      "median": 97272.0,
+      "min": 90608.0,
+      "max": 142531.0
+    },
+    "initial-grid-resize": {
+      "median": 131.5,
+      "min": 78.0,
+      "max": 416.0
+    },
+    "initial-projection": {
+      "median": 31.0,
+      "min": 27.0,
+      "max": 61.0
+    },
+    "initial-ui-and-pane-layout": {
+      "median": 11.5,
+      "min": 5.0,
+      "max": 26.0
+    },
+    "instance-buffer-allocation": {
+      "median": 174.5,
+      "min": 91.0,
+      "max": 321.0
+    },
+    "instance-buffer-writes": {
+      "median": 176.5,
+      "min": 102.0,
+      "max": 370.0
+    },
+    "instance-generation": {
+      "median": 3.0,
+      "min": 2.0,
+      "max": 8.0
+    },
+    "memmap.close-duplicate.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.close-duplicate.us": {
+      "median": 213.0,
+      "min": 198.0,
+      "max": 361.0
+    },
+    "memmap.close-mapping.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.close-mapping.us": {
+      "median": 304.5,
+      "min": 281.0,
+      "max": 402.0
+    },
+    "memmap.create-mapping.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.create-mapping.us": {
+      "median": 3247.0,
+      "min": 3094.0,
+      "max": 4496.0
+    },
+    "memmap.duplicate-handle.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.duplicate-handle.us": {
+      "median": 252.0,
+      "min": 235.0,
+      "max": 348.0
+    },
+    "memmap.file-length.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.file-length.us": {
+      "median": 2533.0,
+      "min": 2327.0,
+      "max": 3504.0
+    },
+    "memmap.map-view.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.map-view.us": {
+      "median": 873.5,
+      "min": 764.0,
+      "max": 1232.0
+    },
+    "memmap.probe-exec.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.probe-exec.us": {
+      "median": 159.0,
+      "min": 152.0,
+      "max": 220.0
+    },
+    "memmap.probe-write.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.probe-write.us": {
+      "median": 203.5,
+      "min": 177.0,
+      "max": 340.0
+    },
+    "memmap.unmap-view.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.unmap-view.us": {
+      "median": 3859.0,
+      "min": 3514.0,
+      "max": 5349.0
+    },
+    "memmap.virtual-protect.count": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "memmap.virtual-protect.us": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "pre-present-notify": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "queue-submit": {
+      "median": 551.0,
+      "min": 321.0,
+      "max": 762.0
+    },
+    "rectangle-pipeline": {
+      "median": 6293.5,
+      "min": 5387.0,
+      "max": 9390.0
+    },
+    "render-encoding": {
+      "median": 667.0,
+      "min": 517.0,
+      "max": 1285.0
+    },
+    "shader-and-layout": {
+      "median": 459.5,
+      "min": 400.0,
+      "max": 760.0
+    },
+    "shader-module-create": {
+      "median": 380.5,
+      "min": 330.0,
+      "max": 615.0
+    },
+    "surface-acquire": {
+      "median": 42.5,
+      "min": 37.0,
+      "max": 133.0
+    },
+    "surface-capabilities-and-config": {
+      "median": 8.5,
+      "min": 8.0,
+      "max": 20.0
+    },
+    "surface-configure": {
+      "median": 5876.5,
+      "min": 4860.0,
+      "max": 13965.0
+    },
+    "surface-create": {
+      "median": 31.0,
+      "min": 30.0,
+      "max": 79.0
+    },
+    "system-font-discovery": {
+      "median": 33786.0,
+      "min": 30738.0,
+      "max": 48402.0
+    },
+    "system-font-paths": {
+      "median": 656.0,
+      "min": 656.0,
+      "max": 656.0
+    },
+    "user-font-paths": {
+      "median": 1.0,
+      "min": 1.0,
+      "max": 1.0
+    },
+    "wgpu-instance": {
+      "median": 8664.0,
+      "min": 7103.0,
+      "max": 10786.0
+    },
+    "window-create-and-branding": {
+      "median": 17225.0,
+      "min": 14445.0,
+      "max": 29465.0
+    },
+    "workspace-model-and-runtimes": {
+      "median": 13.0,
+      "min": 12.0,
+      "max": 25.0
+    }
+  },
+  "consolas-attribution": {
+    "runs": 5,
+    "adapter-request": {
+      "median": 43856.0,
+      "min": 42566.0,
+      "max": 51649.0
+    },
+    "application-default-state": {
+      "median": 222.0,
+      "min": 182.0,
+      "max": 424.0
+    },
+    "application-state-and-paths": {
+      "median": 277.0,
+      "min": 223.0,
+      "max": 534.0
+    },
+    "atlas-texture-create": {
+      "median": 2487.0,
+      "min": 1606.0,
+      "max": 3185.0
+    },
+    "atlas-view-sampler-bind-group": {
+      "median": 237.0,
+      "min": 207.0,
+      "max": 471.0
+    },
+    "buffer-create-upload": {
+      "median": 389.0,
+      "min": 247.0,
+      "max": 524.0
+    },
+    "cli-parse": {
+      "median": 766.0,
+      "min": 476.0,
+      "max": 20752.0
+    },
+    "config-read-parse": {
+      "median": 243.0,
+      "min": 192.0,
+      "max": 521.0
+    },
+    "cpu-font-preparation": {
+      "median": 41135.0,
+      "min": 33681.0,
+      "max": 55217.0
+    },
+    "device-request": {
+      "median": 53833.0,
+      "min": 48475.0,
+      "max": 66119.0
+    },
+    "event-loop-create": {
+      "median": 4942.0,
+      "min": 4099.0,
+      "max": 8248.0
+    },
+    "fallback-candidate-collection": {
+      "median": 8.0,
+      "min": 6.0,
+      "max": 10.0
+    },
+    "fallback-candidate-ordering": {
+      "median": 1864.0,
+      "min": 1521.0,
+      "max": 2811.0
+    },
+    "fallback-candidate-sort": {
+      "median": 1820.0,
+      "min": 1480.0,
+      "max": 2755.0
+    },
+    "file-operations.us": {
+      "median": 30886.0,
+      "min": 24608.0,
+      "max": 41295.0
+    },
+    "first-present": {
+      "median": 706.0,
+      "min": 485.0,
+      "max": 962.0
+    },
+    "first_frame_us": {
+      "median": 218446.0,
+      "min": 187327.0,
+      "max": 263560.0
+    },
+    "font-cache-setup": {
+      "median": 11.0,
+      "min": 5.0,
+      "max": 16.0
+    },
+    "font-configured-family-query": {
+      "median": 13.0,
+      "min": 12.0,
+      "max": 13.0
+    },
+    "font-database-create": {
+      "median": 1.0,
+      "min": 0.0,
+      "max": 1.0
+    },
+    "font-family-preparation": {
+      "median": 41023.0,
+      "min": 33456.0,
+      "max": 54860.0
+    },
+    "font-family-resolution": {
+      "median": 36.0,
+      "min": 35.0,
+      "max": 40.0
+    },
+    "font-metrics": {
+      "median": 170.0,
+      "min": 112.0,
+      "max": 357.0
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fontdb.close-file.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "fontdb.close-file.us": {
+      "median": 4790.0,
+      "min": 3619.0,
+      "max": 6149.0
+    },
+    "fontdb.discovery.count": {
+      "median": 1.0,
+      "min": 1.0,
+      "max": 1.0
+    },
+    "fontdb.discovery.us": {
+      "median": 38385.0,
+      "min": 30543.0,
+      "max": 50869.0
+    },
+    "fontdb.drop-map.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "fontdb.drop-map.us": {
+      "median": 5845.0,
+      "min": 4556.0,
+      "max": 7337.0
+    },
+    "fontdb.duplicate-paths.count": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fontdb.duplicate-paths.us": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fontdb.entry-type-canonicalize.count": {
+      "median": 852.0,
+      "min": 852.0,
+      "max": 852.0
+    },
+    "fontdb.entry-type-canonicalize.us": {
+      "median": 42.0,
+      "min": 35.0,
+      "max": 57.0
+    },
+    "fontdb.face-metadata-parse.count": {
+      "median": 724.0,
+      "min": 724.0,
+      "max": 724.0
+    },
+    "fontdb.face-metadata-parse.us": {
+      "median": 3773.0,
+      "min": 2940.0,
+      "max": 4427.0
+    },
+    "fontdb.file-map.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "fontdb.file-map.us": {
+      "median": 9651.0,
+      "min": 7722.0,
+      "max": 13227.0
+    },
+    "fontdb.file-open-map.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "fontdb.file-open-map.us": {
+      "median": 20253.0,
+      "min": 16438.0,
+      "max": 27815.0
+    },
+    "fontdb.file-open.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "fontdb.file-open.us": {
+      "median": 10753.0,
+      "min": 8632.0,
+      "max": 14457.0
+    },
+    "fontdb.file-total.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "fontdb.file-total.us": {
+      "median": 36577.0,
+      "min": 29164.0,
+      "max": 48383.0
+    },
+    "fontdb.file-unmap-close.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "fontdb.file-unmap-close.us": {
+      "median": 10727.0,
+      "min": 8254.0,
+      "max": 13611.0
+    },
+    "fontdb.read-dir-open.count": {
+      "median": 3.0,
+      "min": 3.0,
+      "max": 3.0
+    },
+    "fontdb.read-dir-open.us": {
+      "median": 188.0,
+      "min": 166.0,
+      "max": 248.0
+    },
+    "fontdb.unique-paths.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "fontdb.unique-paths.us": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fonts_to_frame_us": {
+      "median": 170506.0,
+      "min": 163780.0,
+      "max": 216132.0
+    },
+    "frame-texture-view": {
+      "median": 11.0,
+      "min": 10.0,
+      "max": 19.0
+    },
+    "glyph-atlas": {
+      "median": 3046.0,
+      "min": 1862.0,
+      "max": 3558.0
+    },
+    "glyph-bind-group-layout": {
+      "median": 56.0,
+      "min": 48.0,
+      "max": 109.0
+    },
+    "glyph-pipeline": {
+      "median": 8541.0,
+      "min": 6554.0,
+      "max": 13483.0
+    },
+    "gpu-preparation": {
+      "median": 104136.0,
+      "min": 99665.0,
+      "max": 129605.0
+    },
+    "initial-grid-resize": {
+      "median": 192.0,
+      "min": 142.0,
+      "max": 228.0
+    },
+    "initial-projection": {
+      "median": 51.0,
+      "min": 40.0,
+      "max": 74.0
+    },
+    "initial-ui-and-pane-layout": {
+      "median": 8.0,
+      "min": 5.0,
+      "max": 12.0
+    },
+    "instance-buffer-allocation": {
+      "median": 181.0,
+      "min": 106.0,
+      "max": 218.0
+    },
+    "instance-buffer-writes": {
+      "median": 171.0,
+      "min": 113.0,
+      "max": 293.0
+    },
+    "instance-generation": {
+      "median": 3.0,
+      "min": 3.0,
+      "max": 6.0
+    },
+    "memmap.close-duplicate.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.close-duplicate.us": {
+      "median": 245.0,
+      "min": 225.0,
+      "max": 382.0
+    },
+    "memmap.close-mapping.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.close-mapping.us": {
+      "median": 347.0,
+      "min": 286.0,
+      "max": 507.0
+    },
+    "memmap.create-mapping.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.create-mapping.us": {
+      "median": 3994.0,
+      "min": 3075.0,
+      "max": 5276.0
+    },
+    "memmap.duplicate-handle.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.duplicate-handle.us": {
+      "median": 288.0,
+      "min": 243.0,
+      "max": 397.0
+    },
+    "memmap.file-length.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.file-length.us": {
+      "median": 2988.0,
+      "min": 2370.0,
+      "max": 4095.0
+    },
+    "memmap.map-view.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.map-view.us": {
+      "median": 1000.0,
+      "min": 818.0,
+      "max": 1354.0
+    },
+    "memmap.probe-exec.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.probe-exec.us": {
+      "median": 227.0,
+      "min": 160.0,
+      "max": 342.0
+    },
+    "memmap.probe-write.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.probe-write.us": {
+      "median": 229.0,
+      "min": 220.0,
+      "max": 335.0
+    },
+    "memmap.unmap-view.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.unmap-view.us": {
+      "median": 4784.0,
+      "min": 3675.0,
+      "max": 5844.0
+    },
+    "memmap.virtual-protect.count": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "memmap.virtual-protect.us": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "pre-present-notify": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "queue-submit": {
+      "median": 631.0,
+      "min": 405.0,
+      "max": 1620.0
+    },
+    "rectangle-pipeline": {
+      "median": 7701.0,
+      "min": 5989.0,
+      "max": 11445.0
+    },
+    "render-encoding": {
+      "median": 961.0,
+      "min": 529.0,
+      "max": 1398.0
+    },
+    "shader-and-layout": {
+      "median": 530.0,
+      "min": 423.0,
+      "max": 975.0
+    },
+    "shader-module-create": {
+      "median": 441.0,
+      "min": 348.0,
+      "max": 800.0
+    },
+    "surface-acquire": {
+      "median": 54.0,
+      "min": 51.0,
+      "max": 125.0
+    },
+    "surface-capabilities-and-config": {
+      "median": 11.0,
+      "min": 10.0,
+      "max": 13.0
+    },
+    "surface-configure": {
+      "median": 6919.0,
+      "min": 5874.0,
+      "max": 7530.0
+    },
+    "surface-create": {
+      "median": 32.0,
+      "min": 30.0,
+      "max": 40.0
+    },
+    "system-font-discovery": {
+      "median": 39386.0,
+      "min": 31539.0,
+      "max": 52469.0
+    },
+    "system-font-paths": {
+      "median": 656.0,
+      "min": 656.0,
+      "max": 656.0
+    },
+    "user-font-paths": {
+      "median": 1.0,
+      "min": 1.0,
+      "max": 1.0
+    },
+    "wgpu-instance": {
+      "median": 7729.0,
+      "min": 7334.0,
+      "max": 12530.0
+    },
+    "window-create-and-branding": {
+      "median": 20841.0,
+      "min": 16705.0,
+      "max": 35958.0
+    },
+    "workspace-model-and-runtimes": {
+      "median": 18.0,
+      "min": 13.0,
+      "max": 32.0
+    }
+  },
+  "final-registry": {
+    "runs": 10,
+    "adapter-request": {
+      "median": 41201.0,
+      "min": 37934.0,
+      "max": 56672.0
+    },
+    "application-default-state": {
+      "median": 207.0,
+      "min": 163.0,
+      "max": 231.0
+    },
+    "application-state-and-paths": {
+      "median": 257.0,
+      "min": 203.0,
+      "max": 292.0
+    },
+    "atlas-texture-create": {
+      "median": 1903.5,
+      "min": 1446.0,
+      "max": 3977.0
+    },
+    "atlas-view-sampler-bind-group": {
+      "median": 270.0,
+      "min": 205.0,
+      "max": 708.0
+    },
+    "buffer-create-upload": {
+      "median": 370.5,
+      "min": 250.0,
+      "max": 679.0
+    },
+    "cli-parse": {
+      "median": 553.0,
+      "min": 443.0,
+      "max": 1804.0
+    },
+    "config-read-parse": {
+      "median": 203.0,
+      "min": 170.0,
+      "max": 398.0
+    },
+    "cpu-font-preparation": {
+      "median": 34612.5,
+      "min": 30275.0,
+      "max": 50279.0
+    },
+    "device-request": {
+      "median": 50386.0,
+      "min": 44448.0,
+      "max": 67980.0
+    },
+    "event-loop-create": {
+      "median": 4513.0,
+      "min": 3777.0,
+      "max": 7227.0
+    },
+    "fallback-candidate-collection": {
+      "median": 7.5,
+      "min": 5.0,
+      "max": 14.0
+    },
+    "fallback-candidate-ordering": {
+      "median": 1631.5,
+      "min": 1411.0,
+      "max": 2025.0
+    },
+    "fallback-candidate-sort": {
+      "median": 1591.5,
+      "min": 1372.0,
+      "max": 1981.0
+    },
+    "first-present": {
+      "median": 408.0,
+      "min": 289.0,
+      "max": 722.0
+    },
+    "first_frame_us": {
+      "median": 189739.5,
+      "min": 164289.0,
+      "max": 271660.0
+    },
+    "font-cache-setup": {
+      "median": 5.0,
+      "min": 4.0,
+      "max": 10.0
+    },
+    "font-database-create": {
+      "median": 2.0,
+      "min": 0.0,
+      "max": 4.0
+    },
+    "font-family-preparation": {
+      "median": 34509.5,
+      "min": 30118.0,
+      "max": 50137.0
+    },
+    "font-family-resolution": {
+      "median": 32.0,
+      "min": 31.0,
+      "max": 46.0
+    },
+    "font-generic-family-query": {
+      "median": 11.5,
+      "min": 10.0,
+      "max": 17.0
+    },
+    "font-metrics": {
+      "median": 103.0,
+      "min": 82.0,
+      "max": 157.0
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fonts_to_frame_us": {
+      "median": 162092.0,
+      "min": 142815.0,
+      "max": 236919.0
+    },
+    "frame-texture-view": {
+      "median": 15.0,
+      "min": 11.0,
+      "max": 25.0
+    },
+    "glyph-atlas": {
+      "median": 2269.5,
+      "min": 1709.0,
+      "max": 4798.0
+    },
+    "glyph-bind-group-layout": {
+      "median": 63.5,
+      "min": 42.0,
+      "max": 111.0
+    },
+    "glyph-pipeline": {
+      "median": 7216.5,
+      "min": 6527.0,
+      "max": 14876.0
+    },
+    "gpu-preparation": {
+      "median": 99157.0,
+      "min": 89710.0,
+      "max": 133668.0
+    },
+    "initial-grid-resize": {
+      "median": 138.5,
+      "min": 102.0,
+      "max": 238.0
+    },
+    "initial-projection": {
+      "median": 43.5,
+      "min": 29.0,
+      "max": 65.0
+    },
+    "initial-ui-and-pane-layout": {
+      "median": 7.5,
+      "min": 5.0,
+      "max": 11.0
+    },
+    "instance-buffer-allocation": {
+      "median": 153.5,
+      "min": 105.0,
+      "max": 318.0
+    },
+    "instance-buffer-writes": {
+      "median": 168.0,
+      "min": 116.0,
+      "max": 292.0
+    },
+    "instance-generation": {
+      "median": 3.0,
+      "min": 3.0,
+      "max": 6.0
+    },
+    "pre-present-notify": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "queue-submit": {
+      "median": 523.5,
+      "min": 389.0,
+      "max": 1098.0
+    },
+    "rectangle-pipeline": {
+      "median": 6125.0,
+      "min": 5587.0,
+      "max": 13898.0
+    },
+    "render-encoding": {
+      "median": 660.0,
+      "min": 505.0,
+      "max": 1121.0
+    },
+    "shader-and-layout": {
+      "median": 588.0,
+      "min": 414.0,
+      "max": 1064.0
+    },
+    "shader-module-create": {
+      "median": 473.5,
+      "min": 349.0,
+      "max": 861.0
+    },
+    "surface-acquire": {
+      "median": 61.5,
+      "min": 41.0,
+      "max": 99.0
+    },
+    "surface-capabilities-and-config": {
+      "median": 12.0,
+      "min": 9.0,
+      "max": 17.0
+    },
+    "surface-configure": {
+      "median": 7073.0,
+      "min": 5208.0,
+      "max": 18269.0
+    },
+    "surface-create": {
+      "median": 33.5,
+      "min": 30.0,
+      "max": 66.0
+    },
+    "system-font-discovery": {
+      "median": 32753.0,
+      "min": 28360.0,
+      "max": 48170.0
+    },
+    "wgpu-instance": {
+      "median": 7559.0,
+      "min": 6491.0,
+      "max": 9499.0
+    },
+    "window-create-and-branding": {
+      "median": 16445.5,
+      "min": 15096.0,
+      "max": 25257.0
+    },
+    "workspace-model-and-runtimes": {
+      "median": 14.5,
+      "min": 11.0,
+      "max": 20.0
+    }
+  },
+  "paired-on": {
+    "runs": 10,
+    "adapter-request": {
+      "median": 53420.5,
+      "min": 39498.0,
+      "max": 55510.0
+    },
+    "application-default-state": {
+      "median": 254.5,
+      "min": 214.0,
+      "max": 354.0
+    },
+    "application-state-and-paths": {
+      "median": 312.0,
+      "min": 262.0,
+      "max": 426.0
+    },
+    "atlas-texture-create": {
+      "median": 2735.5,
+      "min": 1947.0,
+      "max": 3163.0
+    },
+    "atlas-view-sampler-bind-group": {
+      "median": 323.0,
+      "min": 203.0,
+      "max": 592.0
+    },
+    "buffer-create-upload": {
+      "median": 357.5,
+      "min": 289.0,
+      "max": 678.0
+    },
+    "cli-parse": {
+      "median": 2212.5,
+      "min": 1307.0,
+      "max": 2659.0
+    },
+    "config-read-parse": {
+      "median": 237.5,
+      "min": 172.0,
+      "max": 417.0
+    },
+    "cpu-font-preparation": {
+      "median": 47959.5,
+      "min": 37362.0,
+      "max": 60872.0
+    },
+    "device-request": {
+      "median": 62526.0,
+      "min": 50255.0,
+      "max": 70800.0
+    },
+    "event-loop-create": {
+      "median": 5372.0,
+      "min": 4002.0,
+      "max": 7721.0
+    },
+    "fallback-candidate-collection": {
+      "median": 10.5,
+      "min": 7.0,
+      "max": 20.0
+    },
+    "fallback-candidate-ordering": {
+      "median": 2257.5,
+      "min": 1490.0,
+      "max": 3714.0
+    },
+    "fallback-candidate-sort": {
+      "median": 2177.5,
+      "min": 1454.0,
+      "max": 3615.0
+    },
+    "file-operations.us": {
+      "median": 34470.0,
+      "min": 28054.0,
+      "max": 44023.0
+    },
+    "first-present": {
+      "median": 436.5,
+      "min": 319.0,
+      "max": 668.0
+    },
+    "first_frame_us": {
+      "median": 245571.0,
+      "min": 193524.0,
+      "max": 265678.0
+    },
+    "font-cache-setup": {
+      "median": 10.5,
+      "min": 5.0,
+      "max": 25.0
+    },
+    "font-database-create": {
+      "median": 2.0,
+      "min": 1.0,
+      "max": 15.0
+    },
+    "font-family-preparation": {
+      "median": 47700.0,
+      "min": 37242.0,
+      "max": 60551.0
+    },
+    "font-family-resolution": {
+      "median": 47.5,
+      "min": 41.0,
+      "max": 67.0
+    },
+    "font-generic-family-query": {
+      "median": 18.0,
+      "min": 13.0,
+      "max": 26.0
+    },
+    "font-metrics": {
+      "median": 213.0,
+      "min": 120.0,
+      "max": 321.0
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fontdb.close-file.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "fontdb.close-file.us": {
+      "median": 5045.5,
+      "min": 4089.0,
+      "max": 6431.0
+    },
+    "fontdb.discovery.count": {
+      "median": 1.0,
+      "min": 1.0,
+      "max": 1.0
+    },
+    "fontdb.discovery.us": {
+      "median": 43098.0,
+      "min": 34796.0,
+      "max": 54956.0
+    },
+    "fontdb.drop-map.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "fontdb.drop-map.us": {
+      "median": 6356.5,
+      "min": 5031.0,
+      "max": 8053.0
+    },
+    "fontdb.duplicate-paths.count": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fontdb.duplicate-paths.us": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fontdb.entry-type-canonicalize.count": {
+      "median": 852.0,
+      "min": 852.0,
+      "max": 852.0
+    },
+    "fontdb.entry-type-canonicalize.us": {
+      "median": 50.5,
+      "min": 37.0,
+      "max": 58.0
+    },
+    "fontdb.face-metadata-parse.count": {
+      "median": 724.0,
+      "min": 724.0,
+      "max": 724.0
+    },
+    "fontdb.face-metadata-parse.us": {
+      "median": 4123.0,
+      "min": 3124.0,
+      "max": 5183.0
+    },
+    "fontdb.file-map.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "fontdb.file-map.us": {
+      "median": 10864.5,
+      "min": 8982.0,
+      "max": 13548.0
+    },
+    "fontdb.file-open-map.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "fontdb.file-open-map.us": {
+      "median": 23063.5,
+      "min": 18946.0,
+      "max": 29541.0
+    },
+    "fontdb.file-open.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "fontdb.file-open.us": {
+      "median": 12087.0,
+      "min": 9680.0,
+      "max": 15872.0
+    },
+    "fontdb.file-total.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "fontdb.file-total.us": {
+      "median": 41109.0,
+      "min": 33193.0,
+      "max": 51974.0
+    },
+    "fontdb.file-unmap-close.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "fontdb.file-unmap-close.us": {
+      "median": 11518.5,
+      "min": 9217.0,
+      "max": 14603.0
+    },
+    "fontdb.read-dir-open.count": {
+      "median": 3.0,
+      "min": 3.0,
+      "max": 3.0
+    },
+    "fontdb.read-dir-open.us": {
+      "median": 201.5,
+      "min": 154.0,
+      "max": 328.0
+    },
+    "fontdb.unique-paths.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "fontdb.unique-paths.us": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fonts_to_frame_us": {
+      "median": 211887.0,
+      "min": 164113.0,
+      "max": 233576.0
+    },
+    "frame-texture-view": {
+      "median": 16.0,
+      "min": 11.0,
+      "max": 20.0
+    },
+    "glyph-atlas": {
+      "median": 3161.0,
+      "min": 2197.0,
+      "max": 3611.0
+    },
+    "glyph-bind-group-layout": {
+      "median": 64.0,
+      "min": 50.0,
+      "max": 120.0
+    },
+    "glyph-pipeline": {
+      "median": 9417.5,
+      "min": 6534.0,
+      "max": 12036.0
+    },
+    "gpu-preparation": {
+      "median": 127434.0,
+      "min": 99697.0,
+      "max": 137284.0
+    },
+    "initial-grid-resize": {
+      "median": 197.0,
+      "min": 92.0,
+      "max": 268.0
+    },
+    "initial-projection": {
+      "median": 45.0,
+      "min": 34.0,
+      "max": 62.0
+    },
+    "initial-ui-and-pane-layout": {
+      "median": 17.5,
+      "min": 9.0,
+      "max": 26.0
+    },
+    "instance-buffer-allocation": {
+      "median": 141.0,
+      "min": 107.0,
+      "max": 293.0
+    },
+    "instance-buffer-writes": {
+      "median": 168.0,
+      "min": 135.0,
+      "max": 323.0
+    },
+    "instance-generation": {
+      "median": 4.0,
+      "min": 3.0,
+      "max": 6.0
+    },
+    "memmap.close-duplicate.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.close-duplicate.us": {
+      "median": 304.5,
+      "min": 235.0,
+      "max": 351.0
+    },
+    "memmap.close-mapping.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.close-mapping.us": {
+      "median": 457.5,
+      "min": 342.0,
+      "max": 506.0
+    },
+    "memmap.create-mapping.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.create-mapping.us": {
+      "median": 4443.0,
+      "min": 3458.0,
+      "max": 5569.0
+    },
+    "memmap.duplicate-handle.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.duplicate-handle.us": {
+      "median": 339.0,
+      "min": 267.0,
+      "max": 419.0
+    },
+    "memmap.file-length.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.file-length.us": {
+      "median": 3296.0,
+      "min": 2715.0,
+      "max": 4192.0
+    },
+    "memmap.map-view.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.map-view.us": {
+      "median": 1137.0,
+      "min": 914.0,
+      "max": 1390.0
+    },
+    "memmap.probe-exec.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.probe-exec.us": {
+      "median": 214.0,
+      "min": 172.0,
+      "max": 257.0
+    },
+    "memmap.probe-write.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.probe-write.us": {
+      "median": 255.5,
+      "min": 204.0,
+      "max": 343.0
+    },
+    "memmap.unmap-view.count": {
+      "median": 657.0,
+      "min": 657.0,
+      "max": 657.0
+    },
+    "memmap.unmap-view.us": {
+      "median": 5156.5,
+      "min": 4031.0,
+      "max": 6662.0
+    },
+    "memmap.virtual-protect.count": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "memmap.virtual-protect.us": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "pre-present-notify": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "queue-submit": {
+      "median": 533.5,
+      "min": 394.0,
+      "max": 781.0
+    },
+    "rectangle-pipeline": {
+      "median": 8411.0,
+      "min": 6580.0,
+      "max": 14014.0
+    },
+    "render-encoding": {
+      "median": 806.0,
+      "min": 514.0,
+      "max": 1159.0
+    },
+    "shader-and-layout": {
+      "median": 567.5,
+      "min": 427.0,
+      "max": 847.0
+    },
+    "shader-module-create": {
+      "median": 470.5,
+      "min": 345.0,
+      "max": 696.0
+    },
+    "surface-acquire": {
+      "median": 66.5,
+      "min": 45.0,
+      "max": 101.0
+    },
+    "surface-capabilities-and-config": {
+      "median": 13.0,
+      "min": 9.0,
+      "max": 21.0
+    },
+    "surface-configure": {
+      "median": 7594.5,
+      "min": 5262.0,
+      "max": 13726.0
+    },
+    "surface-create": {
+      "median": 43.0,
+      "min": 33.0,
+      "max": 74.0
+    },
+    "system-font-discovery": {
+      "median": 44221.5,
+      "min": 35633.0,
+      "max": 56628.0
+    },
+    "system-font-paths": {
+      "median": 656.0,
+      "min": 656.0,
+      "max": 656.0
+    },
+    "user-font-paths": {
+      "median": 1.0,
+      "min": 1.0,
+      "max": 1.0
+    },
+    "wgpu-instance": {
+      "median": 9936.0,
+      "min": 8598.0,
+      "max": 13570.0
+    },
+    "window-create-and-branding": {
+      "median": 21785.5,
+      "min": 14830.0,
+      "max": 26368.0
+    },
+    "workspace-model-and-runtimes": {
+      "median": 20.5,
+      "min": 15.0,
+      "max": 27.0
+    }
+  },
+  "paired-off": {
+    "runs": 10,
+    "adapter-request": {
+      "median": 56073.0,
+      "min": 43559.0,
+      "max": 70499.0
+    },
+    "application-default-state": {
+      "median": 320.0,
+      "min": 178.0,
+      "max": 512.0
+    },
+    "application-state-and-paths": {
+      "median": 397.0,
+      "min": 219.0,
+      "max": 634.0
+    },
+    "atlas-texture-create": {
+      "median": 2722.0,
+      "min": 1690.0,
+      "max": 3738.0
+    },
+    "atlas-view-sampler-bind-group": {
+      "median": 350.0,
+      "min": 202.0,
+      "max": 422.0
+    },
+    "buffer-create-upload": {
+      "median": 423.0,
+      "min": 308.0,
+      "max": 656.0
+    },
+    "cli-parse": {
+      "median": 2126.5,
+      "min": 1722.0,
+      "max": 3148.0
+    },
+    "config-read-parse": {
+      "median": 318.0,
+      "min": 197.0,
+      "max": 386.0
+    },
+    "cpu-font-preparation": {
+      "median": 46599.5,
+      "min": 35012.0,
+      "max": 51772.0
+    },
+    "device-request": {
+      "median": 69642.5,
+      "min": 47577.0,
+      "max": 82499.0
+    },
+    "event-loop-create": {
+      "median": 6485.0,
+      "min": 3875.0,
+      "max": 9168.0
+    },
+    "fallback-candidate-collection": {
+      "median": 11.0,
+      "min": 7.0,
+      "max": 19.0
+    },
+    "fallback-candidate-ordering": {
+      "median": 1920.0,
+      "min": 1856.0,
+      "max": 2458.0
+    },
+    "fallback-candidate-sort": {
+      "median": 1875.5,
+      "min": 1808.0,
+      "max": 2357.0
+    },
+    "first-present": {
+      "median": 526.5,
+      "min": 322.0,
+      "max": 845.0
+    },
+    "first_frame_us": {
+      "median": 258489.5,
+      "min": 187527.0,
+      "max": 293202.0
+    },
+    "font-cache-setup": {
+      "median": 6.0,
+      "min": 5.0,
+      "max": 21.0
+    },
+    "font-database-create": {
+      "median": 2.0,
+      "min": 1.0,
+      "max": 4.0
+    },
+    "font-family-preparation": {
+      "median": 46425.5,
+      "min": 34879.0,
+      "max": 51671.0
+    },
+    "font-family-resolution": {
+      "median": 45.0,
+      "min": 35.0,
+      "max": 49.0
+    },
+    "font-generic-family-query": {
+      "median": 17.0,
+      "min": 12.0,
+      "max": 19.0
+    },
+    "font-metrics": {
+      "median": 121.0,
+      "min": 94.0,
+      "max": 310.0
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fonts_to_frame_us": {
+      "median": 226566.5,
+      "min": 159166.0,
+      "max": 245851.0
+    },
+    "frame-texture-view": {
+      "median": 16.0,
+      "min": 10.0,
+      "max": 23.0
+    },
+    "glyph-atlas": {
+      "median": 3192.0,
+      "min": 1935.0,
+      "max": 4209.0
+    },
+    "glyph-bind-group-layout": {
+      "median": 65.5,
+      "min": 46.0,
+      "max": 94.0
+    },
+    "glyph-pipeline": {
+      "median": 9794.0,
+      "min": 6908.0,
+      "max": 13025.0
+    },
+    "gpu-preparation": {
+      "median": 137711.0,
+      "min": 97911.0,
+      "max": 163167.0
+    },
+    "initial-grid-resize": {
+      "median": 210.5,
+      "min": 115.0,
+      "max": 410.0
+    },
+    "initial-projection": {
+      "median": 44.0,
+      "min": 37.0,
+      "max": 118.0
+    },
+    "initial-ui-and-pane-layout": {
+      "median": 10.5,
+      "min": 9.0,
+      "max": 18.0
+    },
+    "instance-buffer-allocation": {
+      "median": 187.5,
+      "min": 135.0,
+      "max": 284.0
+    },
+    "instance-buffer-writes": {
+      "median": 210.5,
+      "min": 138.0,
+      "max": 367.0
+    },
+    "instance-generation": {
+      "median": 4.0,
+      "min": 3.0,
+      "max": 5.0
+    },
+    "pre-present-notify": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "queue-submit": {
+      "median": 566.5,
+      "min": 442.0,
+      "max": 778.0
+    },
+    "rectangle-pipeline": {
+      "median": 9312.0,
+      "min": 6250.0,
+      "max": 12673.0
+    },
+    "render-encoding": {
+      "median": 808.5,
+      "min": 560.0,
+      "max": 1196.0
+    },
+    "shader-and-layout": {
+      "median": 586.5,
+      "min": 418.0,
+      "max": 836.0
+    },
+    "shader-module-create": {
+      "median": 488.5,
+      "min": 345.0,
+      "max": 691.0
+    },
+    "surface-acquire": {
+      "median": 70.0,
+      "min": 51.0,
+      "max": 220.0
+    },
+    "surface-capabilities-and-config": {
+      "median": 13.0,
+      "min": 9.0,
+      "max": 24.0
+    },
+    "surface-configure": {
+      "median": 8586.0,
+      "min": 6167.0,
+      "max": 12466.0
+    },
+    "surface-create": {
+      "median": 44.0,
+      "min": 32.0,
+      "max": 58.0
+    },
+    "system-font-discovery": {
+      "median": 44316.0,
+      "min": 32787.0,
+      "max": 49580.0
+    },
+    "wgpu-instance": {
+      "median": 9604.5,
+      "min": 6775.0,
+      "max": 11803.0
+    },
+    "window-create-and-branding": {
+      "median": 23019.5,
+      "min": 16558.0,
+      "max": 29241.0
+    },
+    "workspace-model-and-runtimes": {
+      "median": 19.0,
+      "min": 13.0,
+      "max": 44.0
+    }
+  },
+  "profiling-on-minus-off-paired-us": {
+    "cpu-font-preparation": {
+      "median": 1803.0,
+      "min": -12575,
+      "max": 19568
+    },
+    "font-family-preparation": {
+      "median": 1718.5,
+      "min": -12723,
+      "max": 19355
+    },
+    "system-font-discovery": {
+      "median": 1289.0,
+      "min": -12916,
+      "max": 17407
+    },
+    "fonts_to_frame_us": {
+      "median": -14278.5,
+      "min": -61390,
+      "max": 62442
+    }
+  }
+}
