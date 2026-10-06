@@ -1056,7 +1056,14 @@ mod tests {
     #[test]
     #[ignore = "requires a native GPU adapter"]
     fn native_gpu_validates_terminal_pipelines() {
-        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
+            backends: if cfg!(target_os = "windows") {
+                wgpu::Backends::DX12
+            } else {
+                wgpu::Backends::all()
+            },
+            ..Default::default()
+        });
         let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
             compatible_surface: None,
             ..Default::default()
@@ -1064,7 +1071,7 @@ mod tests {
         .expect("native GPU adapter");
         let (device, _) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
             label: Some("terminal renderer native smoke device"),
-            ..Default::default()
+            ..crate::renderer_device_descriptor()
         }))
         .expect("native GPU device");
 
@@ -1076,7 +1083,14 @@ mod tests {
     fn native_gpu_renders_backgrounds_glyphs_underlines_and_cursor() {
         const WIDTH: u32 = 768;
         const HEIGHT: u32 = 600;
-        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
+            backends: if cfg!(target_os = "windows") {
+                wgpu::Backends::DX12
+            } else {
+                wgpu::Backends::all()
+            },
+            ..Default::default()
+        });
         let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
             compatible_surface: None,
             ..Default::default()
@@ -1084,7 +1098,7 @@ mod tests {
         .expect("native GPU adapter");
         let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
             label: Some("terminal renderer native frame smoke device"),
-            ..Default::default()
+            ..crate::renderer_device_descriptor()
         }))
         .expect("native GPU device");
         let texture = device.create_texture(&wgpu::TextureDescriptor {

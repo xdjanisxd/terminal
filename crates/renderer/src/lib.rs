@@ -204,7 +204,10 @@ impl Renderer {
         startup_milestone("gpu-started");
         let (surface, adapter, device, queue) = initialize_gpu(&window)?;
         startup_milestone("gpu-ready");
+        let info_stage = startup_stage("adapter-info");
         let adapter_info = adapter.get_info();
+        drop(info_stage);
+        startup::gpu_detail(format_args!("selected={adapter_info:?}"));
         emit_diagnostic(format_args!(
             "renderer event=adapter backend={:?} name={:?} driver={:?}",
             adapter_info.backend, adapter_info.name, adapter_info.driver
@@ -607,6 +610,21 @@ fn gpu_backend_attempts(
     }
 }
 
+// The renderer owns one atlas bind group (one texture plus DX12 sampler
+// indexing), reused across panes and ordinary resizes. Leave ample room for
+// retired resources during format changes without preallocating a million
+// DX12 descriptors. Other limits, features and backend policy stay default.
+fn renderer_device_descriptor() -> wgpu::DeviceDescriptor<'static> {
+    wgpu::DeviceDescriptor {
+        label: Some("terminal renderer device"),
+        required_limits: wgpu::Limits {
+            max_non_sampler_bindings: 16_384,
+            ..Default::default()
+        },
+        ..Default::default()
+    }
+}
+
 fn initialize_gpu(
     window: &Arc<Window>,
 ) -> Result<
@@ -618,13 +636,17 @@ fn initialize_gpu(
     ),
     RendererInitError,
 > {
+    let gpu_stage = startup_stage("gpu-initialize");
+    let policy_stage = startup_stage("gpu-backend-policy");
     let descriptor = wgpu::InstanceDescriptor::from_env_or_default();
     let backend_override = wgpu::Backends::from_env().is_some();
+    let attempts = gpu_backend_attempts(descriptor, backend_override);
+    drop(policy_stage);
     let mut last_error = None;
-    for (attempt, descriptor) in gpu_backend_attempts(descriptor, backend_override)
-        .into_iter()
-        .enumerate()
-    {
+    for (attempt, descriptor) in attempts.into_iter().enumerate() {
+        startup::gpu_detail(format_args!(
+            "attempt={attempt} override={backend_override} instance={descriptor:?}"
+        ));
         let result = (|| {
             let instance_stage = startup_stage("wgpu-instance");
             let instance = wgpu::Instance::new(&descriptor);
@@ -637,30 +659,46 @@ fn initialize_gpu(
                 })?;
             drop(surface_stage);
             let adapter_stage = startup_stage("adapter-request");
-            let adapter =
-                pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
-                    power_preference: wgpu::PowerPreference::default(),
-                    force_fallback_adapter: false,
-                    compatible_surface: Some(&surface),
-                }))
-                .map_err(|error| {
-                    RendererInitError::new(format!("could not find adapter: {error}"))
-                })?;
+            // Native wgpu-core does enumeration/selection in the call itself,
+            // before returning its ready future. Keep the inclusive scope too.
+            let call_stage = startup_stage("adapter-request-call");
+            let adapter_future = instance.request_adapter(&wgpu::RequestAdapterOptions {
+                power_preference: wgpu::PowerPreference::default(),
+                force_fallback_adapter: false,
+                compatible_surface: Some(&surface),
+            });
+            drop(call_stage);
+            let poll_stage = startup_stage("adapter-request-poll");
+            let adapter_result = pollster::block_on(adapter_future);
+            drop(poll_stage);
+            let adapter = adapter_result.map_err(|error| {
+                RendererInitError::new(format!("could not find adapter: {error}"))
+            })?;
             drop(adapter_stage);
+            startup_milestone("adapter-selected");
+            let device_descriptor = renderer_device_descriptor();
+            startup::gpu_detail(format_args!(
+                "attempt={attempt} device={device_descriptor:?}"
+            ));
             let device_stage = startup_stage("device-request");
-            let (device, queue) =
-                pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
-                    label: Some("terminal renderer device"),
-                    ..Default::default()
-                }))
-                .map_err(|error| {
-                    RendererInitError::new(format!("could not create device: {error}"))
-                })?;
+            let call_stage = startup_stage("device-request-call");
+            let device_future = adapter.request_device(&device_descriptor);
+            drop(call_stage);
+            let poll_stage = startup_stage("device-request-poll");
+            let device_result = pollster::block_on(device_future);
+            drop(poll_stage);
+            let (device, queue) = device_result.map_err(|error| {
+                RendererInitError::new(format!("could not create device: {error}"))
+            })?;
             drop(device_stage);
+            startup_milestone("device-queue-ready");
             Ok((surface, adapter, device, queue))
         })();
         match result {
-            Ok(gpu) => return Ok(gpu),
+            Ok(gpu) => {
+                drop(gpu_stage);
+                return Ok(gpu);
+            }
             Err(error) => {
                 emit_diagnostic(format_args!(
                     "renderer event=adapter-attempt-failed attempt={attempt} backends={:?} error={error}",

@@ -1,0 +1,95 @@
+{
+  "version": "25.0.2",
+  "hal": [
+    {
+      "path": "src/dx12/mod.rs",
+      "append": "mod init_timing { pub(super) struct Scope(&'static str, Option<std::time::Instant>); impl Scope { pub(super) fn new(name: &'static str) -> Self { Self(name, (std::env::var_os(\"TERMINAL_STARTUP_DIAGNOSTICS\").as_deref() == Some(std::ffi::OsStr::new(\"1\"))).then(std::time::Instant::now)) } } impl Drop for Scope { fn drop(&mut self) { if let Some(start) = self.1 { eprintln!(\"terminal-wgpu-internal cost={} duration_us={}\", self.0, start.elapsed().as_micros()); } } } }\n\n"
+    },
+    {
+      "path": "src/dx12/instance.rs",
+      "old": "let adapters = auxil::dxgi::factory::enumerate_adapters(self.factory.clone());",
+      "replacement": "let timing = super::init_timing::Scope::new(\"dxgi-enumerate\");\n        let adapters = auxil::dxgi::factory::enumerate_adapters(self.factory.clone());\n        drop(timing);"
+    },
+    {
+      "path": "src/dx12/adapter.rs",
+      "old": "// Create the device so that we can get the capabilities.",
+      "replacement": "let _expose_timing = super::init_timing::Scope::new(\"dx12-adapter-expose\");\n        // Create the device so that we can get the capabilities."
+    },
+    {
+      "path": "src/dx12/adapter.rs",
+      "old": "profiling::scope!(\"ID3D12Device::create_device\");",
+      "replacement": "let _native_timing = super::init_timing::Scope::new(\"d3d12-create-device\");\n            profiling::scope!(\"ID3D12Device::create_device\");"
+    },
+    {
+      "path": "src/dx12/adapter.rs",
+      "old": "profiling::scope!(\"ID3D12Device::CreateCommandQueue\");",
+      "replacement": "let _queue_timing = super::init_timing::Scope::new(\"d3d12-create-queue\");\n            profiling::scope!(\"ID3D12Device::CreateCommandQueue\");"
+    },
+    {
+      "path": "src/dx12/device.rs",
+      "old": "let mem_allocator = Arc::new",
+      "replacement": "let _device_timing = super::init_timing::Scope::new(\"dx12-device-resources\");\n        let mem_allocator = Arc::new"
+    },
+    {
+      "path": "src/dx12/device.rs",
+      "old": "profiling::scope!(\"ID3D12Device::CreateFence\");",
+      "replacement": "let _fence_timing = super::init_timing::Scope::new(\"d3d12-create-idle-fence\");\n            profiling::scope!(\"ID3D12Device::CreateFence\");"
+    },
+    {
+      "path": "src/dx12/device.rs",
+      "old": "let mut zero_buffer = None::<Direct3D12::ID3D12Resource>;",
+      "replacement": "let zero_timing = super::init_timing::Scope::new(\"d3d12-zero-buffer\");\n        let mut zero_buffer = None::<Direct3D12::ID3D12Resource>;"
+    },
+    {
+      "path": "src/dx12/device.rs",
+      "old": "// Note: without `D3D12_HEAP_FLAG_CREATE_NOT_ZEROED`",
+      "replacement": "drop(zero_timing);\n        // Note: without `D3D12_HEAP_FLAG_CREATE_NOT_ZEROED`"
+    },
+    {
+      "path": "src/dx12/descriptor.rs",
+      "old": "profiling::scope!(\"ID3D12Device::CreateDescriptorHeap\");",
+      "replacement": "let _heap_timing = super::init_timing::Scope::new(\"d3d12-shader-visible-descriptor-heap\");\n            if std::env::var_os(\"TERMINAL_STARTUP_DIAGNOSTICS\").as_deref() == Some(std::ffi::OsStr::new(\"1\")) { eprintln!(\"terminal-wgpu-internal heap_type={ty:?} descriptors={total_handles}\"); }\n            profiling::scope!(\"ID3D12Device::CreateDescriptorHeap\");"
+    },
+    {
+      "path": "src/dx12/instance.rs",
+      "old": "let lib_main = D3D12Lib::new()",
+      "replacement": "let library_timing = super::init_timing::Scope::new(\"d3d12-library-load\");\n        let lib_main = D3D12Lib::new()"
+    },
+    {
+      "path": "src/dx12/instance.rs",
+      "old": "if desc\n            .flags",
+      "replacement": "drop(library_timing);\n        if desc\n            .flags"
+    },
+    {
+      "path": "src/dx12/instance.rs",
+      "old": "let (lib_dxgi, factory) = auxil::dxgi::factory::create_factory(desc.flags)?;",
+      "replacement": "let factory_timing = super::init_timing::Scope::new(\"dxgi-library-factory\");\n        let (lib_dxgi, factory) = auxil::dxgi::factory::create_factory(desc.flags)?;\n        drop(factory_timing);"
+    },
+    {
+      "path": "src/dx12/sampler.rs",
+      "old": "profiling::scope!(\"SamplerHeap::new\");",
+      "replacement": "let _sampler_timing = super::init_timing::Scope::new(\"dx12-sampler-heap\");\n        profiling::scope!(\"SamplerHeap::new\");"
+    },
+    {
+      "path": "src/dx12/device.rs",
+      "old": "let mut signature = None;",
+      "replacement": "let _signature_timing = super::init_timing::Scope::new(\"d3d12-command-signature\");\n        let mut signature = None;"
+    }
+  ],
+  "core": [
+    {
+      "path": "src/instance.rs",
+      "append": "mod init_timing { pub(super) struct Scope(&'static str, Option<std::time::Instant>); impl Scope { pub(super) fn new(name: &'static str) -> Self { Self(name, (std::env::var_os(\"TERMINAL_STARTUP_DIAGNOSTICS\").as_deref() == Some(std::ffi::OsStr::new(\"1\"))).then(std::time::Instant::now)) } } impl Drop for Scope { fn drop(&mut self) { if let Some(start) = self.1 { std::eprintln!(\"terminal-wgpu-internal cost={} duration_us={}\", self.0, start.elapsed().as_micros()); } } } }\n\n"
+    },
+    {
+      "path": "src/instance.rs",
+      "old": "        match desc.power_preference {",
+      "replacement": "        let _selection_timing = init_timing::Scope::new(\"core-adapter-selection-and-discard\");\n        match desc.power_preference {"
+    },
+    {
+      "path": "src/instance.rs",
+      "old": "                log::debug!(\"* {:?}\", adapter.info);",
+      "replacement": "                if std::env::var_os(\"TERMINAL_STARTUP_DIAGNOSTICS\").as_deref() == Some(std::ffi::OsStr::new(\"1\")) { std::eprintln!(\"terminal-wgpu-internal candidate={:?}\", adapter.info); }\n                log::debug!(\"* {:?}\", adapter.info);"
+    }
+  ]
+}
