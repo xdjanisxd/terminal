@@ -17,12 +17,15 @@ fn shifted_horizontal_arrows_keep_modifiers_in_both_screens_and_cursor_modes() {
     for alternate in [false, true] {
         for application in [false, true] {
             let (mut parser, mut terminal) = terminal();
+
             if alternate {
                 parser.advance(&mut terminal, b"\x1b[?1049h").unwrap();
             }
+
             if application {
                 parser.advance(&mut terminal, b"\x1b[?1h").unwrap();
             }
+
             for (key, modifier, expected) in [
                 (CursorKey::Left, 2, b"\x1b[1;2D"),
                 (CursorKey::Right, 2, b"\x1b[1;2C"),
@@ -33,6 +36,12 @@ fn shifted_horizontal_arrows_keep_modifiers_in_both_screens_and_cursor_modes() {
                     encode_modified_cursor_key(*terminal.input_modes(), key, modifier),
                     expected,
                     "alternate={alternate}, application={application}, key={key:?}"
+                );
+            }
+        }
+    }
+}
+#[test]
 fn function_keys_use_xterm_sequences_for_all_modifiers_and_screen_modes() {
     use terminal_core::{FunctionKey::*, KeyModifiers, encode_function_key};
     let cases = [
