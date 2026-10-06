@@ -157,7 +157,7 @@ any order before the physical key, separated by `+`. Modifier and key names
 are case-insensitive. Supported keys are A–Z, 0–9, `=`/`Equal`,
 `-`/`Minus`, `PageUp`, `PageDown`, `Home`, `End`, `Insert`,
 `Delete`, `Backspace`, `Enter`, `Tab`, `Space`, `ArrowLeft`,
-`ArrowRight`, `ArrowUp`, and `ArrowDown`. Plain letters and digits need a
+`ArrowRight`, `ArrowUp`, `ArrowDown`, and `F1`–`F12`. Plain letters and digits need a
 modifier so typing them still reaches the PTY. Exact modifier sets matter;
 duplicate chords are rejected. `Ctrl+F` opens scrollback search through app
 input handling rather than a configurable default binding.
