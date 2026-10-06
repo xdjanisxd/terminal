@@ -548,6 +548,8 @@ fn parse_chord(value: &str) -> Result<KeyChord, String> {
                     "arrowleft" => "ArrowLeft".into(),
                     "arrowup" => "ArrowUp".into(),
                     "arrowdown" => "ArrowDown".into(),
+                    "f1" | "f2" | "f3" | "f4" | "f5" | "f6" | "f7" | "f8" | "f9" | "f10"
+                    | "f11" | "f12" => key.to_ascii_uppercase(),
                     _ if key.len() == 1 && key.bytes().all(|byte| byte.is_ascii_alphabetic()) => {
                         format!("Key{}", key.to_ascii_uppercase())
                     }
@@ -575,6 +577,21 @@ fn parse_chord(value: &str) -> Result<KeyChord, String> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn function_key_bindings_accept_only_f1_through_f12_with_modifiers() {
+        for number in 1..=12 {
+            for prefix in ["", "Shift+", "Alt+", "Ctrl+", "Ctrl+Alt+Shift+"] {
+                let chord = super::parse_chord(&format!("{prefix}f{number}")).unwrap();
+                assert_eq!(chord.key, format!("F{number}"));
+                assert_eq!(chord.shift, prefix.contains("Shift"));
+                assert_eq!(chord.alt, prefix.contains("Alt"));
+                assert_eq!(chord.control, prefix.contains("Ctrl"));
+            }
+        }
+        for invalid in ["F0", "F13", "F01", "Ctrl+F99"] {
+            assert!(super::parse_chord(invalid).is_err());
+        }
+    }
     use super::*;
     #[test]
     fn optional_shell_parses_names_paths_and_separate_arguments() {

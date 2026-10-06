@@ -1,0 +1,9 @@
+[workspace]
+active_tab = 0
+[[workspace.tabs]]
+title = "First frame measurement"
+[workspace.tabs.layout]
+kind = "pane"
+[workspace.tabs.layout.session.command]
+program = "C:\\WINDOWS\\system32\\cmd.exe"
+args = ["/d", "/k"]

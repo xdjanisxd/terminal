@@ -75,6 +75,7 @@ impl GlyphAtlas {
     }
 
     fn new(device: &wgpu::Device, layout: &wgpu::BindGroupLayout) -> Self {
+        let texture_stage = crate::startup_stage("atlas-texture-create");
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("terminal glyph atlas"),
             size: wgpu::Extent3d {
@@ -89,6 +90,8 @@ impl GlyphAtlas {
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
+        drop(texture_stage);
+        let bindings_stage = crate::startup_stage("atlas-view-sampler-bind-group");
         let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
         let sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("terminal glyph atlas sampler"),
@@ -110,6 +113,7 @@ impl GlyphAtlas {
                 },
             ],
         });
+        drop(bindings_stage);
         Self {
             texture,
             bind_group,
@@ -262,6 +266,7 @@ impl<T: Pod> InstanceBuffer<T> {
             required,
         );
         if allocation_required {
+            let _allocation_stage = crate::startup_stage("instance-buffer-allocation");
             let capacity = instance_buffer_capacity(required);
             *current = Some(Self {
                 buffer: device.create_buffer(&wgpu::BufferDescriptor {
@@ -283,6 +288,7 @@ impl<T: Pod> InstanceBuffer<T> {
             allocated: allocation_required,
             ..UploadWork::default()
         };
+        let write_stage = crate::startup_stage("instance-buffer-writes");
         for range in ranges {
             let bytes = bytemuck::cast_slice(&instances[range.clone()]);
             queue.write_buffer(
@@ -293,6 +299,7 @@ impl<T: Pod> InstanceBuffer<T> {
             work.writes += 1;
             work.bytes += bytes.len();
         }
+        drop(write_stage);
         buffer.previous.clear();
         buffer.previous.extend_from_slice(instances);
         work
@@ -341,10 +348,14 @@ pub(super) struct PaneDraw {
 
 impl DrawResources {
     pub(super) fn new(device: &wgpu::Device, format: wgpu::TextureFormat) -> Self {
+        let shader_stage = crate::startup_stage("shader-and-layout");
+        let module_stage = crate::startup_stage("shader-module-create");
         let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: Some("terminal renderer shader"),
             source: wgpu::ShaderSource::Wgsl(include_str!("terminal.wgsl").into()),
         });
+        drop(module_stage);
+        let layout_stage = crate::startup_stage("glyph-bind-group-layout");
         let glyph_bind_group_layout =
             device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
                 label: Some("terminal glyph atlas layout"),
@@ -367,6 +378,9 @@ impl DrawResources {
                     },
                 ],
             });
+        drop(layout_stage);
+        drop(shader_stage);
+        let rect_stage = crate::startup_stage("rectangle-pipeline");
         let rect_pipeline = pipeline(
             device,
             &shader,
@@ -376,6 +390,8 @@ impl DrawResources {
             &[],
             rect_layout(),
         );
+        drop(rect_stage);
+        let glyph_stage = crate::startup_stage("glyph-pipeline");
         let glyph_pipeline = pipeline(
             device,
             &shader,
@@ -385,7 +401,10 @@ impl DrawResources {
             &[&glyph_bind_group_layout],
             glyph_vertex_layout(),
         );
+        drop(glyph_stage);
+        let atlas_stage = crate::startup_stage("glyph-atlas");
         let glyph_atlas = GlyphAtlas::new(device, &glyph_bind_group_layout);
+        drop(atlas_stage);
         Self {
             rect_pipeline,
             glyph_pipeline,
@@ -437,6 +456,7 @@ impl DrawResources {
         pane_draw: PaneDraw,
     ) -> RenderWork {
         let pane = pane_draw.rect;
+        let generation_stage = crate::startup_stage("instance-generation");
         let generation_start = Instant::now();
         let mut shape_calls = 0;
         let mut shape_misses = 0;
@@ -655,6 +675,8 @@ impl DrawResources {
         let rectangle_count = self.rectangles.len();
         let glyph_count = self.glyphs.len();
         let instance_generation = generation_start.elapsed();
+        drop(generation_stage);
+        let buffer_stage = crate::startup_stage("buffer-create-upload");
         let upload_start = Instant::now();
         let rectangle_upload = InstanceBuffer::upload(
             &mut self.rectangle_buffer,
@@ -682,6 +704,8 @@ impl DrawResources {
             )
         };
         let buffer_upload = upload_start.elapsed();
+        drop(buffer_stage);
+        let encoding_stage = crate::startup_stage("render-encoding");
         let submission_start = Instant::now();
         let mut encoder = device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
             label: Some("terminal frame encoder"),
@@ -749,7 +773,11 @@ impl DrawResources {
                 pass.draw(0..6, 0..overlays.len() as u32);
             }
         }
-        queue.submit(Some(encoder.finish()));
+        let commands = encoder.finish();
+        drop(encoding_stage);
+        let submit_stage = crate::startup_stage("queue-submit");
+        queue.submit(Some(commands));
+        drop(submit_stage);
         let submission = submission_start.elapsed();
         RenderWork {
             instances: RenderInstanceCounts {

@@ -27,6 +27,10 @@ Stages include application-started, terminal-state-created, config-loaded (inclu
 
 Main entry excludes OS loading before Rust main. A successful present is a renderer/window-system submission, not proof of compositor scanout or observed pixels. Window-shown records completion of visibility/focus requests. PTY completion does not mean the shell has produced a prompt.
 
+Fine-grained opt-in `cost=... duration_us=...` scopes now separate config/workspace, font discovery, GPU API calls, pipelines, buffers and rendering. These CPU scopes stop at native window show; shell milestones continue. See the [minimal first-frame audit](MINIMAL_FIRST_FRAME.md) for dependencies, classification, fresh-process sample ranges and outstanding cold-cache/manual acceptance. No production initialization was deferred by that audit.
+
+The [pipeline cost breakdown](FIRST_FRAME_PIPELINE_COSTS.md) adds inclusive CPU font preparation and separate shader module/layout, atlas texture/bindings, buffer allocation/writes, surface capabilities, frame view and presentation-notify scopes. It includes a repeatable measurement/cleanup harness and raw Windows release samples; existing milestone names and first-frame behavior are preserved.
+
 ## Measurements
 
 Five sequential native Windows x86_64 release launches per condition, using the same local default configuration and DX12 backend. The baseline build contained timing instrumentation before lifecycle changes; the final build contains the fix. Validation was idle for these samples. These are warm, non-interleaved launches, with no cold-cache or system-load controls. Sample files are local ignored artifacts under target/startup-baseline-{1..5}.log and target/startup-idle-{1..5}.log. Earlier exploratory/loaded samples are excluded.
@@ -71,3 +75,5 @@ Synchronous native PTY/session creation remains the largest startup operation an
 A focused follow-up can investigate portable-pty/ConPTY creation internals and event-loop responsiveness using additional measurements before deciding on worker ownership. Persistent caches, single-instance/server architecture and general performance work are outside this task.
 
 The subsequent [PTY and shell startup investigation](PTY_STARTUP.md) extends these opt-in milestones and reports native shell comparisons, ownership limits and the decision to retain the startup sequence.
+
+The [Terminal / Alacritty comparison](ALACRITTY_STARTUP_COMPARISON.md) is completed with deferred validation and records matched-shell Windows x86_64 release measurements, stock Alacritty marker limitations, external visibility timing, and renderer/font/shell attribution. Its fresh-process samples have warm/uncontrolled caches. Independent cold-start comparison was NOT performed; manual first-frame/background/focus comparison is a recorded deferred follow-up. No relative true-cold performance claim or runtime optimization was made.

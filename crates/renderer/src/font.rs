@@ -334,8 +334,12 @@ impl FontSystem {
     }
     /// Discovers platform fonts and selects an initial terminal face.
     pub(super) fn load_system(request: FontRequest) -> Result<Self, FontLoadError> {
+        let database_stage = crate::startup_stage("font-database-create");
         let mut database = Database::new();
+        drop(database_stage);
+        let discovery_stage = crate::startup_stage("system-font-discovery");
         database.load_system_fonts();
+        drop(discovery_stage);
         #[cfg(target_os = "linux")]
         if matches!(&request, FontRequest::SystemMonospace) {
             if let Some(id) = fontconfig_monospace_face(&mut database) {
@@ -349,7 +353,9 @@ impl FontSystem {
     }
 
     fn from_database(database: Database, request: FontRequest) -> Result<Self, FontLoadError> {
+        let resolution_stage = crate::startup_stage("font-family-resolution");
         let primary_face = select_primary_face(&database, &request)?;
+        drop(resolution_stage);
         Self::with_primary_face(database, primary_face, GLYPH_CACHE_CAPACITY)
     }
 
@@ -358,15 +364,22 @@ impl FontSystem {
         primary_face: ID,
         cache_capacity: usize,
     ) -> Result<Self, FontLoadError> {
+        let fallback_stage = crate::startup_stage("fallback-candidate-ordering");
+        let collection_stage = crate::startup_stage("fallback-candidate-collection");
         let mut fallback_candidates: Vec<_> = database
             .faces()
             .filter(|face| face.id != primary_face)
             .map(|face| face.id)
             .collect();
+        drop(collection_stage);
+        let sorting_stage = crate::startup_stage("fallback-candidate-sort");
         fallback_candidates.sort_by_key(|id| {
             let face = database.face(*id).unwrap();
             (face.post_script_name.clone(), face.id.to_string())
         });
+        drop(sorting_stage);
+        drop(fallback_stage);
+        let _cache_stage = crate::startup_stage("font-cache-setup");
         Ok(Self {
             database,
             primary_face,
@@ -602,10 +615,16 @@ fn select_primary_face(database: &Database, request: &FontRequest) -> Result<ID,
             FontLoadError::RequestedFamilyUnavailable(name.clone()),
         ),
     };
+    let query_stage = crate::startup_stage(match request {
+        FontRequest::SystemMonospace => "font-generic-family-query",
+        FontRequest::Family(_) => "font-configured-family-query",
+    });
     let id = database.query(&Query {
         families: &[family],
         ..Default::default()
     });
+    drop(query_stage);
+    let _validation_stage = crate::startup_stage("font-primary-monospace-validation");
     let Some(id) = id else {
         return Err(missing_error);
     };

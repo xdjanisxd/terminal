@@ -37,7 +37,7 @@ use terminal_renderer::{
     CellMetrics, FontRequest, OverlayLine, PaneRenderInput, RedrawOutcome, RenderTheme, Renderer,
     RendererDiagnosticState, Rgba, ScrollbarGeometry, ScrollbarHit, ScrollbarRenderData,
     SearchHighlight, SearchMarker, SurfaceSize, TextOverlay, UiRenderTheme, diagnostics_enabled,
-    emit_diagnostic, initialize_startup_diagnostics, startup_milestone,
+    emit_diagnostic, initialize_startup_diagnostics, startup_milestone, startup_stage,
 };
 use terminal_workspace::{
     LayoutDefinition, PaneDirection, PaneId, PaneRect, SessionDefinition, SplitAxis, Tab, TabId,
@@ -585,6 +585,7 @@ fn tab_picker_label(tab: &Tab, terminal: Option<&TerminalState>, index: usize) -
 
 impl Default for Application {
     fn default() -> Self {
+        let _state_stage = startup_stage("application-default-state");
         let workspace = Workspace::default();
         let active_runtime_pane = workspace.active_pane();
         let mut terminal =
@@ -877,12 +878,14 @@ impl Application {
     }
 
     fn with_pty_wake_proxy(pty_wake_proxy: EventLoopProxy<PtyWake>, cli: CliOptions) -> Self {
+        let state_stage = startup_stage("application-state-and-paths");
         let mut app = Self {
             pty_wake_proxy: Some(pty_wake_proxy.clone()),
             config_path: cli.workspace.unwrap_or_else(config_path),
             project_root_override: cli.project_root,
             ..Self::default()
         };
+        drop(state_stage);
         startup_milestone("terminal-state-created");
         app.reload_config();
         startup_milestone("config-loaded");
@@ -904,11 +907,13 @@ impl Application {
     }
 
     fn reload_config(&mut self) {
+        let config_stage = startup_stage("config-read-parse");
         let next = if self.config_path.exists() {
             Config::load(&self.config_path)
         } else {
             Ok(Config::default())
         };
+        drop(config_stage);
         match next {
             Ok(mut config) => {
                 if let Some(root) = &self.project_root_override {
@@ -937,6 +942,7 @@ impl Application {
     }
 
     fn load_workspace(&mut self, definition: &WorkspaceDefinition) {
+        let _workspace_stage = startup_stage("workspace-model-and-runtimes");
         let workspace = Workspace::from_definition(definition).expect("validated workspace config");
         self.pending_startup_command = None;
         let active = workspace.active_pane();
@@ -1694,11 +1700,13 @@ impl Application {
     fn create_window_and_renderer(&mut self, event_loop: &ActiveEventLoop) {
         let recreating_surface = self.window.is_some();
         if self.window.is_none() {
+            let window_stage = startup_stage("window-create-and-branding");
             let attributes =
                 branding::window_attributes().with_visible(self.startup_presentation.presented);
             match event_loop.create_window(attributes) {
                 Ok(window) => {
                     self.window = Some(Arc::new(window));
+                    drop(window_stage);
                     startup_milestone("window-created");
                 }
                 Err(error) => {
@@ -1724,7 +1732,9 @@ impl Application {
                 if recreating_surface {
                     self.recovery_redraw.begin();
                 }
+                let grid_stage = startup_stage("initial-grid-resize");
                 self.resize_terminal_to_viewport(window.inner_size());
+                drop(grid_stage);
                 startup_milestone("initial-grid-ready");
                 self.update_workspace_title();
                 self.frame.rearm();
@@ -1782,6 +1792,7 @@ impl Application {
             false
         };
         self.frame.begin_redraw();
+        let ui_stage = startup_stage("initial-ui-and-pane-layout");
         let overlay = self
             .workspace_overlay()
             .or_else(|| self.tab_rename_overlay())
@@ -1825,6 +1836,7 @@ impl Application {
                 })
             })
             .collect();
+        drop(ui_stage);
         let outcome = renderer.redraw_panes(&panes, overlay.as_ref());
         if matches!(
             outcome,
@@ -2863,6 +2875,10 @@ impl ApplicationHandler<PtyWake> for Application {
                 {
                     self.search = Some(Search::default());
                     self.invalidate_frame();
+                } else if let Some(bytes) =
+                    function_key_input(&event.logical_key, event.physical_key, self.modifiers)
+                {
+                    self.write_terminal_input(bytes);
                 } else if let Some(editing_key) =
                     editing_key_from_event(&event.logical_key, event.physical_key)
                 {
@@ -3160,6 +3176,52 @@ fn editing_key_from_event(key: &Key, physical_key: PhysicalKey) -> Option<Editin
         PhysicalKey::Code(KeyCode::End) => Some(EditingKey::End),
         _ => None,
     })
+}
+
+fn function_key_input(
+    key: &Key,
+    physical_key: PhysicalKey,
+    modifiers: ModifiersState,
+) -> Option<Vec<u8>> {
+    use terminal_core::FunctionKey;
+    let logical = match key {
+        Key::Named(NamedKey::F1) => Some(FunctionKey::F1),
+        Key::Named(NamedKey::F2) => Some(FunctionKey::F2),
+        Key::Named(NamedKey::F3) => Some(FunctionKey::F3),
+        Key::Named(NamedKey::F4) => Some(FunctionKey::F4),
+        Key::Named(NamedKey::F5) => Some(FunctionKey::F5),
+        Key::Named(NamedKey::F6) => Some(FunctionKey::F6),
+        Key::Named(NamedKey::F7) => Some(FunctionKey::F7),
+        Key::Named(NamedKey::F8) => Some(FunctionKey::F8),
+        Key::Named(NamedKey::F9) => Some(FunctionKey::F9),
+        Key::Named(NamedKey::F10) => Some(FunctionKey::F10),
+        Key::Named(NamedKey::F11) => Some(FunctionKey::F11),
+        Key::Named(NamedKey::F12) => Some(FunctionKey::F12),
+        _ => None,
+    };
+    let key = logical.or(match physical_key {
+        PhysicalKey::Code(KeyCode::F1) => Some(FunctionKey::F1),
+        PhysicalKey::Code(KeyCode::F2) => Some(FunctionKey::F2),
+        PhysicalKey::Code(KeyCode::F3) => Some(FunctionKey::F3),
+        PhysicalKey::Code(KeyCode::F4) => Some(FunctionKey::F4),
+        PhysicalKey::Code(KeyCode::F5) => Some(FunctionKey::F5),
+        PhysicalKey::Code(KeyCode::F6) => Some(FunctionKey::F6),
+        PhysicalKey::Code(KeyCode::F7) => Some(FunctionKey::F7),
+        PhysicalKey::Code(KeyCode::F8) => Some(FunctionKey::F8),
+        PhysicalKey::Code(KeyCode::F9) => Some(FunctionKey::F9),
+        PhysicalKey::Code(KeyCode::F10) => Some(FunctionKey::F10),
+        PhysicalKey::Code(KeyCode::F11) => Some(FunctionKey::F11),
+        PhysicalKey::Code(KeyCode::F12) => Some(FunctionKey::F12),
+        _ => None,
+    })?;
+    Some(terminal_core::encode_function_key(
+        key,
+        terminal_core::KeyModifiers {
+            shift: modifiers.shift_key(),
+            alt: modifiers.alt_key(),
+            control: modifiers.control_key(),
+        },
+    ))
 }
 
 fn terminal_mouse_button(button: MouseButton) -> Option<TerminalMouseButton> {
@@ -3925,6 +3987,7 @@ impl PtyDrainBudget {
 }
 
 fn main() {
+    let started = Instant::now();
     let args: Vec<_> = std::env::args_os().skip(1).collect();
     if args.first().is_some_and(|arg| arg == "--throughput-run") {
         assert!(
@@ -3945,8 +4008,8 @@ fn main() {
         event_loop.run_app(&mut app).unwrap();
         return;
     }
-    let started = Instant::now();
     initialize_startup_diagnostics(started);
+    let cli_stage = startup_stage("cli-parse");
     let cli = match CliOptions::parse(std::env::args_os().skip(1)) {
         Ok(Some(cli)) => cli,
         Ok(None) => {
@@ -3960,9 +4023,12 @@ fn main() {
             std::process::exit(2);
         }
     };
+    drop(cli_stage);
+    let loop_stage = startup_stage("event-loop-create");
     let event_loop = EventLoop::<PtyWake>::with_user_event()
         .build()
         .expect("could not create terminal event loop");
+    drop(loop_stage);
     event_loop.set_control_flow(ControlFlow::Wait);
     let pty_wake_proxy = event_loop.create_proxy();
     event_loop
@@ -5547,6 +5613,83 @@ mod tests {
                 PhysicalKey::Code(KeyCode::Home),
             ),
             Some(terminal_core::EditingKey::Home)
+        );
+    }
+
+    #[test]
+    fn function_key_events_encode_and_explicit_bindings_take_precedence() {
+        let cases = [
+            (NamedKey::F1, KeyCode::F1, "\x1bOP"),
+            (NamedKey::F2, KeyCode::F2, "\x1bOQ"),
+            (NamedKey::F3, KeyCode::F3, "\x1bOR"),
+            (NamedKey::F4, KeyCode::F4, "\x1bOS"),
+            (NamedKey::F5, KeyCode::F5, "\x1b[15~"),
+            (NamedKey::F6, KeyCode::F6, "\x1b[17~"),
+            (NamedKey::F7, KeyCode::F7, "\x1b[18~"),
+            (NamedKey::F8, KeyCode::F8, "\x1b[19~"),
+            (NamedKey::F9, KeyCode::F9, "\x1b[20~"),
+            (NamedKey::F10, KeyCode::F10, "\x1b[21~"),
+            (NamedKey::F11, KeyCode::F11, "\x1b[23~"),
+            (NamedKey::F12, KeyCode::F12, "\x1b[24~"),
+        ];
+        for (logical, physical, expected) in cases {
+            let physical = PhysicalKey::Code(physical);
+            assert_eq!(
+                configured_command(&Config::default(), physical, ModifiersState::empty()),
+                None
+            );
+            assert_eq!(
+                super::function_key_input(&Key::Named(logical), physical, ModifiersState::empty()),
+                Some(expected.as_bytes().to_vec())
+            );
+            assert_eq!(
+                super::function_key_input(
+                    &Key::Unidentified(winit::keyboard::NativeKey::Unidentified),
+                    physical,
+                    ModifiersState::empty()
+                ),
+                Some(expected.as_bytes().to_vec())
+            );
+            let config = Config::parse(&format!(
+                "[[bindings]]\nkey = 'Ctrl+Shift+{logical:?}'\ncommand = 'copy'\n"
+            ))
+            .unwrap();
+            assert_eq!(
+                configured_command(
+                    &config,
+                    physical,
+                    ModifiersState::CONTROL | ModifiersState::SHIFT
+                ),
+                Some(Command::Copy)
+            );
+            assert_eq!(
+                configured_command(&config, physical, ModifiersState::CONTROL),
+                None
+            );
+        }
+        assert_eq!(
+            super::function_key_input(
+                &Key::Named(NamedKey::F1),
+                PhysicalKey::Code(KeyCode::F1),
+                ModifiersState::SHIFT | ModifiersState::ALT | ModifiersState::CONTROL
+            ),
+            Some(b"\x1b[1;8P".to_vec())
+        );
+        assert_eq!(
+            super::function_key_input(
+                &Key::Named(NamedKey::F12),
+                PhysicalKey::Code(KeyCode::F12),
+                ModifiersState::ALT
+            ),
+            Some(b"\x1b[24;3~".to_vec())
+        );
+        assert_eq!(
+            super::function_key_input(
+                &Key::Named(NamedKey::F13),
+                PhysicalKey::Code(KeyCode::F13),
+                ModifiersState::empty()
+            ),
+            None
         );
     }
 

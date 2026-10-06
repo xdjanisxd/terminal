@@ -18,6 +18,58 @@ pub enum EditingKey {
     End,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum FunctionKey {
+    F1,
+    F2,
+    F3,
+    F4,
+    F5,
+    F6,
+    F7,
+    F8,
+    F9,
+    F10,
+    F11,
+    F12,
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct KeyModifiers {
+    pub shift: bool,
+    pub alt: bool,
+    pub control: bool,
+}
+
+/// PC-style xterm function keys are independent of cursor/keypad and screen modes.
+pub fn encode_function_key(key: FunctionKey, modifiers: KeyModifiers) -> Vec<u8> {
+    let modifier = 1
+        + u8::from(modifiers.shift)
+        + 2 * u8::from(modifiers.alt)
+        + 4 * u8::from(modifiers.control);
+    let (number, suffix) = match key {
+        FunctionKey::F1 => (1, 'P'),
+        FunctionKey::F2 => (1, 'Q'),
+        FunctionKey::F3 => (1, 'R'),
+        FunctionKey::F4 => (1, 'S'),
+        FunctionKey::F5 => (15, '~'),
+        FunctionKey::F6 => (17, '~'),
+        FunctionKey::F7 => (18, '~'),
+        FunctionKey::F8 => (19, '~'),
+        FunctionKey::F9 => (20, '~'),
+        FunctionKey::F10 => (21, '~'),
+        FunctionKey::F11 => (23, '~'),
+        FunctionKey::F12 => (24, '~'),
+    };
+    if modifier != 1 {
+        format!("\x1b[{number};{modifier}{suffix}").into_bytes()
+    } else if suffix == '~' {
+        format!("\x1b[{number}~").into_bytes()
+    } else {
+        vec![0x1b, b'O', suffix as u8]
+    }
+}
+
 pub fn encode_editing_key(_modes: InputModes, key: EditingKey) -> &'static [u8] {
     match key {
         EditingKey::Delete => b"\x1b[3~",

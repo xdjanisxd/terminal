@@ -27,6 +27,9 @@ pub use input::{
     CursorKey, EditingKey, MouseButton, MouseEvent, MouseModifiers, encode_control_cursor_key,
     encode_cursor_key, encode_editing_key, encode_focus, encode_modified_cursor_key,
     encode_modified_editing_key, encode_mouse, encode_paste,
+    CursorKey, EditingKey, FunctionKey, KeyModifiers, MouseButton, MouseEvent, MouseModifiers,
+    encode_control_cursor_key, encode_cursor_key, encode_editing_key, encode_focus,
+    encode_function_key, encode_mouse, encode_paste,
 };
 pub use modes::{
     AutoWrapMode, CharacterInsertionMode, CursorKeyMode, CursorVisibility, InputModes,

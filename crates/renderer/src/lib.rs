@@ -5,7 +5,9 @@
 
 mod font;
 mod startup;
-pub use startup::{initialize_startup_diagnostics, startup_diagnostics_enabled, startup_milestone};
+pub use startup::{
+    initialize_startup_diagnostics, startup_diagnostics_enabled, startup_milestone, startup_stage,
+};
 mod throughput;
 pub use throughput::ThroughputRenderStats;
 mod gpu;
@@ -185,14 +187,18 @@ impl Renderer {
         logical_font_size: f32,
     ) -> Result<Self, RendererInitError> {
         startup_milestone("fonts-started");
+        let font_stage = startup_stage("font-family-preparation");
         let font_system = FontSystem::load_system(font_request).map_err(|error| {
             RendererInitError::new(format!("could not load terminal font: {error}"))
         })?;
+        drop(font_stage);
+        let metrics_stage = startup_stage("font-metrics");
         let cell_metrics = font_system
             .cell_metrics(window.scale_factor(), logical_font_size)
             .map_err(|error| {
                 RendererInitError::new(format!("could not derive terminal cell metrics: {error}"))
             })?;
+        drop(metrics_stage);
         startup_milestone("fonts-ready");
         let size = SurfaceSize::new(window.inner_size().width, window.inner_size().height);
         startup_milestone("gpu-started");
@@ -347,7 +353,9 @@ impl Renderer {
         overlay: Option<&TextOverlay>,
     ) -> RedrawOutcome {
         let projection_start = Instant::now();
+        let projection_stage = startup_stage("initial-projection");
         let data = project_panes(panes, overlay, &self.theme);
+        drop(projection_stage);
         if let Some(stats) = &mut self.throughput {
             stats.projection += projection_start.elapsed();
         }
@@ -396,7 +404,9 @@ impl Renderer {
         }
 
         let acquire_started = Instant::now();
+        let acquisition_stage = startup_stage("surface-acquire");
         let acquired = self.surface.get_current_texture();
+        drop(acquisition_stage);
         emit_diagnostic(format_args!(
             "renderer frame={frame_id} event=surface-acquire-complete elapsed_us={}",
             acquire_started.elapsed().as_micros()
@@ -416,9 +426,11 @@ impl Renderer {
                     let resources = self.draw_resources.get_or_insert_with(|| {
                         DrawResources::new(&self.device, configuration.format)
                     });
+                    let view_stage = startup_stage("frame-texture-view");
                     let view = frame
                         .texture
                         .create_view(&wgpu::TextureViewDescriptor::default());
+                    drop(view_stage);
                     let mut clear_next = true;
                     for (index, (pane_data, rect, focused)) in data.iter().enumerate() {
                         let rect = [
@@ -469,11 +481,15 @@ impl Renderer {
                         "renderer frame={frame_id} event=frame-rendered terminal_data=false"
                     ));
                 }
+                let notify_stage = startup_stage("pre-present-notify");
                 self.window.pre_present_notify();
+                drop(notify_stage);
                 if let Some(stats) = &mut self.throughput {
                     stats.rendered += 1;
                 }
+                let present_stage = startup_stage("first-present");
                 frame.present();
+                drop(present_stage);
                 if let Some(stats) = &mut self.throughput {
                     stats.presented += 1;
                     stats.render_present += acquire_started.elapsed();
@@ -539,6 +555,7 @@ impl Renderer {
             ));
             return false;
         };
+        let configuration_stage = startup_stage("surface-capabilities-and-config");
         let Some(configuration) =
             self.surface
                 .get_default_config(&self.adapter, size.width(), size.height())
@@ -551,13 +568,16 @@ impl Renderer {
             ));
             return false;
         };
+        drop(configuration_stage);
         let draw_resources_reset = needs_draw_resource_rebuild(
             self.configuration.as_ref().map(|current| current.format),
             configuration.format,
         );
         let present_mode = configuration.present_mode;
         let configure_started = Instant::now();
+        let surface_stage = startup_stage("surface-configure");
         self.surface.configure(&self.device, &configuration);
+        drop(surface_stage);
         let configure_us = configure_started.elapsed().as_micros();
         if draw_resources_reset {
             self.draw_resources = None;
@@ -606,12 +626,17 @@ fn initialize_gpu(
         .enumerate()
     {
         let result = (|| {
+            let instance_stage = startup_stage("wgpu-instance");
             let instance = wgpu::Instance::new(&descriptor);
+            drop(instance_stage);
+            let surface_stage = startup_stage("surface-create");
             let surface = instance
                 .create_surface(Arc::clone(window))
                 .map_err(|error| {
                     RendererInitError::new(format!("could not create surface: {error}"))
                 })?;
+            drop(surface_stage);
+            let adapter_stage = startup_stage("adapter-request");
             let adapter =
                 pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions {
                     power_preference: wgpu::PowerPreference::default(),
@@ -621,6 +646,8 @@ fn initialize_gpu(
                 .map_err(|error| {
                     RendererInitError::new(format!("could not find adapter: {error}"))
                 })?;
+            drop(adapter_stage);
+            let device_stage = startup_stage("device-request");
             let (device, queue) =
                 pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
                     label: Some("terminal renderer device"),
@@ -629,6 +656,7 @@ fn initialize_gpu(
                 .map_err(|error| {
                     RendererInitError::new(format!("could not create device: {error}"))
                 })?;
+            drop(device_stage);
             Ok((surface, adapter, device, queue))
         })();
         match result {

@@ -2,9 +2,9 @@ name: CI
 
 on:
   workflow_dispatch:
-  push:
-    branches-ignore:
-      - 'master'
+  #push:
+  #  branches-ignore:
+  #   - 'master'
       
 permissions:
   contents: read

@@ -1,0 +1,6401 @@
+{
+  "baseline-b": {
+    "n": 15,
+    "font-family-preparation": {
+      "median": 27.029,
+      "min": 26.038,
+      "max": 30.139
+    },
+    "font-metrics": {
+      "median": 0.105,
+      "min": 0.076,
+      "max": 0.126
+    },
+    "fonts_to_frame_us": {
+      "median": 122.854,
+      "min": 119.636,
+      "max": 148.976
+    },
+    "system-font-discovery": {
+      "median": 25.789,
+      "min": 24.676,
+      "max": 28.695
+    },
+    "fallback-candidate-sort": {
+      "median": 1.188,
+      "min": 1.037,
+      "max": 1.297
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.0,
+      "max": 0.003
+    },
+    "font-generic-family-query": {
+      "median": 0.012,
+      "min": 0.01,
+      "max": 0.025
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.008,
+      "min": 0.006,
+      "max": 0.016
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.01
+    },
+    "dep-discovery": {
+      "median": 25.46,
+      "min": 24.313,
+      "max": 28.337
+    },
+    "dep-file-open": {
+      "median": 7.304,
+      "min": 6.979,
+      "max": 8.268
+    },
+    "dep-file-map": {
+      "median": 6.332,
+      "min": 6.04,
+      "max": 6.796
+    },
+    "dep-file-unmap-close": {
+      "median": 6.745,
+      "min": 6.44,
+      "max": 8.127
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.496,
+      "min": 2.397,
+      "max": 2.854
+    },
+    "dep-file-other": {
+      "median": 1.256,
+      "min": 1.195,
+      "max": 1.896
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.027,
+      "min": 0.024,
+      "max": 0.03
+    },
+    "dep-read-dir-open": {
+      "median": 0.137,
+      "min": 0.106,
+      "max": 0.183
+    },
+    "dep-directory-other": {
+      "median": 1.055,
+      "min": 0.991,
+      "max": 1.366
+    },
+    "wgpu-core-init": {
+      "median": 77.116,
+      "min": 73.457,
+      "max": 89.671
+    },
+    "font-preparation-plus-metrics": {
+      "median": 27.116,
+      "min": 26.147,
+      "max": 30.251
+    }
+  },
+  "baseline-consolas": {
+    "n": 15,
+    "font-family-preparation": {
+      "median": 26.928,
+      "min": 25.62,
+      "max": 28.401
+    },
+    "font-metrics": {
+      "median": 0.088,
+      "min": 0.072,
+      "max": 0.248
+    },
+    "fonts_to_frame_us": {
+      "median": 117.577,
+      "min": 116.305,
+      "max": 120.564
+    },
+    "system-font-discovery": {
+      "median": 25.674,
+      "min": 24.445,
+      "max": 26.955
+    },
+    "fallback-candidate-sort": {
+      "median": 1.089,
+      "min": 1.033,
+      "max": 1.475
+    },
+    "font-database-create": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.001
+    },
+    "font-configured-family-query": {
+      "median": 0.01,
+      "min": 0.009,
+      "max": 0.011
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.008,
+      "min": 0.006,
+      "max": 0.013
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.003,
+      "max": 0.008
+    },
+    "dep-discovery": {
+      "median": 25.247,
+      "min": 24.116,
+      "max": 26.638
+    },
+    "dep-file-open": {
+      "median": 7.161,
+      "min": 6.925,
+      "max": 7.616
+    },
+    "dep-file-map": {
+      "median": 6.248,
+      "min": 5.992,
+      "max": 6.583
+    },
+    "dep-file-unmap-close": {
+      "median": 6.713,
+      "min": 6.355,
+      "max": 7.45
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.434,
+      "min": 2.3,
+      "max": 2.649
+    },
+    "dep-file-other": {
+      "median": 1.351,
+      "min": 1.154,
+      "max": 2.649
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.025,
+      "min": 0.022,
+      "max": 0.035
+    },
+    "dep-read-dir-open": {
+      "median": 0.116,
+      "min": 0.107,
+      "max": 0.172
+    },
+    "dep-directory-other": {
+      "median": 0.979,
+      "min": 0.886,
+      "max": 1.047
+    },
+    "wgpu-core-init": {
+      "median": 72.44,
+      "min": 70.058,
+      "max": 73.86
+    },
+    "font-preparation-plus-metrics": {
+      "median": 27.013,
+      "min": 25.703,
+      "max": 28.649
+    }
+  },
+  "candidate-b": {
+    "n": 15,
+    "font-family-preparation": {
+      "median": 29.205,
+      "min": 25.003,
+      "max": 30.971
+    },
+    "font-metrics": {
+      "median": 0.091,
+      "min": 0.075,
+      "max": 0.138
+    },
+    "fonts_to_frame_us": {
+      "median": 122.399,
+      "min": 116.106,
+      "max": 185.744
+    },
+    "system-font-discovery": {
+      "median": 28.969,
+      "min": 24.773,
+      "max": 30.741
+    },
+    "fallback-candidate-sort": {
+      "median": 0.105,
+      "min": 0.096,
+      "max": 0.112
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.002
+    },
+    "font-generic-family-query": {
+      "median": 0.011,
+      "min": 0.01,
+      "max": 0.013
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.007,
+      "min": 0.006,
+      "max": 0.011
+    },
+    "font-cache-setup": {
+      "median": 0.003,
+      "min": 0.003,
+      "max": 0.006
+    },
+    "dep-discovery": {
+      "median": 28.605,
+      "min": 24.332,
+      "max": 30.396
+    },
+    "dep-file-open": {
+      "median": 7.779,
+      "min": 7.048,
+      "max": 8.206
+    },
+    "dep-file-map": {
+      "median": 6.766,
+      "min": 6.066,
+      "max": 7.042
+    },
+    "dep-file-unmap-close": {
+      "median": 7.334,
+      "min": 6.46,
+      "max": 7.824
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.761,
+      "min": 2.419,
+      "max": 3.01
+    },
+    "dep-file-other": {
+      "median": 2.705,
+      "min": 1.166,
+      "max": 3.135
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.028,
+      "min": 0.026,
+      "max": 0.034
+    },
+    "dep-read-dir-open": {
+      "median": 0.133,
+      "min": 0.119,
+      "max": 0.254
+    },
+    "dep-directory-other": {
+      "median": 1.144,
+      "min": 0.947,
+      "max": 1.289
+    },
+    "wgpu-core-init": {
+      "median": 74.07,
+      "min": 71.873,
+      "max": 136.706
+    },
+    "font-preparation-plus-metrics": {
+      "median": 29.294,
+      "min": 25.133,
+      "max": 31.068
+    }
+  },
+  "candidate-consolas": {
+    "n": 15,
+    "font-family-preparation": {
+      "median": 25.305,
+      "min": 24.629,
+      "max": 28.73
+    },
+    "font-metrics": {
+      "median": 0.087,
+      "min": 0.067,
+      "max": 0.192
+    },
+    "fonts_to_frame_us": {
+      "median": 118.102,
+      "min": 114.791,
+      "max": 133.65
+    },
+    "system-font-discovery": {
+      "median": 25.066,
+      "min": 24.41,
+      "max": 28.514
+    },
+    "fallback-candidate-sort": {
+      "median": 0.103,
+      "min": 0.096,
+      "max": 0.108
+    },
+    "font-database-create": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.001
+    },
+    "font-configured-family-query": {
+      "median": 0.011,
+      "min": 0.009,
+      "max": 0.02
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.008
+    },
+    "fallback-candidate-collection": {
+      "median": 0.008,
+      "min": 0.006,
+      "max": 0.023
+    },
+    "font-cache-setup": {
+      "median": 0.003,
+      "min": 0.003,
+      "max": 0.003
+    },
+    "dep-discovery": {
+      "median": 24.753,
+      "min": 24.066,
+      "max": 28.059
+    },
+    "dep-file-open": {
+      "median": 7.141,
+      "min": 6.886,
+      "max": 8.562
+    },
+    "dep-file-map": {
+      "median": 6.203,
+      "min": 5.949,
+      "max": 6.787
+    },
+    "dep-file-unmap-close": {
+      "median": 6.561,
+      "min": 6.283,
+      "max": 7.416
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.444,
+      "min": 2.368,
+      "max": 2.833
+    },
+    "dep-file-other": {
+      "median": 1.206,
+      "min": 1.16,
+      "max": 1.356
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.026,
+      "min": 0.024,
+      "max": 0.029
+    },
+    "dep-read-dir-open": {
+      "median": 0.133,
+      "min": 0.114,
+      "max": 0.159
+    },
+    "dep-directory-other": {
+      "median": 0.967,
+      "min": 0.929,
+      "max": 1.13
+    },
+    "wgpu-core-init": {
+      "median": 73.71,
+      "min": 70.572,
+      "max": 82.348
+    },
+    "font-preparation-plus-metrics": {
+      "median": 25.401,
+      "min": 24.813,
+      "max": 28.818
+    }
+  },
+  "coarse-1-baseline": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 28.447,
+      "min": 28.447,
+      "max": 28.447
+    },
+    "font-metrics": {
+      "median": 0.066,
+      "min": 0.066,
+      "max": 0.066
+    },
+    "fonts_to_frame_us": {
+      "median": 135.43,
+      "min": 135.43,
+      "max": 135.43
+    },
+    "system-font-discovery": {
+      "median": 27.103,
+      "min": 27.103,
+      "max": 27.103
+    },
+    "fallback-candidate-sort": {
+      "median": 1.222,
+      "min": 1.222,
+      "max": 1.222
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.01,
+      "min": 0.01,
+      "max": 0.01
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.007,
+      "min": 0.007,
+      "max": 0.007
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "wgpu-core-init": {
+      "median": 82.32,
+      "min": 82.32,
+      "max": 82.32
+    },
+    "font-preparation-plus-metrics": {
+      "median": 28.513,
+      "min": 28.513,
+      "max": 28.513
+    }
+  },
+  "coarse-1-candidate": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 29.867,
+      "min": 29.867,
+      "max": 29.867
+    },
+    "font-metrics": {
+      "median": 0.065,
+      "min": 0.065,
+      "max": 0.065
+    },
+    "fonts_to_frame_us": {
+      "median": 129.438,
+      "min": 129.438,
+      "max": 129.438
+    },
+    "system-font-discovery": {
+      "median": 29.639,
+      "min": 29.639,
+      "max": 29.639
+    },
+    "fallback-candidate-sort": {
+      "median": 0.107,
+      "min": 0.107,
+      "max": 0.107
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.009,
+      "min": 0.009,
+      "max": 0.009
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.007,
+      "min": 0.007,
+      "max": 0.007
+    },
+    "font-cache-setup": {
+      "median": 0.003,
+      "min": 0.003,
+      "max": 0.003
+    },
+    "wgpu-core-init": {
+      "median": 77.541,
+      "min": 77.541,
+      "max": 77.541
+    },
+    "font-preparation-plus-metrics": {
+      "median": 29.932,
+      "min": 29.932,
+      "max": 29.932
+    }
+  },
+  "coarse-10-baseline": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 24.75,
+      "min": 24.75,
+      "max": 24.75
+    },
+    "font-metrics": {
+      "median": 0.061,
+      "min": 0.061,
+      "max": 0.061
+    },
+    "fonts_to_frame_us": {
+      "median": 125.384,
+      "min": 125.384,
+      "max": 125.384
+    },
+    "system-font-discovery": {
+      "median": 23.498,
+      "min": 23.498,
+      "max": 23.498
+    },
+    "fallback-candidate-sort": {
+      "median": 1.143,
+      "min": 1.143,
+      "max": 1.143
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.008,
+      "min": 0.008,
+      "max": 0.008
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.005,
+      "min": 0.005,
+      "max": 0.005
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "wgpu-core-init": {
+      "median": 77.755,
+      "min": 77.755,
+      "max": 77.755
+    },
+    "font-preparation-plus-metrics": {
+      "median": 24.811,
+      "min": 24.811,
+      "max": 24.811
+    }
+  },
+  "coarse-10-candidate": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 25.428,
+      "min": 25.428,
+      "max": 25.428
+    },
+    "font-metrics": {
+      "median": 0.078,
+      "min": 0.078,
+      "max": 0.078
+    },
+    "fonts_to_frame_us": {
+      "median": 122.311,
+      "min": 122.311,
+      "max": 122.311
+    },
+    "system-font-discovery": {
+      "median": 25.196,
+      "min": 25.196,
+      "max": 25.196
+    },
+    "fallback-candidate-sort": {
+      "median": 0.103,
+      "min": 0.103,
+      "max": 0.103
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.012,
+      "min": 0.012,
+      "max": 0.012
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.008,
+      "min": 0.008,
+      "max": 0.008
+    },
+    "font-cache-setup": {
+      "median": 0.003,
+      "min": 0.003,
+      "max": 0.003
+    },
+    "wgpu-core-init": {
+      "median": 75.571,
+      "min": 75.571,
+      "max": 75.571
+    },
+    "font-preparation-plus-metrics": {
+      "median": 25.506,
+      "min": 25.506,
+      "max": 25.506
+    }
+  },
+  "coarse-2-baseline": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 27.743,
+      "min": 27.743,
+      "max": 27.743
+    },
+    "font-metrics": {
+      "median": 0.12,
+      "min": 0.12,
+      "max": 0.12
+    },
+    "fonts_to_frame_us": {
+      "median": 140.094,
+      "min": 140.094,
+      "max": 140.094
+    },
+    "system-font-discovery": {
+      "median": 26.372,
+      "min": 26.372,
+      "max": 26.372
+    },
+    "fallback-candidate-sort": {
+      "median": 1.24,
+      "min": 1.24,
+      "max": 1.24
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.012,
+      "min": 0.012,
+      "max": 0.012
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.009,
+      "min": 0.009,
+      "max": 0.009
+    },
+    "font-cache-setup": {
+      "median": 0.006,
+      "min": 0.006,
+      "max": 0.006
+    },
+    "wgpu-core-init": {
+      "median": 87.79,
+      "min": 87.79,
+      "max": 87.79
+    },
+    "font-preparation-plus-metrics": {
+      "median": 27.863,
+      "min": 27.863,
+      "max": 27.863
+    }
+  },
+  "coarse-2-candidate": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 26.753,
+      "min": 26.753,
+      "max": 26.753
+    },
+    "font-metrics": {
+      "median": 0.065,
+      "min": 0.065,
+      "max": 0.065
+    },
+    "fonts_to_frame_us": {
+      "median": 124.888,
+      "min": 124.888,
+      "max": 124.888
+    },
+    "system-font-discovery": {
+      "median": 26.547,
+      "min": 26.547,
+      "max": 26.547
+    },
+    "fallback-candidate-sort": {
+      "median": 0.092,
+      "min": 0.092,
+      "max": 0.092
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.012,
+      "min": 0.012,
+      "max": 0.012
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.008,
+      "min": 0.008,
+      "max": 0.008
+    },
+    "font-cache-setup": {
+      "median": 0.003,
+      "min": 0.003,
+      "max": 0.003
+    },
+    "wgpu-core-init": {
+      "median": 76.072,
+      "min": 76.072,
+      "max": 76.072
+    },
+    "font-preparation-plus-metrics": {
+      "median": 26.818,
+      "min": 26.818,
+      "max": 26.818
+    }
+  },
+  "coarse-3-baseline": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 25.831,
+      "min": 25.831,
+      "max": 25.831
+    },
+    "font-metrics": {
+      "median": 0.056,
+      "min": 0.056,
+      "max": 0.056
+    },
+    "fonts_to_frame_us": {
+      "median": 118.986,
+      "min": 118.986,
+      "max": 118.986
+    },
+    "system-font-discovery": {
+      "median": 24.57,
+      "min": 24.57,
+      "max": 24.57
+    },
+    "fallback-candidate-sort": {
+      "median": 1.151,
+      "min": 1.151,
+      "max": 1.151
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.008,
+      "min": 0.008,
+      "max": 0.008
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.005,
+      "min": 0.005,
+      "max": 0.005
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "wgpu-core-init": {
+      "median": 73.339,
+      "min": 73.339,
+      "max": 73.339
+    },
+    "font-preparation-plus-metrics": {
+      "median": 25.887,
+      "min": 25.887,
+      "max": 25.887
+    }
+  },
+  "coarse-3-candidate": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 25.924,
+      "min": 25.924,
+      "max": 25.924
+    },
+    "font-metrics": {
+      "median": 0.054,
+      "min": 0.054,
+      "max": 0.054
+    },
+    "fonts_to_frame_us": {
+      "median": 118.948,
+      "min": 118.948,
+      "max": 118.948
+    },
+    "system-font-discovery": {
+      "median": 25.727,
+      "min": 25.727,
+      "max": 25.727
+    },
+    "fallback-candidate-sort": {
+      "median": 0.088,
+      "min": 0.088,
+      "max": 0.088
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.009,
+      "min": 0.009,
+      "max": 0.009
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.009,
+      "min": 0.009,
+      "max": 0.009
+    },
+    "font-cache-setup": {
+      "median": 0.003,
+      "min": 0.003,
+      "max": 0.003
+    },
+    "wgpu-core-init": {
+      "median": 75.191,
+      "min": 75.191,
+      "max": 75.191
+    },
+    "font-preparation-plus-metrics": {
+      "median": 25.978,
+      "min": 25.978,
+      "max": 25.978
+    }
+  },
+  "coarse-4-baseline": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 25.408,
+      "min": 25.408,
+      "max": 25.408
+    },
+    "font-metrics": {
+      "median": 0.079,
+      "min": 0.079,
+      "max": 0.079
+    },
+    "fonts_to_frame_us": {
+      "median": 123.393,
+      "min": 123.393,
+      "max": 123.393
+    },
+    "system-font-discovery": {
+      "median": 24.171,
+      "min": 24.171,
+      "max": 24.171
+    },
+    "fallback-candidate-sort": {
+      "median": 1.118,
+      "min": 1.118,
+      "max": 1.118
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.009,
+      "min": 0.009,
+      "max": 0.009
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.011,
+      "min": 0.011,
+      "max": 0.011
+    },
+    "font-cache-setup": {
+      "median": 0.006,
+      "min": 0.006,
+      "max": 0.006
+    },
+    "wgpu-core-init": {
+      "median": 77.292,
+      "min": 77.292,
+      "max": 77.292
+    },
+    "font-preparation-plus-metrics": {
+      "median": 25.487,
+      "min": 25.487,
+      "max": 25.487
+    }
+  },
+  "coarse-4-candidate": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 26.598,
+      "min": 26.598,
+      "max": 26.598
+    },
+    "font-metrics": {
+      "median": 0.06,
+      "min": 0.06,
+      "max": 0.06
+    },
+    "fonts_to_frame_us": {
+      "median": 123.393,
+      "min": 123.393,
+      "max": 123.393
+    },
+    "system-font-discovery": {
+      "median": 26.404,
+      "min": 26.404,
+      "max": 26.404
+    },
+    "fallback-candidate-sort": {
+      "median": 0.089,
+      "min": 0.089,
+      "max": 0.089
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.009,
+      "min": 0.009,
+      "max": 0.009
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.006,
+      "min": 0.006,
+      "max": 0.006
+    },
+    "font-cache-setup": {
+      "median": 0.003,
+      "min": 0.003,
+      "max": 0.003
+    },
+    "wgpu-core-init": {
+      "median": 78.087,
+      "min": 78.087,
+      "max": 78.087
+    },
+    "font-preparation-plus-metrics": {
+      "median": 26.658,
+      "min": 26.658,
+      "max": 26.658
+    }
+  },
+  "coarse-5-baseline": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 28.107,
+      "min": 28.107,
+      "max": 28.107
+    },
+    "font-metrics": {
+      "median": 0.058,
+      "min": 0.058,
+      "max": 0.058
+    },
+    "fonts_to_frame_us": {
+      "median": 128.336,
+      "min": 128.336,
+      "max": 128.336
+    },
+    "system-font-discovery": {
+      "median": 26.923,
+      "min": 26.923,
+      "max": 26.923
+    },
+    "fallback-candidate-sort": {
+      "median": 1.063,
+      "min": 1.063,
+      "max": 1.063
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.012,
+      "min": 0.012,
+      "max": 0.012
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.011,
+      "min": 0.011,
+      "max": 0.011
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "wgpu-core-init": {
+      "median": 78.671,
+      "min": 78.671,
+      "max": 78.671
+    },
+    "font-preparation-plus-metrics": {
+      "median": 28.165,
+      "min": 28.165,
+      "max": 28.165
+    }
+  },
+  "coarse-5-candidate": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 24.119,
+      "min": 24.119,
+      "max": 24.119
+    },
+    "font-metrics": {
+      "median": 0.045,
+      "min": 0.045,
+      "max": 0.045
+    },
+    "fonts_to_frame_us": {
+      "median": 117.435,
+      "min": 117.435,
+      "max": 117.435
+    },
+    "system-font-discovery": {
+      "median": 23.927,
+      "min": 23.927,
+      "max": 23.927
+    },
+    "fallback-candidate-sort": {
+      "median": 0.09,
+      "min": 0.09,
+      "max": 0.09
+    },
+    "font-database-create": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "font-generic-family-query": {
+      "median": 0.008,
+      "min": 0.008,
+      "max": 0.008
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.006,
+      "min": 0.006,
+      "max": 0.006
+    },
+    "font-cache-setup": {
+      "median": 0.003,
+      "min": 0.003,
+      "max": 0.003
+    },
+    "wgpu-core-init": {
+      "median": 74.762,
+      "min": 74.762,
+      "max": 74.762
+    },
+    "font-preparation-plus-metrics": {
+      "median": 24.164,
+      "min": 24.164,
+      "max": 24.164
+    }
+  },
+  "coarse-6-baseline": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 27.54,
+      "min": 27.54,
+      "max": 27.54
+    },
+    "font-metrics": {
+      "median": 0.065,
+      "min": 0.065,
+      "max": 0.065
+    },
+    "fonts_to_frame_us": {
+      "median": 131.379,
+      "min": 131.379,
+      "max": 131.379
+    },
+    "system-font-discovery": {
+      "median": 26.323,
+      "min": 26.323,
+      "max": 26.323
+    },
+    "fallback-candidate-sort": {
+      "median": 1.077,
+      "min": 1.077,
+      "max": 1.077
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.01,
+      "min": 0.01,
+      "max": 0.01
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.006,
+      "min": 0.006,
+      "max": 0.006
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "wgpu-core-init": {
+      "median": 80.775,
+      "min": 80.775,
+      "max": 80.775
+    },
+    "font-preparation-plus-metrics": {
+      "median": 27.605,
+      "min": 27.605,
+      "max": 27.605
+    }
+  },
+  "coarse-6-candidate": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 24.56,
+      "min": 24.56,
+      "max": 24.56
+    },
+    "font-metrics": {
+      "median": 0.085,
+      "min": 0.085,
+      "max": 0.085
+    },
+    "fonts_to_frame_us": {
+      "median": 123.555,
+      "min": 123.555,
+      "max": 123.555
+    },
+    "system-font-discovery": {
+      "median": 24.192,
+      "min": 24.192,
+      "max": 24.192
+    },
+    "fallback-candidate-sort": {
+      "median": 0.126,
+      "min": 0.126,
+      "max": 0.126
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.114,
+      "min": 0.114,
+      "max": 0.114
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.011,
+      "min": 0.011,
+      "max": 0.011
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "wgpu-core-init": {
+      "median": 76.487,
+      "min": 76.487,
+      "max": 76.487
+    },
+    "font-preparation-plus-metrics": {
+      "median": 24.645,
+      "min": 24.645,
+      "max": 24.645
+    }
+  },
+  "coarse-7-baseline": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 25.944,
+      "min": 25.944,
+      "max": 25.944
+    },
+    "font-metrics": {
+      "median": 0.09,
+      "min": 0.09,
+      "max": 0.09
+    },
+    "fonts_to_frame_us": {
+      "median": 127.57,
+      "min": 127.57,
+      "max": 127.57
+    },
+    "system-font-discovery": {
+      "median": 24.629,
+      "min": 24.629,
+      "max": 24.629
+    },
+    "fallback-candidate-sort": {
+      "median": 1.203,
+      "min": 1.203,
+      "max": 1.203
+    },
+    "font-database-create": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "font-generic-family-query": {
+      "median": 0.009,
+      "min": 0.009,
+      "max": 0.009
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.005,
+      "min": 0.005,
+      "max": 0.005
+    },
+    "font-cache-setup": {
+      "median": 0.005,
+      "min": 0.005,
+      "max": 0.005
+    },
+    "wgpu-core-init": {
+      "median": 82.776,
+      "min": 82.776,
+      "max": 82.776
+    },
+    "font-preparation-plus-metrics": {
+      "median": 26.034,
+      "min": 26.034,
+      "max": 26.034
+    }
+  },
+  "coarse-7-candidate": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 31.835,
+      "min": 31.835,
+      "max": 31.835
+    },
+    "font-metrics": {
+      "median": 0.079,
+      "min": 0.079,
+      "max": 0.079
+    },
+    "fonts_to_frame_us": {
+      "median": 132.745,
+      "min": 132.745,
+      "max": 132.745
+    },
+    "system-font-discovery": {
+      "median": 31.613,
+      "min": 31.613,
+      "max": 31.613
+    },
+    "fallback-candidate-sort": {
+      "median": 0.102,
+      "min": 0.102,
+      "max": 0.102
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.01,
+      "min": 0.01,
+      "max": 0.01
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.007,
+      "min": 0.007,
+      "max": 0.007
+    },
+    "font-cache-setup": {
+      "median": 0.003,
+      "min": 0.003,
+      "max": 0.003
+    },
+    "wgpu-core-init": {
+      "median": 81.605,
+      "min": 81.605,
+      "max": 81.605
+    },
+    "font-preparation-plus-metrics": {
+      "median": 31.914,
+      "min": 31.914,
+      "max": 31.914
+    }
+  },
+  "coarse-8-baseline": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 27.048,
+      "min": 27.048,
+      "max": 27.048
+    },
+    "font-metrics": {
+      "median": 0.051,
+      "min": 0.051,
+      "max": 0.051
+    },
+    "fonts_to_frame_us": {
+      "median": 123.544,
+      "min": 123.544,
+      "max": 123.544
+    },
+    "system-font-discovery": {
+      "median": 25.833,
+      "min": 25.833,
+      "max": 25.833
+    },
+    "fallback-candidate-sort": {
+      "median": 1.098,
+      "min": 1.098,
+      "max": 1.098
+    },
+    "font-database-create": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "font-generic-family-query": {
+      "median": 0.01,
+      "min": 0.01,
+      "max": 0.01
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.007,
+      "min": 0.007,
+      "max": 0.007
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "wgpu-core-init": {
+      "median": 75.83,
+      "min": 75.83,
+      "max": 75.83
+    },
+    "font-preparation-plus-metrics": {
+      "median": 27.099,
+      "min": 27.099,
+      "max": 27.099
+    }
+  },
+  "coarse-8-candidate": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 26.498,
+      "min": 26.498,
+      "max": 26.498
+    },
+    "font-metrics": {
+      "median": 0.053,
+      "min": 0.053,
+      "max": 0.053
+    },
+    "fonts_to_frame_us": {
+      "median": 122.803,
+      "min": 122.803,
+      "max": 122.803
+    },
+    "system-font-discovery": {
+      "median": 26.3,
+      "min": 26.3,
+      "max": 26.3
+    },
+    "fallback-candidate-sort": {
+      "median": 0.09,
+      "min": 0.09,
+      "max": 0.09
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.01,
+      "min": 0.01,
+      "max": 0.01
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.006,
+      "min": 0.006,
+      "max": 0.006
+    },
+    "font-cache-setup": {
+      "median": 0.003,
+      "min": 0.003,
+      "max": 0.003
+    },
+    "wgpu-core-init": {
+      "median": 72.408,
+      "min": 72.408,
+      "max": 72.408
+    },
+    "font-preparation-plus-metrics": {
+      "median": 26.551,
+      "min": 26.551,
+      "max": 26.551
+    }
+  },
+  "coarse-9-baseline": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 27.506,
+      "min": 27.506,
+      "max": 27.506
+    },
+    "font-metrics": {
+      "median": 0.081,
+      "min": 0.081,
+      "max": 0.081
+    },
+    "fonts_to_frame_us": {
+      "median": 145.4,
+      "min": 145.4,
+      "max": 145.4
+    },
+    "system-font-discovery": {
+      "median": 26.163,
+      "min": 26.163,
+      "max": 26.163
+    },
+    "fallback-candidate-sort": {
+      "median": 1.217,
+      "min": 1.217,
+      "max": 1.217
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.012,
+      "min": 0.012,
+      "max": 0.012
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.006,
+      "min": 0.006,
+      "max": 0.006
+    },
+    "font-cache-setup": {
+      "median": 0.005,
+      "min": 0.005,
+      "max": 0.005
+    },
+    "wgpu-core-init": {
+      "median": 96.072,
+      "min": 96.072,
+      "max": 96.072
+    },
+    "font-preparation-plus-metrics": {
+      "median": 27.587,
+      "min": 27.587,
+      "max": 27.587
+    }
+  },
+  "coarse-9-candidate": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 24.531,
+      "min": 24.531,
+      "max": 24.531
+    },
+    "font-metrics": {
+      "median": 0.06,
+      "min": 0.06,
+      "max": 0.06
+    },
+    "fonts_to_frame_us": {
+      "median": 123.3,
+      "min": 123.3,
+      "max": 123.3
+    },
+    "system-font-discovery": {
+      "median": 24.339,
+      "min": 24.339,
+      "max": 24.339
+    },
+    "fallback-candidate-sort": {
+      "median": 0.087,
+      "min": 0.087,
+      "max": 0.087
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.009,
+      "min": 0.009,
+      "max": 0.009
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.005,
+      "min": 0.005,
+      "max": 0.005
+    },
+    "font-cache-setup": {
+      "median": 0.003,
+      "min": 0.003,
+      "max": 0.003
+    },
+    "wgpu-core-init": {
+      "median": 78.725,
+      "min": 78.725,
+      "max": 78.725
+    },
+    "font-preparation-plus-metrics": {
+      "median": 24.591,
+      "min": 24.591,
+      "max": 24.591
+    }
+  },
+  "overhead-1-off": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 25.061,
+      "min": 25.061,
+      "max": 25.061
+    },
+    "font-metrics": {
+      "median": 0.086,
+      "min": 0.086,
+      "max": 0.086
+    },
+    "fonts_to_frame_us": {
+      "median": 114.104,
+      "min": 114.104,
+      "max": 114.104
+    },
+    "system-font-discovery": {
+      "median": 23.892,
+      "min": 23.892,
+      "max": 23.892
+    },
+    "fallback-candidate-sort": {
+      "median": 1.055,
+      "min": 1.055,
+      "max": 1.055
+    },
+    "font-database-create": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "font-generic-family-query": {
+      "median": 0.01,
+      "min": 0.01,
+      "max": 0.01
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.009,
+      "min": 0.009,
+      "max": 0.009
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "wgpu-core-init": {
+      "median": 71.069,
+      "min": 71.069,
+      "max": 71.069
+    },
+    "font-preparation-plus-metrics": {
+      "median": 25.147,
+      "min": 25.147,
+      "max": 25.147
+    }
+  },
+  "overhead-1-on": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 25.616,
+      "min": 25.616,
+      "max": 25.616
+    },
+    "font-metrics": {
+      "median": 0.085,
+      "min": 0.085,
+      "max": 0.085
+    },
+    "fonts_to_frame_us": {
+      "median": 124.999,
+      "min": 124.999,
+      "max": 124.999
+    },
+    "system-font-discovery": {
+      "median": 24.415,
+      "min": 24.415,
+      "max": 24.415
+    },
+    "fallback-candidate-sort": {
+      "median": 1.088,
+      "min": 1.088,
+      "max": 1.088
+    },
+    "font-database-create": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "font-generic-family-query": {
+      "median": 0.01,
+      "min": 0.01,
+      "max": 0.01
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.006,
+      "min": 0.006,
+      "max": 0.006
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "dep-discovery": {
+      "median": 24.12,
+      "min": 24.12,
+      "max": 24.12
+    },
+    "dep-file-open": {
+      "median": 7.131,
+      "min": 7.131,
+      "max": 7.131
+    },
+    "dep-file-map": {
+      "median": 5.941,
+      "min": 5.941,
+      "max": 5.941
+    },
+    "dep-file-unmap-close": {
+      "median": 6.298,
+      "min": 6.298,
+      "max": 6.298
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.449,
+      "min": 2.449,
+      "max": 2.449
+    },
+    "dep-file-other": {
+      "median": 1.181,
+      "min": 1.181,
+      "max": 1.181
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.026,
+      "min": 0.026,
+      "max": 0.026
+    },
+    "dep-read-dir-open": {
+      "median": 0.117,
+      "min": 0.117,
+      "max": 0.117
+    },
+    "dep-directory-other": {
+      "median": 0.918,
+      "min": 0.918,
+      "max": 0.918
+    },
+    "wgpu-core-init": {
+      "median": 78.873,
+      "min": 78.873,
+      "max": 78.873
+    },
+    "font-preparation-plus-metrics": {
+      "median": 25.701,
+      "min": 25.701,
+      "max": 25.701
+    }
+  },
+  "overhead-10-off": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 25.574,
+      "min": 25.574,
+      "max": 25.574
+    },
+    "font-metrics": {
+      "median": 0.071,
+      "min": 0.071,
+      "max": 0.071
+    },
+    "fonts_to_frame_us": {
+      "median": 116.358,
+      "min": 116.358,
+      "max": 116.358
+    },
+    "system-font-discovery": {
+      "median": 24.383,
+      "min": 24.383,
+      "max": 24.383
+    },
+    "fallback-candidate-sort": {
+      "median": 1.072,
+      "min": 1.072,
+      "max": 1.072
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.01,
+      "min": 0.01,
+      "max": 0.01
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.007,
+      "min": 0.007,
+      "max": 0.007
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "wgpu-core-init": {
+      "median": 71.75,
+      "min": 71.75,
+      "max": 71.75
+    },
+    "font-preparation-plus-metrics": {
+      "median": 25.645,
+      "min": 25.645,
+      "max": 25.645
+    }
+  },
+  "overhead-10-on": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 25.982,
+      "min": 25.982,
+      "max": 25.982
+    },
+    "font-metrics": {
+      "median": 0.087,
+      "min": 0.087,
+      "max": 0.087
+    },
+    "fonts_to_frame_us": {
+      "median": 115.011,
+      "min": 115.011,
+      "max": 115.011
+    },
+    "system-font-discovery": {
+      "median": 24.629,
+      "min": 24.629,
+      "max": 24.629
+    },
+    "fallback-candidate-sort": {
+      "median": 1.234,
+      "min": 1.234,
+      "max": 1.234
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.011,
+      "min": 0.011,
+      "max": 0.011
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.007,
+      "min": 0.007,
+      "max": 0.007
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "dep-discovery": {
+      "median": 24.327,
+      "min": 24.327,
+      "max": 24.327
+    },
+    "dep-file-open": {
+      "median": 6.871,
+      "min": 6.871,
+      "max": 6.871
+    },
+    "dep-file-map": {
+      "median": 6.013,
+      "min": 6.013,
+      "max": 6.013
+    },
+    "dep-file-unmap-close": {
+      "median": 6.445,
+      "min": 6.445,
+      "max": 6.445
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.588,
+      "min": 2.588,
+      "max": 2.588
+    },
+    "dep-file-other": {
+      "median": 1.181,
+      "min": 1.181,
+      "max": 1.181
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.025,
+      "min": 0.025,
+      "max": 0.025
+    },
+    "dep-read-dir-open": {
+      "median": 0.111,
+      "min": 0.111,
+      "max": 0.111
+    },
+    "dep-directory-other": {
+      "median": 1.026,
+      "min": 1.026,
+      "max": 1.026
+    },
+    "wgpu-core-init": {
+      "median": 71.19,
+      "min": 71.19,
+      "max": 71.19
+    },
+    "font-preparation-plus-metrics": {
+      "median": 26.069,
+      "min": 26.069,
+      "max": 26.069
+    }
+  },
+  "overhead-2-off": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 24.22,
+      "min": 24.22,
+      "max": 24.22
+    },
+    "font-metrics": {
+      "median": 0.058,
+      "min": 0.058,
+      "max": 0.058
+    },
+    "fonts_to_frame_us": {
+      "median": 116.89,
+      "min": 116.89,
+      "max": 116.89
+    },
+    "system-font-discovery": {
+      "median": 23.02,
+      "min": 23.02,
+      "max": 23.02
+    },
+    "fallback-candidate-sort": {
+      "median": 1.09,
+      "min": 1.09,
+      "max": 1.09
+    },
+    "font-database-create": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "font-generic-family-query": {
+      "median": 0.008,
+      "min": 0.008,
+      "max": 0.008
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.005,
+      "min": 0.005,
+      "max": 0.005
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "wgpu-core-init": {
+      "median": 73.481,
+      "min": 73.481,
+      "max": 73.481
+    },
+    "font-preparation-plus-metrics": {
+      "median": 24.278,
+      "min": 24.278,
+      "max": 24.278
+    }
+  },
+  "overhead-2-on": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 28.95,
+      "min": 28.95,
+      "max": 28.95
+    },
+    "font-metrics": {
+      "median": 0.101,
+      "min": 0.101,
+      "max": 0.101
+    },
+    "fonts_to_frame_us": {
+      "median": 123.11,
+      "min": 123.11,
+      "max": 123.11
+    },
+    "system-font-discovery": {
+      "median": 27.603,
+      "min": 27.603,
+      "max": 27.603
+    },
+    "fallback-candidate-sort": {
+      "median": 1.221,
+      "min": 1.221,
+      "max": 1.221
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.011,
+      "min": 0.011,
+      "max": 0.011
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.008,
+      "min": 0.008,
+      "max": 0.008
+    },
+    "font-cache-setup": {
+      "median": 0.005,
+      "min": 0.005,
+      "max": 0.005
+    },
+    "dep-discovery": {
+      "median": 27.28,
+      "min": 27.28,
+      "max": 27.28
+    },
+    "dep-file-open": {
+      "median": 8.038,
+      "min": 8.038,
+      "max": 8.038
+    },
+    "dep-file-map": {
+      "median": 6.838,
+      "min": 6.838,
+      "max": 6.838
+    },
+    "dep-file-unmap-close": {
+      "median": 7.166,
+      "min": 7.166,
+      "max": 7.166
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.671,
+      "min": 2.671,
+      "max": 2.671
+    },
+    "dep-file-other": {
+      "median": 1.313,
+      "min": 1.313,
+      "max": 1.313
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.025,
+      "min": 0.025,
+      "max": 0.025
+    },
+    "dep-read-dir-open": {
+      "median": 0.127,
+      "min": 0.127,
+      "max": 0.127
+    },
+    "dep-directory-other": {
+      "median": 1.032,
+      "min": 1.032,
+      "max": 1.032
+    },
+    "wgpu-core-init": {
+      "median": 75.797,
+      "min": 75.797,
+      "max": 75.797
+    },
+    "font-preparation-plus-metrics": {
+      "median": 29.051,
+      "min": 29.051,
+      "max": 29.051
+    }
+  },
+  "overhead-3-off": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 25.299,
+      "min": 25.299,
+      "max": 25.299
+    },
+    "font-metrics": {
+      "median": 0.072,
+      "min": 0.072,
+      "max": 0.072
+    },
+    "fonts_to_frame_us": {
+      "median": 116.808,
+      "min": 116.808,
+      "max": 116.808
+    },
+    "system-font-discovery": {
+      "median": 24.027,
+      "min": 24.027,
+      "max": 24.027
+    },
+    "fallback-candidate-sort": {
+      "median": 1.148,
+      "min": 1.148,
+      "max": 1.148
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.012,
+      "min": 0.012,
+      "max": 0.012
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.009,
+      "min": 0.009,
+      "max": 0.009
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "wgpu-core-init": {
+      "median": 72.806,
+      "min": 72.806,
+      "max": 72.806
+    },
+    "font-preparation-plus-metrics": {
+      "median": 25.371,
+      "min": 25.371,
+      "max": 25.371
+    }
+  },
+  "overhead-3-on": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 30.651,
+      "min": 30.651,
+      "max": 30.651
+    },
+    "font-metrics": {
+      "median": 0.093,
+      "min": 0.093,
+      "max": 0.093
+    },
+    "fonts_to_frame_us": {
+      "median": 138.204,
+      "min": 138.204,
+      "max": 138.204
+    },
+    "system-font-discovery": {
+      "median": 29.288,
+      "min": 29.288,
+      "max": 29.288
+    },
+    "fallback-candidate-sort": {
+      "median": 1.239,
+      "min": 1.239,
+      "max": 1.239
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.011,
+      "min": 0.011,
+      "max": 0.011
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.007,
+      "min": 0.007,
+      "max": 0.007
+    },
+    "font-cache-setup": {
+      "median": 0.005,
+      "min": 0.005,
+      "max": 0.005
+    },
+    "dep-discovery": {
+      "median": 28.947,
+      "min": 28.947,
+      "max": 28.947
+    },
+    "dep-file-open": {
+      "median": 8.372,
+      "min": 8.372,
+      "max": 8.372
+    },
+    "dep-file-map": {
+      "median": 7.179,
+      "min": 7.179,
+      "max": 7.179
+    },
+    "dep-file-unmap-close": {
+      "median": 7.75,
+      "min": 7.75,
+      "max": 7.75
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.741,
+      "min": 2.741,
+      "max": 2.741
+    },
+    "dep-file-other": {
+      "median": 1.405,
+      "min": 1.405,
+      "max": 1.405
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.03,
+      "min": 0.03,
+      "max": 0.03
+    },
+    "dep-read-dir-open": {
+      "median": 0.136,
+      "min": 0.136,
+      "max": 0.136
+    },
+    "dep-directory-other": {
+      "median": 1.259,
+      "min": 1.259,
+      "max": 1.259
+    },
+    "wgpu-core-init": {
+      "median": 85.264,
+      "min": 85.264,
+      "max": 85.264
+    },
+    "font-preparation-plus-metrics": {
+      "median": 30.744,
+      "min": 30.744,
+      "max": 30.744
+    }
+  },
+  "overhead-4-off": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 26.005,
+      "min": 26.005,
+      "max": 26.005
+    },
+    "font-metrics": {
+      "median": 0.125,
+      "min": 0.125,
+      "max": 0.125
+    },
+    "fonts_to_frame_us": {
+      "median": 121.488,
+      "min": 121.488,
+      "max": 121.488
+    },
+    "system-font-discovery": {
+      "median": 24.863,
+      "min": 24.863,
+      "max": 24.863
+    },
+    "fallback-candidate-sort": {
+      "median": 1.031,
+      "min": 1.031,
+      "max": 1.031
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.011,
+      "min": 0.011,
+      "max": 0.011
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.007,
+      "min": 0.007,
+      "max": 0.007
+    },
+    "font-cache-setup": {
+      "median": 0.003,
+      "min": 0.003,
+      "max": 0.003
+    },
+    "wgpu-core-init": {
+      "median": 75.501,
+      "min": 75.501,
+      "max": 75.501
+    },
+    "font-preparation-plus-metrics": {
+      "median": 26.13,
+      "min": 26.13,
+      "max": 26.13
+    }
+  },
+  "overhead-4-on": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 30.952,
+      "min": 30.952,
+      "max": 30.952
+    },
+    "font-metrics": {
+      "median": 0.092,
+      "min": 0.092,
+      "max": 0.092
+    },
+    "fonts_to_frame_us": {
+      "median": 134.82,
+      "min": 134.82,
+      "max": 134.82
+    },
+    "system-font-discovery": {
+      "median": 29.58,
+      "min": 29.58,
+      "max": 29.58
+    },
+    "fallback-candidate-sort": {
+      "median": 1.249,
+      "min": 1.249,
+      "max": 1.249
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.011,
+      "min": 0.011,
+      "max": 0.011
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.007,
+      "min": 0.007,
+      "max": 0.007
+    },
+    "font-cache-setup": {
+      "median": 0.005,
+      "min": 0.005,
+      "max": 0.005
+    },
+    "dep-discovery": {
+      "median": 29.249,
+      "min": 29.249,
+      "max": 29.249
+    },
+    "dep-file-open": {
+      "median": 8.513,
+      "min": 8.513,
+      "max": 8.513
+    },
+    "dep-file-map": {
+      "median": 7.19,
+      "min": 7.19,
+      "max": 7.19
+    },
+    "dep-file-unmap-close": {
+      "median": 7.771,
+      "min": 7.771,
+      "max": 7.771
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.738,
+      "min": 2.738,
+      "max": 2.738
+    },
+    "dep-file-other": {
+      "median": 1.383,
+      "min": 1.383,
+      "max": 1.383
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.028,
+      "min": 0.028,
+      "max": 0.028
+    },
+    "dep-read-dir-open": {
+      "median": 0.126,
+      "min": 0.126,
+      "max": 0.126
+    },
+    "dep-directory-other": {
+      "median": 1.422,
+      "min": 1.422,
+      "max": 1.422
+    },
+    "wgpu-core-init": {
+      "median": 81.874,
+      "min": 81.874,
+      "max": 81.874
+    },
+    "font-preparation-plus-metrics": {
+      "median": 31.044,
+      "min": 31.044,
+      "max": 31.044
+    }
+  },
+  "overhead-5-off": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 25.704,
+      "min": 25.704,
+      "max": 25.704
+    },
+    "font-metrics": {
+      "median": 0.051,
+      "min": 0.051,
+      "max": 0.051
+    },
+    "fonts_to_frame_us": {
+      "median": 120.239,
+      "min": 120.239,
+      "max": 120.239
+    },
+    "system-font-discovery": {
+      "median": 24.552,
+      "min": 24.552,
+      "max": 24.552
+    },
+    "fallback-candidate-sort": {
+      "median": 1.043,
+      "min": 1.043,
+      "max": 1.043
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.009,
+      "min": 0.009,
+      "max": 0.009
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.006,
+      "min": 0.006,
+      "max": 0.006
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "wgpu-core-init": {
+      "median": 74.37,
+      "min": 74.37,
+      "max": 74.37
+    },
+    "font-preparation-plus-metrics": {
+      "median": 25.755,
+      "min": 25.755,
+      "max": 25.755
+    }
+  },
+  "overhead-5-on": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 29.089,
+      "min": 29.089,
+      "max": 29.089
+    },
+    "font-metrics": {
+      "median": 0.103,
+      "min": 0.103,
+      "max": 0.103
+    },
+    "fonts_to_frame_us": {
+      "median": 130.343,
+      "min": 130.343,
+      "max": 130.343
+    },
+    "system-font-discovery": {
+      "median": 27.567,
+      "min": 27.567,
+      "max": 27.567
+    },
+    "fallback-candidate-sort": {
+      "median": 1.386,
+      "min": 1.386,
+      "max": 1.386
+    },
+    "font-database-create": {
+      "median": 0.002,
+      "min": 0.002,
+      "max": 0.002
+    },
+    "font-generic-family-query": {
+      "median": 0.01,
+      "min": 0.01,
+      "max": 0.01
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.006,
+      "min": 0.006,
+      "max": 0.006
+    },
+    "font-cache-setup": {
+      "median": 0.005,
+      "min": 0.005,
+      "max": 0.005
+    },
+    "dep-discovery": {
+      "median": 27.239,
+      "min": 27.239,
+      "max": 27.239
+    },
+    "dep-file-open": {
+      "median": 7.943,
+      "min": 7.943,
+      "max": 7.943
+    },
+    "dep-file-map": {
+      "median": 6.986,
+      "min": 6.986,
+      "max": 6.986
+    },
+    "dep-file-unmap-close": {
+      "median": 6.991,
+      "min": 6.991,
+      "max": 6.991
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.751,
+      "min": 2.751,
+      "max": 2.751
+    },
+    "dep-file-other": {
+      "median": 1.267,
+      "min": 1.267,
+      "max": 1.267
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.027,
+      "min": 0.027,
+      "max": 0.027
+    },
+    "dep-read-dir-open": {
+      "median": 0.137,
+      "min": 0.137,
+      "max": 0.137
+    },
+    "dep-directory-other": {
+      "median": 1.059,
+      "min": 1.059,
+      "max": 1.059
+    },
+    "wgpu-core-init": {
+      "median": 81.046,
+      "min": 81.046,
+      "max": 81.046
+    },
+    "font-preparation-plus-metrics": {
+      "median": 29.192,
+      "min": 29.192,
+      "max": 29.192
+    }
+  },
+  "overhead-6-off": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 25.407,
+      "min": 25.407,
+      "max": 25.407
+    },
+    "font-metrics": {
+      "median": 0.051,
+      "min": 0.051,
+      "max": 0.051
+    },
+    "fonts_to_frame_us": {
+      "median": 116.86,
+      "min": 116.86,
+      "max": 116.86
+    },
+    "system-font-discovery": {
+      "median": 24.237,
+      "min": 24.237,
+      "max": 24.237
+    },
+    "fallback-candidate-sort": {
+      "median": 1.062,
+      "min": 1.062,
+      "max": 1.062
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.009,
+      "min": 0.009,
+      "max": 0.009
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.006,
+      "min": 0.006,
+      "max": 0.006
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "wgpu-core-init": {
+      "median": 71.732,
+      "min": 71.732,
+      "max": 71.732
+    },
+    "font-preparation-plus-metrics": {
+      "median": 25.458,
+      "min": 25.458,
+      "max": 25.458
+    }
+  },
+  "overhead-6-on": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 26.314,
+      "min": 26.314,
+      "max": 26.314
+    },
+    "font-metrics": {
+      "median": 0.085,
+      "min": 0.085,
+      "max": 0.085
+    },
+    "fonts_to_frame_us": {
+      "median": 118.251,
+      "min": 118.251,
+      "max": 118.251
+    },
+    "system-font-discovery": {
+      "median": 24.964,
+      "min": 24.964,
+      "max": 24.964
+    },
+    "fallback-candidate-sort": {
+      "median": 1.22,
+      "min": 1.22,
+      "max": 1.22
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.011,
+      "min": 0.011,
+      "max": 0.011
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.012,
+      "min": 0.012,
+      "max": 0.012
+    },
+    "font-cache-setup": {
+      "median": 0.005,
+      "min": 0.005,
+      "max": 0.005
+    },
+    "dep-discovery": {
+      "median": 24.649,
+      "min": 24.649,
+      "max": 24.649
+    },
+    "dep-file-open": {
+      "median": 6.996,
+      "min": 6.996,
+      "max": 6.996
+    },
+    "dep-file-map": {
+      "median": 6.228,
+      "min": 6.228,
+      "max": 6.228
+    },
+    "dep-file-unmap-close": {
+      "median": 6.552,
+      "min": 6.552,
+      "max": 6.552
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.479,
+      "min": 2.479,
+      "max": 2.479
+    },
+    "dep-file-other": {
+      "median": 1.243,
+      "min": 1.243,
+      "max": 1.243
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.026,
+      "min": 0.026,
+      "max": 0.026
+    },
+    "dep-read-dir-open": {
+      "median": 0.128,
+      "min": 0.128,
+      "max": 0.128
+    },
+    "dep-directory-other": {
+      "median": 0.927,
+      "min": 0.927,
+      "max": 0.927
+    },
+    "wgpu-core-init": {
+      "median": 73.216,
+      "min": 73.216,
+      "max": 73.216
+    },
+    "font-preparation-plus-metrics": {
+      "median": 26.399,
+      "min": 26.399,
+      "max": 26.399
+    }
+  },
+  "overhead-7-off": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 28.539,
+      "min": 28.539,
+      "max": 28.539
+    },
+    "font-metrics": {
+      "median": 0.072,
+      "min": 0.072,
+      "max": 0.072
+    },
+    "fonts_to_frame_us": {
+      "median": 121.016,
+      "min": 121.016,
+      "max": 121.016
+    },
+    "system-font-discovery": {
+      "median": 27.377,
+      "min": 27.377,
+      "max": 27.377
+    },
+    "fallback-candidate-sort": {
+      "median": 1.046,
+      "min": 1.046,
+      "max": 1.046
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.01,
+      "min": 0.01,
+      "max": 0.01
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.007,
+      "min": 0.007,
+      "max": 0.007
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "wgpu-core-init": {
+      "median": 73.922,
+      "min": 73.922,
+      "max": 73.922
+    },
+    "font-preparation-plus-metrics": {
+      "median": 28.611,
+      "min": 28.611,
+      "max": 28.611
+    }
+  },
+  "overhead-7-on": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 25.81,
+      "min": 25.81,
+      "max": 25.81
+    },
+    "font-metrics": {
+      "median": 0.075,
+      "min": 0.075,
+      "max": 0.075
+    },
+    "fonts_to_frame_us": {
+      "median": 117.775,
+      "min": 117.775,
+      "max": 117.775
+    },
+    "system-font-discovery": {
+      "median": 24.649,
+      "min": 24.649,
+      "max": 24.649
+    },
+    "fallback-candidate-sort": {
+      "median": 1.044,
+      "min": 1.044,
+      "max": 1.044
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.011,
+      "min": 0.011,
+      "max": 0.011
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.007,
+      "min": 0.007,
+      "max": 0.007
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "dep-discovery": {
+      "median": 24.307,
+      "min": 24.307,
+      "max": 24.307
+    },
+    "dep-file-open": {
+      "median": 6.849,
+      "min": 6.849,
+      "max": 6.849
+    },
+    "dep-file-map": {
+      "median": 6.124,
+      "min": 6.124,
+      "max": 6.124
+    },
+    "dep-file-unmap-close": {
+      "median": 6.375,
+      "min": 6.375,
+      "max": 6.375
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.572,
+      "min": 2.572,
+      "max": 2.572
+    },
+    "dep-file-other": {
+      "median": 1.237,
+      "min": 1.237,
+      "max": 1.237
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.025,
+      "min": 0.025,
+      "max": 0.025
+    },
+    "dep-read-dir-open": {
+      "median": 0.144,
+      "min": 0.144,
+      "max": 0.144
+    },
+    "dep-directory-other": {
+      "median": 0.914,
+      "min": 0.914,
+      "max": 0.914
+    },
+    "wgpu-core-init": {
+      "median": 72.592,
+      "min": 72.592,
+      "max": 72.592
+    },
+    "font-preparation-plus-metrics": {
+      "median": 25.885,
+      "min": 25.885,
+      "max": 25.885
+    }
+  },
+  "overhead-8-off": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 24.4,
+      "min": 24.4,
+      "max": 24.4
+    },
+    "font-metrics": {
+      "median": 0.057,
+      "min": 0.057,
+      "max": 0.057
+    },
+    "fonts_to_frame_us": {
+      "median": 118.476,
+      "min": 118.476,
+      "max": 118.476
+    },
+    "system-font-discovery": {
+      "median": 23.239,
+      "min": 23.239,
+      "max": 23.239
+    },
+    "fallback-candidate-sort": {
+      "median": 1.053,
+      "min": 1.053,
+      "max": 1.053
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.009,
+      "min": 0.009,
+      "max": 0.009
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.005,
+      "min": 0.005,
+      "max": 0.005
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "wgpu-core-init": {
+      "median": 75.28,
+      "min": 75.28,
+      "max": 75.28
+    },
+    "font-preparation-plus-metrics": {
+      "median": 24.457,
+      "min": 24.457,
+      "max": 24.457
+    }
+  },
+  "overhead-8-on": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 25.857,
+      "min": 25.857,
+      "max": 25.857
+    },
+    "font-metrics": {
+      "median": 0.087,
+      "min": 0.087,
+      "max": 0.087
+    },
+    "fonts_to_frame_us": {
+      "median": 119.106,
+      "min": 119.106,
+      "max": 119.106
+    },
+    "system-font-discovery": {
+      "median": 24.678,
+      "min": 24.678,
+      "max": 24.678
+    },
+    "fallback-candidate-sort": {
+      "median": 1.062,
+      "min": 1.062,
+      "max": 1.062
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.011,
+      "min": 0.011,
+      "max": 0.011
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.007,
+      "min": 0.007,
+      "max": 0.007
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "dep-discovery": {
+      "median": 24.302,
+      "min": 24.302,
+      "max": 24.302
+    },
+    "dep-file-open": {
+      "median": 7.093,
+      "min": 7.093,
+      "max": 7.093
+    },
+    "dep-file-map": {
+      "median": 5.99,
+      "min": 5.99,
+      "max": 5.99
+    },
+    "dep-file-unmap-close": {
+      "median": 6.386,
+      "min": 6.386,
+      "max": 6.386
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.525,
+      "min": 2.525,
+      "max": 2.525
+    },
+    "dep-file-other": {
+      "median": 1.17,
+      "min": 1.17,
+      "max": 1.17
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.024,
+      "min": 0.024,
+      "max": 0.024
+    },
+    "dep-read-dir-open": {
+      "median": 0.122,
+      "min": 0.122,
+      "max": 0.122
+    },
+    "dep-directory-other": {
+      "median": 0.93,
+      "min": 0.93,
+      "max": 0.93
+    },
+    "wgpu-core-init": {
+      "median": 75.127,
+      "min": 75.127,
+      "max": 75.127
+    },
+    "font-preparation-plus-metrics": {
+      "median": 25.944,
+      "min": 25.944,
+      "max": 25.944
+    }
+  },
+  "overhead-9-off": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 24.127,
+      "min": 24.127,
+      "max": 24.127
+    },
+    "font-metrics": {
+      "median": 0.063,
+      "min": 0.063,
+      "max": 0.063
+    },
+    "fonts_to_frame_us": {
+      "median": 114.651,
+      "min": 114.651,
+      "max": 114.651
+    },
+    "system-font-discovery": {
+      "median": 22.978,
+      "min": 22.978,
+      "max": 22.978
+    },
+    "fallback-candidate-sort": {
+      "median": 1.036,
+      "min": 1.036,
+      "max": 1.036
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.008,
+      "min": 0.008,
+      "max": 0.008
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.006,
+      "min": 0.006,
+      "max": 0.006
+    },
+    "font-cache-setup": {
+      "median": 0.005,
+      "min": 0.005,
+      "max": 0.005
+    },
+    "wgpu-core-init": {
+      "median": 70.775,
+      "min": 70.775,
+      "max": 70.775
+    },
+    "font-preparation-plus-metrics": {
+      "median": 24.19,
+      "min": 24.19,
+      "max": 24.19
+    }
+  },
+  "overhead-9-on": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 27.965,
+      "min": 27.965,
+      "max": 27.965
+    },
+    "font-metrics": {
+      "median": 0.087,
+      "min": 0.087,
+      "max": 0.087
+    },
+    "fonts_to_frame_us": {
+      "median": 117.815,
+      "min": 117.815,
+      "max": 117.815
+    },
+    "system-font-discovery": {
+      "median": 26.625,
+      "min": 26.625,
+      "max": 26.625
+    },
+    "fallback-candidate-sort": {
+      "median": 1.217,
+      "min": 1.217,
+      "max": 1.217
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.011,
+      "min": 0.011,
+      "max": 0.011
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.009,
+      "min": 0.009,
+      "max": 0.009
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "dep-discovery": {
+      "median": 26.321,
+      "min": 26.321,
+      "max": 26.321
+    },
+    "dep-file-open": {
+      "median": 7.114,
+      "min": 7.114,
+      "max": 7.114
+    },
+    "dep-file-map": {
+      "median": 6.32,
+      "min": 6.32,
+      "max": 6.32
+    },
+    "dep-file-unmap-close": {
+      "median": 8.063,
+      "min": 8.063,
+      "max": 8.063
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.427,
+      "min": 2.427,
+      "max": 2.427
+    },
+    "dep-file-other": {
+      "median": 1.193,
+      "min": 1.193,
+      "max": 1.193
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.027,
+      "min": 0.027,
+      "max": 0.027
+    },
+    "dep-read-dir-open": {
+      "median": 0.109,
+      "min": 0.109,
+      "max": 0.109
+    },
+    "dep-directory-other": {
+      "median": 1.001,
+      "min": 1.001,
+      "max": 1.001
+    },
+    "wgpu-core-init": {
+      "median": 70.494,
+      "min": 70.494,
+      "max": 70.494
+    },
+    "font-preparation-plus-metrics": {
+      "median": 28.052,
+      "min": 28.052,
+      "max": 28.052
+    }
+  },
+  "pair-1-baseline": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 24.485,
+      "min": 24.485,
+      "max": 24.485
+    },
+    "font-metrics": {
+      "median": 0.094,
+      "min": 0.094,
+      "max": 0.094
+    },
+    "fonts_to_frame_us": {
+      "median": 115.179,
+      "min": 115.179,
+      "max": 115.179
+    },
+    "system-font-discovery": {
+      "median": 23.262,
+      "min": 23.262,
+      "max": 23.262
+    },
+    "fallback-candidate-sort": {
+      "median": 1.104,
+      "min": 1.104,
+      "max": 1.104
+    },
+    "font-database-create": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "font-generic-family-query": {
+      "median": 0.009,
+      "min": 0.009,
+      "max": 0.009
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.009,
+      "min": 0.009,
+      "max": 0.009
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "dep-discovery": {
+      "median": 22.965,
+      "min": 22.965,
+      "max": 22.965
+    },
+    "dep-file-open": {
+      "median": 6.679,
+      "min": 6.679,
+      "max": 6.679
+    },
+    "dep-file-map": {
+      "median": 5.774,
+      "min": 5.774,
+      "max": 5.774
+    },
+    "dep-file-unmap-close": {
+      "median": 6.037,
+      "min": 6.037,
+      "max": 6.037
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.272,
+      "min": 2.272,
+      "max": 2.272
+    },
+    "dep-file-other": {
+      "median": 1.135,
+      "min": 1.135,
+      "max": 1.135
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.022,
+      "min": 0.022,
+      "max": 0.022
+    },
+    "dep-read-dir-open": {
+      "median": 0.108,
+      "min": 0.108,
+      "max": 0.108
+    },
+    "dep-directory-other": {
+      "median": 0.874,
+      "min": 0.874,
+      "max": 0.874
+    },
+    "wgpu-core-init": {
+      "median": 71.53,
+      "min": 71.53,
+      "max": 71.53
+    },
+    "font-preparation-plus-metrics": {
+      "median": 24.579,
+      "min": 24.579,
+      "max": 24.579
+    }
+  },
+  "pair-1-candidate": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 29.186,
+      "min": 29.186,
+      "max": 29.186
+    },
+    "font-metrics": {
+      "median": 0.1,
+      "min": 0.1,
+      "max": 0.1
+    },
+    "fonts_to_frame_us": {
+      "median": 120.73,
+      "min": 120.73,
+      "max": 120.73
+    },
+    "system-font-discovery": {
+      "median": 28.924,
+      "min": 28.924,
+      "max": 28.924
+    },
+    "fallback-candidate-sort": {
+      "median": 0.114,
+      "min": 0.114,
+      "max": 0.114
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.011,
+      "min": 0.011,
+      "max": 0.011
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.007,
+      "min": 0.007,
+      "max": 0.007
+    },
+    "font-cache-setup": {
+      "median": 0.002,
+      "min": 0.002,
+      "max": 0.002
+    },
+    "dep-discovery": {
+      "median": 28.424,
+      "min": 28.424,
+      "max": 28.424
+    },
+    "dep-file-open": {
+      "median": 8.054,
+      "min": 8.054,
+      "max": 8.054
+    },
+    "dep-file-map": {
+      "median": 7.083,
+      "min": 7.083,
+      "max": 7.083
+    },
+    "dep-file-unmap-close": {
+      "median": 7.625,
+      "min": 7.625,
+      "max": 7.625
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.867,
+      "min": 2.867,
+      "max": 2.867
+    },
+    "dep-file-other": {
+      "median": 1.37,
+      "min": 1.37,
+      "max": 1.37
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.026,
+      "min": 0.026,
+      "max": 0.026
+    },
+    "dep-read-dir-open": {
+      "median": 0.151,
+      "min": 0.151,
+      "max": 0.151
+    },
+    "dep-directory-other": {
+      "median": 1.157,
+      "min": 1.157,
+      "max": 1.157
+    },
+    "wgpu-core-init": {
+      "median": 72.173,
+      "min": 72.173,
+      "max": 72.173
+    },
+    "font-preparation-plus-metrics": {
+      "median": 29.286,
+      "min": 29.286,
+      "max": 29.286
+    }
+  },
+  "pair-10-baseline": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 28.366,
+      "min": 28.366,
+      "max": 28.366
+    },
+    "font-metrics": {
+      "median": 0.139,
+      "min": 0.139,
+      "max": 0.139
+    },
+    "fonts_to_frame_us": {
+      "median": 121.558,
+      "min": 121.558,
+      "max": 121.558
+    },
+    "system-font-discovery": {
+      "median": 26.24,
+      "min": 26.24,
+      "max": 26.24
+    },
+    "fallback-candidate-sort": {
+      "median": 1.937,
+      "min": 1.937,
+      "max": 1.937
+    },
+    "font-database-create": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "font-generic-family-query": {
+      "median": 0.015,
+      "min": 0.015,
+      "max": 0.015
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.015,
+      "min": 0.015,
+      "max": 0.015
+    },
+    "font-cache-setup": {
+      "median": 0.007,
+      "min": 0.007,
+      "max": 0.007
+    },
+    "dep-discovery": {
+      "median": 25.824,
+      "min": 25.824,
+      "max": 25.824
+    },
+    "dep-file-open": {
+      "median": 7.389,
+      "min": 7.389,
+      "max": 7.389
+    },
+    "dep-file-map": {
+      "median": 6.495,
+      "min": 6.495,
+      "max": 6.495
+    },
+    "dep-file-unmap-close": {
+      "median": 6.845,
+      "min": 6.845,
+      "max": 6.845
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.571,
+      "min": 2.571,
+      "max": 2.571
+    },
+    "dep-file-other": {
+      "median": 1.265,
+      "min": 1.265,
+      "max": 1.265
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.023,
+      "min": 0.023,
+      "max": 0.023
+    },
+    "dep-read-dir-open": {
+      "median": 0.136,
+      "min": 0.136,
+      "max": 0.136
+    },
+    "dep-directory-other": {
+      "median": 1.032,
+      "min": 1.032,
+      "max": 1.032
+    },
+    "wgpu-core-init": {
+      "median": 74.011,
+      "min": 74.011,
+      "max": 74.011
+    },
+    "font-preparation-plus-metrics": {
+      "median": 28.505,
+      "min": 28.505,
+      "max": 28.505
+    }
+  },
+  "pair-10-candidate": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 24.403,
+      "min": 24.403,
+      "max": 24.403
+    },
+    "font-metrics": {
+      "median": 0.112,
+      "min": 0.112,
+      "max": 0.112
+    },
+    "fonts_to_frame_us": {
+      "median": 117.289,
+      "min": 117.289,
+      "max": 117.289
+    },
+    "system-font-discovery": {
+      "median": 24.161,
+      "min": 24.161,
+      "max": 24.161
+    },
+    "fallback-candidate-sort": {
+      "median": 0.119,
+      "min": 0.119,
+      "max": 0.119
+    },
+    "font-database-create": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "font-generic-family-query": {
+      "median": 0.009,
+      "min": 0.009,
+      "max": 0.009
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.007,
+      "min": 0.007,
+      "max": 0.007
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "dep-discovery": {
+      "median": 23.865,
+      "min": 23.865,
+      "max": 23.865
+    },
+    "dep-file-open": {
+      "median": 6.84,
+      "min": 6.84,
+      "max": 6.84
+    },
+    "dep-file-map": {
+      "median": 5.978,
+      "min": 5.978,
+      "max": 5.978
+    },
+    "dep-file-unmap-close": {
+      "median": 6.217,
+      "min": 6.217,
+      "max": 6.217
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.533,
+      "min": 2.533,
+      "max": 2.533
+    },
+    "dep-file-other": {
+      "median": 1.155,
+      "min": 1.155,
+      "max": 1.155
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.024,
+      "min": 0.024,
+      "max": 0.024
+    },
+    "dep-read-dir-open": {
+      "median": 0.106,
+      "min": 0.106,
+      "max": 0.106
+    },
+    "dep-directory-other": {
+      "median": 0.943,
+      "min": 0.943,
+      "max": 0.943
+    },
+    "wgpu-core-init": {
+      "median": 74.102,
+      "min": 74.102,
+      "max": 74.102
+    },
+    "font-preparation-plus-metrics": {
+      "median": 24.515,
+      "min": 24.515,
+      "max": 24.515
+    }
+  },
+  "pair-2-baseline": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 25.572,
+      "min": 25.572,
+      "max": 25.572
+    },
+    "font-metrics": {
+      "median": 0.089,
+      "min": 0.089,
+      "max": 0.089
+    },
+    "fonts_to_frame_us": {
+      "median": 116.003,
+      "min": 116.003,
+      "max": 116.003
+    },
+    "system-font-discovery": {
+      "median": 24.238,
+      "min": 24.238,
+      "max": 24.238
+    },
+    "fallback-candidate-sort": {
+      "median": 1.215,
+      "min": 1.215,
+      "max": 1.215
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.01,
+      "min": 0.01,
+      "max": 0.01
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.007,
+      "min": 0.007,
+      "max": 0.007
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "dep-discovery": {
+      "median": 23.94,
+      "min": 23.94,
+      "max": 23.94
+    },
+    "dep-file-open": {
+      "median": 6.807,
+      "min": 6.807,
+      "max": 6.807
+    },
+    "dep-file-map": {
+      "median": 6.068,
+      "min": 6.068,
+      "max": 6.068
+    },
+    "dep-file-unmap-close": {
+      "median": 6.286,
+      "min": 6.286,
+      "max": 6.286
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.495,
+      "min": 2.495,
+      "max": 2.495
+    },
+    "dep-file-other": {
+      "median": 1.159,
+      "min": 1.159,
+      "max": 1.159
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.025,
+      "min": 0.025,
+      "max": 0.025
+    },
+    "dep-read-dir-open": {
+      "median": 0.112,
+      "min": 0.112,
+      "max": 0.112
+    },
+    "dep-directory-other": {
+      "median": 0.921,
+      "min": 0.921,
+      "max": 0.921
+    },
+    "wgpu-core-init": {
+      "median": 71.898,
+      "min": 71.898,
+      "max": 71.898
+    },
+    "font-preparation-plus-metrics": {
+      "median": 25.661,
+      "min": 25.661,
+      "max": 25.661
+    }
+  },
+  "pair-2-candidate": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 24.134,
+      "min": 24.134,
+      "max": 24.134
+    },
+    "font-metrics": {
+      "median": 0.115,
+      "min": 0.115,
+      "max": 0.115
+    },
+    "fonts_to_frame_us": {
+      "median": 113.574,
+      "min": 113.574,
+      "max": 113.574
+    },
+    "system-font-discovery": {
+      "median": 23.875,
+      "min": 23.875,
+      "max": 23.875
+    },
+    "fallback-candidate-sort": {
+      "median": 0.133,
+      "min": 0.133,
+      "max": 0.133
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.01,
+      "min": 0.01,
+      "max": 0.01
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.007,
+      "min": 0.007,
+      "max": 0.007
+    },
+    "font-cache-setup": {
+      "median": 0.003,
+      "min": 0.003,
+      "max": 0.003
+    },
+    "dep-discovery": {
+      "median": 23.507,
+      "min": 23.507,
+      "max": 23.507
+    },
+    "dep-file-open": {
+      "median": 6.594,
+      "min": 6.594,
+      "max": 6.594
+    },
+    "dep-file-map": {
+      "median": 5.84,
+      "min": 5.84,
+      "max": 5.84
+    },
+    "dep-file-unmap-close": {
+      "median": 6.27,
+      "min": 6.27,
+      "max": 6.27
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.387,
+      "min": 2.387,
+      "max": 2.387
+    },
+    "dep-file-other": {
+      "median": 1.32,
+      "min": 1.32,
+      "max": 1.32
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.027,
+      "min": 0.027,
+      "max": 0.027
+    },
+    "dep-read-dir-open": {
+      "median": 0.127,
+      "min": 0.127,
+      "max": 0.127
+    },
+    "dep-directory-other": {
+      "median": 0.878,
+      "min": 0.878,
+      "max": 0.878
+    },
+    "wgpu-core-init": {
+      "median": 71.366,
+      "min": 71.366,
+      "max": 71.366
+    },
+    "font-preparation-plus-metrics": {
+      "median": 24.249,
+      "min": 24.249,
+      "max": 24.249
+    }
+  },
+  "pair-3-baseline": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 26.206,
+      "min": 26.206,
+      "max": 26.206
+    },
+    "font-metrics": {
+      "median": 0.073,
+      "min": 0.073,
+      "max": 0.073
+    },
+    "fonts_to_frame_us": {
+      "median": 116.397,
+      "min": 116.397,
+      "max": 116.397
+    },
+    "system-font-discovery": {
+      "median": 25.017,
+      "min": 25.017,
+      "max": 25.017
+    },
+    "fallback-candidate-sort": {
+      "median": 1.071,
+      "min": 1.071,
+      "max": 1.071
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.012,
+      "min": 0.012,
+      "max": 0.012
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.007,
+      "min": 0.007,
+      "max": 0.007
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "dep-discovery": {
+      "median": 24.707,
+      "min": 24.707,
+      "max": 24.707
+    },
+    "dep-file-open": {
+      "median": 6.99,
+      "min": 6.99,
+      "max": 6.99
+    },
+    "dep-file-map": {
+      "median": 6.113,
+      "min": 6.113,
+      "max": 6.113
+    },
+    "dep-file-unmap-close": {
+      "median": 6.758,
+      "min": 6.758,
+      "max": 6.758
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.49,
+      "min": 2.49,
+      "max": 2.49
+    },
+    "dep-file-other": {
+      "median": 1.179,
+      "min": 1.179,
+      "max": 1.179
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.032,
+      "min": 0.032,
+      "max": 0.032
+    },
+    "dep-read-dir-open": {
+      "median": 0.123,
+      "min": 0.123,
+      "max": 0.123
+    },
+    "dep-directory-other": {
+      "median": 0.956,
+      "min": 0.956,
+      "max": 0.956
+    },
+    "wgpu-core-init": {
+      "median": 71.137,
+      "min": 71.137,
+      "max": 71.137
+    },
+    "font-preparation-plus-metrics": {
+      "median": 26.279,
+      "min": 26.279,
+      "max": 26.279
+    }
+  },
+  "pair-3-candidate": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 23.718,
+      "min": 23.718,
+      "max": 23.718
+    },
+    "font-metrics": {
+      "median": 0.08,
+      "min": 0.08,
+      "max": 0.08
+    },
+    "fonts_to_frame_us": {
+      "median": 114.845,
+      "min": 114.845,
+      "max": 114.845
+    },
+    "system-font-discovery": {
+      "median": 23.497,
+      "min": 23.497,
+      "max": 23.497
+    },
+    "fallback-candidate-sort": {
+      "median": 0.101,
+      "min": 0.101,
+      "max": 0.101
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.011,
+      "min": 0.011,
+      "max": 0.011
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.007,
+      "min": 0.007,
+      "max": 0.007
+    },
+    "font-cache-setup": {
+      "median": 0.003,
+      "min": 0.003,
+      "max": 0.003
+    },
+    "dep-discovery": {
+      "median": 23.15,
+      "min": 23.15,
+      "max": 23.15
+    },
+    "dep-file-open": {
+      "median": 6.665,
+      "min": 6.665,
+      "max": 6.665
+    },
+    "dep-file-map": {
+      "median": 5.779,
+      "min": 5.779,
+      "max": 5.779
+    },
+    "dep-file-unmap-close": {
+      "median": 6.179,
+      "min": 6.179,
+      "max": 6.179
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.336,
+      "min": 2.336,
+      "max": 2.336
+    },
+    "dep-file-other": {
+      "median": 1.137,
+      "min": 1.137,
+      "max": 1.137
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.026,
+      "min": 0.026,
+      "max": 0.026
+    },
+    "dep-read-dir-open": {
+      "median": 0.117,
+      "min": 0.117,
+      "max": 0.117
+    },
+    "dep-directory-other": {
+      "median": 0.844,
+      "min": 0.844,
+      "max": 0.844
+    },
+    "wgpu-core-init": {
+      "median": 72.988,
+      "min": 72.988,
+      "max": 72.988
+    },
+    "font-preparation-plus-metrics": {
+      "median": 23.798,
+      "min": 23.798,
+      "max": 23.798
+    }
+  },
+  "pair-4-baseline": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 26.763,
+      "min": 26.763,
+      "max": 26.763
+    },
+    "font-metrics": {
+      "median": 0.092,
+      "min": 0.092,
+      "max": 0.092
+    },
+    "fonts_to_frame_us": {
+      "median": 115.975,
+      "min": 115.975,
+      "max": 115.975
+    },
+    "system-font-discovery": {
+      "median": 25.427,
+      "min": 25.427,
+      "max": 25.427
+    },
+    "fallback-candidate-sort": {
+      "median": 1.216,
+      "min": 1.216,
+      "max": 1.216
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.011,
+      "min": 0.011,
+      "max": 0.011
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.008,
+      "min": 0.008,
+      "max": 0.008
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "dep-discovery": {
+      "median": 25.113,
+      "min": 25.113,
+      "max": 25.113
+    },
+    "dep-file-open": {
+      "median": 7.184,
+      "min": 7.184,
+      "max": 7.184
+    },
+    "dep-file-map": {
+      "median": 6.275,
+      "min": 6.275,
+      "max": 6.275
+    },
+    "dep-file-unmap-close": {
+      "median": 6.789,
+      "min": 6.789,
+      "max": 6.789
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.442,
+      "min": 2.442,
+      "max": 2.442
+    },
+    "dep-file-other": {
+      "median": 1.231,
+      "min": 1.231,
+      "max": 1.231
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.027,
+      "min": 0.027,
+      "max": 0.027
+    },
+    "dep-read-dir-open": {
+      "median": 0.123,
+      "min": 0.123,
+      "max": 0.123
+    },
+    "dep-directory-other": {
+      "median": 0.975,
+      "min": 0.975,
+      "max": 0.975
+    },
+    "wgpu-core-init": {
+      "median": 71.204,
+      "min": 71.204,
+      "max": 71.204
+    },
+    "font-preparation-plus-metrics": {
+      "median": 26.855,
+      "min": 26.855,
+      "max": 26.855
+    }
+  },
+  "pair-4-candidate": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 25.359,
+      "min": 25.359,
+      "max": 25.359
+    },
+    "font-metrics": {
+      "median": 0.092,
+      "min": 0.092,
+      "max": 0.092
+    },
+    "fonts_to_frame_us": {
+      "median": 115.9,
+      "min": 115.9,
+      "max": 115.9
+    },
+    "system-font-discovery": {
+      "median": 25.139,
+      "min": 25.139,
+      "max": 25.139
+    },
+    "fallback-candidate-sort": {
+      "median": 0.095,
+      "min": 0.095,
+      "max": 0.095
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.01,
+      "min": 0.01,
+      "max": 0.01
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.007,
+      "min": 0.007,
+      "max": 0.007
+    },
+    "font-cache-setup": {
+      "median": 0.003,
+      "min": 0.003,
+      "max": 0.003
+    },
+    "dep-discovery": {
+      "median": 24.767,
+      "min": 24.767,
+      "max": 24.767
+    },
+    "dep-file-open": {
+      "median": 7.064,
+      "min": 7.064,
+      "max": 7.064
+    },
+    "dep-file-map": {
+      "median": 6.174,
+      "min": 6.174,
+      "max": 6.174
+    },
+    "dep-file-unmap-close": {
+      "median": 6.669,
+      "min": 6.669,
+      "max": 6.669
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.487,
+      "min": 2.487,
+      "max": 2.487
+    },
+    "dep-file-other": {
+      "median": 1.2,
+      "min": 1.2,
+      "max": 1.2
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.031,
+      "min": 0.031,
+      "max": 0.031
+    },
+    "dep-read-dir-open": {
+      "median": 0.137,
+      "min": 0.137,
+      "max": 0.137
+    },
+    "dep-directory-other": {
+      "median": 0.937,
+      "min": 0.937,
+      "max": 0.937
+    },
+    "wgpu-core-init": {
+      "median": 71.527,
+      "min": 71.527,
+      "max": 71.527
+    },
+    "font-preparation-plus-metrics": {
+      "median": 25.451,
+      "min": 25.451,
+      "max": 25.451
+    }
+  },
+  "pair-5-baseline": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 26.743,
+      "min": 26.743,
+      "max": 26.743
+    },
+    "font-metrics": {
+      "median": 0.075,
+      "min": 0.075,
+      "max": 0.075
+    },
+    "fonts_to_frame_us": {
+      "median": 118.385,
+      "min": 118.385,
+      "max": 118.385
+    },
+    "system-font-discovery": {
+      "median": 25.538,
+      "min": 25.538,
+      "max": 25.538
+    },
+    "fallback-candidate-sort": {
+      "median": 1.089,
+      "min": 1.089,
+      "max": 1.089
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.009,
+      "min": 0.009,
+      "max": 0.009
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.006,
+      "min": 0.006,
+      "max": 0.006
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "dep-discovery": {
+      "median": 25.218,
+      "min": 25.218,
+      "max": 25.218
+    },
+    "dep-file-open": {
+      "median": 7.116,
+      "min": 7.116,
+      "max": 7.116
+    },
+    "dep-file-map": {
+      "median": 6.479,
+      "min": 6.479,
+      "max": 6.479
+    },
+    "dep-file-unmap-close": {
+      "median": 6.78,
+      "min": 6.78,
+      "max": 6.78
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.452,
+      "min": 2.452,
+      "max": 2.452
+    },
+    "dep-file-other": {
+      "median": 1.197,
+      "min": 1.197,
+      "max": 1.197
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.027,
+      "min": 0.027,
+      "max": 0.027
+    },
+    "dep-read-dir-open": {
+      "median": 0.111,
+      "min": 0.111,
+      "max": 0.111
+    },
+    "dep-directory-other": {
+      "median": 0.984,
+      "min": 0.984,
+      "max": 0.984
+    },
+    "wgpu-core-init": {
+      "median": 72.151,
+      "min": 72.151,
+      "max": 72.151
+    },
+    "font-preparation-plus-metrics": {
+      "median": 26.818,
+      "min": 26.818,
+      "max": 26.818
+    }
+  },
+  "pair-5-candidate": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 24.548,
+      "min": 24.548,
+      "max": 24.548
+    },
+    "font-metrics": {
+      "median": 0.067,
+      "min": 0.067,
+      "max": 0.067
+    },
+    "fonts_to_frame_us": {
+      "median": 116.695,
+      "min": 116.695,
+      "max": 116.695
+    },
+    "system-font-discovery": {
+      "median": 24.337,
+      "min": 24.337,
+      "max": 24.337
+    },
+    "fallback-candidate-sort": {
+      "median": 0.101,
+      "min": 0.101,
+      "max": 0.101
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.01,
+      "min": 0.01,
+      "max": 0.01
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.006,
+      "min": 0.006,
+      "max": 0.006
+    },
+    "font-cache-setup": {
+      "median": 0.003,
+      "min": 0.003,
+      "max": 0.003
+    },
+    "dep-discovery": {
+      "median": 24.024,
+      "min": 24.024,
+      "max": 24.024
+    },
+    "dep-file-open": {
+      "median": 6.805,
+      "min": 6.805,
+      "max": 6.805
+    },
+    "dep-file-map": {
+      "median": 5.998,
+      "min": 5.998,
+      "max": 5.998
+    },
+    "dep-file-unmap-close": {
+      "median": 6.347,
+      "min": 6.347,
+      "max": 6.347
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.468,
+      "min": 2.468,
+      "max": 2.468
+    },
+    "dep-file-other": {
+      "median": 1.309,
+      "min": 1.309,
+      "max": 1.309
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.027,
+      "min": 0.027,
+      "max": 0.027
+    },
+    "dep-read-dir-open": {
+      "median": 0.111,
+      "min": 0.111,
+      "max": 0.111
+    },
+    "dep-directory-other": {
+      "median": 0.893,
+      "min": 0.893,
+      "max": 0.893
+    },
+    "wgpu-core-init": {
+      "median": 72.443,
+      "min": 72.443,
+      "max": 72.443
+    },
+    "font-preparation-plus-metrics": {
+      "median": 24.615,
+      "min": 24.615,
+      "max": 24.615
+    }
+  },
+  "pair-6-baseline": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 28.056,
+      "min": 28.056,
+      "max": 28.056
+    },
+    "font-metrics": {
+      "median": 0.079,
+      "min": 0.079,
+      "max": 0.079
+    },
+    "fonts_to_frame_us": {
+      "median": 132.96,
+      "min": 132.96,
+      "max": 132.96
+    },
+    "system-font-discovery": {
+      "median": 26.835,
+      "min": 26.835,
+      "max": 26.835
+    },
+    "fallback-candidate-sort": {
+      "median": 1.102,
+      "min": 1.102,
+      "max": 1.102
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.01,
+      "min": 0.01,
+      "max": 0.01
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.01,
+      "min": 0.01,
+      "max": 0.01
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "dep-discovery": {
+      "median": 26.515,
+      "min": 26.515,
+      "max": 26.515
+    },
+    "dep-file-open": {
+      "median": 7.382,
+      "min": 7.382,
+      "max": 7.382
+    },
+    "dep-file-map": {
+      "median": 6.514,
+      "min": 6.514,
+      "max": 6.514
+    },
+    "dep-file-unmap-close": {
+      "median": 7.319,
+      "min": 7.319,
+      "max": 7.319
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.522,
+      "min": 2.522,
+      "max": 2.522
+    },
+    "dep-file-other": {
+      "median": 1.52,
+      "min": 1.52,
+      "max": 1.52
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.028,
+      "min": 0.028,
+      "max": 0.028
+    },
+    "dep-read-dir-open": {
+      "median": 0.128,
+      "min": 0.128,
+      "max": 0.128
+    },
+    "dep-directory-other": {
+      "median": 1.028,
+      "min": 1.028,
+      "max": 1.028
+    },
+    "wgpu-core-init": {
+      "median": 78.203,
+      "min": 78.203,
+      "max": 78.203
+    },
+    "font-preparation-plus-metrics": {
+      "median": 28.135,
+      "min": 28.135,
+      "max": 28.135
+    }
+  },
+  "pair-6-candidate": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 28.402,
+      "min": 28.402,
+      "max": 28.402
+    },
+    "font-metrics": {
+      "median": 0.087,
+      "min": 0.087,
+      "max": 0.087
+    },
+    "fonts_to_frame_us": {
+      "median": 124.121,
+      "min": 124.121,
+      "max": 124.121
+    },
+    "system-font-discovery": {
+      "median": 28.147,
+      "min": 28.147,
+      "max": 28.147
+    },
+    "fallback-candidate-sort": {
+      "median": 0.104,
+      "min": 0.104,
+      "max": 0.104
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.01,
+      "min": 0.01,
+      "max": 0.01
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.01,
+      "min": 0.01,
+      "max": 0.01
+    },
+    "font-cache-setup": {
+      "median": 0.003,
+      "min": 0.003,
+      "max": 0.003
+    },
+    "dep-discovery": {
+      "median": 27.848,
+      "min": 27.848,
+      "max": 27.848
+    },
+    "dep-file-open": {
+      "median": 8.218,
+      "min": 8.218,
+      "max": 8.218
+    },
+    "dep-file-map": {
+      "median": 6.967,
+      "min": 6.967,
+      "max": 6.967
+    },
+    "dep-file-unmap-close": {
+      "median": 7.361,
+      "min": 7.361,
+      "max": 7.361
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.685,
+      "min": 2.685,
+      "max": 2.685
+    },
+    "dep-file-other": {
+      "median": 1.282,
+      "min": 1.282,
+      "max": 1.282
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.03,
+      "min": 0.03,
+      "max": 0.03
+    },
+    "dep-read-dir-open": {
+      "median": 0.144,
+      "min": 0.144,
+      "max": 0.144
+    },
+    "dep-directory-other": {
+      "median": 1.081,
+      "min": 1.081,
+      "max": 1.081
+    },
+    "wgpu-core-init": {
+      "median": 75.661,
+      "min": 75.661,
+      "max": 75.661
+    },
+    "font-preparation-plus-metrics": {
+      "median": 28.489,
+      "min": 28.489,
+      "max": 28.489
+    }
+  },
+  "pair-7-baseline": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 26.857,
+      "min": 26.857,
+      "max": 26.857
+    },
+    "font-metrics": {
+      "median": 0.13,
+      "min": 0.13,
+      "max": 0.13
+    },
+    "fonts_to_frame_us": {
+      "median": 121.462,
+      "min": 121.462,
+      "max": 121.462
+    },
+    "system-font-discovery": {
+      "median": 24.77,
+      "min": 24.77,
+      "max": 24.77
+    },
+    "fallback-candidate-sort": {
+      "median": 1.919,
+      "min": 1.919,
+      "max": 1.919
+    },
+    "font-database-create": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "font-generic-family-query": {
+      "median": 0.014,
+      "min": 0.014,
+      "max": 0.014
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.012,
+      "min": 0.012,
+      "max": 0.012
+    },
+    "font-cache-setup": {
+      "median": 0.008,
+      "min": 0.008,
+      "max": 0.008
+    },
+    "dep-discovery": {
+      "median": 24.437,
+      "min": 24.437,
+      "max": 24.437
+    },
+    "dep-file-open": {
+      "median": 7.113,
+      "min": 7.113,
+      "max": 7.113
+    },
+    "dep-file-map": {
+      "median": 6.095,
+      "min": 6.095,
+      "max": 6.095
+    },
+    "dep-file-unmap-close": {
+      "median": 6.452,
+      "min": 6.452,
+      "max": 6.452
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.405,
+      "min": 2.405,
+      "max": 2.405
+    },
+    "dep-file-other": {
+      "median": 1.223,
+      "min": 1.223,
+      "max": 1.223
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.023,
+      "min": 0.023,
+      "max": 0.023
+    },
+    "dep-read-dir-open": {
+      "median": 0.101,
+      "min": 0.101,
+      "max": 0.101
+    },
+    "dep-directory-other": {
+      "median": 0.96,
+      "min": 0.96,
+      "max": 0.96
+    },
+    "wgpu-core-init": {
+      "median": 75.631,
+      "min": 75.631,
+      "max": 75.631
+    },
+    "font-preparation-plus-metrics": {
+      "median": 26.987,
+      "min": 26.987,
+      "max": 26.987
+    }
+  },
+  "pair-7-candidate": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 24.918,
+      "min": 24.918,
+      "max": 24.918
+    },
+    "font-metrics": {
+      "median": 0.095,
+      "min": 0.095,
+      "max": 0.095
+    },
+    "fonts_to_frame_us": {
+      "median": 118.969,
+      "min": 118.969,
+      "max": 118.969
+    },
+    "system-font-discovery": {
+      "median": 24.709,
+      "min": 24.709,
+      "max": 24.709
+    },
+    "fallback-candidate-sort": {
+      "median": 0.09,
+      "min": 0.09,
+      "max": 0.09
+    },
+    "font-database-create": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "font-generic-family-query": {
+      "median": 0.01,
+      "min": 0.01,
+      "max": 0.01
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.01,
+      "min": 0.01,
+      "max": 0.01
+    },
+    "font-cache-setup": {
+      "median": 0.003,
+      "min": 0.003,
+      "max": 0.003
+    },
+    "dep-discovery": {
+      "median": 24.28,
+      "min": 24.28,
+      "max": 24.28
+    },
+    "dep-file-open": {
+      "median": 6.921,
+      "min": 6.921,
+      "max": 6.921
+    },
+    "dep-file-map": {
+      "median": 6.048,
+      "min": 6.048,
+      "max": 6.048
+    },
+    "dep-file-unmap-close": {
+      "median": 6.448,
+      "min": 6.448,
+      "max": 6.448
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.532,
+      "min": 2.532,
+      "max": 2.532
+    },
+    "dep-file-other": {
+      "median": 1.211,
+      "min": 1.211,
+      "max": 1.211
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.025,
+      "min": 0.025,
+      "max": 0.025
+    },
+    "dep-read-dir-open": {
+      "median": 0.11,
+      "min": 0.11,
+      "max": 0.11
+    },
+    "dep-directory-other": {
+      "median": 0.922,
+      "min": 0.922,
+      "max": 0.922
+    },
+    "wgpu-core-init": {
+      "median": 75.528,
+      "min": 75.528,
+      "max": 75.528
+    },
+    "font-preparation-plus-metrics": {
+      "median": 25.013,
+      "min": 25.013,
+      "max": 25.013
+    }
+  },
+  "pair-8-baseline": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 25.242,
+      "min": 25.242,
+      "max": 25.242
+    },
+    "font-metrics": {
+      "median": 0.12,
+      "min": 0.12,
+      "max": 0.12
+    },
+    "fonts_to_frame_us": {
+      "median": 113.462,
+      "min": 113.462,
+      "max": 113.462
+    },
+    "system-font-discovery": {
+      "median": 23.919,
+      "min": 23.919,
+      "max": 23.919
+    },
+    "fallback-candidate-sort": {
+      "median": 1.183,
+      "min": 1.183,
+      "max": 1.183
+    },
+    "font-database-create": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "font-generic-family-query": {
+      "median": 0.01,
+      "min": 0.01,
+      "max": 0.01
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.008,
+      "min": 0.008,
+      "max": 0.008
+    },
+    "font-cache-setup": {
+      "median": 0.008,
+      "min": 0.008,
+      "max": 0.008
+    },
+    "dep-discovery": {
+      "median": 23.56,
+      "min": 23.56,
+      "max": 23.56
+    },
+    "dep-file-open": {
+      "median": 6.781,
+      "min": 6.781,
+      "max": 6.781
+    },
+    "dep-file-map": {
+      "median": 5.976,
+      "min": 5.976,
+      "max": 5.976
+    },
+    "dep-file-unmap-close": {
+      "median": 6.209,
+      "min": 6.209,
+      "max": 6.209
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.318,
+      "min": 2.318,
+      "max": 2.318
+    },
+    "dep-file-other": {
+      "median": 1.169,
+      "min": 1.169,
+      "max": 1.169
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.025,
+      "min": 0.025,
+      "max": 0.025
+    },
+    "dep-read-dir-open": {
+      "median": 0.115,
+      "min": 0.115,
+      "max": 0.115
+    },
+    "dep-directory-other": {
+      "median": 0.892,
+      "min": 0.892,
+      "max": 0.892
+    },
+    "wgpu-core-init": {
+      "median": 70.187,
+      "min": 70.187,
+      "max": 70.187
+    },
+    "font-preparation-plus-metrics": {
+      "median": 25.362,
+      "min": 25.362,
+      "max": 25.362
+    }
+  },
+  "pair-8-candidate": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 25.037,
+      "min": 25.037,
+      "max": 25.037
+    },
+    "font-metrics": {
+      "median": 0.081,
+      "min": 0.081,
+      "max": 0.081
+    },
+    "fonts_to_frame_us": {
+      "median": 118.454,
+      "min": 118.454,
+      "max": 118.454
+    },
+    "system-font-discovery": {
+      "median": 24.816,
+      "min": 24.816,
+      "max": 24.816
+    },
+    "fallback-candidate-sort": {
+      "median": 0.104,
+      "min": 0.104,
+      "max": 0.104
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.011,
+      "min": 0.011,
+      "max": 0.011
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.007,
+      "min": 0.007,
+      "max": 0.007
+    },
+    "font-cache-setup": {
+      "median": 0.003,
+      "min": 0.003,
+      "max": 0.003
+    },
+    "dep-discovery": {
+      "median": 24.44,
+      "min": 24.44,
+      "max": 24.44
+    },
+    "dep-file-open": {
+      "median": 7.057,
+      "min": 7.057,
+      "max": 7.057
+    },
+    "dep-file-map": {
+      "median": 6.12,
+      "min": 6.12,
+      "max": 6.12
+    },
+    "dep-file-unmap-close": {
+      "median": 6.45,
+      "min": 6.45,
+      "max": 6.45
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.457,
+      "min": 2.457,
+      "max": 2.457
+    },
+    "dep-file-other": {
+      "median": 1.201,
+      "min": 1.201,
+      "max": 1.201
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.028,
+      "min": 0.028,
+      "max": 0.028
+    },
+    "dep-read-dir-open": {
+      "median": 0.113,
+      "min": 0.113,
+      "max": 0.113
+    },
+    "dep-directory-other": {
+      "median": 0.945,
+      "min": 0.945,
+      "max": 0.945
+    },
+    "wgpu-core-init": {
+      "median": 73.66,
+      "min": 73.66,
+      "max": 73.66
+    },
+    "font-preparation-plus-metrics": {
+      "median": 25.118,
+      "min": 25.118,
+      "max": 25.118
+    }
+  },
+  "pair-9-baseline": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 25.73,
+      "min": 25.73,
+      "max": 25.73
+    },
+    "font-metrics": {
+      "median": 0.076,
+      "min": 0.076,
+      "max": 0.076
+    },
+    "fonts_to_frame_us": {
+      "median": 120.565,
+      "min": 120.565,
+      "max": 120.565
+    },
+    "system-font-discovery": {
+      "median": 24.521,
+      "min": 24.521,
+      "max": 24.521
+    },
+    "fallback-candidate-sort": {
+      "median": 1.095,
+      "min": 1.095,
+      "max": 1.095
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.009,
+      "min": 0.009,
+      "max": 0.009
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.006,
+      "min": 0.006,
+      "max": 0.006
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "dep-discovery": {
+      "median": 24.198,
+      "min": 24.198,
+      "max": 24.198
+    },
+    "dep-file-open": {
+      "median": 6.873,
+      "min": 6.873,
+      "max": 6.873
+    },
+    "dep-file-map": {
+      "median": 6.123,
+      "min": 6.123,
+      "max": 6.123
+    },
+    "dep-file-unmap-close": {
+      "median": 6.461,
+      "min": 6.461,
+      "max": 6.461
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.404,
+      "min": 2.404,
+      "max": 2.404
+    },
+    "dep-file-other": {
+      "median": 1.197,
+      "min": 1.197,
+      "max": 1.197
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.025,
+      "min": 0.025,
+      "max": 0.025
+    },
+    "dep-read-dir-open": {
+      "median": 0.141,
+      "min": 0.141,
+      "max": 0.141
+    },
+    "dep-directory-other": {
+      "median": 0.906,
+      "min": 0.906,
+      "max": 0.906
+    },
+    "wgpu-core-init": {
+      "median": 75.912,
+      "min": 75.912,
+      "max": 75.912
+    },
+    "font-preparation-plus-metrics": {
+      "median": 25.806,
+      "min": 25.806,
+      "max": 25.806
+    }
+  },
+  "pair-9-candidate": {
+    "n": 1,
+    "font-family-preparation": {
+      "median": 24.514,
+      "min": 24.514,
+      "max": 24.514
+    },
+    "font-metrics": {
+      "median": 0.079,
+      "min": 0.079,
+      "max": 0.079
+    },
+    "fonts_to_frame_us": {
+      "median": 116.406,
+      "min": 116.406,
+      "max": 116.406
+    },
+    "system-font-discovery": {
+      "median": 24.282,
+      "min": 24.282,
+      "max": 24.282
+    },
+    "fallback-candidate-sort": {
+      "median": 0.103,
+      "min": 0.103,
+      "max": 0.103
+    },
+    "font-database-create": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "font-generic-family-query": {
+      "median": 0.01,
+      "min": 0.01,
+      "max": 0.01
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.006,
+      "min": 0.006,
+      "max": 0.006
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.004
+    },
+    "dep-discovery": {
+      "median": 23.975,
+      "min": 23.975,
+      "max": 23.975
+    },
+    "dep-file-open": {
+      "median": 6.859,
+      "min": 6.859,
+      "max": 6.859
+    },
+    "dep-file-map": {
+      "median": 6.017,
+      "min": 6.017,
+      "max": 6.017
+    },
+    "dep-file-unmap-close": {
+      "median": 6.355,
+      "min": 6.355,
+      "max": 6.355
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.427,
+      "min": 2.427,
+      "max": 2.427
+    },
+    "dep-file-other": {
+      "median": 1.188,
+      "min": 1.188,
+      "max": 1.188
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.027,
+      "min": 0.027,
+      "max": 0.027
+    },
+    "dep-read-dir-open": {
+      "median": 0.129,
+      "min": 0.129,
+      "max": 0.129
+    },
+    "dep-directory-other": {
+      "median": 0.901,
+      "min": 0.901,
+      "max": 0.901
+    },
+    "wgpu-core-init": {
+      "median": 72.999,
+      "min": 72.999,
+      "max": 72.999
+    },
+    "font-preparation-plus-metrics": {
+      "median": 24.593,
+      "min": 24.593,
+      "max": 24.593
+    }
+  },
+  "paired-deltas-candidate-minus-baseline": {
+    "font-family-preparation": {
+      "deltas": [
+        4.701,
+        -1.438,
+        -2.488,
+        -1.404,
+        -2.195,
+        0.346,
+        -1.939,
+        -0.205,
+        -1.216,
+        -3.963
+      ],
+      "median": -1.421,
+      "min": -3.963,
+      "max": 4.701
+    },
+    "font-metrics": {
+      "deltas": [
+        0.006,
+        0.026,
+        0.007,
+        0.0,
+        -0.008,
+        0.008,
+        -0.035,
+        -0.039,
+        0.003,
+        -0.027
+      ],
+      "median": 0.002,
+      "min": -0.039,
+      "max": 0.026
+    },
+    "fonts_to_frame_us": {
+      "deltas": [
+        5.551,
+        -2.429,
+        -1.552,
+        -0.075,
+        -1.69,
+        -8.839,
+        -2.493,
+        4.992,
+        -4.159,
+        -4.269
+      ],
+      "median": -2.059,
+      "min": -8.839,
+      "max": 5.551
+    },
+    "system-font-discovery": {
+      "deltas": [
+        5.662,
+        -0.363,
+        -1.52,
+        -0.288,
+        -1.201,
+        1.312,
+        -0.061,
+        0.897,
+        -0.239,
+        -2.079
+      ],
+      "median": -0.263,
+      "min": -2.079,
+      "max": 5.662
+    },
+    "fallback-candidate-sort": {
+      "deltas": [
+        -0.99,
+        -1.082,
+        -0.97,
+        -1.121,
+        -0.988,
+        -0.998,
+        -1.829,
+        -1.079,
+        -0.992,
+        -1.818
+      ],
+      "median": -1.038,
+      "min": -1.829,
+      "max": -0.97
+    },
+    "font-database-create": {
+      "deltas": [
+        0.001,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.001,
+        -0.001,
+        0.0
+      ],
+      "median": 0.0,
+      "min": -0.001,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "deltas": [
+        0.002,
+        0.0,
+        -0.001,
+        -0.001,
+        0.001,
+        0.0,
+        -0.004,
+        0.001,
+        0.001,
+        -0.006
+      ],
+      "median": 0.0,
+      "min": -0.006,
+      "max": 0.002
+    },
+    "font-primary-monospace-validation": {
+      "deltas": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "deltas": [
+        -0.002,
+        0.0,
+        0.0,
+        -0.001,
+        0.0,
+        0.0,
+        -0.002,
+        -0.001,
+        0.0,
+        -0.008
+      ],
+      "median": -0.001,
+      "min": -0.008,
+      "max": 0.0
+    },
+    "font-cache-setup": {
+      "deltas": [
+        -0.002,
+        -0.001,
+        -0.001,
+        -0.001,
+        -0.001,
+        -0.001,
+        -0.005,
+        -0.005,
+        0.0,
+        -0.003
+      ],
+      "median": -0.001,
+      "min": -0.005,
+      "max": 0.0
+    },
+    "dep-discovery": {
+      "deltas": [
+        5.459,
+        -0.433,
+        -1.557,
+        -0.346,
+        -1.194,
+        1.333,
+        -0.157,
+        0.88,
+        -0.223,
+        -1.959
+      ],
+      "median": -0.284,
+      "min": -1.959,
+      "max": 5.459
+    },
+    "dep-file-open": {
+      "deltas": [
+        1.375,
+        -0.213,
+        -0.325,
+        -0.12,
+        -0.311,
+        0.836,
+        -0.192,
+        0.276,
+        -0.014,
+        -0.549
+      ],
+      "median": -0.156,
+      "min": -0.549,
+      "max": 1.375
+    },
+    "dep-file-map": {
+      "deltas": [
+        1.309,
+        -0.228,
+        -0.334,
+        -0.101,
+        -0.481,
+        0.453,
+        -0.047,
+        0.144,
+        -0.106,
+        -0.517
+      ],
+      "median": -0.104,
+      "min": -0.517,
+      "max": 1.309
+    },
+    "dep-file-unmap-close": {
+      "deltas": [
+        1.588,
+        -0.016,
+        -0.579,
+        -0.12,
+        -0.433,
+        0.042,
+        -0.004,
+        0.241,
+        -0.106,
+        -0.628
+      ],
+      "median": -0.061,
+      "min": -0.628,
+      "max": 1.588
+    },
+    "dep-face-metadata-parse": {
+      "deltas": [
+        0.595,
+        -0.108,
+        -0.154,
+        0.045,
+        0.016,
+        0.163,
+        0.127,
+        0.139,
+        0.023,
+        -0.038
+      ],
+      "median": 0.034,
+      "min": -0.154,
+      "max": 0.595
+    },
+    "dep-file-other": {
+      "deltas": [
+        0.235,
+        0.161,
+        -0.042,
+        -0.031,
+        0.112,
+        -0.238,
+        -0.012,
+        0.032,
+        -0.009,
+        -0.11
+      ],
+      "median": -0.01,
+      "min": -0.238,
+      "max": 0.235
+    },
+    "dep-entry-type-canonicalize": {
+      "deltas": [
+        0.004,
+        0.002,
+        -0.006,
+        0.004,
+        0.0,
+        0.002,
+        0.002,
+        0.003,
+        0.002,
+        0.001
+      ],
+      "median": 0.002,
+      "min": -0.006,
+      "max": 0.004
+    },
+    "dep-read-dir-open": {
+      "deltas": [
+        0.043,
+        0.015,
+        -0.006,
+        0.014,
+        0.0,
+        0.016,
+        0.009,
+        -0.002,
+        -0.012,
+        -0.03
+      ],
+      "median": 0.004,
+      "min": -0.03,
+      "max": 0.043
+    },
+    "dep-directory-other": {
+      "deltas": [
+        0.283,
+        -0.043,
+        -0.112,
+        -0.038,
+        -0.091,
+        0.053,
+        -0.038,
+        0.053,
+        -0.005,
+        -0.089
+      ],
+      "median": -0.038,
+      "min": -0.112,
+      "max": 0.283
+    },
+    "wgpu-core-init": {
+      "deltas": [
+        0.643,
+        -0.532,
+        1.851,
+        0.323,
+        0.292,
+        -2.542,
+        -0.103,
+        3.473,
+        -2.913,
+        0.091
+      ],
+      "median": 0.192,
+      "min": -2.913,
+      "max": 3.473
+    },
+    "font-preparation-plus-metrics": {
+      "deltas": [
+        4.707,
+        -1.412,
+        -2.481,
+        -1.404,
+        -2.203,
+        0.354,
+        -1.974,
+        -0.244,
+        -1.213,
+        -3.99
+      ],
+      "median": -1.408,
+      "min": -3.99,
+      "max": 4.707
+    }
+  },
+  "overhead-on-minus-off": {
+    "font-family-preparation": {
+      "deltas": [
+        0.555,
+        4.73,
+        5.352,
+        4.947,
+        3.385,
+        0.907,
+        -2.729,
+        1.457,
+        3.838,
+        0.408
+      ],
+      "median": 2.421,
+      "min": -2.729,
+      "max": 5.352
+    },
+    "system-font-discovery": {
+      "deltas": [
+        0.523,
+        4.583,
+        5.261,
+        4.717,
+        3.015,
+        0.727,
+        -2.728,
+        1.439,
+        3.647,
+        0.246
+      ],
+      "median": 2.227,
+      "min": -2.728,
+      "max": 5.261
+    },
+    "fonts_to_frame_us": {
+      "deltas": [
+        10.895,
+        6.22,
+        21.396,
+        13.332,
+        10.104,
+        1.391,
+        -3.241,
+        0.63,
+        3.164,
+        -1.347
+      ],
+      "median": 4.692,
+      "min": -3.241,
+      "max": 21.396
+    }
+  },
+  "coarse-deltas-candidate-minus-baseline": {
+    "font-family-preparation": {
+      "deltas": [
+        1.42,
+        -0.99,
+        0.093,
+        1.19,
+        -3.988,
+        -2.98,
+        5.891,
+        -0.55,
+        -2.975,
+        0.678
+      ],
+      "median": -0.229,
+      "min": -3.988,
+      "max": 5.891
+    },
+    "font-metrics": {
+      "deltas": [
+        -0.001,
+        -0.055,
+        -0.002,
+        -0.019,
+        -0.013,
+        0.02,
+        -0.011,
+        0.002,
+        -0.021,
+        0.017
+      ],
+      "median": -0.006,
+      "min": -0.055,
+      "max": 0.02
+    },
+    "fonts_to_frame_us": {
+      "deltas": [
+        -5.992,
+        -15.206,
+        -0.038,
+        0.0,
+        -10.901,
+        -7.824,
+        5.175,
+        -0.741,
+        -22.1,
+        -3.073
+      ],
+      "median": -4.532,
+      "min": -22.1,
+      "max": 5.175
+    },
+    "system-font-discovery": {
+      "deltas": [
+        2.536,
+        0.175,
+        1.157,
+        2.233,
+        -2.996,
+        -2.131,
+        6.984,
+        0.467,
+        -1.824,
+        1.698
+      ],
+      "median": 0.812,
+      "min": -2.996,
+      "max": 6.984
+    },
+    "fallback-candidate-sort": {
+      "deltas": [
+        -1.115,
+        -1.148,
+        -1.063,
+        -1.029,
+        -0.973,
+        -0.951,
+        -1.101,
+        -1.008,
+        -1.13,
+        -1.04
+      ],
+      "median": -1.051,
+      "min": -1.148,
+      "max": -0.951
+    }
+  },
+  "coarse-baseline": {
+    "font-family-preparation": {
+      "median": 27.277,
+      "min": 24.75,
+      "max": 28.447
+    },
+    "font-metrics": {
+      "median": 0.066,
+      "min": 0.051,
+      "max": 0.12
+    },
+    "fonts_to_frame_us": {
+      "median": 127.953,
+      "min": 118.986,
+      "max": 145.4
+    },
+    "system-font-discovery": {
+      "median": 25.998,
+      "min": 23.498,
+      "max": 27.103
+    },
+    "fallback-candidate-sort": {
+      "median": 1.147,
+      "min": 1.063,
+      "max": 1.24
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.0,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.01,
+      "min": 0.008,
+      "max": 0.012
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.007,
+      "min": 0.005,
+      "max": 0.011
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.006
+    },
+    "wgpu-core-init": {
+      "median": 79.723,
+      "min": 73.339,
+      "max": 96.072
+    },
+    "font-preparation-plus-metrics": {
+      "median": 27.343,
+      "min": 24.811,
+      "max": 28.513
+    }
+  },
+  "coarse-candidate": {
+    "font-family-preparation": {
+      "median": 26.211,
+      "min": 24.119,
+      "max": 31.835
+    },
+    "font-metrics": {
+      "median": 0.062,
+      "min": 0.045,
+      "max": 0.085
+    },
+    "fonts_to_frame_us": {
+      "median": 123.346,
+      "min": 117.435,
+      "max": 132.745
+    },
+    "system-font-discovery": {
+      "median": 26.014,
+      "min": 23.927,
+      "max": 31.613
+    },
+    "fallback-candidate-sort": {
+      "median": 0.091,
+      "min": 0.087,
+      "max": 0.126
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.0,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.009,
+      "min": 0.008,
+      "max": 0.114
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.007,
+      "min": 0.005,
+      "max": 0.011
+    },
+    "font-cache-setup": {
+      "median": 0.003,
+      "min": 0.003,
+      "max": 0.004
+    },
+    "wgpu-core-init": {
+      "median": 76.279,
+      "min": 72.408,
+      "max": 81.605
+    },
+    "font-preparation-plus-metrics": {
+      "median": 26.264,
+      "min": 24.164,
+      "max": 31.914
+    }
+  },
+  "paired-baseline": {
+    "font-family-preparation": {
+      "median": 26.474,
+      "min": 24.485,
+      "max": 28.366
+    },
+    "font-metrics": {
+      "median": 0.09,
+      "min": 0.073,
+      "max": 0.139
+    },
+    "fonts_to_frame_us": {
+      "median": 117.391,
+      "min": 113.462,
+      "max": 132.96
+    },
+    "system-font-discovery": {
+      "median": 24.893,
+      "min": 23.262,
+      "max": 26.835
+    },
+    "fallback-candidate-sort": {
+      "median": 1.143,
+      "min": 1.071,
+      "max": 1.937
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.0,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.01,
+      "min": 0.009,
+      "max": 0.015
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.008,
+      "min": 0.006,
+      "max": 0.015
+    },
+    "font-cache-setup": {
+      "median": 0.004,
+      "min": 0.004,
+      "max": 0.008
+    },
+    "dep-discovery": {
+      "median": 24.572,
+      "min": 22.965,
+      "max": 26.515
+    },
+    "dep-file-open": {
+      "median": 7.052,
+      "min": 6.679,
+      "max": 7.389
+    },
+    "dep-file-map": {
+      "median": 6.118,
+      "min": 5.774,
+      "max": 6.514
+    },
+    "dep-file-unmap-close": {
+      "median": 6.61,
+      "min": 6.037,
+      "max": 7.319
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.447,
+      "min": 2.272,
+      "max": 2.571
+    },
+    "dep-file-other": {
+      "median": 1.197,
+      "min": 1.135,
+      "max": 1.52
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.025,
+      "min": 0.022,
+      "max": 0.032
+    },
+    "dep-read-dir-open": {
+      "median": 0.119,
+      "min": 0.101,
+      "max": 0.141
+    },
+    "dep-directory-other": {
+      "median": 0.958,
+      "min": 0.874,
+      "max": 1.032
+    },
+    "wgpu-core-init": {
+      "median": 72.024,
+      "min": 70.187,
+      "max": 78.203
+    },
+    "font-preparation-plus-metrics": {
+      "median": 26.549,
+      "min": 24.579,
+      "max": 28.505
+    }
+  },
+  "paired-candidate": {
+    "font-family-preparation": {
+      "median": 24.733,
+      "min": 23.718,
+      "max": 29.186
+    },
+    "font-metrics": {
+      "median": 0.089,
+      "min": 0.067,
+      "max": 0.115
+    },
+    "fonts_to_frame_us": {
+      "median": 116.992,
+      "min": 113.574,
+      "max": 124.121
+    },
+    "system-font-discovery": {
+      "median": 24.523,
+      "min": 23.497,
+      "max": 28.924
+    },
+    "fallback-candidate-sort": {
+      "median": 0.103,
+      "min": 0.09,
+      "max": 0.133
+    },
+    "font-database-create": {
+      "median": 0.001,
+      "min": 0.0,
+      "max": 0.001
+    },
+    "font-generic-family-query": {
+      "median": 0.01,
+      "min": 0.009,
+      "max": 0.011
+    },
+    "font-primary-monospace-validation": {
+      "median": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "fallback-candidate-collection": {
+      "median": 0.007,
+      "min": 0.006,
+      "max": 0.01
+    },
+    "font-cache-setup": {
+      "median": 0.003,
+      "min": 0.002,
+      "max": 0.004
+    },
+    "dep-discovery": {
+      "median": 24.152,
+      "min": 23.15,
+      "max": 28.424
+    },
+    "dep-file-open": {
+      "median": 6.89,
+      "min": 6.594,
+      "max": 8.218
+    },
+    "dep-file-map": {
+      "median": 6.033,
+      "min": 5.779,
+      "max": 7.083
+    },
+    "dep-file-unmap-close": {
+      "median": 6.402,
+      "min": 6.179,
+      "max": 7.625
+    },
+    "dep-face-metadata-parse": {
+      "median": 2.478,
+      "min": 2.336,
+      "max": 2.867
+    },
+    "dep-file-other": {
+      "median": 1.206,
+      "min": 1.137,
+      "max": 1.37
+    },
+    "dep-entry-type-canonicalize": {
+      "median": 0.027,
+      "min": 0.024,
+      "max": 0.031
+    },
+    "dep-read-dir-open": {
+      "median": 0.122,
+      "min": 0.106,
+      "max": 0.151
+    },
+    "dep-directory-other": {
+      "median": 0.929,
+      "min": 0.844,
+      "max": 1.157
+    },
+    "wgpu-core-init": {
+      "median": 72.993,
+      "min": 71.366,
+      "max": 75.661
+    },
+    "font-preparation-plus-metrics": {
+      "median": 24.814,
+      "min": 23.798,
+      "max": 29.286
+    }
+  }
+}
