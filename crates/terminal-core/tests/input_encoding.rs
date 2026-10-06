@@ -36,6 +36,12 @@ fn shifted_horizontal_arrows_keep_modifiers_in_both_screens_and_cursor_modes() {
                     encode_modified_cursor_key(*terminal.input_modes(), key, modifier),
                     expected,
                     "alternate={alternate}, application={application}, key={key:?}"
+                );
+            }
+        }
+    }
+}
+#[test]
 fn function_keys_use_xterm_sequences_for_all_modifiers_and_screen_modes() {
     use terminal_core::{FunctionKey::*, KeyModifiers, encode_function_key};
     let cases = [
