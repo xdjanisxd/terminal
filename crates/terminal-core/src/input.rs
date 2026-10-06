@@ -99,6 +99,27 @@ pub fn encode_control_cursor_key(key: CursorKey) -> Option<&'static [u8]> {
     }
 }
 
+/// Xterm modifier parameter: 1 + Shift + 2*Alt + 4*Control.
+pub fn encode_modified_cursor_key(modes: InputModes, key: CursorKey, modifier: u8) -> Vec<u8> {
+    if modifier == 1 {
+        return encode_cursor_key(modes, key).to_vec();
+    }
+    let suffix = match key {
+        CursorKey::Up => 'A',
+        CursorKey::Down => 'B',
+        CursorKey::Right => 'C',
+        CursorKey::Left => 'D',
+    };
+    format!("\x1b[1;{modifier}{suffix}").into_bytes()
+}
+
+pub fn encode_modified_editing_key(modes: InputModes, key: EditingKey, modifier: u8) -> Vec<u8> {
+    if modifier == 1 || key != EditingKey::Delete {
+        return encode_editing_key(modes, key).to_vec();
+    }
+    format!("\x1b[3;{modifier}~").into_bytes()
+}
+
 pub fn encode_focus(modes: InputModes, focused: bool) -> Option<&'static [u8]> {
     modes
         .focus_reporting()

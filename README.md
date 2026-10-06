@@ -105,8 +105,10 @@ These are the bindings in `terminal-config` on this branch. Commands without a d
 | `Ctrl+Shift+O` | `split_horizontal` | Split into top and bottom panes. |
 | `Ctrl+Tab` | `next_tab` | Focus the next tab. |
 | `Ctrl+Shift+Tab` | `previous_tab` | Focus the previous tab. |
-| `Ctrl+Shift+ArrowRight` | `next_pane` | Focus the next pane in traversal order. |
-| `Ctrl+Shift+ArrowLeft` | `previous_pane` | Focus the previous pane in traversal order. |
+| `Shift+ArrowLeft` | `select_left` | Extend selection one character left. |
+| `Shift+ArrowRight` | `select_right` | Extend selection one character right. |
+| `Ctrl+Shift+ArrowLeft` | `select_word_left` | Extend selection one word left. |
+| `Ctrl+Shift+ArrowRight` | `select_word_right` | Extend selection one word right. |
 | `Ctrl+Shift+H` | `focus_pane_left` | Focus the pane to the left. |
 | `Ctrl+Shift+L` | `focus_pane_right` | Focus the pane to the right. |
 | `Ctrl+Shift+K` | `focus_pane_up` | Focus the pane above. |

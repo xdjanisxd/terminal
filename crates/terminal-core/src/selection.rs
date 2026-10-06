@@ -8,6 +8,7 @@ struct SelectionPoint {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum SelectionUnit {
+    Caret,
     Cell,
     Word,
     Line,
@@ -25,6 +26,159 @@ pub(crate) struct Selection {
 }
 
 impl TerminalState {
+    /// Moves a caret endpoint through the same absolute rows used by mouse selection.
+    /// The anchor stays fixed; endpoints are exclusive character boundaries.
+    pub fn extend_keyboard_selection(&mut self, right: bool, word: bool) -> bool {
+        if self.active_screen() != ScreenKind::Primary {
+            return false;
+        }
+        let history = self.selection_history_origin() + self.scrollback_len();
+        let cursor = self.cursor();
+        let caret = SelectionPoint {
+            row: history + cursor.row(),
+            column: if self.selection_cursor_at_wrap() {
+                self.dimensions().columns()
+            } else {
+                cursor.column()
+            },
+        };
+        let (anchor, focus) = match self.selection.filter(|s| s.screen == self.active_screen()) {
+            Some(s) if s.unit == SelectionUnit::Caret => (s.anchor_start, s.focus_start),
+            Some(s) => {
+                // Convert inclusive mouse bounds to caret boundaries without a second selection.
+                if s.focus_start < s.anchor_start {
+                    (self.caret_step(s.anchor_end, true), s.focus_start)
+                } else {
+                    (s.anchor_start, self.caret_step(s.focus_end, true))
+                }
+            }
+            None => (caret, caret),
+        };
+        let anchor = self.normalize_caret(anchor);
+        let focus = self.normalize_caret(focus);
+        let mut next = self.caret_step(focus, right);
+        if word {
+            let mut class = self.caret_word_class(if right { focus } else { next });
+            // Navigation skips adjacent whitespace then traverses one existing selection class.
+            while next != focus && class == 0 {
+                let candidate = self.caret_step(next, right);
+                if candidate == next || self.caret_crosses_hard_line(next, candidate) {
+                    break;
+                }
+                let candidate_class = self.caret_word_class(if right { next } else { candidate });
+                if candidate_class != 0 {
+                    class = candidate_class;
+                    break;
+                }
+                next = candidate;
+            }
+            loop {
+                let candidate = self.caret_step(next, right);
+                if candidate == next || self.caret_crosses_hard_line(next, candidate) {
+                    break;
+                }
+                if self.caret_word_class(if right { next } else { candidate }) != class {
+                    break;
+                }
+                next = candidate;
+            }
+        }
+        if anchor.column == self.dimensions().columns()
+            && next.row == anchor.row + 1
+            && next.column == 0
+        {
+            next = anchor;
+        }
+        self.selection = Some(Selection {
+            screen: self.active_screen(),
+            anchor_start: anchor,
+            anchor_end: anchor,
+            focus_start: next,
+            focus_end: next,
+            unit: SelectionUnit::Caret,
+            active: anchor != next,
+        });
+        next != focus
+    }
+
+    fn caret_word_class(&self, point: SelectionPoint) -> u8 {
+        self.word_class(point.row, point.column)
+    }
+
+    fn normalize_caret(&self, mut point: SelectionPoint) -> SelectionPoint {
+        let origin = self.selection_history_origin();
+        let last = origin + self.scrollback_len() + self.dimensions().rows() - 1;
+        if point.row < origin {
+            point = SelectionPoint {
+                row: origin,
+                column: 0,
+            };
+        }
+        point.row = point.row.min(last);
+        point.column = point.column.min(self.dimensions().columns());
+        if self
+            .selection_cell(point.row, point.column)
+            .is_some_and(|c| c.is_wide_continuation())
+        {
+            point.column = point.column.saturating_sub(1);
+        }
+        point
+    }
+
+    fn caret_crosses_hard_line(&self, a: SelectionPoint, b: SelectionPoint) -> bool {
+        a.row != b.row && !self.selection_row_wrapped(a.row.min(b.row))
+    }
+
+    fn caret_step(&self, point: SelectionPoint, right: bool) -> SelectionPoint {
+        let wrapped = self.selection_row_wrap_columns(point.row);
+        let columns = if wrapped != 0 {
+            wrapped.min(self.dimensions().columns())
+        } else {
+            self.dimensions().columns()
+        };
+        let last_row =
+            self.selection_history_origin() + self.scrollback_len() + self.dimensions().rows() - 1;
+        let mut next = point;
+        if right {
+            let width = if self
+                .selection_cell(point.row, point.column)
+                .is_some_and(|c| c.occupancy() == CellOccupancy::WideLead)
+            {
+                2
+            } else {
+                1
+            };
+            next.column = (point.column + width).min(columns);
+            if next.column == columns && point.row < last_row {
+                next.row += 1;
+                next.column = 0;
+            }
+        } else if point.column != 0 {
+            next.column -= 1;
+            if self
+                .selection_cell(next.row, next.column)
+                .is_some_and(|c| c.is_wide_continuation())
+            {
+                next.column -= 1;
+            }
+        } else if point.row > self.selection_history_origin() {
+            next.row -= 1;
+            let wrapped = self.selection_row_wrap_columns(next.row);
+            next.column = if wrapped != 0 {
+                wrapped.min(self.dimensions().columns())
+            } else {
+                self.dimensions().columns()
+            } - 1;
+            if self
+                .selection_cell(next.row, next.column)
+                .is_some_and(|c| c.is_wide_continuation())
+            {
+                next.column -= 1;
+            }
+        }
+        next
+    }
+
     pub fn begin_selection(&mut self, row: usize, column: usize) -> bool {
         self.start_selection(row, column, SelectionUnit::Cell)
     }
@@ -107,10 +261,19 @@ impl TerminalState {
             return false;
         };
         let (start, end) = selection_bounds(selection);
+        let wrapped = self.selection_row_wrap_columns(point.row);
+        if selection.unit == SelectionUnit::Caret && wrapped != 0 && point.column >= wrapped {
+            return false;
+        }
         if end.row < self.selection_history_origin() {
             return false;
         }
-        start <= point && point <= end
+        start <= point
+            && if selection.unit == SelectionUnit::Caret {
+                point < end
+            } else {
+                point <= end
+            }
     }
 
     pub fn selected_text(&self) -> Option<String> {
@@ -127,17 +290,29 @@ impl TerminalState {
         }
         let mut result = String::new();
         for row in start.row..=end.row {
-            if row != start.row {
+            if row != start.row
+                && (selection.unit != SelectionUnit::Caret || !self.selection_row_wrapped(row - 1))
+            {
                 result.push('\n');
             }
             let left = if row == start.row { start.column } else { 0 };
             let right = if row == end.row {
-                end.column
+                if selection.unit == SelectionUnit::Caret {
+                    end.column
+                } else {
+                    end.column + 1
+                }
             } else {
-                self.dimensions().columns() - 1
+                self.dimensions().columns()
             };
             let mut line = String::new();
-            for column in left..=right {
+            let wrapped = self.selection_row_wrap_columns(row);
+            let right = if selection.unit == SelectionUnit::Caret && wrapped != 0 {
+                right.min(wrapped)
+            } else {
+                right
+            };
+            for column in left..right {
                 let Some(cell) = self.selection_cell(row, column) else {
                     continue;
                 };
@@ -147,7 +322,11 @@ impl TerminalState {
                 line.push(cell.character());
                 line.extend(cell.combining_marks().iter().copied());
             }
-            result.push_str(line.trim_end_matches(' '));
+            if selection.unit == SelectionUnit::Caret {
+                result.push_str(&line);
+            } else {
+                result.push_str(line.trim_end_matches(' '));
+            }
         }
         Some(result)
     }
@@ -180,7 +359,7 @@ impl TerminalState {
         unit: SelectionUnit,
     ) -> (SelectionPoint, SelectionPoint) {
         match unit {
-            SelectionUnit::Cell => (point, point),
+            SelectionUnit::Cell | SelectionUnit::Caret => (point, point),
             SelectionUnit::Line => (
                 SelectionPoint { column: 0, ..point },
                 SelectionPoint {

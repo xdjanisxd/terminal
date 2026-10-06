@@ -28,6 +28,26 @@ pub struct CommandInfo {
 
 pub const COMMANDS: &[CommandInfo] = &[
     CommandInfo {
+        command: Command::SelectLeft,
+        name: "Select Left",
+        in_palette: false,
+    },
+    CommandInfo {
+        command: Command::SelectRight,
+        name: "Select Right",
+        in_palette: false,
+    },
+    CommandInfo {
+        command: Command::SelectWordLeft,
+        name: "Select Word Left",
+        in_palette: false,
+    },
+    CommandInfo {
+        command: Command::SelectWordRight,
+        name: "Select Word Right",
+        in_palette: false,
+    },
+    CommandInfo {
         command: Command::Copy,
         name: "Copy",
         in_palette: true,
