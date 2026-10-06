@@ -43,6 +43,13 @@ pub fn startup_diagnostics_enabled() -> bool {
     matches!(STARTUP.get(), Some(Some(_)))
 }
 
+/// GPU request metadata without extra adapter queries or output when disabled.
+pub(crate) fn gpu_detail(message: fmt::Arguments<'_>) {
+    if let Some(Some(diagnostics)) = STARTUP.get() {
+        diagnostics.write(format_args!("terminal-startup gpu {message}"));
+    }
+}
+
 /// Records a milestone without clock reads or output on the normal startup path.
 pub fn startup_milestone(stage: &str) {
     let Some(Some(diagnostics)) = STARTUP.get() else {
