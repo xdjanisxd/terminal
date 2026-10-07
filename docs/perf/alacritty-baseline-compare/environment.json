@@ -1,0 +1,88 @@
+{
+  "Runs": 15,
+  "Revision": "87e0325959c8babd0b17d4b1971b3773d8d5745e",
+  "Prompt": "pwsh: original prompt returns, then UTC timestamp file; cmd: Clink onbeginedit writes file, OS last-write UTC",
+  "Scenarios": [
+    "cmd",
+    "no-profile-hook",
+    "normal-hook"
+  ],
+  "PwshVersion": "7.6.6",
+  "StartedUtc": "2026-10-07T08:15:37.9606740Z",
+  "Branch": "perf/alacritty-baseline-compare",
+  "GPU": [
+    {
+      "Name": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "32.0.101.7088"
+    }
+  ],
+  "WorkingDirectory": "C:\\Users\\gifted\\Documents\\Projects\\terminal",
+  "Cache": "warm/repeated fresh processes; unchanged/uncontrolled caches",
+  "Build": "26300",
+  "Profiles": [
+    {
+      "Path": "C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\profile.ps1",
+      "Exists": false,
+      "Sha256": null
+    },
+    {
+      "Path": "C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\Microsoft.PowerShell_profile.ps1",
+      "Exists": false,
+      "Sha256": null
+    },
+    {
+      "Path": "C:\\Users\\gifted\\Documents\\PowerShell\\profile.ps1",
+      "Exists": false,
+      "Sha256": null
+    },
+    {
+      "Path": "C:\\Users\\gifted\\Documents\\PowerShell\\Microsoft.PowerShell_profile.ps1",
+      "Exists": true,
+      "Sha256": "9F295EE193B839F05FC9C2EF4FA14A0B040A27467B4D0D10CB49DB03FB6BF097"
+    }
+  ],
+  "Files": [
+    {
+      "Path": "C:\\Users\\gifted\\Documents\\Projects\\terminal\\target\\release\\terminal.exe",
+      "Bytes": 9636864,
+      "Sha256": "795034AF943127F862F628A08E5B56025943CC434948AAEB88EC3C287AE6B2EB"
+    },
+    {
+      "Path": "C:\\Program Files\\Alacritty\\alacritty.exe",
+      "Bytes": 6003200,
+      "Sha256": "5AD70DDC5C2A2BFE84084A2C4C73558E9360914F035A902D7A69277BE7249F1F"
+    },
+    {
+      "Path": "C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe",
+      "Bytes": 301368,
+      "Sha256": "BFB46AF89433268872DDB43D1CA7A3F433452EE91ED356A9786940F90118E285"
+    },
+    {
+      "Path": "C:\\WINDOWS\\system32\\cmd.exe",
+      "Bytes": 339968,
+      "Sha256": "15CD209C995B7D3009C91CA40892D5B8F1FB162F3E5F10716642EA278E8E0D7B"
+    },
+    {
+      "Path": "C:\\Users\\gifted\\AppData\\Roaming\\terminal\\config.toml",
+      "Bytes": 5851,
+      "Sha256": "9134FDA969EC977C62FDC6BB344A18334E6B1437267233D1C7C62407A326F9A8"
+    },
+    {
+      "Path": "C:\\Users\\gifted\\AppData\\Roaming\\alacritty\\alacritty.toml",
+      "Bytes": 1116,
+      "Sha256": "71D7DF20C1672647819F983D33F805B24ABEA760A15E2745A78E2A6CF3D78F8B"
+    },
+    {
+      "Path": "C:\\Users\\gifted\\Documents\\Projects\\terminal\\crates\\app\\src\\powershell_osc7.ps1",
+      "Bytes": 1714,
+      "Sha256": "68E6B68BDB6511B92D77D5D7085F0AE4A691F414316AFB0037952781B0B2B7BA"
+    }
+  ],
+  "CmdAutoRun": "%USERPROFILE%\\cmd\\init.cmd&\"C:\\Program Files (x86)\\clink\\clink.bat\" inject --autorun --profile ~\\clink",
+  "OS": "Microsoft Windows 11 Pro",
+  "CPU": "12th Gen Intel(R) Core(TM) i5-1250P",
+  "Warmups": 2,
+  "Architecture": "AMD64",
+  "AlacrittyVersion": null,
+  "Instrumentation": "Terminal startup diagnostics; Alacritty -vvv --print-events; identical per-shell probe"
+}

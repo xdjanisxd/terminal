@@ -1,0 +1,16 @@
+[general]
+live_config_reload = false
+[window]
+padding = { x = 0, y = 0 }
+dynamic_padding = false
+[font]
+size = 12.0
+[font.normal]
+family = "JetBrainsMono Nerd Font Mono"
+style = "Regular"
+[colors.primary]
+background = "#000000"
+[terminal]
+shell = { program = "C:\\WINDOWS\\system32\\cmd.exe", args = [] }
+[debug]
+persistent_logging = true

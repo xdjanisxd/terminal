@@ -1,0 +1,32 @@
+{
+  "launches": 102,
+  "measured": 90,
+  "warmups": 12,
+  "cleanupFailures": 0,
+  "geometry": [
+    "800x600x96"
+  ],
+  "hashesUnchanged": true,
+  "maxAbsoluteClockDriftMs": 0.04930000000013024,
+  "maxPollGapMs": 33.416499999999985,
+  "identicalShellCommandLinesAcrossPairs": true,
+  "verifiedPairs": 51,
+  "profiles": [
+    {
+      "Path": "C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\profile.ps1",
+      "unchanged": true
+    },
+    {
+      "Path": "C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\Microsoft.PowerShell_profile.ps1",
+      "unchanged": true
+    },
+    {
+      "Path": "C:\\Users\\gifted\\Documents\\PowerShell\\profile.ps1",
+      "unchanged": true
+    },
+    {
+      "Path": "C:\\Users\\gifted\\Documents\\PowerShell\\Microsoft.PowerShell_profile.ps1",
+      "unchanged": true
+    }
+  ]
+}
