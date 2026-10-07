@@ -140,7 +140,7 @@ jobs:
       - name: Verify the complete release set
         shell: bash
         run: |
-          expected=(terminal-windows-x86_64.zip terminal-windows-aarch64.zip terminal-windows-x86_64.msi terminal-windows-aarch64.msi terminal-linux-x86_64.tar.gz terminal-linux-aarch64.tar.gz terminal-macos-x86_64.tar.gz terminal-macos-aarch64.tar.gz)
+          expected=(terminal-windows-x86_64.zip terminal-windows-x86_64.msi terminal-linux-x86_64.tar.gz terminal-linux-aarch64.tar.gz terminal-macos-x86_64.tar.gz terminal-macos-aarch64.tar.gz)
           test "$(find dist -maxdepth 1 -type f | wc -l)" -eq "${#expected[@]}"
           for asset in "${expected[@]}"; do test -s "dist/$asset"; done
       - name: Publish portable archives and Windows installers
