@@ -7,9 +7,9 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use terminal_pty::{
-    PTY_COMMAND_CAPACITY, PortablePtyBackend, PtyBackend, PtyError, PtyExitStatus, PtyLifecycle,
-    PtyOutput, PtyOutputReader, PtySession, PtySize, PtySpawnConfig, PtyWorker, PtyWorkerError,
-    PtyWorkerEvent,
+    PTY_COMMAND_CAPACITY, PTY_EVENT_CAPACITY, PortablePtyBackend, PtyBackend, PtyError,
+    PtyExitStatus, PtyLifecycle, PtyOutput, PtyOutputReader, PtySession, PtySize, PtySpawnConfig,
+    PtyWorker, PtyWorkerError, PtyWorkerEvent,
 };
 
 const HELPER_MARKER: &[u8] = b"TERMINAL_PTY_HELPER_MARKER";
@@ -380,4 +380,40 @@ fn dropping_the_controller_terminates_and_joins_the_session() {
     let (worker, state) = scripted_worker(PtyLifecycle::Running, []);
     drop(worker);
     assert_eq!(state.lock().unwrap().terminated, 1);
+}
+
+#[test]
+fn dropping_the_controller_with_a_full_event_queue_joins_both_workers() {
+    let state = Arc::new(Mutex::new(TestState::default()));
+    let session = TestSession {
+        state: Arc::clone(&state),
+        reader: Some(Box::new(ScriptedReader {
+            chunks: (0..=PTY_EVENT_CAPACITY).map(|_| vec![b'x']).collect(),
+        })),
+        first_write_started: None,
+        first_write_gate: None,
+    };
+    let (queued, notifications) = mpsc::channel();
+    let worker = PtyWorker::start_with_notifier(session, move || {
+        let _ = queued.send(());
+    })
+    .unwrap();
+    // Notifications occur after enqueueing. Without consuming events, this
+    // fills the queue and prevents the reader from sending its remaining output.
+    for _ in 0..PTY_EVENT_CAPACITY {
+        notifications.recv_timeout(DEADLINE).unwrap();
+    }
+    let (finished, completion) = mpsc::channel();
+    let shutdown = std::thread::spawn(move || {
+        drop(worker);
+        finished.send(()).unwrap();
+    });
+    completion.recv_timeout(DEADLINE).unwrap();
+    shutdown.join().unwrap();
+    assert_eq!(state.lock().unwrap().terminated, 1);
+    assert_eq!(
+        Arc::strong_count(&state),
+        1,
+        "session must be dropped after joining"
+    );
 }
