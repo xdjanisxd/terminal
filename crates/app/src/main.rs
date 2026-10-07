@@ -5392,12 +5392,14 @@ mod tests {
                     }
                 };
                 let result = read_result("startup-result.txt");
+                let lines = result.lines().collect::<Vec<_>>();
+                assert_eq!(lines.len(), 2, "shell {:?}: {result:?}", shell.program);
+                assert_eq!(lines[0], format!("startup-ok-{index}"));
+                // TEMP may use an 8.3 alias while the shell reports the long
+                // path. Compare filesystem paths without changing saved roots.
                 assert_eq!(
-                    result.lines().collect::<Vec<_>>(),
-                    vec![
-                        format!("startup-ok-{index}"),
-                        root.to_string_lossy().into_owned()
-                    ],
+                    fs::canonicalize(lines[1]).unwrap(),
+                    root.canonicalize().unwrap(),
                     "shell {:?}",
                     shell.program
                 );
