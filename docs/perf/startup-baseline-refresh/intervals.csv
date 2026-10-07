@@ -1,0 +1,586 @@
+scenario,run,interval,start_stage,end_stage,duration_us
+"cmd",1,"Terminal before fonts","application-started","fonts-started",21023
+"cmd",2,"Terminal before fonts","application-started","fonts-started",22322
+"cmd",3,"Terminal before fonts","application-started","fonts-started",20618
+"cmd",4,"Terminal before fonts","application-started","fonts-started",17780
+"cmd",5,"Terminal before fonts","application-started","fonts-started",20615
+"cmd",6,"Terminal before fonts","application-started","fonts-started",19040
+"cmd",7,"Terminal before fonts","application-started","fonts-started",20777
+"cmd",8,"Terminal before fonts","application-started","fonts-started",21535
+"cmd",9,"Terminal before fonts","application-started","fonts-started",19954
+"cmd",10,"Terminal before fonts","application-started","fonts-started",19215
+"cmd",11,"Terminal before fonts","application-started","fonts-started",19464
+"cmd",12,"Terminal before fonts","application-started","fonts-started",23196
+"cmd",13,"Terminal before fonts","application-started","fonts-started",19904
+"cmd",14,"Terminal before fonts","application-started","fonts-started",17398
+"cmd",15,"Terminal before fonts","application-started","fonts-started",21663
+"no-profile",1,"Terminal before fonts","application-started","fonts-started",19488
+"no-profile",2,"Terminal before fonts","application-started","fonts-started",21474
+"no-profile",3,"Terminal before fonts","application-started","fonts-started",26848
+"no-profile",4,"Terminal before fonts","application-started","fonts-started",18234
+"no-profile",5,"Terminal before fonts","application-started","fonts-started",17678
+"no-profile",6,"Terminal before fonts","application-started","fonts-started",20683
+"no-profile",7,"Terminal before fonts","application-started","fonts-started",20433
+"no-profile",8,"Terminal before fonts","application-started","fonts-started",19094
+"no-profile",9,"Terminal before fonts","application-started","fonts-started",21538
+"no-profile",10,"Terminal before fonts","application-started","fonts-started",20338
+"no-profile",11,"Terminal before fonts","application-started","fonts-started",17086
+"no-profile",12,"Terminal before fonts","application-started","fonts-started",17803
+"no-profile",13,"Terminal before fonts","application-started","fonts-started",18760
+"no-profile",14,"Terminal before fonts","application-started","fonts-started",20442
+"no-profile",15,"Terminal before fonts","application-started","fonts-started",20472
+"configured-pwsh",1,"Terminal before fonts","application-started","fonts-started",19287
+"configured-pwsh",2,"Terminal before fonts","application-started","fonts-started",21684
+"configured-pwsh",3,"Terminal before fonts","application-started","fonts-started",20406
+"configured-pwsh",4,"Terminal before fonts","application-started","fonts-started",24520
+"configured-pwsh",5,"Terminal before fonts","application-started","fonts-started",19978
+"configured-pwsh",6,"Terminal before fonts","application-started","fonts-started",18582
+"configured-pwsh",7,"Terminal before fonts","application-started","fonts-started",19924
+"configured-pwsh",8,"Terminal before fonts","application-started","fonts-started",21605
+"configured-pwsh",9,"Terminal before fonts","application-started","fonts-started",21697
+"configured-pwsh",10,"Terminal before fonts","application-started","fonts-started",19173
+"configured-pwsh",11,"Terminal before fonts","application-started","fonts-started",18964
+"configured-pwsh",12,"Terminal before fonts","application-started","fonts-started",18564
+"configured-pwsh",13,"Terminal before fonts","application-started","fonts-started",21233
+"configured-pwsh",14,"Terminal before fonts","application-started","fonts-started",19830
+"configured-pwsh",15,"Terminal before fonts","application-started","fonts-started",20726
+"cmd",1,"CPU fonts","fonts-started","fonts-ready",28411
+"cmd",2,"CPU fonts","fonts-started","fonts-ready",32516
+"cmd",3,"CPU fonts","fonts-started","fonts-ready",26305
+"cmd",4,"CPU fonts","fonts-started","fonts-ready",28993
+"cmd",5,"CPU fonts","fonts-started","fonts-ready",27011
+"cmd",6,"CPU fonts","fonts-started","fonts-ready",30138
+"cmd",7,"CPU fonts","fonts-started","fonts-ready",28140
+"cmd",8,"CPU fonts","fonts-started","fonts-ready",26466
+"cmd",9,"CPU fonts","fonts-started","fonts-ready",26289
+"cmd",10,"CPU fonts","fonts-started","fonts-ready",29114
+"cmd",11,"CPU fonts","fonts-started","fonts-ready",28402
+"cmd",12,"CPU fonts","fonts-started","fonts-ready",26957
+"cmd",13,"CPU fonts","fonts-started","fonts-ready",29906
+"cmd",14,"CPU fonts","fonts-started","fonts-ready",28162
+"cmd",15,"CPU fonts","fonts-started","fonts-ready",27946
+"no-profile",1,"CPU fonts","fonts-started","fonts-ready",26894
+"no-profile",2,"CPU fonts","fonts-started","fonts-ready",29851
+"no-profile",3,"CPU fonts","fonts-started","fonts-ready",32560
+"no-profile",4,"CPU fonts","fonts-started","fonts-ready",36113
+"no-profile",5,"CPU fonts","fonts-started","fonts-ready",28835
+"no-profile",6,"CPU fonts","fonts-started","fonts-ready",26038
+"no-profile",7,"CPU fonts","fonts-started","fonts-ready",26606
+"no-profile",8,"CPU fonts","fonts-started","fonts-ready",28488
+"no-profile",9,"CPU fonts","fonts-started","fonts-ready",26341
+"no-profile",10,"CPU fonts","fonts-started","fonts-ready",31816
+"no-profile",11,"CPU fonts","fonts-started","fonts-ready",27186
+"no-profile",12,"CPU fonts","fonts-started","fonts-ready",31424
+"no-profile",13,"CPU fonts","fonts-started","fonts-ready",28012
+"no-profile",14,"CPU fonts","fonts-started","fonts-ready",30730
+"no-profile",15,"CPU fonts","fonts-started","fonts-ready",29317
+"configured-pwsh",1,"CPU fonts","fonts-started","fonts-ready",27574
+"configured-pwsh",2,"CPU fonts","fonts-started","fonts-ready",28782
+"configured-pwsh",3,"CPU fonts","fonts-started","fonts-ready",26861
+"configured-pwsh",4,"CPU fonts","fonts-started","fonts-ready",32712
+"configured-pwsh",5,"CPU fonts","fonts-started","fonts-ready",27559
+"configured-pwsh",6,"CPU fonts","fonts-started","fonts-ready",27867
+"configured-pwsh",7,"CPU fonts","fonts-started","fonts-ready",28345
+"configured-pwsh",8,"CPU fonts","fonts-started","fonts-ready",28085
+"configured-pwsh",9,"CPU fonts","fonts-started","fonts-ready",29753
+"configured-pwsh",10,"CPU fonts","fonts-started","fonts-ready",27450
+"configured-pwsh",11,"CPU fonts","fonts-started","fonts-ready",26898
+"configured-pwsh",12,"CPU fonts","fonts-started","fonts-ready",27350
+"configured-pwsh",13,"CPU fonts","fonts-started","fonts-ready",30446
+"configured-pwsh",14,"CPU fonts","fonts-started","fonts-ready",26886
+"configured-pwsh",15,"CPU fonts","fonts-started","fonts-ready",31196
+"cmd",1,"GPU/wgpu init","gpu-started","gpu-ready",68570
+"cmd",2,"GPU/wgpu init","gpu-started","gpu-ready",72545
+"cmd",3,"GPU/wgpu init","gpu-started","gpu-ready",66210
+"cmd",4,"GPU/wgpu init","gpu-started","gpu-ready",64721
+"cmd",5,"GPU/wgpu init","gpu-started","gpu-ready",63469
+"cmd",6,"GPU/wgpu init","gpu-started","gpu-ready",64102
+"cmd",7,"GPU/wgpu init","gpu-started","gpu-ready",60931
+"cmd",8,"GPU/wgpu init","gpu-started","gpu-ready",65439
+"cmd",9,"GPU/wgpu init","gpu-started","gpu-ready",64205
+"cmd",10,"GPU/wgpu init","gpu-started","gpu-ready",69134
+"cmd",11,"GPU/wgpu init","gpu-started","gpu-ready",65488
+"cmd",12,"GPU/wgpu init","gpu-started","gpu-ready",65963
+"cmd",13,"GPU/wgpu init","gpu-started","gpu-ready",64109
+"cmd",14,"GPU/wgpu init","gpu-started","gpu-ready",62279
+"cmd",15,"GPU/wgpu init","gpu-started","gpu-ready",65904
+"no-profile",1,"GPU/wgpu init","gpu-started","gpu-ready",67087
+"no-profile",2,"GPU/wgpu init","gpu-started","gpu-ready",63489
+"no-profile",3,"GPU/wgpu init","gpu-started","gpu-ready",70119
+"no-profile",4,"GPU/wgpu init","gpu-started","gpu-ready",67364
+"no-profile",5,"GPU/wgpu init","gpu-started","gpu-ready",66065
+"no-profile",6,"GPU/wgpu init","gpu-started","gpu-ready",64802
+"no-profile",7,"GPU/wgpu init","gpu-started","gpu-ready",64508
+"no-profile",8,"GPU/wgpu init","gpu-started","gpu-ready",63006
+"no-profile",9,"GPU/wgpu init","gpu-started","gpu-ready",64569
+"no-profile",10,"GPU/wgpu init","gpu-started","gpu-ready",64361
+"no-profile",11,"GPU/wgpu init","gpu-started","gpu-ready",62453
+"no-profile",12,"GPU/wgpu init","gpu-started","gpu-ready",74232
+"no-profile",13,"GPU/wgpu init","gpu-started","gpu-ready",61933
+"no-profile",14,"GPU/wgpu init","gpu-started","gpu-ready",72657
+"no-profile",15,"GPU/wgpu init","gpu-started","gpu-ready",68840
+"configured-pwsh",1,"GPU/wgpu init","gpu-started","gpu-ready",65990
+"configured-pwsh",2,"GPU/wgpu init","gpu-started","gpu-ready",67048
+"configured-pwsh",3,"GPU/wgpu init","gpu-started","gpu-ready",79717
+"configured-pwsh",4,"GPU/wgpu init","gpu-started","gpu-ready",67090
+"configured-pwsh",5,"GPU/wgpu init","gpu-started","gpu-ready",62037
+"configured-pwsh",6,"GPU/wgpu init","gpu-started","gpu-ready",63107
+"configured-pwsh",7,"GPU/wgpu init","gpu-started","gpu-ready",63850
+"configured-pwsh",8,"GPU/wgpu init","gpu-started","gpu-ready",62735
+"configured-pwsh",9,"GPU/wgpu init","gpu-started","gpu-ready",70271
+"configured-pwsh",10,"GPU/wgpu init","gpu-started","gpu-ready",64441
+"configured-pwsh",11,"GPU/wgpu init","gpu-started","gpu-ready",65636
+"configured-pwsh",12,"GPU/wgpu init","gpu-started","gpu-ready",64721
+"configured-pwsh",13,"GPU/wgpu init","gpu-started","gpu-ready",67878
+"configured-pwsh",14,"GPU/wgpu init","gpu-started","gpu-ready",63036
+"configured-pwsh",15,"GPU/wgpu init","gpu-started","gpu-ready",66805
+"cmd",1,"renderer completion","gpu-ready","renderer-ready",4890
+"cmd",2,"renderer completion","gpu-ready","renderer-ready",5403
+"cmd",3,"renderer completion","gpu-ready","renderer-ready",4993
+"cmd",4,"renderer completion","gpu-ready","renderer-ready",4464
+"cmd",5,"renderer completion","gpu-ready","renderer-ready",5324
+"cmd",6,"renderer completion","gpu-ready","renderer-ready",4827
+"cmd",7,"renderer completion","gpu-ready","renderer-ready",4315
+"cmd",8,"renderer completion","gpu-ready","renderer-ready",5137
+"cmd",9,"renderer completion","gpu-ready","renderer-ready",4818
+"cmd",10,"renderer completion","gpu-ready","renderer-ready",4544
+"cmd",11,"renderer completion","gpu-ready","renderer-ready",5002
+"cmd",12,"renderer completion","gpu-ready","renderer-ready",4394
+"cmd",13,"renderer completion","gpu-ready","renderer-ready",4780
+"cmd",14,"renderer completion","gpu-ready","renderer-ready",4568
+"cmd",15,"renderer completion","gpu-ready","renderer-ready",4370
+"no-profile",1,"renderer completion","gpu-ready","renderer-ready",4761
+"no-profile",2,"renderer completion","gpu-ready","renderer-ready",4263
+"no-profile",3,"renderer completion","gpu-ready","renderer-ready",5892
+"no-profile",4,"renderer completion","gpu-ready","renderer-ready",4445
+"no-profile",5,"renderer completion","gpu-ready","renderer-ready",5137
+"no-profile",6,"renderer completion","gpu-ready","renderer-ready",5111
+"no-profile",7,"renderer completion","gpu-ready","renderer-ready",4514
+"no-profile",8,"renderer completion","gpu-ready","renderer-ready",4173
+"no-profile",9,"renderer completion","gpu-ready","renderer-ready",4199
+"no-profile",10,"renderer completion","gpu-ready","renderer-ready",4326
+"no-profile",11,"renderer completion","gpu-ready","renderer-ready",4308
+"no-profile",12,"renderer completion","gpu-ready","renderer-ready",6586
+"no-profile",13,"renderer completion","gpu-ready","renderer-ready",4403
+"no-profile",14,"renderer completion","gpu-ready","renderer-ready",5486
+"no-profile",15,"renderer completion","gpu-ready","renderer-ready",5641
+"configured-pwsh",1,"renderer completion","gpu-ready","renderer-ready",4762
+"configured-pwsh",2,"renderer completion","gpu-ready","renderer-ready",5732
+"configured-pwsh",3,"renderer completion","gpu-ready","renderer-ready",8996
+"configured-pwsh",4,"renderer completion","gpu-ready","renderer-ready",4610
+"configured-pwsh",5,"renderer completion","gpu-ready","renderer-ready",4901
+"configured-pwsh",6,"renderer completion","gpu-ready","renderer-ready",4632
+"configured-pwsh",7,"renderer completion","gpu-ready","renderer-ready",4752
+"configured-pwsh",8,"renderer completion","gpu-ready","renderer-ready",5220
+"configured-pwsh",9,"renderer completion","gpu-ready","renderer-ready",5093
+"configured-pwsh",10,"renderer completion","gpu-ready","renderer-ready",4354
+"configured-pwsh",11,"renderer completion","gpu-ready","renderer-ready",4942
+"configured-pwsh",12,"renderer completion","gpu-ready","renderer-ready",4557
+"configured-pwsh",13,"renderer completion","gpu-ready","renderer-ready",5645
+"configured-pwsh",14,"renderer completion","gpu-ready","renderer-ready",4149
+"configured-pwsh",15,"renderer completion","gpu-ready","renderer-ready",4765
+"cmd",1,"renderer-ready to first present","renderer-ready","first-frame-presented",14225
+"cmd",2,"renderer-ready to first present","renderer-ready","first-frame-presented",15240
+"cmd",3,"renderer-ready to first present","renderer-ready","first-frame-presented",15231
+"cmd",4,"renderer-ready to first present","renderer-ready","first-frame-presented",14616
+"cmd",5,"renderer-ready to first present","renderer-ready","first-frame-presented",15737
+"cmd",6,"renderer-ready to first present","renderer-ready","first-frame-presented",16753
+"cmd",7,"renderer-ready to first present","renderer-ready","first-frame-presented",15254
+"cmd",8,"renderer-ready to first present","renderer-ready","first-frame-presented",14397
+"cmd",9,"renderer-ready to first present","renderer-ready","first-frame-presented",15497
+"cmd",10,"renderer-ready to first present","renderer-ready","first-frame-presented",14619
+"cmd",11,"renderer-ready to first present","renderer-ready","first-frame-presented",15400
+"cmd",12,"renderer-ready to first present","renderer-ready","first-frame-presented",15976
+"cmd",13,"renderer-ready to first present","renderer-ready","first-frame-presented",15418
+"cmd",14,"renderer-ready to first present","renderer-ready","first-frame-presented",14208
+"cmd",15,"renderer-ready to first present","renderer-ready","first-frame-presented",14950
+"no-profile",1,"renderer-ready to first present","renderer-ready","first-frame-presented",14855
+"no-profile",2,"renderer-ready to first present","renderer-ready","first-frame-presented",15093
+"no-profile",3,"renderer-ready to first present","renderer-ready","first-frame-presented",15142
+"no-profile",4,"renderer-ready to first present","renderer-ready","first-frame-presented",14717
+"no-profile",5,"renderer-ready to first present","renderer-ready","first-frame-presented",14469
+"no-profile",6,"renderer-ready to first present","renderer-ready","first-frame-presented",15060
+"no-profile",7,"renderer-ready to first present","renderer-ready","first-frame-presented",14246
+"no-profile",8,"renderer-ready to first present","renderer-ready","first-frame-presented",14559
+"no-profile",9,"renderer-ready to first present","renderer-ready","first-frame-presented",13901
+"no-profile",10,"renderer-ready to first present","renderer-ready","first-frame-presented",14283
+"no-profile",11,"renderer-ready to first present","renderer-ready","first-frame-presented",15486
+"no-profile",12,"renderer-ready to first present","renderer-ready","first-frame-presented",19634
+"no-profile",13,"renderer-ready to first present","renderer-ready","first-frame-presented",15890
+"no-profile",14,"renderer-ready to first present","renderer-ready","first-frame-presented",15798
+"no-profile",15,"renderer-ready to first present","renderer-ready","first-frame-presented",15707
+"configured-pwsh",1,"renderer-ready to first present","renderer-ready","first-frame-presented",14607
+"configured-pwsh",2,"renderer-ready to first present","renderer-ready","first-frame-presented",16719
+"configured-pwsh",3,"renderer-ready to first present","renderer-ready","first-frame-presented",18192
+"configured-pwsh",4,"renderer-ready to first present","renderer-ready","first-frame-presented",15304
+"configured-pwsh",5,"renderer-ready to first present","renderer-ready","first-frame-presented",15000
+"configured-pwsh",6,"renderer-ready to first present","renderer-ready","first-frame-presented",14858
+"configured-pwsh",7,"renderer-ready to first present","renderer-ready","first-frame-presented",15836
+"configured-pwsh",8,"renderer-ready to first present","renderer-ready","first-frame-presented",13674
+"configured-pwsh",9,"renderer-ready to first present","renderer-ready","first-frame-presented",17019
+"configured-pwsh",10,"renderer-ready to first present","renderer-ready","first-frame-presented",14341
+"configured-pwsh",11,"renderer-ready to first present","renderer-ready","first-frame-presented",14516
+"configured-pwsh",12,"renderer-ready to first present","renderer-ready","first-frame-presented",14125
+"configured-pwsh",13,"renderer-ready to first present","renderer-ready","first-frame-presented",15489
+"configured-pwsh",14,"renderer-ready to first present","renderer-ready","first-frame-presented",16024
+"configured-pwsh",15,"renderer-ready to first present","renderer-ready","first-frame-presented",16696
+"cmd",1,"first present to show","first-frame-presented","window-shown",21487
+"cmd",2,"first present to show","first-frame-presented","window-shown",38547
+"cmd",3,"first present to show","first-frame-presented","window-shown",29629
+"cmd",4,"first present to show","first-frame-presented","window-shown",21610
+"cmd",5,"first present to show","first-frame-presented","window-shown",20224
+"cmd",6,"first present to show","first-frame-presented","window-shown",21827
+"cmd",7,"first present to show","first-frame-presented","window-shown",23659
+"cmd",8,"first present to show","first-frame-presented","window-shown",19501
+"cmd",9,"first present to show","first-frame-presented","window-shown",24261
+"cmd",10,"first present to show","first-frame-presented","window-shown",23305
+"cmd",11,"first present to show","first-frame-presented","window-shown",22554
+"cmd",12,"first present to show","first-frame-presented","window-shown",22085
+"cmd",13,"first present to show","first-frame-presented","window-shown",26299
+"cmd",14,"first present to show","first-frame-presented","window-shown",19315
+"cmd",15,"first present to show","first-frame-presented","window-shown",22275
+"no-profile",1,"first present to show","first-frame-presented","window-shown",21849
+"no-profile",2,"first present to show","first-frame-presented","window-shown",27208
+"no-profile",3,"first present to show","first-frame-presented","window-shown",33454
+"no-profile",4,"first present to show","first-frame-presented","window-shown",21883
+"no-profile",5,"first present to show","first-frame-presented","window-shown",22655
+"no-profile",6,"first present to show","first-frame-presented","window-shown",19719
+"no-profile",7,"first present to show","first-frame-presented","window-shown",23197
+"no-profile",8,"first present to show","first-frame-presented","window-shown",23921
+"no-profile",9,"first present to show","first-frame-presented","window-shown",21053
+"no-profile",10,"first present to show","first-frame-presented","window-shown",22496
+"no-profile",11,"first present to show","first-frame-presented","window-shown",20977
+"no-profile",12,"first present to show","first-frame-presented","window-shown",30988
+"no-profile",13,"first present to show","first-frame-presented","window-shown",23337
+"no-profile",14,"first present to show","first-frame-presented","window-shown",18420
+"no-profile",15,"first present to show","first-frame-presented","window-shown",25359
+"configured-pwsh",1,"first present to show","first-frame-presented","window-shown",24466
+"configured-pwsh",2,"first present to show","first-frame-presented","window-shown",20961
+"configured-pwsh",3,"first present to show","first-frame-presented","window-shown",37656
+"configured-pwsh",4,"first present to show","first-frame-presented","window-shown",30417
+"configured-pwsh",5,"first present to show","first-frame-presented","window-shown",22865
+"configured-pwsh",6,"first present to show","first-frame-presented","window-shown",20851
+"configured-pwsh",7,"first present to show","first-frame-presented","window-shown",20522
+"configured-pwsh",8,"first present to show","first-frame-presented","window-shown",23714
+"configured-pwsh",9,"first present to show","first-frame-presented","window-shown",23017
+"configured-pwsh",10,"first present to show","first-frame-presented","window-shown",22347
+"configured-pwsh",11,"first present to show","first-frame-presented","window-shown",19950
+"configured-pwsh",12,"first present to show","first-frame-presented","window-shown",20613
+"configured-pwsh",13,"first present to show","first-frame-presented","window-shown",25986
+"configured-pwsh",14,"first present to show","first-frame-presented","window-shown",20925
+"configured-pwsh",15,"first present to show","first-frame-presented","window-shown",24080
+"cmd",1,"PTY preparation","pty-started","child-spawn-requested",8255
+"cmd",2,"PTY preparation","pty-started","child-spawn-requested",9755
+"cmd",3,"PTY preparation","pty-started","child-spawn-requested",7436
+"cmd",4,"PTY preparation","pty-started","child-spawn-requested",7898
+"cmd",5,"PTY preparation","pty-started","child-spawn-requested",8598
+"cmd",6,"PTY preparation","pty-started","child-spawn-requested",7973
+"cmd",7,"PTY preparation","pty-started","child-spawn-requested",7677
+"cmd",8,"PTY preparation","pty-started","child-spawn-requested",9229
+"cmd",9,"PTY preparation","pty-started","child-spawn-requested",7993
+"cmd",10,"PTY preparation","pty-started","child-spawn-requested",8824
+"cmd",11,"PTY preparation","pty-started","child-spawn-requested",7361
+"cmd",12,"PTY preparation","pty-started","child-spawn-requested",7926
+"cmd",13,"PTY preparation","pty-started","child-spawn-requested",7485
+"cmd",14,"PTY preparation","pty-started","child-spawn-requested",7874
+"cmd",15,"PTY preparation","pty-started","child-spawn-requested",9565
+"no-profile",1,"PTY preparation","pty-started","child-spawn-requested",7929
+"no-profile",2,"PTY preparation","pty-started","child-spawn-requested",7711
+"no-profile",3,"PTY preparation","pty-started","child-spawn-requested",7922
+"no-profile",4,"PTY preparation","pty-started","child-spawn-requested",8146
+"no-profile",5,"PTY preparation","pty-started","child-spawn-requested",7633
+"no-profile",6,"PTY preparation","pty-started","child-spawn-requested",7868
+"no-profile",7,"PTY preparation","pty-started","child-spawn-requested",7895
+"no-profile",8,"PTY preparation","pty-started","child-spawn-requested",7467
+"no-profile",9,"PTY preparation","pty-started","child-spawn-requested",8384
+"no-profile",10,"PTY preparation","pty-started","child-spawn-requested",7433
+"no-profile",11,"PTY preparation","pty-started","child-spawn-requested",7873
+"no-profile",12,"PTY preparation","pty-started","child-spawn-requested",8756
+"no-profile",13,"PTY preparation","pty-started","child-spawn-requested",7516
+"no-profile",14,"PTY preparation","pty-started","child-spawn-requested",7468
+"no-profile",15,"PTY preparation","pty-started","child-spawn-requested",9068
+"configured-pwsh",1,"PTY preparation","pty-started","child-spawn-requested",8710
+"configured-pwsh",2,"PTY preparation","pty-started","child-spawn-requested",8265
+"configured-pwsh",3,"PTY preparation","pty-started","child-spawn-requested",9454
+"configured-pwsh",4,"PTY preparation","pty-started","child-spawn-requested",8776
+"configured-pwsh",5,"PTY preparation","pty-started","child-spawn-requested",7812
+"configured-pwsh",6,"PTY preparation","pty-started","child-spawn-requested",7783
+"configured-pwsh",7,"PTY preparation","pty-started","child-spawn-requested",9075
+"configured-pwsh",8,"PTY preparation","pty-started","child-spawn-requested",8176
+"configured-pwsh",9,"PTY preparation","pty-started","child-spawn-requested",8105
+"configured-pwsh",10,"PTY preparation","pty-started","child-spawn-requested",7581
+"configured-pwsh",11,"PTY preparation","pty-started","child-spawn-requested",7707
+"configured-pwsh",12,"PTY preparation","pty-started","child-spawn-requested",8552
+"configured-pwsh",13,"PTY preparation","pty-started","child-spawn-requested",8904
+"configured-pwsh",14,"PTY preparation","pty-started","child-spawn-requested",7882
+"configured-pwsh",15,"PTY preparation","pty-started","child-spawn-requested",8702
+"cmd",1,"process spawn","child-spawn-requested","child-spawned",6791
+"cmd",2,"process spawn","child-spawn-requested","child-spawned",8601
+"cmd",3,"process spawn","child-spawn-requested","child-spawned",7846
+"cmd",4,"process spawn","child-spawn-requested","child-spawned",8287
+"cmd",5,"process spawn","child-spawn-requested","child-spawned",7116
+"cmd",6,"process spawn","child-spawn-requested","child-spawned",8413
+"cmd",7,"process spawn","child-spawn-requested","child-spawned",7414
+"cmd",8,"process spawn","child-spawn-requested","child-spawned",7492
+"cmd",9,"process spawn","child-spawn-requested","child-spawned",7783
+"cmd",10,"process spawn","child-spawn-requested","child-spawned",7749
+"cmd",11,"process spawn","child-spawn-requested","child-spawned",7711
+"cmd",12,"process spawn","child-spawn-requested","child-spawned",7418
+"cmd",13,"process spawn","child-spawn-requested","child-spawned",7438
+"cmd",14,"process spawn","child-spawn-requested","child-spawned",7617
+"cmd",15,"process spawn","child-spawn-requested","child-spawned",8168
+"no-profile",1,"process spawn","child-spawn-requested","child-spawned",371215
+"no-profile",2,"process spawn","child-spawn-requested","child-spawned",362718
+"no-profile",3,"process spawn","child-spawn-requested","child-spawned",369302
+"no-profile",4,"process spawn","child-spawn-requested","child-spawned",352986
+"no-profile",5,"process spawn","child-spawn-requested","child-spawned",361091
+"no-profile",6,"process spawn","child-spawn-requested","child-spawned",351236
+"no-profile",7,"process spawn","child-spawn-requested","child-spawned",352972
+"no-profile",8,"process spawn","child-spawn-requested","child-spawned",355628
+"no-profile",9,"process spawn","child-spawn-requested","child-spawned",346596
+"no-profile",10,"process spawn","child-spawn-requested","child-spawned",348794
+"no-profile",11,"process spawn","child-spawn-requested","child-spawned",355254
+"no-profile",12,"process spawn","child-spawn-requested","child-spawned",382852
+"no-profile",13,"process spawn","child-spawn-requested","child-spawned",356221
+"no-profile",14,"process spawn","child-spawn-requested","child-spawned",349852
+"no-profile",15,"process spawn","child-spawn-requested","child-spawned",368669
+"configured-pwsh",1,"process spawn","child-spawn-requested","child-spawned",358591
+"configured-pwsh",2,"process spawn","child-spawn-requested","child-spawned",375628
+"configured-pwsh",3,"process spawn","child-spawn-requested","child-spawned",375310
+"configured-pwsh",4,"process spawn","child-spawn-requested","child-spawned",395680
+"configured-pwsh",5,"process spawn","child-spawn-requested","child-spawned",352300
+"configured-pwsh",6,"process spawn","child-spawn-requested","child-spawned",359412
+"configured-pwsh",7,"process spawn","child-spawn-requested","child-spawned",358984
+"configured-pwsh",8,"process spawn","child-spawn-requested","child-spawned",354867
+"configured-pwsh",9,"process spawn","child-spawn-requested","child-spawned",367893
+"configured-pwsh",10,"process spawn","child-spawn-requested","child-spawned",345803
+"configured-pwsh",11,"process spawn","child-spawn-requested","child-spawned",366080
+"configured-pwsh",12,"process spawn","child-spawn-requested","child-spawned",356485
+"configured-pwsh",13,"process spawn","child-spawn-requested","child-spawned",372550
+"configured-pwsh",14,"process spawn","child-spawn-requested","child-spawned",353024
+"configured-pwsh",15,"process spawn","child-spawn-requested","child-spawned",358220
+"cmd",1,"spawn to first bytes","child-spawned","first-pty-bytes",12622
+"cmd",2,"spawn to first bytes","child-spawned","first-pty-bytes",22273
+"cmd",3,"spawn to first bytes","child-spawned","first-pty-bytes",17765
+"cmd",4,"spawn to first bytes","child-spawned","first-pty-bytes",12035
+"cmd",5,"spawn to first bytes","child-spawned","first-pty-bytes",13465
+"cmd",6,"spawn to first bytes","child-spawned","first-pty-bytes",12168
+"cmd",7,"spawn to first bytes","child-spawned","first-pty-bytes",12296
+"cmd",8,"spawn to first bytes","child-spawned","first-pty-bytes",14589
+"cmd",9,"spawn to first bytes","child-spawned","first-pty-bytes",16935
+"cmd",10,"spawn to first bytes","child-spawned","first-pty-bytes",20204
+"cmd",11,"spawn to first bytes","child-spawned","first-pty-bytes",15904
+"cmd",12,"spawn to first bytes","child-spawned","first-pty-bytes",18685
+"cmd",13,"spawn to first bytes","child-spawned","first-pty-bytes",17312
+"cmd",14,"spawn to first bytes","child-spawned","first-pty-bytes",14569
+"cmd",15,"spawn to first bytes","child-spawned","first-pty-bytes",13129
+"no-profile",1,"spawn to first bytes","child-spawned","first-pty-bytes",13075
+"no-profile",2,"spawn to first bytes","child-spawned","first-pty-bytes",11380
+"no-profile",3,"spawn to first bytes","child-spawned","first-pty-bytes",13712
+"no-profile",4,"spawn to first bytes","child-spawned","first-pty-bytes",10774
+"no-profile",5,"spawn to first bytes","child-spawned","first-pty-bytes",11369
+"no-profile",6,"spawn to first bytes","child-spawned","first-pty-bytes",11338
+"no-profile",7,"spawn to first bytes","child-spawned","first-pty-bytes",10651
+"no-profile",8,"spawn to first bytes","child-spawned","first-pty-bytes",12067
+"no-profile",9,"spawn to first bytes","child-spawned","first-pty-bytes",10807
+"no-profile",10,"spawn to first bytes","child-spawned","first-pty-bytes",11116
+"no-profile",11,"spawn to first bytes","child-spawned","first-pty-bytes",10682
+"no-profile",12,"spawn to first bytes","child-spawned","first-pty-bytes",11069
+"no-profile",13,"spawn to first bytes","child-spawned","first-pty-bytes",10605
+"no-profile",14,"spawn to first bytes","child-spawned","first-pty-bytes",10569
+"no-profile",15,"spawn to first bytes","child-spawned","first-pty-bytes",10271
+"configured-pwsh",1,"spawn to first bytes","child-spawned","first-pty-bytes",11268
+"configured-pwsh",2,"spawn to first bytes","child-spawned","first-pty-bytes",13544
+"configured-pwsh",3,"spawn to first bytes","child-spawned","first-pty-bytes",19838
+"configured-pwsh",4,"spawn to first bytes","child-spawned","first-pty-bytes",11545
+"configured-pwsh",5,"spawn to first bytes","child-spawned","first-pty-bytes",11355
+"configured-pwsh",6,"spawn to first bytes","child-spawned","first-pty-bytes",11367
+"configured-pwsh",7,"spawn to first bytes","child-spawned","first-pty-bytes",10598
+"configured-pwsh",8,"spawn to first bytes","child-spawned","first-pty-bytes",14208
+"configured-pwsh",9,"spawn to first bytes","child-spawned","first-pty-bytes",10068
+"configured-pwsh",10,"spawn to first bytes","child-spawned","first-pty-bytes",12676
+"configured-pwsh",11,"spawn to first bytes","child-spawned","first-pty-bytes",10851
+"configured-pwsh",12,"spawn to first bytes","child-spawned","first-pty-bytes",10918
+"configured-pwsh",13,"spawn to first bytes","child-spawned","first-pty-bytes",13363
+"configured-pwsh",14,"spawn to first bytes","child-spawned","first-pty-bytes",10828
+"configured-pwsh",15,"spawn to first bytes","child-spawned","first-pty-bytes",11462
+"cmd",1,"shell/integration to prompt","child-spawned","prompt-ready",136230
+"cmd",2,"shell/integration to prompt","child-spawned","prompt-ready",160250
+"cmd",3,"shell/integration to prompt","child-spawned","prompt-ready",155441
+"cmd",4,"shell/integration to prompt","child-spawned","prompt-ready",133178
+"cmd",5,"shell/integration to prompt","child-spawned","prompt-ready",123497
+"cmd",6,"shell/integration to prompt","child-spawned","prompt-ready",135794
+"cmd",7,"shell/integration to prompt","child-spawned","prompt-ready",124885
+"cmd",8,"shell/integration to prompt","child-spawned","prompt-ready",124325
+"cmd",9,"shell/integration to prompt","child-spawned","prompt-ready",127489
+"cmd",10,"shell/integration to prompt","child-spawned","prompt-ready",149794
+"cmd",11,"shell/integration to prompt","child-spawned","prompt-ready",129863
+"cmd",12,"shell/integration to prompt","child-spawned","prompt-ready",140133
+"cmd",13,"shell/integration to prompt","child-spawned","prompt-ready",142545
+"cmd",14,"shell/integration to prompt","child-spawned","prompt-ready",133888
+"cmd",15,"shell/integration to prompt","child-spawned","prompt-ready",120493
+"no-profile",1,"shell/integration to prompt","child-spawned","prompt-ready",457687
+"no-profile",2,"shell/integration to prompt","child-spawned","prompt-ready",462546
+"no-profile",3,"shell/integration to prompt","child-spawned","prompt-ready",453800
+"no-profile",4,"shell/integration to prompt","child-spawned","prompt-ready",440453
+"no-profile",5,"shell/integration to prompt","child-spawned","prompt-ready",427095
+"no-profile",6,"shell/integration to prompt","child-spawned","prompt-ready",441830
+"no-profile",7,"shell/integration to prompt","child-spawned","prompt-ready",440212
+"no-profile",8,"shell/integration to prompt","child-spawned","prompt-ready",440458
+"no-profile",9,"shell/integration to prompt","child-spawned","prompt-ready",439843
+"no-profile",10,"shell/integration to prompt","child-spawned","prompt-ready",456358
+"no-profile",11,"shell/integration to prompt","child-spawned","prompt-ready",443380
+"no-profile",12,"shell/integration to prompt","child-spawned","prompt-ready",456036
+"no-profile",13,"shell/integration to prompt","child-spawned","prompt-ready",455370
+"no-profile",14,"shell/integration to prompt","child-spawned","prompt-ready",454492
+"no-profile",15,"shell/integration to prompt","child-spawned","prompt-ready",440292
+"configured-pwsh",1,"shell/integration to prompt","child-spawned","prompt-ready",509554
+"configured-pwsh",2,"shell/integration to prompt","child-spawned","prompt-ready",556293
+"configured-pwsh",3,"shell/integration to prompt","child-spawned","prompt-ready",543488
+"configured-pwsh",4,"shell/integration to prompt","child-spawned","prompt-ready",520196
+"configured-pwsh",5,"shell/integration to prompt","child-spawned","prompt-ready",508334
+"configured-pwsh",6,"shell/integration to prompt","child-spawned","prompt-ready",512723
+"configured-pwsh",7,"shell/integration to prompt","child-spawned","prompt-ready",525593
+"configured-pwsh",8,"shell/integration to prompt","child-spawned","prompt-ready",511373
+"configured-pwsh",9,"shell/integration to prompt","child-spawned","prompt-ready",563748
+"configured-pwsh",10,"shell/integration to prompt","child-spawned","prompt-ready",528497
+"configured-pwsh",11,"shell/integration to prompt","child-spawned","prompt-ready",523022
+"configured-pwsh",12,"shell/integration to prompt","child-spawned","prompt-ready",501209
+"configured-pwsh",13,"shell/integration to prompt","child-spawned","prompt-ready",552460
+"configured-pwsh",14,"shell/integration to prompt","child-spawned","prompt-ready",517961
+"configured-pwsh",15,"shell/integration to prompt","child-spawned","prompt-ready",527488
+"cmd",1,"bytes to prompt","first-pty-bytes","prompt-ready",123608
+"cmd",2,"bytes to prompt","first-pty-bytes","prompt-ready",137977
+"cmd",3,"bytes to prompt","first-pty-bytes","prompt-ready",137676
+"cmd",4,"bytes to prompt","first-pty-bytes","prompt-ready",121143
+"cmd",5,"bytes to prompt","first-pty-bytes","prompt-ready",110032
+"cmd",6,"bytes to prompt","first-pty-bytes","prompt-ready",123626
+"cmd",7,"bytes to prompt","first-pty-bytes","prompt-ready",112589
+"cmd",8,"bytes to prompt","first-pty-bytes","prompt-ready",109736
+"cmd",9,"bytes to prompt","first-pty-bytes","prompt-ready",110554
+"cmd",10,"bytes to prompt","first-pty-bytes","prompt-ready",129590
+"cmd",11,"bytes to prompt","first-pty-bytes","prompt-ready",113959
+"cmd",12,"bytes to prompt","first-pty-bytes","prompt-ready",121448
+"cmd",13,"bytes to prompt","first-pty-bytes","prompt-ready",125233
+"cmd",14,"bytes to prompt","first-pty-bytes","prompt-ready",119319
+"cmd",15,"bytes to prompt","first-pty-bytes","prompt-ready",107364
+"no-profile",1,"bytes to prompt","first-pty-bytes","prompt-ready",444612
+"no-profile",2,"bytes to prompt","first-pty-bytes","prompt-ready",451166
+"no-profile",3,"bytes to prompt","first-pty-bytes","prompt-ready",440088
+"no-profile",4,"bytes to prompt","first-pty-bytes","prompt-ready",429679
+"no-profile",5,"bytes to prompt","first-pty-bytes","prompt-ready",415726
+"no-profile",6,"bytes to prompt","first-pty-bytes","prompt-ready",430492
+"no-profile",7,"bytes to prompt","first-pty-bytes","prompt-ready",429561
+"no-profile",8,"bytes to prompt","first-pty-bytes","prompt-ready",428391
+"no-profile",9,"bytes to prompt","first-pty-bytes","prompt-ready",429036
+"no-profile",10,"bytes to prompt","first-pty-bytes","prompt-ready",445242
+"no-profile",11,"bytes to prompt","first-pty-bytes","prompt-ready",432698
+"no-profile",12,"bytes to prompt","first-pty-bytes","prompt-ready",444967
+"no-profile",13,"bytes to prompt","first-pty-bytes","prompt-ready",444765
+"no-profile",14,"bytes to prompt","first-pty-bytes","prompt-ready",443923
+"no-profile",15,"bytes to prompt","first-pty-bytes","prompt-ready",430021
+"configured-pwsh",1,"bytes to prompt","first-pty-bytes","prompt-ready",498286
+"configured-pwsh",2,"bytes to prompt","first-pty-bytes","prompt-ready",542749
+"configured-pwsh",3,"bytes to prompt","first-pty-bytes","prompt-ready",523650
+"configured-pwsh",4,"bytes to prompt","first-pty-bytes","prompt-ready",508651
+"configured-pwsh",5,"bytes to prompt","first-pty-bytes","prompt-ready",496979
+"configured-pwsh",6,"bytes to prompt","first-pty-bytes","prompt-ready",501356
+"configured-pwsh",7,"bytes to prompt","first-pty-bytes","prompt-ready",514995
+"configured-pwsh",8,"bytes to prompt","first-pty-bytes","prompt-ready",497165
+"configured-pwsh",9,"bytes to prompt","first-pty-bytes","prompt-ready",553680
+"configured-pwsh",10,"bytes to prompt","first-pty-bytes","prompt-ready",515821
+"configured-pwsh",11,"bytes to prompt","first-pty-bytes","prompt-ready",512171
+"configured-pwsh",12,"bytes to prompt","first-pty-bytes","prompt-ready",490291
+"configured-pwsh",13,"bytes to prompt","first-pty-bytes","prompt-ready",539097
+"configured-pwsh",14,"bytes to prompt","first-pty-bytes","prompt-ready",507133
+"configured-pwsh",15,"bytes to prompt","first-pty-bytes","prompt-ready",516026
+"cmd",1,"spawn to shell-text","child-spawned","first-shell-text-processed",31574
+"cmd",2,"spawn to shell-text","child-spawned","first-shell-text-processed",41235
+"cmd",3,"spawn to shell-text","child-spawned","first-shell-text-processed",41254
+"cmd",4,"spawn to shell-text","child-spawned","first-shell-text-processed",28613
+"cmd",5,"spawn to shell-text","child-spawned","first-shell-text-processed",36675
+"cmd",6,"spawn to shell-text","child-spawned","first-shell-text-processed",21634
+"cmd",7,"spawn to shell-text","child-spawned","first-shell-text-processed",29694
+"cmd",8,"spawn to shell-text","child-spawned","first-shell-text-processed",35788
+"cmd",9,"spawn to shell-text","child-spawned","first-shell-text-processed",41085
+"cmd",10,"spawn to shell-text","child-spawned","first-shell-text-processed",31710
+"cmd",11,"spawn to shell-text","child-spawned","first-shell-text-processed",37880
+"cmd",12,"spawn to shell-text","child-spawned","first-shell-text-processed",31134
+"cmd",13,"spawn to shell-text","child-spawned","first-shell-text-processed",36535
+"cmd",14,"spawn to shell-text","child-spawned","first-shell-text-processed",36646
+"cmd",15,"spawn to shell-text","child-spawned","first-shell-text-processed",25219
+"no-profile",1,"spawn to shell-text","child-spawned","first-shell-text-processed",477895
+"no-profile",2,"spawn to shell-text","child-spawned","first-shell-text-processed",482291
+"no-profile",3,"spawn to shell-text","child-spawned","first-shell-text-processed",469302
+"no-profile",4,"spawn to shell-text","child-spawned","first-shell-text-processed",464593
+"no-profile",5,"spawn to shell-text","child-spawned","first-shell-text-processed",437614
+"no-profile",6,"spawn to shell-text","child-spawned","first-shell-text-processed",458666
+"no-profile",7,"spawn to shell-text","child-spawned","first-shell-text-processed",461000
+"no-profile",8,"spawn to shell-text","child-spawned","first-shell-text-processed",453790
+"no-profile",9,"spawn to shell-text","child-spawned","first-shell-text-processed",461875
+"no-profile",10,"spawn to shell-text","child-spawned","first-shell-text-processed",471241
+"no-profile",11,"spawn to shell-text","child-spawned","first-shell-text-processed",457107
+"no-profile",12,"spawn to shell-text","child-spawned","first-shell-text-processed",472336
+"no-profile",13,"spawn to shell-text","child-spawned","first-shell-text-processed",463882
+"no-profile",14,"spawn to shell-text","child-spawned","first-shell-text-processed",476121
+"no-profile",15,"spawn to shell-text","child-spawned","first-shell-text-processed",458365
+"configured-pwsh",1,"spawn to shell-text","child-spawned","first-shell-text-processed",523673
+"configured-pwsh",2,"spawn to shell-text","child-spawned","first-shell-text-processed",567412
+"configured-pwsh",3,"spawn to shell-text","child-spawned","first-shell-text-processed",563615
+"configured-pwsh",4,"spawn to shell-text","child-spawned","first-shell-text-processed",536887
+"configured-pwsh",5,"spawn to shell-text","child-spawned","first-shell-text-processed",524123
+"configured-pwsh",6,"spawn to shell-text","child-spawned","first-shell-text-processed",527250
+"configured-pwsh",7,"spawn to shell-text","child-spawned","first-shell-text-processed",535175
+"configured-pwsh",8,"spawn to shell-text","child-spawned","first-shell-text-processed",520297
+"configured-pwsh",9,"spawn to shell-text","child-spawned","first-shell-text-processed",574031
+"configured-pwsh",10,"spawn to shell-text","child-spawned","first-shell-text-processed",543760
+"configured-pwsh",11,"spawn to shell-text","child-spawned","first-shell-text-processed",534524
+"configured-pwsh",12,"spawn to shell-text","child-spawned","first-shell-text-processed",522184
+"configured-pwsh",13,"spawn to shell-text","child-spawned","first-shell-text-processed",573032
+"configured-pwsh",14,"spawn to shell-text","child-spawned","first-shell-text-processed",520213
+"configured-pwsh",15,"spawn to shell-text","child-spawned","first-shell-text-processed",544270
+"cmd",1,"text to render","first-shell-text-processed","first-shell-output-rendered",29026
+"cmd",2,"text to render","first-shell-text-processed","first-shell-output-rendered",36867
+"cmd",3,"text to render","first-shell-text-processed","first-shell-output-rendered",39043
+"cmd",4,"text to render","first-shell-text-processed","first-shell-output-rendered",30742
+"cmd",5,"text to render","first-shell-text-processed","first-shell-output-rendered",33880
+"cmd",6,"text to render","first-shell-text-processed","first-shell-output-rendered",30337
+"cmd",7,"text to render","first-shell-text-processed","first-shell-output-rendered",34183
+"cmd",8,"text to render","first-shell-text-processed","first-shell-output-rendered",29972
+"cmd",9,"text to render","first-shell-text-processed","first-shell-output-rendered",29530
+"cmd",10,"text to render","first-shell-text-processed","first-shell-output-rendered",32852
+"cmd",11,"text to render","first-shell-text-processed","first-shell-output-rendered",29794
+"cmd",12,"text to render","first-shell-text-processed","first-shell-output-rendered",32838
+"cmd",13,"text to render","first-shell-text-processed","first-shell-output-rendered",31265
+"cmd",14,"text to render","first-shell-text-processed","first-shell-output-rendered",31352
+"cmd",15,"text to render","first-shell-text-processed","first-shell-output-rendered",31465
+"no-profile",1,"text to render","first-shell-text-processed","first-shell-output-rendered",20666
+"no-profile",2,"text to render","first-shell-text-processed","first-shell-output-rendered",21084
+"no-profile",3,"text to render","first-shell-text-processed","first-shell-output-rendered",22480
+"no-profile",4,"text to render","first-shell-text-processed","first-shell-output-rendered",18663
+"no-profile",5,"text to render","first-shell-text-processed","first-shell-output-rendered",20405
+"no-profile",6,"text to render","first-shell-text-processed","first-shell-output-rendered",19929
+"no-profile",7,"text to render","first-shell-text-processed","first-shell-output-rendered",18369
+"no-profile",8,"text to render","first-shell-text-processed","first-shell-output-rendered",20118
+"no-profile",9,"text to render","first-shell-text-processed","first-shell-output-rendered",18336
+"no-profile",10,"text to render","first-shell-text-processed","first-shell-output-rendered",19930
+"no-profile",11,"text to render","first-shell-text-processed","first-shell-output-rendered",20860
+"no-profile",12,"text to render","first-shell-text-processed","first-shell-output-rendered",18964
+"no-profile",13,"text to render","first-shell-text-processed","first-shell-output-rendered",21090
+"no-profile",14,"text to render","first-shell-text-processed","first-shell-output-rendered",21321
+"no-profile",15,"text to render","first-shell-text-processed","first-shell-output-rendered",19465
+"configured-pwsh",1,"text to render","first-shell-text-processed","first-shell-output-rendered",12723
+"configured-pwsh",2,"text to render","first-shell-text-processed","first-shell-output-rendered",19817
+"configured-pwsh",3,"text to render","first-shell-text-processed","first-shell-output-rendered",12541
+"configured-pwsh",4,"text to render","first-shell-text-processed","first-shell-output-rendered",10430
+"configured-pwsh",5,"text to render","first-shell-text-processed","first-shell-output-rendered",11036
+"configured-pwsh",6,"text to render","first-shell-text-processed","first-shell-output-rendered",11556
+"configured-pwsh",7,"text to render","first-shell-text-processed","first-shell-output-rendered",11550
+"configured-pwsh",8,"text to render","first-shell-text-processed","first-shell-output-rendered",12358
+"configured-pwsh",9,"text to render","first-shell-text-processed","first-shell-output-rendered",12925
+"configured-pwsh",10,"text to render","first-shell-text-processed","first-shell-output-rendered",12228
+"configured-pwsh",11,"text to render","first-shell-text-processed","first-shell-output-rendered",12287
+"configured-pwsh",12,"text to render","first-shell-text-processed","first-shell-output-rendered",11291
+"configured-pwsh",13,"text to render","first-shell-text-processed","first-shell-output-rendered",12597
+"configured-pwsh",14,"text to render","first-shell-text-processed","first-shell-output-rendered",13800
+"configured-pwsh",15,"text to render","first-shell-text-processed","first-shell-output-rendered",10543

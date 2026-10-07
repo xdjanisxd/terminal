@@ -1,0 +1,48 @@
+{
+  "revision": "cb11a16144792a130c7d4d4a9c479e152aedbf02",
+  "startupDiagnostics": true,
+  "workingDirectory": "C:\\Users\\gifted\\Documents\\Projects\\terminal",
+  "rendererDiagnostics": false,
+  "integration": "normal configured LocalShell integration; pwsh profiles preserved except NoProfile",
+  "build": "26300",
+  "backendOverride": null,
+  "executableSha256": "795034AF943127F862F628A08E5B56025943CC434948AAEB88EC3C287AE6B2EB",
+  "cmd": "C:\\WINDOWS\\system32\\cmd.exe",
+  "configSource": "C:\\Users\\gifted\\AppData\\Roaming\\terminal\\config.toml",
+  "pwsh": "C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe",
+  "pwshVersion": "7.6.6",
+  "runs": 15,
+  "architecture": "AMD64",
+  "warmups": 2,
+  "cpu": "12th Gen Intel(R) Core(TM) i5-1250P",
+  "os": "Microsoft Windows 11 Pro",
+  "launchArguments": "--workspace <isolated config> --project-root <repository>",
+  "executable": "C:\\Users\\gifted\\Documents\\Projects\\terminal\\target\\release\\terminal.exe",
+  "shellArguments": {
+    "cmd": [],
+    "configured-pwsh": [],
+    "no-profile": [
+      "-NoProfile"
+    ]
+  },
+  "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\r\nbinary: rustc\r\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\r\ncommit-date: 2026-09-01\r\nhost: x86_64-pc-windows-msvc\r\nrelease: 1.98.1\r\nLLVM version: 22.1.8",
+  "branch": "perf/startup-baseline-refresh",
+  "caches": "unchanged; fresh process each run; warm/uncontrolled caches",
+  "configSha256": "9134FDA969EC977C62FDC6BB344A18334E6B1437267233D1C7C62407A326F9A8",
+  "video": [
+    {
+      "Name": "Intel(R) Iris(R) Xe Graphics",
+      "DriverVersion": "32.0.101.7088"
+    }
+  ],
+  "startedUtc": "2026-10-07T07:41:15.4779444Z",
+  "postCollectionVerification": {
+    "verifiedUtc": "2026-10-07T07:49:10.824Z",
+    "executableSha256": "795034AF943127F862F628A08E5B56025943CC434948AAEB88EC3C287AE6B2EB",
+    "configSha256": "9134FDA969EC977C62FDC6BB344A18334E6B1437267233D1C7C62407A326F9A8",
+    "unchanged": true,
+    "selectedBackend": "Dx12",
+    "selectedAdapter": "Intel(R) Iris(R) Xe Graphics",
+    "descriptorLimit": 16384
+  }
+}
