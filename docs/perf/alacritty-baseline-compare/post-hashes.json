@@ -1,0 +1,30 @@
+[
+  {
+    "Path": "C:\\Users\\gifted\\Documents\\Projects\\terminal\\target\\release\\terminal.exe",
+    "Sha256": "795034AF943127F862F628A08E5B56025943CC434948AAEB88EC3C287AE6B2EB"
+  },
+  {
+    "Path": "C:\\Program Files\\Alacritty\\alacritty.exe",
+    "Sha256": "5AD70DDC5C2A2BFE84084A2C4C73558E9360914F035A902D7A69277BE7249F1F"
+  },
+  {
+    "Path": "C:\\Program Files\\WindowsApps\\Microsoft.PowerShell_7.6.6.0_x64__8wekyb3d8bbwe\\pwsh.exe",
+    "Sha256": "BFB46AF89433268872DDB43D1CA7A3F433452EE91ED356A9786940F90118E285"
+  },
+  {
+    "Path": "C:\\WINDOWS\\system32\\cmd.exe",
+    "Sha256": "15CD209C995B7D3009C91CA40892D5B8F1FB162F3E5F10716642EA278E8E0D7B"
+  },
+  {
+    "Path": "C:\\Users\\gifted\\AppData\\Roaming\\terminal\\config.toml",
+    "Sha256": "9134FDA969EC977C62FDC6BB344A18334E6B1437267233D1C7C62407A326F9A8"
+  },
+  {
+    "Path": "C:\\Users\\gifted\\AppData\\Roaming\\alacritty\\alacritty.toml",
+    "Sha256": "71D7DF20C1672647819F983D33F805B24ABEA760A15E2745A78E2A6CF3D78F8B"
+  },
+  {
+    "Path": "C:\\Users\\gifted\\Documents\\Projects\\terminal\\crates\\app\\src\\powershell_osc7.ps1",
+    "Sha256": "68E6B68BDB6511B92D77D5D7085F0AE4A691F414316AFB0037952781B0B2B7BA"
+  }
+]

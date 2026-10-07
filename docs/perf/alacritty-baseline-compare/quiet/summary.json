@@ -1,0 +1,29 @@
+[
+  {
+    "scenario": "cmd",
+    "terminalVisible": 155.7656,
+    "alacrittyVisible": 113.062,
+    "terminalReady": 309.3998,
+    "alacrittyReady": 302.4316,
+    "pairedVisible": 43.8986,
+    "pairedReady": 8.101800000000026
+  },
+  {
+    "scenario": "no-profile-hook",
+    "terminalVisible": 154.2851,
+    "alacrittyVisible": 123.7878,
+    "terminalReady": 716.2446,
+    "alacrittyReady": 635.9719,
+    "pairedVisible": 32.55550000000001,
+    "pairedReady": 66.46400000000006
+  },
+  {
+    "scenario": "normal-hook",
+    "terminalVisible": 158.6292,
+    "alacrittyVisible": 127.8911,
+    "terminalReady": 843.1514,
+    "alacrittyReady": 727.14,
+    "pairedVisible": 27.322000000000003,
+    "pairedReady": 89.89530000000002
+  }
+]

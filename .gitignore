@@ -24,4 +24,9 @@ Desktop.ini
 *.log
 
 # etc
-#graphify-out/
+graphify-out/
+.agent/
+.agents/
+.codex
+tmp/
+AGENTS.md
