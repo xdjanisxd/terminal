@@ -1,1 +1,0 @@
-{"nodes": [{"id": "pkg_terminal_app", "label": "terminal-app", "file_type": "code", "type": "package", "ecosystem": "cargo", "source_file": "crates/app/Cargo.toml", "source_location": "L1", "version": "0.0.0"}], "edges": []}
