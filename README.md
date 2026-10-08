@@ -92,6 +92,7 @@ These are the bindings in `terminal-config` on this branch. Commands without a d
 | --- | --- | --- |
 | `Ctrl+Shift+C` | `copy` | Copy the selection. |
 | `Ctrl+Shift+V` | `paste` | Paste from the clipboard. |
+| `Shift+Insert` (Linux) | `paste` | Paste from the clipboard. |
 | `PageUp` | `page_up` | Scroll one page up. |
 | `PageDown` | `page_down` | Scroll one page down. |
 | `Ctrl+=` | `increase_font_size` | Increase font size. |

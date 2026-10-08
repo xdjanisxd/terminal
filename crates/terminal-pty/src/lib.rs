@@ -304,14 +304,7 @@ impl PortablePtyBackend {
             .map_err(|_| PtyError::SpawnFailed)?;
         let writer = master.take_writer().map_err(|_| PtyError::SpawnFailed)?;
         observe("environment-build-begin");
-        let mut command = CommandBuilder::new(configuration.program());
-        command.args(configuration.arguments());
-        if let Some(directory) = configuration.working_directory() {
-            command.cwd(directory);
-        }
-        for (key, value) in configuration.environment() {
-            command.env(key, value);
-        }
+        let command = spawn_command(&configuration);
         observe("environment-build-end");
         observe("child-spawn-requested");
         let child = slave
@@ -326,6 +319,75 @@ impl PortablePtyBackend {
             startup_observer: observer,
             lifecycle: Mutex::new(PtyLifecycle::Running),
         })
+    }
+}
+
+fn spawn_command(configuration: &PtySpawnConfig) -> CommandBuilder {
+    let mut command = CommandBuilder::new(configuration.program());
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    initialize_term(&mut command);
+    command.args(configuration.arguments());
+    if let Some(directory) = configuration.working_directory() {
+        command.cwd(directory);
+    }
+    for (key, value) in configuration.environment() {
+        command.env(key, value);
+    }
+    command
+}
+
+/// Supply terminal capabilities only to the child. Explicit spawn overrides
+/// are applied afterwards, including an intentionally configured TERM=dumb.
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn initialize_term(command: &mut CommandBuilder) {
+    if command
+        .get_env("TERM")
+        .is_none_or(|value| value.is_empty() || value == "dumb")
+    {
+        command.env("TERM", "xterm-256color");
+    }
+}
+
+#[cfg(all(test, any(target_os = "linux", target_os = "macos")))]
+mod term_tests {
+    use super::*;
+    use std::ffi::OsStr;
+
+    #[test]
+    fn term_default_repairs_missing_empty_and_dumb_but_preserves_other_values() {
+        let parent = std::env::var_os("TERM");
+        for inherited in [
+            None,
+            Some(""),
+            Some("dumb"),
+            Some("screen-256color"),
+            Some("vt100"),
+        ] {
+            let mut command = CommandBuilder::new("sh");
+            command.env_remove("TERM");
+            if let Some(value) = inherited {
+                command.env("TERM", value);
+            }
+            initialize_term(&mut command);
+            let expected = match inherited {
+                None | Some("" | "dumb") => "xterm-256color",
+                Some(value) => value,
+            };
+            assert_eq!(command.get_env("TERM"), Some(OsStr::new(expected)));
+        }
+        assert_eq!(std::env::var_os("TERM"), parent);
+    }
+
+    #[test]
+    fn explicit_spawn_term_wins_over_defaults_including_empty_and_dumb() {
+        for explicit in ["", "dumb", "vt100", "xterm-256color"] {
+            let configuration = PtySpawnConfig::new("sh".into(), PtySize::new(24, 80).unwrap())
+                .with_environment([("TERM".into(), explicit.into())]);
+            assert_eq!(
+                spawn_command(&configuration).get_env("TERM"),
+                Some(OsStr::new(explicit))
+            );
+        }
     }
 }
 

@@ -141,6 +141,9 @@ pub struct ShellConfig {
     pub program: String,
     #[serde(default)]
     pub args: Vec<String>,
+    /// Child-only overrides; applied after inherited environment and defaults.
+    #[serde(default)]
+    pub env: std::collections::BTreeMap<String, String>,
 }
 
 /// Terminal font selection and size in logical pixels.
@@ -177,6 +180,8 @@ impl Default for Config {
             bindings: [
                 ("Ctrl+Shift+C", Command::Copy),
                 ("Ctrl+Shift+V", Command::Paste),
+                #[cfg(target_os = "linux")]
+                ("Shift+Insert", Command::Paste),
                 ("PageUp", Command::PageUp),
                 ("PageDown", Command::PageDown),
                 ("Ctrl+=", Command::IncreaseFontSize),
@@ -242,6 +247,14 @@ impl Config {
             if shell.args.iter().any(|arg| arg.contains('\0')) {
                 return Err(ConfigError(
                     "shell.args: arguments must not contain NUL".into(),
+                ));
+            }
+            if shell.env.iter().any(|(key, value)| {
+                key.is_empty() || key.contains(['=', '\0']) || value.contains('\0')
+            }) {
+                return Err(ConfigError(
+                    "shell.env: expected nonempty names without '=' or NUL, and values without NUL"
+                        .into(),
                 ));
             }
             config.shell = Some(shell);
@@ -644,6 +657,39 @@ args = ["-NoLogo", "two words", "", "'literal'"]
     }
 
     #[test]
+    fn shell_child_environment_is_optional_and_validated() {
+        let shell = Config::parse(
+            "[shell]\nprogram = 'bash'\nenv = { TERM = 'dumb', CUSTOM = 'two words' }",
+        )
+        .unwrap()
+        .shell
+        .unwrap();
+        assert_eq!(shell.env.get("TERM").map(String::as_str), Some("dumb"));
+        assert_eq!(
+            shell.env.get("CUSTOM").map(String::as_str),
+            Some("two words")
+        );
+        assert!(
+            Config::parse("[shell]\nprogram = 'bash'")
+                .unwrap()
+                .shell
+                .unwrap()
+                .env
+                .is_empty()
+        );
+        for env in [
+            "{ '' = 'bad' }",
+            "{ 'A=B' = 'bad' }",
+            "{ TERM = \"\\u0000\" }",
+            "{ \"A\\u0000B\" = 'bad' }",
+        ] {
+            let error =
+                Config::parse(&format!("[shell]\nprogram = 'bash'\nenv = {env}")).unwrap_err();
+            assert!(error.to_string().contains("shell.env"));
+        }
+    }
+
+    #[test]
     fn workspace_startup_and_project_roots_parse() {
         let source = "[workspace]\nproject_root = 'repo'\nactive_tab = 0\n[[workspace.tabs]]\ntitle = 'Build'\nproject_root = 'tab'\nactive_pane = 0\n[workspace.tabs.layout]\nkind = 'pane'\nproject_root = 'pane'\n[workspace.tabs.layout.session.command]\nprogram = 'cargo'\nargs = ['watch']\n[[projects]]\nname = 'Core'\npath = 'core'";
         let config = Config::parse(source).unwrap();
@@ -722,7 +768,15 @@ args = ["-NoLogo", "two words", "", "'literal'"]
     fn repository_example_loads_through_config_file_path() {
         let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../config.example.toml");
         let config = Config::load(&path).unwrap();
-        assert_eq!(config, Config::default());
+        let mut defaults = Config::default();
+        // The portable example omits Linux's additional paste alias.
+        defaults.bindings.retain(|binding| {
+            !(cfg!(target_os = "linux")
+                && binding.key.key == "Insert"
+                && binding.key.shift
+                && binding.command == Command::Paste)
+        });
+        assert_eq!(config, defaults);
     }
     #[test]
     fn font_defaults_and_partial_settings() {

@@ -11,7 +11,12 @@ pub fn write_clipboard(text: &str, owner: Option<&impl HasWindowHandle>) -> io::
         })?;
         windows::write(text, owner)
     }
-    #[cfg(not(windows))]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    {
+        let _ = owner;
+        unix_clipboard::with_clipboard(|clipboard| clipboard.set_text(text))
+    }
+    #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
     {
         let _ = (text, owner);
         Err(io::Error::new(
@@ -26,13 +31,92 @@ pub fn read_clipboard(max_utf16_bytes: usize) -> io::Result<String> {
     {
         windows::read(max_utf16_bytes)
     }
-    #[cfg(not(windows))]
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    {
+        let text = unix_clipboard::with_clipboard(|clipboard| clipboard.get_text())?;
+        validate_clipboard_text(&text, max_utf16_bytes)?;
+        Ok(text)
+    }
+    #[cfg(not(any(windows, target_os = "linux", target_os = "macos")))]
     {
         let _ = max_utf16_bytes;
         Err(io::Error::new(
             io::ErrorKind::Unsupported,
             "clipboard unavailable",
         ))
+    }
+}
+
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+fn validate_clipboard_text(text: &str, max_utf16_bytes: usize) -> io::Result<()> {
+    // Match the Windows limit, including the terminating UTF-16 NUL.
+    if text.encode_utf16().count().saturating_add(1) > max_utf16_bytes / 2 {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "clipboard text exceeds limit",
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(any(target_os = "linux", target_os = "macos"))]
+mod unix_clipboard {
+    use std::{io, sync::Mutex};
+
+    // X11 and Wayland need the owner alive to serve selection requests.
+    // Keep the backend across copy, OSC 52, and paste operations. Failed
+    // initialization is retried next time (e.g. after a display reconnect).
+    static CLIPBOARD: Mutex<Option<arboard::Clipboard>> = Mutex::new(None);
+
+    pub(super) fn with_clipboard<T>(
+        operation: impl FnOnce(&mut arboard::Clipboard) -> Result<T, arboard::Error>,
+    ) -> io::Result<T> {
+        let mut clipboard = CLIPBOARD
+            .lock()
+            .map_err(|_| io::Error::other("clipboard lock poisoned"))?;
+        if clipboard.is_none() {
+            *clipboard = Some(arboard::Clipboard::new().map_err(io::Error::other)?);
+        }
+        operation(clipboard.as_mut().expect("clipboard initialized")).map_err(io::Error::other)
+    }
+}
+
+#[cfg(all(test, any(target_os = "linux", target_os = "macos")))]
+mod clipboard_tests {
+    use super::*;
+
+    #[test]
+    fn clipboard_limit_counts_utf16_units_and_terminator() {
+        assert!(validate_clipboard_text("", 2).is_ok());
+        assert!(validate_clipboard_text("", 1).is_err());
+        assert!(validate_clipboard_text("abc", 8).is_ok());
+        assert!(validate_clipboard_text("abc", 7).is_err());
+        assert!(validate_clipboard_text("é", 4).is_ok());
+        assert!(validate_clipboard_text("🦀", 6).is_ok());
+        assert!(validate_clipboard_text("🦀", 5).is_err());
+    }
+
+    #[test]
+    #[ignore = "requires a native desktop clipboard; temporarily replaces its text"]
+    fn native_clipboard_ownership_and_external_round_trip() {
+        let original = read_clipboard(2 * 1024 * 1024).ok();
+        let mut external = arboard::Clipboard::new().unwrap();
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            // Serving is still possible after the platform write call returns.
+            unix_clipboard::with_clipboard(|clipboard| clipboard.set_text("owned é 🦀\nline 2"))
+                .unwrap();
+            assert_eq!(external.get_text().unwrap(), "owned é 🦀\nline 2");
+            external.set_text("external é 🦀\nline 2").unwrap();
+            assert_eq!(read_clipboard(1024).unwrap(), "external é 🦀\nline 2");
+            assert_eq!(
+                read_clipboard(2).unwrap_err().kind(),
+                io::ErrorKind::InvalidData
+            );
+        }));
+        if let Some(original) = original {
+            unix_clipboard::with_clipboard(|clipboard| clipboard.set_text(original)).unwrap();
+        }
+        result.unwrap();
     }
 }
 

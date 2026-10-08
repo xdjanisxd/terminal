@@ -1,0 +1,100 @@
+{
+  "date": "2026-10-08",
+  "platform": "Linux x86_64, Debian 13, KDE Wayland + XWayland",
+  "kernel": "6.12.111+deb13-amd64",
+  "rustc": "1.99.0",
+  "bash": "5.2.37",
+  "vim": "9.1",
+  "release_binary_sha256": "4c56c35859a36357c5a6792c6eb177c1b1adb9a5dcc8fadaa797f6a06c4d2cfa",
+  "native_clipboard": {
+    "wayland-data-control": "passed",
+    "x11-xwayland": "passed",
+    "wayland-unavailable-x11-fallback": "passed"
+  },
+  "native_ui_xwayland": {
+    "binary_sha256": "4c56c35859a36357c5a6792c6eb177c1b1adb9a5dcc8fadaa797f6a06c4d2cfa",
+    "bash_term_clear": "passed",
+    "ctrl_shift_v_unicode_multiline_bracketed": "passed",
+    "shift_insert": "passed",
+    "split_active_pane": "passed",
+    "vim_paste_save_alternate_screen_return": "passed",
+    "status": "passed"
+  },
+  "native_wayland_release_term": [
+    {
+      "binary_sha256": "4c56c35859a36357c5a6792c6eb177c1b1adb9a5dcc8fadaa797f6a06c4d2cfa",
+      "case": "missing",
+      "inherited_term": null,
+      "configured_term": null,
+      "shell_override": null,
+      "child_term": "xterm-256color",
+      "clear_status": 0,
+      "native_wayland_surface_and_frame": "passed"
+    },
+    {
+      "binary_sha256": "4c56c35859a36357c5a6792c6eb177c1b1adb9a5dcc8fadaa797f6a06c4d2cfa",
+      "case": "dumb",
+      "inherited_term": "dumb",
+      "configured_term": null,
+      "shell_override": null,
+      "child_term": "xterm-256color",
+      "clear_status": 0,
+      "native_wayland_surface_and_frame": "passed"
+    },
+    {
+      "binary_sha256": "4c56c35859a36357c5a6792c6eb177c1b1adb9a5dcc8fadaa797f6a06c4d2cfa",
+      "case": "preserved",
+      "inherited_term": "screen-256color",
+      "configured_term": null,
+      "shell_override": null,
+      "child_term": "screen-256color",
+      "clear_status": 0,
+      "native_wayland_surface_and_frame": "passed"
+    },
+    {
+      "binary_sha256": "4c56c35859a36357c5a6792c6eb177c1b1adb9a5dcc8fadaa797f6a06c4d2cfa",
+      "case": "explicit-dumb",
+      "inherited_term": null,
+      "configured_term": "dumb",
+      "shell_override": null,
+      "child_term": "dumb",
+      "clear_status": 1,
+      "native_wayland_surface_and_frame": "passed"
+    },
+    {
+      "binary_sha256": "4c56c35859a36357c5a6792c6eb177c1b1adb9a5dcc8fadaa797f6a06c4d2cfa",
+      "case": "explicit-vt100",
+      "inherited_term": "dumb",
+      "configured_term": "vt100",
+      "shell_override": null,
+      "child_term": "vt100",
+      "clear_status": 0,
+      "native_wayland_surface_and_frame": "passed"
+    },
+    {
+      "binary_sha256": "4c56c35859a36357c5a6792c6eb177c1b1adb9a5dcc8fadaa797f6a06c4d2cfa",
+      "case": "shell-startup",
+      "inherited_term": "dumb",
+      "configured_term": null,
+      "shell_override": "vt100",
+      "child_term": "vt100",
+      "clear_status": 0,
+      "native_wayland_surface_and_frame": "passed"
+    }
+  ],
+  "rust_validation": {
+    "fmt": "passed",
+    "workspace_all_targets_check": "passed",
+    "workspace_all_targets_tests": {
+      "passed": 672,
+      "failed": 0,
+      "ignored": 5
+    },
+    "workspace_doc_tests": {
+      "passed": 4,
+      "failed": 0
+    },
+    "clippy_deny_warnings": "passed",
+    "locked_release_build": "passed"
+  }
+}
