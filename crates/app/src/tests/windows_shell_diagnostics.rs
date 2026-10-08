@@ -303,6 +303,7 @@ fn native_powershell_boundary_probe() {
         for (case, mode, body, marker, prompt) in cases {
             let config = super::super::shell::configured_spawn_config(
                 &ShellConfig {
+                    env: Default::default(),
                     program: program.to_string_lossy().into_owned(),
                     args: vec![
                         "-NoLogo".into(),

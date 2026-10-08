@@ -1,12 +1,13 @@
 # Copy to the platform config path described in docs/CONFIG.md.
-# This example is equivalent to the built-in defaults. Optional fields are
-# commented out. Unknown fields reject the whole file.
+# This portable example matches defaults except Linux's Shift+Insert alias.
+# Optional fields are commented out. Unknown fields reject the whole file.
 
 # Optional shell override. Leave the entire section absent for platform defaults.
 # Choose one program; args are separate literal arguments, defaulting to [].
 # [shell]
 # program = "pwsh"
 # args = ["-NoLogo"]
+# env = { TERM = "xterm-256color" } # Child-only overrides, optional.
 # Other choices (use only one [shell] section):
 # program = "cmd.exe"
 # program = "C:\\Program Files\\PowerShell\\7\\pwsh.exe"
@@ -78,6 +79,12 @@ command = "copy"
 [[bindings]]
 key = "Ctrl+Shift+V"
 command = "paste"
+
+# Linux also binds Shift+Insert when using built-in defaults. Uncomment to
+# include that alias in this explicit portable binding list.
+# [[bindings]]
+# key = "Shift+Insert"
+# command = "paste"
 
 # Scroll local scrollback up one page.
 [[bindings]]

@@ -83,6 +83,19 @@ the configured program in the app notice and stderr; it never retries a default
 shell. Invalid types, missing/blank `program`, NUL characters, and unknown shell
 fields reject the config.
 
+Optional `shell.env` supplies child-only environment overrides, for example
+`env = { TERM = "vt100", EDITOR = "vim" }` inside `[shell]`. Names must be
+nonempty and contain neither `=` nor NUL; values must not contain NUL. These
+overrides affect future local-shell sessions and never change Terminal's or
+the system's environment. Direct command sessions use their own arguments and
+do not inherit `[shell]` overrides.
+
+On Linux and macOS, PTY children default to `TERM=xterm-256color` when inherited
+TERM is absent, empty, or `dumb`. Other inherited values are preserved.
+`shell.env.TERM` (including an intentional `dumb` or empty value) takes
+precedence. Shell startup files and explicit command wrappers can still change
+TERM afterwards. Windows TERM initialization is unchanged.
+
 For interactive PowerShell, Terminal appends its existing `-NoExit -Command`
 prompt hook after configured options. This preserves profiles and emits OSC 7
 working-directory reports and OSC 133 prompt readiness. Recognition uses only
@@ -91,8 +104,9 @@ the executable basename: `pwsh` or `powershell` on Unix; those names with option
 no PowerShell script. Explicit PowerShell command/file modes (including option
 abbreviations, encoded commands, or a positional `.ps1` script) retain their
 arguments without the interactive hook. Renamed executables and wrappers are
-not detected. Existing Unix default launches are unchanged, even for `$SHELL`
-pointing to PowerShell.
+not detected. Unix default argument selection and integration behavior stay
+the same, even for `$SHELL` pointing to PowerShell; the child TERM policy above
+applies independently.
 
 On Windows, interactive `cmd`/`cmd.exe` local shells receive an OSC 133 prompt
 readiness marker through `PROMPT`. The existing visible prompt is retained
@@ -153,6 +167,14 @@ Any remaining UI values keep renderer defaults. The more specific optional
 related semantic UI colors. The example includes every theme field.
 
 ## Key bindings and commands
+
+The built-in paste shortcuts are Ctrl+Shift+V and, on Linux, Shift+Insert.
+They read the regular clipboard (X11 CLIPBOARD, rather than PRIMARY) and paste
+into the focused pane, using that pane's bracketed-paste mode. Linux clipboard
+access uses native Wayland data-control when available, with X11/XWayland
+fallback when the compositor does not expose data-control. Clipboard ownership
+is retained while Terminal runs; persistence after exit depends on a clipboard
+manager. Explicit binding lists can replace or omit either shortcut.
 
 Omitting `bindings` retains all built-in shortcuts in the
 [README table](../README.md#default-keyboard-shortcuts). **Any

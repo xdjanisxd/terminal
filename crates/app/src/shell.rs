@@ -8,7 +8,13 @@ use terminal_pty::{
 
 pub(crate) fn configured_spawn_config(shell: &ShellConfig, size: PtySize) -> PtySpawnConfig {
     let config = PtySpawnConfig::new(shell.program.clone().into(), size)
-        .with_arguments(shell.args.iter().map(OsString::from));
+        .with_arguments(shell.args.iter().map(OsString::from))
+        .with_environment(
+            shell
+                .env
+                .iter()
+                .map(|(key, value)| (key.into(), value.into())),
+        );
     if is_powershell(Path::new(&shell.program)) && !has_command_mode(&shell.args) {
         with_powershell_integration(config)
     } else {
@@ -119,6 +125,7 @@ mod tests {
     fn request(program: &str, args: &[&str]) -> PtySpawnConfig {
         configured_spawn_config(
             &ShellConfig {
+                env: Default::default(),
                 program: program.into(),
                 args: args.iter().map(|arg| (*arg).into()).collect(),
             },
@@ -143,6 +150,32 @@ mod tests {
                 &["--option", "two words", "", "'literal'"]
             );
             assert!(config.environment().is_empty());
+        }
+    }
+
+    #[test]
+    fn configured_child_environment_survives_shell_integration() {
+        for program in ["bash", "cmd.exe", "pwsh"] {
+            let shell = ShellConfig {
+                program: program.into(),
+                args: vec![],
+                env: [
+                    ("TERM".into(), "dumb".into()),
+                    ("CUSTOM".into(), "two words".into()),
+                ]
+                .into(),
+            };
+            let config = configured_spawn_config(&shell, PtySize::new(24, 80).unwrap());
+            assert!(
+                config
+                    .environment()
+                    .contains(&("TERM".into(), "dumb".into()))
+            );
+            assert!(
+                config
+                    .environment()
+                    .contains(&("CUSTOM".into(), "two words".into()))
+            );
         }
     }
 

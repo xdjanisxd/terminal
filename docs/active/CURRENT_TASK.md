@@ -1,5 +1,14 @@
 # Current Task
 
+Current branch: `fix/linux-paste-term`. Linux clipboard paste and Linux/macOS
+PTY TERM initialization are implemented. Rust validation and native Linux
+release acceptance passed; see [the report](../LINUX_PASTE_TERM.md) and
+[plan](../LINUX_PASTE_TERM_PLAN.md). No commit or push.
+
+The earlier function-key task handoff is retained below for historical context.
+
+## Previous task
+
 Goal: finish F1–F12 support and required manual acceptance.
 
 Branch: `feat/function-keys`; no commit/push.

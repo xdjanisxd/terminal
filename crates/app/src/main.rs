@@ -1136,7 +1136,7 @@ impl Application {
             }
             Command::Paste => match terminal_platform::read_clipboard(2 * 1024 * 1024) {
                 Ok(text) => {
-                    self.write_terminal_input(encode_paste(*self.terminal.input_modes(), &text));
+                    self.paste_text(&text);
                 }
                 Err(error) => eprintln!("could not paste clipboard text: {error}"),
             },
@@ -2293,6 +2293,10 @@ impl Application {
             self.invalidate_frame();
         }
         queued
+    }
+
+    fn paste_text(&mut self, text: &str) -> bool {
+        self.write_terminal_input(encode_paste(*self.terminal.input_modes(), text))
     }
 
     fn send_mouse_event(&mut self, event: MouseEvent) {
@@ -4719,6 +4723,7 @@ mod tests {
         let (root, session) = workspace.pane_launch(workspace.active_pane()).unwrap();
         for program in ["first-shell", "second-shell"] {
             let shell = ShellConfig {
+                env: Default::default(),
                 program: program.into(),
                 args: vec!["two words".into()],
             };
@@ -4728,6 +4733,7 @@ mod tests {
             assert_eq!(config.arguments(), &["two words"]);
         }
         let shell = ShellConfig {
+            env: Default::default(),
             program: "ignored".into(),
             args: vec![],
         };
@@ -5025,6 +5031,7 @@ mod tests {
             .flatten()
             {
                 cases.push(Some(ShellConfig {
+                    env: Default::default(),
                     program: program.to_string_lossy().into_owned(),
                     args: vec!["-NoLogo".into(), "-NoProfile".into()],
                 }));
@@ -5040,6 +5047,7 @@ mod tests {
         #[cfg(not(windows))]
         for program in ["sh", "/bin/sh"] {
             cases.push(Some(ShellConfig {
+                env: Default::default(),
                 program: program.into(),
                 args: vec![],
             }));
@@ -5171,6 +5179,7 @@ mod tests {
         let root = state.path().parent().unwrap().to_owned();
         fs::create_dir_all(&root).unwrap();
         let shell = ShellConfig {
+            env: Default::default(),
             program: "cmd.exe".into(),
             args: vec!["/d".into()],
         };
@@ -5219,6 +5228,7 @@ mod tests {
     fn saved_workspace_native_startup_commands_in_foreground_and_background() {
         use std::time::{Duration, Instant};
         let mut shells = vec![ShellConfig {
+            env: Default::default(),
             program: "cmd.exe".into(),
             args: vec![
                 "/d".into(),
@@ -5235,6 +5245,7 @@ mod tests {
         .flatten()
         {
             shells.push(ShellConfig {
+                env: Default::default(),
                 program: program.to_string_lossy().into_owned(),
                 args: vec!["-NoLogo".into(), "-NoProfile".into()],
             });
@@ -6141,6 +6152,115 @@ mod tests {
             ),
             Some(Command::Copy)
         );
+    }
+
+    #[test]
+    fn paste_bindings_respect_replacement_configuration_and_exact_modifiers() {
+        let ctrl_shift = ModifiersState::CONTROL | ModifiersState::SHIFT;
+        let v = PhysicalKey::Code(KeyCode::KeyV);
+        let insert = PhysicalKey::Code(KeyCode::Insert);
+        let defaults = Config::default();
+        assert_eq!(
+            configured_command(&defaults, v, ctrl_shift),
+            Some(Command::Paste)
+        );
+        assert_eq!(
+            configured_command(&defaults, v, ModifiersState::CONTROL),
+            None
+        );
+        assert_eq!(
+            configured_command(&defaults, insert, ModifiersState::SHIFT),
+            cfg!(target_os = "linux").then_some(Command::Paste)
+        );
+        for source in [
+            "bindings = []",
+            "[[bindings]]\nkey = 'Ctrl+B'\ncommand = 'paste'",
+        ] {
+            let config = Config::parse(source).unwrap();
+            assert_eq!(configured_command(&config, v, ctrl_shift), None);
+            assert_eq!(
+                configured_command(&config, insert, ModifiersState::SHIFT),
+                None
+            );
+        }
+        let config = Config::parse("[[bindings]]\nkey = 'Ctrl+Shift+V'\ncommand = 'copy'\n[[bindings]]\nkey = 'Shift+Insert'\ncommand = 'open_palette'").unwrap();
+        assert_eq!(
+            configured_command(&config, v, ctrl_shift),
+            Some(Command::Copy)
+        );
+        assert_eq!(
+            configured_command(&config, insert, ModifiersState::SHIFT),
+            Some(Command::OpenPalette)
+        );
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn paste_routes_to_active_pty_and_uses_that_panes_bracketed_mode() {
+        use std::sync::{Arc, Mutex};
+        use std::time::{Duration, Instant};
+        use terminal_pty::{PortablePtyBackend, PtySpawnConfig};
+        let tracked_worker = || {
+            let config = PtySpawnConfig::new("/bin/cat".into(), PtySize::new(24, 80).unwrap());
+            let session = super::shell::spawn(&PortablePtyBackend::new(), config, None).unwrap();
+            let transport = Arc::new(Mutex::new(SmokeTransport::default()));
+            let worker = terminal_pty::PtyWorker::start(SmokeSession {
+                session,
+                transport: Arc::clone(&transport),
+            })
+            .unwrap();
+            (worker, transport)
+        };
+        let mut app = Application::default();
+        let first = app.workspace.active_pane();
+        app.dispatch_command(Command::SplitVertical);
+        let second = app.workspace.active_pane();
+        let (first_worker, first_transport) = tracked_worker();
+        let (second_worker, second_transport) = tracked_worker();
+        app.inactive_panes.get_mut(&first).unwrap().pty = Some(first_worker);
+        app.pty = Some(second_worker);
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
+            b"\x1b[?2004h".to_vec(),
+        )));
+        assert!(app.paste_text("second é\nline"));
+        app.dispatch_command(Command::PreviousPane);
+        assert_eq!(app.active_runtime_pane, first);
+        assert!(!app.terminal.input_modes().bracketed_paste());
+        assert!(app.paste_text("first 🦀\nline"));
+        app.dispatch_command(Command::NextPane);
+        assert_eq!(app.active_runtime_pane, second);
+        assert!(app.terminal.input_modes().bracketed_paste());
+        app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
+            b"\x1b[?2004l".to_vec(),
+        )));
+        assert!(app.paste_text("plain second"));
+        let deadline = Instant::now() + Duration::from_secs(2);
+        while first_transport.lock().unwrap().writes_started.is_empty()
+            || second_transport.lock().unwrap().writes_started.len() < 2
+        {
+            assert!(Instant::now() < deadline, "paste did not reach PTY writers");
+            std::thread::sleep(Duration::from_millis(5));
+        }
+        assert_eq!(
+            first_transport.lock().unwrap().writes_started,
+            ["first 🦀\nline".as_bytes()]
+        );
+        assert_eq!(
+            second_transport.lock().unwrap().writes_started,
+            [
+                "\x1b[200~second é\nline\x1b[201~".as_bytes(),
+                b"plain second"
+            ]
+        );
+        app.pty.as_mut().unwrap().shutdown_and_join().unwrap();
+        app.inactive_panes
+            .get_mut(&first)
+            .unwrap()
+            .pty
+            .as_mut()
+            .unwrap()
+            .shutdown_and_join()
+            .unwrap();
     }
 
     #[test]
