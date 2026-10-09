@@ -302,3 +302,16 @@ containing `[workspace]`; it may also contain font, theme, bindings, and
 projects. The options can be combined: `--project-root` replaces the
 workspace-level root, while explicit tab and pane roots still win. `--help`
 prints usage. Invalid paths or arguments fail before the window opens.
+
+### Linux shell readiness and Saved Workspaces
+
+Interactive Bash/Zsh integration reports each pane's directory through OSC 7 and
+prompt readiness through OSC 133. Explicit saved startup commands are queued
+once after readiness, including for inactive panes. Restored roots are applied
+after shell initialization; missing directories report a launch error.
+
+Bash login shells need user-provided hooks. Supported options and other limits
+are described in [Linux workspace restoration](LINUX_WORKSPACE_RESTORE.md).
+Shell configuration remains in `config.toml`; Saved Workspaces contain local-shell
+session definitions, roots, layout/focus, and explicit commands rather than shell
+executable/argument snapshots.

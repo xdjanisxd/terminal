@@ -1,0 +1,53 @@
+[[workspaces]]
+name = "NativeBash"
+
+[workspaces.definition]
+active_tab = 0
+
+[[workspaces.definition.tabs]]
+title = "Restore verification"
+active_pane = 1
+
+[workspaces.definition.tabs.layout]
+kind = "split"
+axis = "vertical"
+first_share = 400000
+
+[workspaces.definition.tabs.layout.first]
+kind = "pane"
+session = "local_shell"
+project_root = "/tmp/terminal-workspace-final/bash/first pane"
+startup_command = '''printf '%s\n' "$PWD" >> '/tmp/terminal-workspace-final/bash/pane0.log''''
+
+[workspaces.definition.tabs.layout.second]
+kind = "pane"
+session = "local_shell"
+project_root = "/tmp/terminal-workspace-final/bash/second pane"
+startup_command = '''printf '%s\n' "$PWD" >> '/tmp/terminal-workspace-final/bash/pane1.log''''
+
+[[workspaces]]
+name = "ChangedBash"
+
+[workspaces.definition]
+active_tab = 0
+
+[[workspaces.definition.tabs]]
+title = "Restore verification"
+active_pane = 1
+
+[workspaces.definition.tabs.layout]
+kind = "split"
+axis = "vertical"
+first_share = 400000
+
+[workspaces.definition.tabs.layout.first]
+kind = "pane"
+session = "local_shell"
+project_root = "/home/dellian"
+startup_command = '''printf '%s\n' "$PWD" >> '/tmp/terminal-workspace-final/bash/pane0.log''''
+
+[workspaces.definition.tabs.layout.second]
+kind = "pane"
+session = "local_shell"
+project_root = "/home/dellian/codes/terminal"
+startup_command = '''printf '%s\n' "$PWD" >> '/tmp/terminal-workspace-final/bash/pane1.log''''
