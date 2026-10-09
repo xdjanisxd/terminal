@@ -5,6 +5,15 @@ use winit::window::{Window, WindowAttributes};
 pub fn window_attributes() -> WindowAttributes {
     let attributes = Window::default_attributes().with_title("Terminal");
 
+    #[cfg(target_os = "linux")]
+    let attributes = {
+        use winit::platform::wayland::WindowAttributesExtWayland;
+
+        // Winit shares this identity with its X11 backend (WM_CLASS).
+        let app_id = "io.github.xdjanisxd.terminal";
+        attributes.with_name(app_id, app_id)
+    };
+
     #[cfg(target_os = "windows")]
     let attributes = {
         use winit::platform::windows::{IconExtWindows, WindowAttributesExtWindows};
