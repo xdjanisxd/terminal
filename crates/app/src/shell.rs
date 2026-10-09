@@ -18,7 +18,7 @@ pub(crate) fn configured_spawn_config(shell: &ShellConfig, size: PtySize) -> Pty
     if is_powershell(Path::new(&shell.program)) && !has_command_mode(&shell.args) {
         with_powershell_integration(config)
     } else {
-        with_cmd_integration(config)
+        with_posix_integration(with_cmd_integration(config))
     }
 }
 
@@ -107,14 +107,100 @@ pub(crate) fn with_powershell_integration(config: PtySpawnConfig) -> PtySpawnCon
     config.with_arguments(args)
 }
 
+// Mark only local-shell requests; direct command sessions keep their exact launch.
+pub(crate) fn with_posix_integration(config: PtySpawnConfig) -> PtySpawnConfig {
+    #[cfg(target_os = "linux")]
+    if matches!(
+        config.program().file_name().and_then(|s| s.to_str()),
+        Some("bash" | "zsh")
+    ) {
+        let mut env = config.environment().to_vec();
+        env.push(("TERMINAL_SHELL_INTEGRATION".into(), "1".into()));
+        return config.with_environment(env);
+    }
+    config
+}
+
+pub(crate) fn startup_command_allowed(shell: Option<&ShellConfig>) -> bool {
+    #[cfg(target_os = "linux")]
+    {
+        let program = shell
+            .map(|s| OsString::from(&s.program))
+            .or_else(|| std::env::var_os("SHELL"))
+            .unwrap_or_else(|| "/bin/sh".into());
+        let config =
+            PtySpawnConfig::new(program.into(), PtySize::new(24, 80).expect("nonzero size"))
+                .with_arguments(
+                    shell
+                        .into_iter()
+                        .flat_map(|s| s.args.iter().map(OsString::from)),
+                );
+        linux::startup_command_allowed(&config)
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = shell;
+        true
+    }
+}
+
+/// Keep session-local startup files alive until the child is shut down.
+pub(crate) struct ShellSession {
+    session: PortablePtySession,
+    #[cfg(target_os = "linux")]
+    _integration: Option<linux::IntegrationFiles>,
+}
+
+impl terminal_pty::PtySession for ShellSession {
+    fn lifecycle(&self) -> terminal_pty::PtyLifecycle {
+        self.session.lifecycle()
+    }
+    fn take_output_reader(
+        &mut self,
+    ) -> Result<Box<dyn terminal_pty::PtyOutputReader + Send>, terminal_pty::PtyError> {
+        self.session.take_output_reader()
+    }
+    fn write(&mut self, bytes: &[u8]) -> Result<(), terminal_pty::PtyError> {
+        self.session.write(bytes)
+    }
+    fn resize(&mut self, size: PtySize) -> Result<(), terminal_pty::PtyError> {
+        self.session.resize(size)
+    }
+    fn terminate(&mut self) -> Result<(), terminal_pty::PtyError> {
+        self.session.terminate()
+    }
+}
+
+#[cfg(target_os = "linux")]
+#[path = "linux_shell.rs"]
+mod linux;
+
 pub(crate) fn spawn(
     backend: &PortablePtyBackend,
     config: PtySpawnConfig,
     observer: Option<PtyStartupObserver>,
-) -> Result<PortablePtySession, String> {
+) -> Result<ShellSession, String> {
     let program = config.program().to_owned();
+    // portable-pty falls back to home when a requested directory is missing.
+    // A restored command must not silently execute in a different directory.
+    #[cfg(target_os = "linux")]
+    if let Some(root) = config.working_directory()
+        && !root.is_dir()
+    {
+        return Err(format!(
+            "could not start local session program {program:?}: working directory {root:?} is not a directory"
+        ));
+    }
+    #[cfg(target_os = "linux")]
+    let (config, integration) = linux::prepare(config)
+        .map_err(|error| format!("could not prepare local shell {program:?}: {error}"))?;
     backend
         .spawn_observed(config, observer)
+        .map(|session| ShellSession {
+            session,
+            #[cfg(target_os = "linux")]
+            _integration: integration,
+        })
         .map_err(|error| format!("could not start local session program {program:?}: {error}"))
 }
 
@@ -136,7 +222,7 @@ mod tests {
     #[test]
     fn names_paths_and_exact_arguments_pass_through() {
         for program in [
-            "bash",
+            "unsupported-shell",
             "/usr/bin/fish",
             r"C:\Program Files\Git\bin\bash.exe",
             "wsl.exe",
@@ -282,6 +368,21 @@ mod tests {
         ] {
             assert_eq!(request("pwsh", &args).arguments(), args.as_slice());
         }
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn missing_workspace_directory_never_falls_back_to_home() {
+        let config = request("bash", &[])
+            .with_working_directory("/terminal-intentionally-missing-workspace-9c80d2".into());
+        let error = spawn(&PortablePtyBackend::new(), config, None)
+            .err()
+            .expect("missing root must fail");
+        assert!(error.contains("working directory"), "{error}");
+        assert!(
+            error.contains("terminal-intentionally-missing-workspace"),
+            "{error}"
+        );
     }
 
     #[test]

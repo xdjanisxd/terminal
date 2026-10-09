@@ -139,7 +139,9 @@ Saved Workspaces are reusable templates stored in the app's `workspaces.toml`, s
 
 ## Shell integration
 
-On Windows, local PowerShell sessions keep the user's normal profile and add a session-local prompt hook that reports the current filesystem directory with OSC 7. Saved Workspaces use that report to capture pane directories. Shell titles can also appear in the app UI. Directory reporting for Bash, Zsh, and Fish is not implemented here.
+On Windows, local PowerShell sessions keep the user's normal profile and add a session-local prompt hook that reports the current filesystem directory with OSC 7. Saved Workspaces use that report to capture pane directories. Shell titles can also appear in the app UI. On Linux, local interactive Bash and Zsh sessions add session-local OSC 7 directory and OSC 133 prompt readiness hooks. Existing user rc files, prompts, and hooks are retained; saved startup commands run once after readiness. An explicit saved pane root is applied after initialization, and a missing root produces a launch error. Fish directory reporting is not implemented.
+
+Bash login shells retain their original launch semantics and require user-provided OSC 7/133 hooks. Built-in Linux integration supports Bash's normal interactive mode, `-i`, `--noprofile`, `--norc`, and `--rcfile`/`--init-file`, plus Zsh's normal interactive mode and `-i`, `-l`, `-f` combinations. Scripts, command mode, and unrecognized options keep their original arguments and do not receive automatic startup input. See [Linux workspace restoration](docs/LINUX_WORKSPACE_RESTORE.md) for details and limitations.
 
 ## Themes and customization
 

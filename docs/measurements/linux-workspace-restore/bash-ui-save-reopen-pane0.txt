@@ -1,0 +1,3 @@
+/tmp/terminal-workspace-gui/bash/first pane
+/tmp/terminal-workspace-gui/bash/first pane
+/home/dellian

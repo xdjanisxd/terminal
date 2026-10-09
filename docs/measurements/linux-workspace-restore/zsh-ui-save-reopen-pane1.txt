@@ -1,0 +1,3 @@
+/tmp/terminal-workspace-gui/zsh/second pane
+/tmp/terminal-workspace-gui/zsh/second pane
+/home/dellian/codes/terminal

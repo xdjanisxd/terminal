@@ -7,6 +7,9 @@
 
 mod branding;
 mod commands;
+#[cfg(all(test, target_os = "linux"))]
+#[path = "tests/linux_workspace.rs"]
+mod linux_workspace_tests;
 mod saved_workspaces;
 mod search;
 mod shell;
@@ -2036,6 +2039,7 @@ impl Application {
             self.pending_startup_command = self
                 .workspace
                 .pane_startup_command(self.active_runtime_pane)
+                .filter(|_| shell::startup_command_allowed(self.config.shell.as_ref()))
                 .map(str::to_owned);
             self.pty = match spawn_local_shell(
                 proxy.clone(),
@@ -2061,6 +2065,7 @@ impl Application {
                 runtime.pending_startup_command = self
                     .workspace
                     .pane_startup_command(*pane_id)
+                    .filter(|_| shell::startup_command_allowed(self.config.shell.as_ref()))
                     .map(str::to_owned);
                 runtime.pty = match spawn_local_shell(
                     proxy.clone(),
@@ -3074,7 +3079,7 @@ fn local_shell_spawn_config(size: PtySize) -> PtySpawnConfig {
     return windows_local_shell_spawn_config(program, source, size);
 
     #[cfg(not(windows))]
-    PtySpawnConfig::new(program, size)
+    shell::with_posix_integration(PtySpawnConfig::new(program, size))
 }
 
 #[cfg(any(windows, test))]
