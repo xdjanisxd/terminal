@@ -26,7 +26,7 @@ class PackagingTests(unittest.TestCase):
             }
             self.assertIn(desktop, linux)
             self.assertEqual(set(linux) - {"terminal", "README.md", "config.example.toml", "LICENSE"},
-                             {desktop, *icons})
+                             {desktop, *icons, "install_linux.py", "docs/LINUX_DESKTOP_INTEGRATION.md"})
             for platform in ("windows", "macos"):
                 members = release.archive_members(binary, platform)
                 self.assertEqual(len(members), 4)

@@ -43,6 +43,8 @@ def archive_members(binary: Path, system: str) -> dict[str, bytes]:
         "LICENSE": root / "LICENSE",
     }
     if system == "linux":
+        files["install_linux.py"] = root / "scripts/install_linux.py"
+        files["docs/LINUX_DESKTOP_INTEGRATION.md"] = root / "docs/LINUX_DESKTOP_INTEGRATION.md"
         share = root / "assets" / "branding" / "linux" / "share"
         files.update({f"share/{path.relative_to(share).as_posix()}": path
                       for path in sorted(share.rglob("*")) if path.is_file()})

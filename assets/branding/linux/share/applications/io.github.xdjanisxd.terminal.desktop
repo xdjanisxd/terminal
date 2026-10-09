@@ -8,4 +8,5 @@ Icon=io.github.xdjanisxd.terminal
 Type=Application
 Terminal=false
 Categories=System;TerminalEmulator;
+Keywords=terminal;shell;console;command;
 StartupWMClass=io.github.xdjanisxd.terminal

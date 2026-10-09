@@ -15,6 +15,12 @@ Terminal is a keyboard-focused, GPU-rendered terminal emulator with tabs, split 
 
 Download a release asset from [GitHub Releases](https://github.com/xdjanisxd/terminal/releases) for your operating system and CPU. Windows offers MSI installation or a portable ZIP; Linux and macOS offer portable archives. Each archive contains the `terminal` executable, this README, `config.example.toml`, and the MIT license. Extract it to a directory you keep; you can run the executable there or put it on PATH. You do not need to copy `config.example.toml`: Terminal uses built-in defaults when no user config exists.
 
+On Linux, run `python3 install_linux.py install` from the extracted archive to
+install Terminal for your user, including application menu/search and dock icons.
+Use `python3 install_linux.py uninstall` to remove it. See
+[Linux desktop installation](docs/LINUX_DESKTOP_INTEGRATION.md) for source-build
+commands, XDG paths, requirements, and verification.
+
 ### Windows
 
 **Installer:** Download `terminal-windows-x86_64.msi` for x64 Windows or `terminal-windows-aarch64.msi` for Windows ARM64. Run the MSI and approve the normal administrator prompt. It installs Terminal for all users into the native `Program Files\Terminal` directory and creates a **Terminal** Start Menu shortcut using the application icon. No desktop shortcut is created. The installer adds its directory to the system PATH by default; open a new PowerShell session and run `terminal --help`. An existing matching PATH entry is preserved. Existing shell processes are not modified; signing out and back in may be needed if a parent process retains an old PATH.
