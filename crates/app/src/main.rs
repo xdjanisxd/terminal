@@ -18,6 +18,7 @@ mod search;
 mod shell;
 mod startup;
 mod throughput;
+mod window_chrome;
 mod window_effects;
 
 use commands::{Palette, PaletteAction, PaletteEntry};
@@ -58,6 +59,7 @@ use winit::keyboard::{Key, KeyCode, ModifiersState, NamedKey, PhysicalKey};
 use winit::window::{Window, WindowId};
 
 struct Application {
+    chrome: window_chrome::Interaction,
     throughput: Option<throughput::Stats>,
     window: Option<Arc<Window>>,
     renderer: Option<Renderer>,
@@ -601,6 +603,7 @@ impl Default for Application {
             populate_visual_smoke_state(&mut terminal);
         }
         Self {
+            chrome: window_chrome::Interaction::default(),
             throughput: throughput::enabled().then(throughput::Stats::default),
             window: None,
             renderer: None,
@@ -976,6 +979,113 @@ impl Application {
         self.update_workspace_title();
     }
 
+    fn content_rect(&self, size: PhysicalSize<u32>) -> PaneRect {
+        let height = self.window.as_ref().map_or(0, |window| {
+            window_chrome::height(window.scale_factor(), window.fullscreen().is_some())
+        });
+        window_chrome::content_rect(size, height)
+    }
+
+    fn handle_chrome_mouse(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        state: ElementState,
+        button: MouseButton,
+    ) -> bool {
+        if self.selection_dragging
+            || self.scrollbar_click_held
+            || self.target_click_held
+            || self.pressed_mouse_button.is_some()
+        {
+            return false;
+        }
+        let hit = self.chrome_hit();
+        if button != MouseButton::Left {
+            return hit.is_some() || self.chrome.held;
+        }
+        if state == ElementState::Released && self.chrome.held {
+            self.chrome.held = false;
+            let pressed = self.chrome.pressed.take();
+            if let (Some(control), Some(window_chrome::Hit::Control(released))) = (pressed, hit)
+                && control == released
+                && let Some(window) = &self.window
+            {
+                match control {
+                    0 => event_loop.exit(),
+                    1 => window.set_maximized(!window.is_maximized()),
+                    _ => window.set_minimized(true),
+                }
+            }
+            self.invalidate_frame();
+            return true;
+        }
+        if state == ElementState::Pressed && !self.selection_dragging && !self.scrollbar_click_held
+        {
+            let Some(hit) = hit else {
+                return false;
+            };
+            self.chrome.held = true;
+            if let Some(window) = &self.window {
+                match hit {
+                    window_chrome::Hit::Control(control) => self.chrome.pressed = Some(control),
+                    window_chrome::Hit::Drag => {
+                        if self.chrome.double_click(
+                            Instant::now(),
+                            self.pointer_position.unwrap(),
+                            window.scale_factor(),
+                        ) {
+                            window.set_maximized(!window.is_maximized());
+                        } else if let Err(error) = window.drag_window() {
+                            eprintln!("could not drag window: {error}");
+                        }
+                    }
+                    window_chrome::Hit::Resize(direction) => {
+                        if let Err(error) = window.drag_resize_window(direction) {
+                            eprintln!("could not resize window: {error}");
+                        }
+                    }
+                }
+            }
+            self.invalidate_frame();
+            return true;
+        }
+        hit.is_some() && !self.selection_dragging && !self.scrollbar_click_held
+    }
+
+    fn chrome_hit(&self) -> Option<window_chrome::Hit> {
+        let window = self.window.as_ref()?;
+        window_chrome::hit(
+            self.pointer_position?,
+            window.inner_size(),
+            window.scale_factor(),
+            window.is_maximized(),
+            window.fullscreen().is_some(),
+        )
+    }
+
+    fn title_bar_path(&self) -> String {
+        self.terminal
+            .working_directory_uri()
+            .and_then(short_cwd)
+            .unwrap_or_else(|| "Working directory unavailable".into())
+    }
+
+    fn custom_title_bar(&self) -> Option<terminal_renderer::TitleBar> {
+        let window = self.window.as_ref()?;
+        if window.fullscreen().is_some() {
+            return None;
+        }
+        Some(terminal_renderer::TitleBar {
+            path: self.title_bar_path(),
+            hovered_control: self.chrome.hovered,
+            pressed_control: self
+                .chrome
+                .pressed
+                .filter(|control| Some(*control) == self.chrome.hovered),
+            maximized: window.is_maximized(),
+        })
+    }
+
     fn update_workspace_title(&self) {
         let Some(window) = self.window.as_ref() else {
             return;
@@ -1290,12 +1400,7 @@ impl Application {
                 };
                 if self.workspace.resize_focused_pane(
                     direction,
-                    PaneRect {
-                        x: 0,
-                        y: 0,
-                        width: size.width,
-                        height: size.height,
-                    },
+                    self.content_rect(size),
                     step,
                     minimum,
                 ) {
@@ -1315,15 +1420,10 @@ impl Application {
                         Command::FocusPaneDown => PaneDirection::Down,
                         _ => unreachable!(),
                     };
-                    if let Some(next) = self.workspace.focus_pane_direction(
-                        direction,
-                        PaneRect {
-                            x: 0,
-                            y: 0,
-                            width: size.width,
-                            height: size.height,
-                        },
-                    ) {
+                    if let Some(next) = self
+                        .workspace
+                        .focus_pane_direction(direction, self.content_rect(size))
+                    {
                         self.activate_pane(next);
                     }
                 }
@@ -1822,18 +1922,15 @@ impl Application {
 
         let scrollback_input_enabled = self.scrollbar_input_enabled();
 
-        let renderer = self.renderer.as_mut()?;
+        let title_bar = self.custom_title_bar();
         let size = self
             .window
             .as_ref()
             .map(|window| window.inner_size())
             .unwrap_or(PhysicalSize::new(0, 0));
-        let surface = PaneRect {
-            x: 0,
-            y: 0,
-            width: size.width,
-            height: size.height,
-        };
+        let surface = self.content_rect(size);
+        let renderer = self.renderer.as_mut()?;
+        renderer.set_title_bar(title_bar);
         let panes: Vec<_> = self
             .workspace
             .active_tab()
@@ -1995,7 +2092,12 @@ impl Application {
         let mut pty_resizes = 0;
         let mut terminal_resize_time = std::time::Duration::ZERO;
         let mut pty_resize_time = std::time::Duration::ZERO;
-        for (pane_id, dimensions) in pane_dimensions(&self.workspace, size, metrics) {
+        let content = self.content_rect(size);
+        for (pane_id, dimensions) in pane_dimensions(
+            &self.workspace,
+            PhysicalSize::new(content.width, content.height),
+            metrics,
+        ) {
             if pane_id == self.active_runtime_pane {
                 if self.terminal.dimensions() != dimensions {
                     let started = std::time::Instant::now();
@@ -2346,12 +2448,11 @@ impl Application {
 
     fn pane_rects(&self) -> Option<Vec<(PaneId, PaneRect)>> {
         let size = self.window.as_ref()?.inner_size();
-        Some(self.workspace.active_tab().pane_rects(PaneRect {
-            x: 0,
-            y: 0,
-            width: size.width,
-            height: size.height,
-        }))
+        Some(
+            self.workspace
+                .active_tab()
+                .pane_rects(self.content_rect(size)),
+        )
     }
 
     fn local_pointer_position(
@@ -2624,6 +2725,8 @@ impl ApplicationHandler<PtyWake> for Application {
                     self.write_to_pty(bytes.to_vec());
                 }
                 if !focused {
+                    self.chrome = window_chrome::Interaction::default();
+                    self.invalidate_frame();
                     self.pressed_mouse_button = None;
                     self.pointer_position = None;
                     self.selection_dragging = false;
@@ -2646,6 +2749,9 @@ impl ApplicationHandler<PtyWake> for Application {
                 }
             }
             WindowEvent::CursorLeft { .. } => {
+                if self.chrome.hovered.take().is_some() {
+                    self.invalidate_frame();
+                }
                 self.pointer_position = None;
                 self.selection_edge = None;
                 self.set_scrollbar_hover(None);
@@ -2655,6 +2761,43 @@ impl ApplicationHandler<PtyWake> for Application {
                     emit_diagnostic(format_args!("app event=selection-move"));
                 }
                 self.pointer_position = Some(position);
+                let hit = self.chrome_hit();
+                let hovered = match hit {
+                    Some(window_chrome::Hit::Control(control)) => Some(control),
+                    _ => None,
+                };
+                if self.chrome.hovered != hovered {
+                    self.chrome.hovered = hovered;
+                    self.invalidate_frame();
+                }
+                if !self.selection_dragging
+                    && self.scrollbar_drag.is_none()
+                    && self.pressed_mouse_button.is_none()
+                    && !self.target_click_held
+                {
+                    if let Some(window) = &self.window {
+                        use winit::window::CursorIcon;
+                        let cursor = match hit {
+                            Some(window_chrome::Hit::Resize(direction)) => match direction {
+                                winit::window::ResizeDirection::North
+                                | winit::window::ResizeDirection::South => CursorIcon::NsResize,
+                                winit::window::ResizeDirection::East
+                                | winit::window::ResizeDirection::West => CursorIcon::EwResize,
+                                winit::window::ResizeDirection::NorthWest
+                                | winit::window::ResizeDirection::SouthEast => {
+                                    CursorIcon::NwseResize
+                                }
+                                _ => CursorIcon::NeswResize,
+                            },
+                            _ => CursorIcon::Default,
+                        };
+                        window.set_cursor(cursor);
+                    }
+                    if hit.is_some() || self.chrome.held {
+                        self.set_scrollbar_hover(None);
+                        return;
+                    }
+                }
                 if let Some(grab_y) = self.scrollbar_drag {
                     if let Some(geometry) = self.scrollbar_geometry()
                         && let Some((_, rect)) = self.pane_rects().and_then(|rects| {
@@ -2711,6 +2854,9 @@ impl ApplicationHandler<PtyWake> for Application {
                 }
             }
             WindowEvent::MouseInput { state, button, .. } => {
+                if self.handle_chrome_mouse(event_loop, state, button) {
+                    return;
+                }
                 if state == ElementState::Pressed {
                     self.focus_pane_at_pointer();
                 }
@@ -2834,6 +2980,9 @@ impl ApplicationHandler<PtyWake> for Application {
                 }
             }
             WindowEvent::MouseWheel { delta, .. } => {
+                if self.chrome_hit().is_some() || self.chrome.held {
+                    return;
+                }
                 self.focus_pane_at_pointer();
                 if let Some(metrics) = self.renderer.as_ref().map(Renderer::cell_metrics) {
                     if self.terminal.input_modes().mouse_tracking() == MouseTracking::Off {
@@ -6800,6 +6949,53 @@ mod tests {
         app.handle_tab_picker_key(&Key::Character("Shell".into()), Some("Shell"));
         app.handle_tab_picker_key(&Key::Named(NamedKey::Enter), None);
         assert_eq!(app.active_tab_title(), "Shell title");
+    }
+
+    #[test]
+    fn title_bar_shows_only_active_pane_cwd_with_fallback() {
+        let mut app = Application::default();
+        assert_eq!(app.title_bar_path(), "Working directory unavailable");
+        app.parser
+            .advance(
+                &mut app.terminal,
+                b"\x1b]7;file://hostname/home/me/codes/terminal\x07\x1b]2;user@host: process\x07",
+            )
+            .unwrap();
+        app.workspace
+            .set_active_tab_custom_title(Some("My context".into()));
+        assert_eq!(app.title_bar_path(), "codes/terminal");
+        let original = app.workspace.active_pane();
+        let pane = app.workspace.split_active(SplitAxis::Vertical);
+        app.inactive_panes
+            .insert(pane, super::PaneRuntime::new(app.terminal.dimensions()));
+        app.activate_pane(pane);
+        assert_eq!(app.title_bar_path(), "Working directory unavailable");
+        app.parser
+            .advance(&mut app.terminal, b"\x1b]7;file:///home/dellian\x07")
+            .unwrap();
+        assert_eq!(app.title_bar_path(), "home/dellian");
+        app.activate_pane(original);
+        assert_eq!(app.title_bar_path(), "codes/terminal");
+    }
+
+    #[test]
+    fn title_bar_path_keeps_only_two_decoded_segments() {
+        assert_eq!(
+            super::short_cwd("file:///home/me/codes/terminal"),
+            Some("codes/terminal".into())
+        );
+        assert_eq!(
+            super::short_cwd("file://host/work/backend/src/"),
+            Some("backend/src".into())
+        );
+        assert_eq!(
+            super::short_cwd("file:///C:/work/My%20Project/src"),
+            Some("My Project/src".into())
+        );
+        assert_eq!(super::short_cwd("file:///src"), Some("src".into()));
+        assert_eq!(super::short_cwd("file:///"), None);
+        assert_eq!(super::short_cwd("file:///bad%Q0"), None);
+        assert_eq!(super::short_cwd("https://host/path"), None);
     }
 
     #[test]

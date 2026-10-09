@@ -3,7 +3,9 @@
 use winit::window::{Window, WindowAttributes};
 
 pub fn window_attributes() -> WindowAttributes {
-    let attributes = Window::default_attributes().with_title("Terminal");
+    let attributes = Window::default_attributes()
+        .with_title("Terminal")
+        .with_decorations(false);
 
     #[cfg(target_os = "linux")]
     let attributes = {

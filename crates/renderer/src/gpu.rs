@@ -355,7 +355,9 @@ pub(super) struct FrameContext<'a> {
     pub(super) ui: &'a crate::UiRenderTheme,
 }
 
-pub(super) struct PaneDraw {
+pub(super) struct PaneDraw<'a> {
+    pub text_offset: [f32; 2],
+    pub rectangles: &'a [([f32; 4], crate::Rgba)],
     pub rect: [u32; 4],
     pub clear: bool,
     pub focused_border: bool,
@@ -586,6 +588,8 @@ impl DrawResources {
             data,
             font_system,
             PaneDraw {
+                text_offset: [0.0; 2],
+                rectangles: &[],
                 rect: pane,
                 clear: true,
                 focused_border: false,
@@ -600,7 +604,7 @@ impl DrawResources {
         frame: FrameContext<'_>,
         data: &TerminalRenderData,
         font_system: &mut FontSystem,
-        pane_draw: PaneDraw,
+        pane_draw: PaneDraw<'_>,
     ) -> RenderWork {
         let pane = pane_draw.rect;
         let transparent = data.surface_background.0[3] < 1.0;
@@ -653,8 +657,8 @@ impl DrawResources {
         }
         let replacement_count = background_count;
         for cell in &data.cells {
-            let x = pane[0] as f32 + cell.column as f32 * cell_width;
-            let y = pane[1] as f32 + cell.row as f32 * cell_height;
+            let x = pane[0] as f32 + pane_draw.text_offset[0] + cell.column as f32 * cell_width;
+            let y = pane[1] as f32 + pane_draw.text_offset[1] + cell.row as f32 * cell_height;
             let width = cell.width as f32 * cell_width;
             if !transparent && cell.background != data.surface_background {
                 self.rectangles.push(RectInstance {
@@ -757,6 +761,18 @@ impl DrawResources {
                     }
                 }
             }
+        }
+        for (rect, color) in pane_draw.rectangles {
+            self.rectangles.push(RectInstance {
+                rect: to_clip_rect(
+                    pane[0] as f32 + rect[0],
+                    pane[1] as f32 + rect[1],
+                    rect[2],
+                    rect[3],
+                    frame.surface_size,
+                ),
+                color: color.0,
+            });
         }
         let mut overlays = Vec::with_capacity(3);
         if let Some(cursor) = data.cursor {

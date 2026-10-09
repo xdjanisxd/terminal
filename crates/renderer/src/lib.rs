@@ -3,6 +3,8 @@
 //! This crate owns GPU setup and terminal-state rendering, but never terminal
 //! protocol semantics.
 
+mod title_bar;
+pub use title_bar::{CONTROL_WIDTH, TITLE_BAR_HEIGHT, TitleBar};
 mod font;
 mod startup;
 pub use startup::{
@@ -139,6 +141,7 @@ impl Error for RendererInitError {}
 
 /// `wgpu` device, queue, and native surface lifecycle owned by the renderer.
 pub struct Renderer {
+    title_bar: Option<TitleBar>,
     throughput: Option<ThroughputRenderStats>,
     window: Arc<Window>,
     surface: wgpu::Surface<'static>,
@@ -245,6 +248,7 @@ impl Renderer {
         ));
 
         let mut renderer = Self {
+            title_bar: None,
             throughput: throughput::enabled().then(ThroughputRenderStats::default),
             window,
             surface,
@@ -433,6 +437,10 @@ impl Renderer {
         }
     }
 
+    pub fn set_title_bar(&mut self, title_bar: Option<TitleBar>) {
+        self.title_bar = title_bar;
+    }
+
     pub fn set_theme(&mut self, theme: RenderTheme) {
         self.theme = theme;
     }
@@ -523,6 +531,8 @@ impl Renderer {
                             pane_data,
                             &mut self.font_system,
                             PaneDraw {
+                                text_offset: [0.0; 2],
+                                rectangles: &[],
                                 rect,
                                 clear: clear_next,
                                 focused_border: *focused,
@@ -543,6 +553,49 @@ impl Renderer {
                             draw_resources_created,
                             work.queue_submissions,
                         ));
+                    }
+                    if let Some(bar) = &self.title_bar {
+                        let scale = self.window.scale_factor();
+                        if let Ok(metrics) = self.font_system.cell_metrics(scale, 13.0) {
+                            let drawing = title_bar::drawing(
+                                bar,
+                                size.width(),
+                                scale,
+                                metrics,
+                                &self.theme,
+                                if self.transparency_supported {
+                                    self.background_opacity
+                                } else {
+                                    1.0
+                                },
+                            );
+                            resources.draw_pane(
+                                &self.device,
+                                &self.queue,
+                                FrameContext {
+                                    target: &draw_view,
+                                    surface_size: size,
+                                    cell_metrics: metrics,
+                                    ui: &self.theme.ui,
+                                },
+                                &drawing.data,
+                                &mut self.font_system,
+                                PaneDraw {
+                                    rect: [
+                                        0,
+                                        0,
+                                        size.width(),
+                                        ((TITLE_BAR_HEIGHT * scale).round() as u32)
+                                            .min(size.height()),
+                                    ],
+                                    clear: clear_next,
+                                    focused_border: false,
+                                    text_offset: drawing.text_offset,
+                                    rectangles: &drawing.rectangles,
+                                },
+                            );
+                            clear_next = false;
+                        }
                     }
                     if clear_next && transparent {
                         let mut color = self.theme.background.0;

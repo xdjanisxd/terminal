@@ -205,6 +205,22 @@ Any remaining UI values keep renderer defaults. The more specific optional
 `scrollbar_thumb`, and `scrollbar_thumb_hover` fields override their
 related semantic UI colors. The example includes every theme field.
 
+The compact custom title bar uses terminal `background` (including Linux opacity
+and KDE Wayland blur), `ui_muted` for the centered directory, `ui_foreground` for
+line controls, and `ui_selected_background`/selected UI text for control hover
+and press states. It adds no configuration fields and follows theme reloads.
+The active pane's directory stays centered on the window and is truncated when
+space is tight. It comes from OSC 7 and shows only its last two nonempty path
+segments (percent escapes are decoded), such as `codes/terminal` or `backend/src`.
+When unavailable, the bar displays `Working directory unavailable`. Icons,
+process titles, and tab renames are not displayed in the bar.
+
+The left controls are close, maximize/restore, and minimize, in that order. Empty title space
+supports native dragging and double-click maximize/restore; window edges support
+native resizing. It disappears in fullscreen. These native operations depend on
+window-manager support. Tabs and other app tools remain accessible through their
+existing shortcuts and overlays.
+
 ## Key bindings and commands
 
 The built-in paste shortcuts are Ctrl+Shift+V and, on Linux, Shift+Insert.
