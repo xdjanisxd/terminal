@@ -8,6 +8,9 @@
 mod branding;
 mod commands;
 #[cfg(all(test, target_os = "linux"))]
+#[path = "tests/linux_window_effects.rs"]
+mod linux_window_effects_tests;
+#[cfg(all(test, target_os = "linux"))]
 #[path = "tests/linux_workspace.rs"]
 mod linux_workspace_tests;
 mod saved_workspaces;
@@ -15,6 +18,7 @@ mod search;
 mod shell;
 mod startup;
 mod throughput;
+mod window_effects;
 
 use commands::{Palette, PaletteAction, PaletteEntry};
 use saved_workspaces::SavedWorkspaces;
@@ -929,6 +933,11 @@ impl Application {
                     self.workspace_loaded = true;
                 }
                 if config.window != self.config.window {
+                    if config.window.blur != self.config.window.blur
+                        && let Some(window) = self.window.as_ref()
+                    {
+                        window_effects::set_blur(window, config.window.blur);
+                    }
                     if let Some(renderer) = self.renderer.as_mut() {
                         renderer.set_background_opacity(config.window.opacity);
                     }
@@ -1714,6 +1723,7 @@ impl Application {
                 branding::window_attributes().with_visible(self.startup_presentation.presented);
             match event_loop.create_window(attributes) {
                 Ok(window) => {
+                    window_effects::set_blur(&window, self.config.window.blur);
                     self.window = Some(Arc::new(window));
                     drop(window_stage);
                     startup_milestone("window-created");
@@ -2982,6 +2992,14 @@ impl ApplicationHandler<PtyWake> for Application {
 
     fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
         self.report_throughput();
+        #[cfg(target_os = "linux")]
+        {
+            // GPU backends and native effects borrow winit's Wayland display.
+            // Release them while the event loop still owns that connection,
+            // with the renderer gone before its window/surface owner.
+            self.renderer = None;
+            self.window = None;
+        }
     }
 }
 
@@ -6964,19 +6982,35 @@ mod tests {
         };
         fs::write(
             &path,
-            "[window]\nopacity = 0.85\n[theme]\nbackground = '#123456'",
+            "[window]\nopacity = 0.85\nblur = true\n[theme]\nbackground = '#123456'",
         )
         .unwrap();
         app.reload_config();
         assert_eq!(app.config.theme.background, Rgb(0x12, 0x34, 0x56));
 
         assert_eq!(app.config.window.opacity, 0.85);
+        assert!(app.config.window.blur);
         fs::write(&path, "[window]\nopacity = nan").unwrap();
         app.reload_config();
         assert_eq!(app.config.window.opacity, 0.85);
+        assert!(app.config.window.blur);
+        fs::write(&path, "[window]\nopacity = 0.0\nblur = 'true'").unwrap();
+        app.reload_config();
+        assert_eq!(app.config.window.opacity, 0.85);
+        assert!(app.config.window.blur);
         fs::write(&path, "[theme]\nbackground = 'invalid'").unwrap();
         app.reload_config();
         assert_eq!(app.config.theme.background, Rgb(0x12, 0x34, 0x56));
+
+        fs::write(&path, "[window]\nopacity = 0.5\nblur = false").unwrap();
+        app.reload_config();
+        assert_eq!(app.config.window.opacity, 0.5);
+        assert!(!app.config.window.blur);
+        fs::write(&path, "[window]\nblur = true").unwrap();
+        app.reload_config();
+        app.reload_config();
+        assert_eq!(app.config.window.opacity, 1.0);
+        assert!(app.config.window.blur);
 
         fs::remove_file(path).unwrap();
         app.reload_config();

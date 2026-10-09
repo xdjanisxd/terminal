@@ -1,0 +1,13 @@
+Filtered native test trace; timestamps are Wayland debug milliseconds.
+[ 182672.544]  -> org_kde_kwin_blur_manager#18.create(new id org_kde_kwin_blur#36, wl_surface#30)
+[ 182672.552]  -> org_kde_kwin_blur#36.commit()
+[ 184592.890]  -> org_kde_kwin_blur_manager#18.unset(wl_surface#30)
+[ 184592.904]  -> org_kde_kwin_blur#36.release()
+[ 185597.699]  -> org_kde_kwin_blur_manager#18.create(new id org_kde_kwin_blur#120, wl_surface#30)
+[ 185597.731]  -> org_kde_kwin_blur#120.commit()
+[ 191566.082]  -> org_kde_kwin_blur_manager#18.create(new id org_kde_kwin_blur#150, wl_surface#148)
+[ 191566.095]  -> org_kde_kwin_blur#150.commit()
+[ 191814.863]  -> org_kde_kwin_blur#120.release()
+[ 193684.462]  -> org_kde_kwin_blur#150.release()
+test linux_window_effects_tests::native_wayland_blur_reload_recreation_and_shutdown ... ok
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 138 filtered out; finished in 11.03s

@@ -31,14 +31,15 @@ when the app starts; restart after editing those. Runtime font shortcuts change
 the current size without editing the file, and reset returns to the configured
 startup size. Existing running panes are not rebuilt when the file changes.
 
-## Window opacity
+## Window opacity and blur
 
 ```toml
 [window]
 opacity = 0.85
+blur = true
 ```
 
-The section and field are optional; the default is `1.0` (fully opaque). Values
+The section and fields are optional; opacity defaults to `1.0` (fully opaque). Values
 must be finite numbers in `0.0..=1.0`; out-of-range values, NaN, infinity, invalid
 types, and unknown fields reject the configuration. Invalid reloads retain the
 last valid configuration.
@@ -54,8 +55,20 @@ Transparency requires compositor support and a wgpu surface advertising
 `PreMultiplied` alpha. Other alpha modes currently fall back to opaque rendering
 with a stderr diagnostic; the configured value remains intact. Linux windows
 request an alpha-capable native surface at creation to support live reload on
-X11. Blur and custom title bars are not implemented. See
+X11. Custom title bars are not implemented. See
 [the Linux opacity report](LINUX_WINDOW_OPACITY.md) for verified backends and limits.
+
+`blur` accepts a boolean and defaults to `false`. On KDE Wayland, `true` requests
+compositor-managed blur behind the transparent client area. Text, cursor,
+selection, and UI keep their existing rendering. Blur and opacity changes reload
+while running, including enabling and disabling blur. At opacity `1.0`, the
+opaque background hides the effect. Invalid reloads retain both previous values.
+
+Blur requires the compositor's KDE blur protocol and an enabled blur effect;
+the request does not guarantee a visible effect. Unsupported compositors retain
+opacity-only rendering. X11, Windows, and macOS accept the setting without
+applying blur. No system compositor settings are changed. See
+[the KDE Wayland blur report](LINUX_WINDOW_BLUR.md) for integration and limits.
 
 ## Shell
 

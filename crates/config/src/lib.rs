@@ -139,11 +139,15 @@ pub struct Config {
 #[derive(Clone, Debug, PartialEq)]
 pub struct WindowConfig {
     pub opacity: f32,
+    pub blur: bool,
 }
 
 impl Default for WindowConfig {
     fn default() -> Self {
-        Self { opacity: 1.0 }
+        Self {
+            opacity: 1.0,
+            blur: false,
+        }
     }
 }
 
@@ -252,15 +256,16 @@ impl Config {
         let raw: RawConfig =
             toml::from_str(source).map_err(|error| ConfigError(error.to_string()))?;
         let mut config = Self::default();
-        if let Some(window) = raw.window
-            && let Some(opacity) = window.opacity
-        {
-            if !opacity.is_finite() || !(0.0..=1.0).contains(&opacity) {
-                return Err(ConfigError(
-                    "window.opacity: expected a finite number in 0.0..=1.0".into(),
-                ));
+        if let Some(window) = raw.window {
+            config.window.blur = window.blur.unwrap_or(false);
+            if let Some(opacity) = window.opacity {
+                if !opacity.is_finite() || !(0.0..=1.0).contains(&opacity) {
+                    return Err(ConfigError(
+                        "window.opacity: expected a finite number in 0.0..=1.0".into(),
+                    ));
+                }
+                config.window.opacity = opacity as f32;
             }
-            config.window.opacity = opacity as f32;
         }
         if let Some(shell) = raw.shell {
             if shell.program.trim().is_empty() || shell.program.contains('\0') {
@@ -503,6 +508,7 @@ struct RawConfig {
 #[serde(default, deny_unknown_fields)]
 struct RawWindow {
     opacity: Option<f64>,
+    blur: Option<bool>,
 }
 
 #[derive(Deserialize, Default)]
@@ -1031,6 +1037,25 @@ args = ["-NoLogo", "two words", "", "'literal'"]
 #[cfg(test)]
 mod window_tests {
     use super::Config;
+    #[test]
+    fn blur_defaults_and_boolean_values() {
+        for source in ["", "[window]", "[window]\nopacity = 0.85"] {
+            assert!(!Config::parse(source).unwrap().window.blur);
+        }
+        for blur in [false, true] {
+            let config =
+                Config::parse(&format!("[window]\nopacity = 0.85\nblur = {blur}")).unwrap();
+            assert_eq!(config.window.blur, blur);
+            assert_eq!(config.window.opacity, 0.85);
+        }
+    }
+    #[test]
+    fn blur_rejects_incorrect_types() {
+        for value in ["0", "1", "0.85", "'true'", "[]", "{}"] {
+            let error = Config::parse(&format!("[window]\nblur = {value}")).unwrap_err();
+            assert!(error.to_string().contains("blur"), "{error}");
+        }
+    }
     #[test]
     fn opacity_defaults_and_valid_boundaries() {
         for source in ["", "[window]"] {

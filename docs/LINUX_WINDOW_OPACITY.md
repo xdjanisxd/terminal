@@ -123,10 +123,10 @@ screenshots are local acceptance evidence and are not included in the repository
 
 ## Blur handoff
 
-No blur protocol, compositor rule, or custom title bar was added. A later blur
-task can use the established alpha-capable window and premultiplied surface
-contract, but must separately negotiate compositor support and define blur
-regions. Terminal padding and cell backgrounds are translucent; selection,
-search highlights, and UI should retain their existing appearance. Opacity alone
-neither requests nor guarantees blur. Preserve the opaque fallback and the
-direct opacity-1 path when adding compositor-specific behavior.
+This opacity implementation added no blur protocol, compositor rule, or custom
+title bar. The subsequent [KDE Wayland blur implementation](LINUX_WINDOW_BLUR.md)
+uses the established alpha-capable window and premultiplied surface contract.
+Terminal padding and cell backgrounds are translucent; selection, search
+highlights, and UI retain their existing appearance. Opacity alone neither
+requests nor guarantees blur. The opaque fallback and direct opacity-1 path
+remain intact.
