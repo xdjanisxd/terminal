@@ -11,7 +11,8 @@ pub fn window_attributes() -> WindowAttributes {
 
         // Winit shares this identity with its X11 backend (WM_CLASS).
         let app_id = "io.github.xdjanisxd.terminal";
-        attributes.with_name(app_id, app_id)
+        // X11 needs an alpha visual at creation, including for later config reloads.
+        attributes.with_name(app_id, app_id).with_transparent(true)
     };
 
     #[cfg(target_os = "windows")]

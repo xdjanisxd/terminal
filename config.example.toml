@@ -2,6 +2,11 @@
 # This portable example matches defaults except Linux's Shift+Insert alias.
 # Optional fields are commented out. Unknown fields reject the whole file.
 
+# Linux terminal background opacity; live reload, default 1.0 (opaque).
+# Foreground, selection, cursor, and UI retain their existing rendering.
+# [window]
+# opacity = 0.85 # Finite number in 0.0..=1.0; unsupported surfaces stay opaque.
+
 # Optional shell override. Leave the entire section absent for platform defaults.
 # Choose one program; args are separate literal arguments, defaulting to [].
 # [shell]

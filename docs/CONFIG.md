@@ -25,11 +25,37 @@ the file and relevant source location or field. On a reload error the app
 reports the error to stderr and retains the last valid configuration. A
 missing file restores defaults for live-reloaded settings.
 
-The app reloads valid changes to theme, bindings, project palette entries, and shell selection
+The app reloads valid changes to Linux window opacity, theme, bindings, project palette entries, and shell selection
 while running. Font settings and startup workspace definitions are applied
 when the app starts; restart after editing those. Runtime font shortcuts change
 the current size without editing the file, and reset returns to the configured
 startup size. Existing running panes are not rebuilt when the file changes.
+
+## Window opacity
+
+```toml
+[window]
+opacity = 0.85
+```
+
+The section and field are optional; the default is `1.0` (fully opaque). Values
+must be finite numbers in `0.0..=1.0`; out-of-range values, NaN, infinity, invalid
+types, and unknown fields reject the configuration. Invalid reloads retain the
+last valid configuration.
+
+On Linux, valid changes reload while running. Opacity affects the default
+terminal background and explicit ANSI/RGB cell backgrounds, including inverse
+video backgrounds. Theme RGB values, foreground glyphs and underlines, cursor,
+selection, search highlights, and UI retain their existing rendering. At `0.0`,
+terminal backgrounds disappear while foreground and UI remain visible.
+Windows and macOS accept the setting but retain opaque window rendering.
+
+Transparency requires compositor support and a wgpu surface advertising
+`PreMultiplied` alpha. Other alpha modes currently fall back to opaque rendering
+with a stderr diagnostic; the configured value remains intact. Linux windows
+request an alpha-capable native surface at creation to support live reload on
+X11. Blur and custom title bars are not implemented. See
+[the Linux opacity report](LINUX_WINDOW_OPACITY.md) for verified backends and limits.
 
 ## Shell
 

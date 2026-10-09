@@ -181,6 +181,16 @@ impl TerminalRenderData {
     }
 
     pub fn from_terminal_with_theme(state: &TerminalState, theme: &RenderTheme) -> Self {
+        Self::from_terminal_with_opacity(state, theme, 1.0)
+    }
+
+    pub(crate) fn from_terminal_with_opacity(
+        state: &TerminalState,
+        theme: &RenderTheme,
+        opacity: f32,
+    ) -> Self {
+        let mut surface_background = theme.background;
+        surface_background.0[3] = opacity;
         let dimensions = state.dimensions();
         let mut cells = Vec::with_capacity(dimensions.cell_count() / 4);
         for row in 0..dimensions.rows() {
@@ -199,6 +209,7 @@ impl TerminalRenderData {
                 if attributes.inverse() == InverseVideo::Enabled {
                     std::mem::swap(&mut foreground, &mut background);
                 }
+                background.0[3] = opacity;
                 if state.is_selected(row, column)
                     || (cell.occupancy() == CellOccupancy::WideLead
                         && state.is_selected(row, column + 1))
@@ -209,7 +220,7 @@ impl TerminalRenderData {
                 let underline = attributes.underline() == UnderlineStyle::Enabled;
                 if matches!(cell.character(), ' ' | '\0')
                     && cell.combining_marks().is_empty()
-                    && background == theme.background
+                    && background == surface_background
                     && !underline
                 {
                     continue;
@@ -256,7 +267,7 @@ impl TerminalRenderData {
             cells,
             cursor,
             cursor_color: theme.cursor,
-            surface_background: theme.background,
+            surface_background,
             scrollbar,
             scrollbar_hover: None,
             search_markers: Vec::new(),
@@ -817,5 +828,75 @@ mod tests {
 
         let cell = &TerminalRenderData::from_terminal(&state).cells[0];
         assert_eq!(cell.text.as_str(), "e\u{301}");
+    }
+}
+
+#[cfg(test)]
+mod opacity_tests {
+    use super::*;
+    use terminal_core::{CellColor, InverseVideo, TerminalDimensions};
+    #[test]
+    fn opacity_changes_backgrounds_after_inverse_resolution() {
+        let mut state = TerminalState::new(TerminalDimensions::new(5, 1).unwrap());
+        state.set_background_color(CellColor::Indexed(1));
+        state.print_character('A').unwrap();
+        state.set_inverse_video(InverseVideo::Enabled);
+        state.print_character('B').unwrap();
+        let theme = RenderTheme::default();
+        let original = TerminalRenderData::from_terminal_with_theme(&state, &theme);
+        for opacity in [0.0, 0.85, 1.0] {
+            let data = TerminalRenderData::from_terminal_with_opacity(&state, &theme, opacity);
+            assert_eq!(
+                &data.surface_background.0[..3],
+                &original.surface_background.0[..3]
+            );
+            assert_eq!(data.surface_background.0[3], opacity);
+            assert_eq!(data.cursor_color, original.cursor_color);
+            for (cell, old) in data.cells.iter().zip(&original.cells) {
+                assert_eq!(cell.foreground, old.foreground);
+                assert_eq!(&cell.background.0[..3], &old.background.0[..3]);
+                assert_eq!(cell.background.0[3], opacity);
+            }
+            if opacity == 1.0 {
+                assert_eq!(data, original);
+            }
+        }
+    }
+    #[test]
+    fn selected_background_and_overlay_are_not_faded() {
+        let mut state = TerminalState::new(TerminalDimensions::new(5, 1).unwrap());
+        state.print_character('A').unwrap();
+        state.print_character('B').unwrap();
+        state.print_character('C').unwrap();
+        state.begin_selection(0, 0);
+        state.extend_selection(0, 1);
+        let theme = RenderTheme::default();
+        let mut data = TerminalRenderData::from_terminal_with_opacity(&state, &theme, 0.0);
+        assert_eq!(data.cells[0].background, theme.selection_background);
+        assert_eq!(data.cells[0].foreground, theme.selection_foreground);
+        assert_eq!(data.cells[2].background.0[3], 0.0);
+        data.apply_text_overlay(
+            &TextOverlay {
+                lines: vec![OverlayLine {
+                    text: "UI".into(),
+                    selected: true,
+                    accent_column: None,
+                }],
+                bottom: false,
+                search_matches: Vec::new(),
+                search_markers: Vec::new(),
+            },
+            &theme,
+        );
+        assert!(
+            data.cells
+                .iter()
+                .all(|cell| cell.background == theme.ui.selected_background)
+        );
+        assert!(
+            data.cells
+                .iter()
+                .all(|cell| cell.foreground == theme.ui.selected_foreground)
+        );
     }
 }

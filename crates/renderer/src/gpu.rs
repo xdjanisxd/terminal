@@ -194,7 +194,22 @@ impl GlyphAtlas {
     }
 }
 
+struct CompositionResources {
+    size: crate::SurfaceSize,
+    view: wgpu::TextureView,
+    bind_group: wgpu::BindGroup,
+}
+
+struct CompositionPipeline {
+    layout: wgpu::BindGroupLayout,
+    pipeline: wgpu::RenderPipeline,
+}
+
 pub(super) struct DrawResources {
+    composition_pipeline: Option<CompositionPipeline>,
+    composition: Option<CompositionResources>,
+    background_pipeline: Option<wgpu::RenderPipeline>,
+    format: wgpu::TextureFormat,
     rect_pipeline: wgpu::RenderPipeline,
     glyph_pipeline: wgpu::RenderPipeline,
     glyph_atlas: GlyphAtlas,
@@ -406,6 +421,10 @@ impl DrawResources {
         let glyph_atlas = GlyphAtlas::new(device, &glyph_bind_group_layout);
         drop(atlas_stage);
         Self {
+            composition_pipeline: None,
+            composition: None,
+            background_pipeline: None,
+            format,
             rect_pipeline,
             glyph_pipeline,
             glyph_atlas,
@@ -415,6 +434,134 @@ impl DrawResources {
             glyph_buffer: None,
             overlay_buffer: None,
         }
+    }
+
+    /// Allocate only for translucent frames, retaining the opaque rendering path.
+    pub(super) fn composition_target(
+        &mut self,
+        device: &wgpu::Device,
+        size: crate::SurfaceSize,
+    ) -> wgpu::TextureView {
+        if self.composition_pipeline.is_none() {
+            let layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                label: Some("terminal composition layout"),
+                entries: &[wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStages::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        sample_type: wgpu::TextureSampleType::Float { filterable: false },
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                        multisampled: false,
+                    },
+                    count: None,
+                }],
+            });
+            let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("terminal composition shader"),
+                source: wgpu::ShaderSource::Wgsl(include_str!("composition.wgsl").into()),
+            });
+            let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+                label: Some("terminal composition pipeline layout"),
+                bind_group_layouts: &[&layout],
+                push_constant_ranges: &[],
+            });
+            let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+                label: Some("terminal stored premultiplication"),
+                layout: Some(&pipeline_layout),
+                vertex: wgpu::VertexState {
+                    module: &shader,
+                    entry_point: Some("vertex"),
+                    buffers: &[],
+                    compilation_options: Default::default(),
+                },
+                fragment: Some(wgpu::FragmentState {
+                    module: &shader,
+                    entry_point: Some(if self.format.is_srgb() {
+                        "srgb_fragment"
+                    } else {
+                        "linear_fragment"
+                    }),
+                    targets: &[Some(wgpu::ColorTargetState {
+                        format: self.format,
+                        blend: None,
+                        write_mask: wgpu::ColorWrites::ALL,
+                    })],
+                    compilation_options: Default::default(),
+                }),
+                primitive: Default::default(),
+                depth_stencil: None,
+                multisample: Default::default(),
+                multiview: None,
+                cache: None,
+            });
+            self.composition_pipeline = Some(CompositionPipeline { layout, pipeline });
+        }
+        if self
+            .composition
+            .as_ref()
+            .is_none_or(|current| current.size != size)
+        {
+            let texture = device.create_texture(&wgpu::TextureDescriptor {
+                label: Some("terminal linear composition target"),
+                size: wgpu::Extent3d {
+                    width: size.width(),
+                    height: size.height(),
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format: self.format,
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT
+                    | wgpu::TextureUsages::TEXTURE_BINDING,
+                view_formats: &[],
+            });
+            let view = texture.create_view(&Default::default());
+            let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+                label: Some("terminal composition input"),
+                layout: &self.composition_pipeline.as_ref().unwrap().layout,
+                entries: &[wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&view),
+                }],
+            });
+            self.composition = Some(CompositionResources {
+                size,
+                view,
+                bind_group,
+            });
+        }
+        self.composition.as_ref().unwrap().view.clone()
+    }
+
+    pub(super) fn compose(
+        &self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        target: &wgpu::TextureView,
+    ) {
+        let composition = self.composition.as_ref().unwrap();
+        let mut encoder = device.create_command_encoder(&Default::default());
+        {
+            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                label: Some("terminal native alpha composition"),
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: target,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                        store: wgpu::StoreOp::Store,
+                    },
+                })],
+                depth_stencil_attachment: None,
+                timestamp_writes: None,
+                occlusion_query_set: None,
+            });
+            pass.set_pipeline(&self.composition_pipeline.as_ref().unwrap().pipeline);
+            pass.set_bind_group(0, &composition.bind_group, &[]);
+            pass.draw(0..3, 0..1);
+        }
+        queue.submit(Some(encoder.finish()));
     }
 
     #[cfg(test)]
@@ -456,6 +603,22 @@ impl DrawResources {
         pane_draw: PaneDraw,
     ) -> RenderWork {
         let pane = pane_draw.rect;
+        let transparent = data.surface_background.0[3] < 1.0;
+        if transparent && self.background_pipeline.is_none() {
+            let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+                label: Some("terminal background replacement shader"),
+                source: wgpu::ShaderSource::Wgsl(include_str!("terminal.wgsl").into()),
+            });
+            self.background_pipeline = Some(pipeline(
+                device,
+                &shader,
+                "rect_vertex",
+                "background_fragment",
+                self.format,
+                &[],
+                rect_layout(),
+            ));
+        }
         let generation_stage = crate::startup_stage("instance-generation");
         let generation_start = Instant::now();
         let mut shape_calls = 0;
@@ -471,11 +634,29 @@ impl DrawResources {
             .reserve(data.cells.len().saturating_sub(self.rectangles.capacity()));
         let mut previous_geometry: Option<GlyphGeometrySample> = None;
         let mut geometry_pair_logged = false;
+        if transparent {
+            for cell in &data.cells {
+                if cell.background != data.surface_background {
+                    self.rectangles.push(RectInstance {
+                        rect: to_clip_rect(
+                            pane[0] as f32 + cell.column as f32 * cell_width,
+                            pane[1] as f32 + cell.row as f32 * cell_height,
+                            cell.width as f32 * cell_width,
+                            cell_height,
+                            frame.surface_size,
+                        ),
+                        color: cell.background.0,
+                    });
+                    background_count += 1;
+                }
+            }
+        }
+        let replacement_count = background_count;
         for cell in &data.cells {
             let x = pane[0] as f32 + cell.column as f32 * cell_width;
             let y = pane[1] as f32 + cell.row as f32 * cell_height;
             let width = cell.width as f32 * cell_width;
-            if cell.background != data.surface_background {
+            if !transparent && cell.background != data.surface_background {
                 self.rectangles.push(RectInstance {
                     rect: to_clip_rect(x, y, width, cell_height, frame.surface_size),
                     color: cell.background.0,
@@ -719,9 +900,12 @@ impl DrawResources {
                     ops: wgpu::Operations {
                         load: if pane_draw.clear {
                             wgpu::LoadOp::Clear(wgpu::Color {
-                                r: data.surface_background.0[0] as f64,
-                                g: data.surface_background.0[1] as f64,
-                                b: data.surface_background.0[2] as f64,
+                                r: (data.surface_background.0[0] * data.surface_background.0[3])
+                                    as f64,
+                                g: (data.surface_background.0[1] * data.surface_background.0[3])
+                                    as f64,
+                                b: (data.surface_background.0[2] * data.surface_background.0[3])
+                                    as f64,
                                 a: data.surface_background.0[3] as f64,
                             })
                         } else {
@@ -745,7 +929,12 @@ impl DrawResources {
                         .buffer
                         .slice(..),
                 );
-                pass.draw(0..6, 0..rectangle_count as u32);
+                if replacement_count != 0 {
+                    pass.set_pipeline(self.background_pipeline.as_ref().unwrap());
+                    pass.draw(0..6, 0..replacement_count as u32);
+                    pass.set_pipeline(&self.rect_pipeline);
+                }
+                pass.draw(0..6, replacement_count as u32..rectangle_count as u32);
             }
             if glyph_count != 0 {
                 pass.set_pipeline(&self.glyph_pipeline);
@@ -879,7 +1068,8 @@ fn pipeline(
             entry_point: Some(fragment),
             targets: &[Some(wgpu::ColorTargetState {
                 format,
-                blend: Some(wgpu::BlendState::ALPHA_BLENDING),
+                blend: (fragment != "background_fragment")
+                    .then_some(wgpu::BlendState::ALPHA_BLENDING),
                 write_mask: wgpu::ColorWrites::ALL,
             })],
             compilation_options: Default::default(),
@@ -1081,6 +1271,23 @@ mod tests {
     #[test]
     #[ignore = "requires a native GPU adapter and system monospace font"]
     fn native_gpu_renders_backgrounds_glyphs_underlines_and_cursor() {
+        render_native_frame(1.0, wgpu::TextureFormat::Rgba8Unorm);
+    }
+
+    #[test]
+    #[ignore = "requires a native GPU adapter"]
+    fn native_gpu_background_opacity_and_srgb_premultiplication() {
+        for format in [
+            wgpu::TextureFormat::Rgba8Unorm,
+            wgpu::TextureFormat::Rgba8UnormSrgb,
+        ] {
+            for opacity in [0.0, 0.5, 0.85, 1.0] {
+                render_native_frame(opacity, format);
+            }
+        }
+    }
+
+    fn render_native_frame(opacity: f32, format: wgpu::TextureFormat) {
         const WIDTH: u32 = 768;
         const HEIGHT: u32 = 600;
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
@@ -1111,7 +1318,7 @@ mod tests {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::Rgba8Unorm,
+            format,
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
             view_formats: &[],
         });
@@ -1152,7 +1359,11 @@ mod tests {
         terminal.line_feed();
         terminal.carriage_return();
         assert_eq!(terminal.screen().cell(0, 2).unwrap().character(), '界');
-        let data = TerminalRenderData::from_terminal(&terminal);
+        let theme = crate::RenderTheme {
+            background: crate::Rgba([0.2, 0.3, 0.4, 1.0]),
+            ..Default::default()
+        };
+        let data = TerminalRenderData::from_terminal_with_opacity(&terminal, &theme, opacity);
         let wide_cell = data
             .cells
             .iter()
@@ -1163,7 +1374,7 @@ mod tests {
             wide_cell.foreground.0,
             [230.0 / 255.0, 30.0 / 255.0, 230.0 / 255.0, 1.0]
         );
-        let mut resources = DrawResources::new(&device, wgpu::TextureFormat::Rgba8Unorm);
+        let mut resources = DrawResources::new(&device, format);
         let mut fonts =
             FontSystem::load_system(FontRequest::default()).expect("system monospace font");
         let pixels_per_em = HEIGHT as f32 / data.rows as f32;
@@ -1185,11 +1396,16 @@ mod tests {
                 )
                 .is_some()
         );
+        let target = if opacity < 1.0 {
+            resources.composition_target(&device, SurfaceSize::new(WIDTH, HEIGHT).unwrap())
+        } else {
+            view.clone()
+        };
         resources.draw(
             &device,
             &queue,
             FrameContext {
-                target: &view,
+                target: &target,
                 surface_size: SurfaceSize::new(WIDTH, HEIGHT).unwrap(),
                 cell_metrics: crate::CellMetrics::from_physical(96, 25, 25.0),
                 ui: &crate::UiRenderTheme::default(),
@@ -1198,6 +1414,9 @@ mod tests {
             &mut fonts,
         );
 
+        if opacity < 1.0 {
+            resources.compose(&device, &queue, &view);
+        }
         let readback = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("terminal renderer native frame smoke readback"),
             size: (WIDTH * HEIGHT * 4) as u64,
@@ -1238,29 +1457,65 @@ mod tests {
         let bytes = slice.get_mapped_range();
         let (pixels, remainder) = bytes.as_chunks::<4>();
         assert!(remainder.is_empty(), "RGBA readback must have whole pixels");
-        assert!(pixels.iter().any(|pixel| pixel[2] > 80));
+        let encode = |x: f32| {
+            if format.is_srgb() {
+                if x <= 0.0031308 {
+                    12.92 * x
+                } else {
+                    1.055 * x.powf(1.0 / 2.4) - 0.055
+                }
+            } else {
+                x
+            }
+        };
+        let expected = [
+            encode(0.2) * opacity * 255.0,
+            encode(0.3) * opacity * 255.0,
+            encode(0.4) * opacity * 255.0,
+            opacity * 255.0,
+        ];
+        let background = pixels[(HEIGHT as usize - 1) * WIDTH as usize + WIDTH as usize - 1];
+        for (actual, expected) in background.into_iter().zip(expected) {
+            assert!(
+                (f32::from(actual) - expected).abs() <= 2.0,
+                "format={format:?} opacity={opacity} background={background:?} expected={expected}"
+            );
+        }
+        // Colored cell background replaces the clear; alpha must not accumulate.
+        let colored = pixels[0];
+        assert!((f32::from(colored[3]) - opacity * 255.0).abs() <= 1.0);
         assert!(
             pixels
                 .iter()
-                .any(|pixel| i16::from(pixel[0]) > i16::from(pixel[1]) * 2)
+                .any(|pixel| pixel[3] > (opacity * 255.0) as u8)
+                || opacity == 1.0,
+            "foreground coverage must remain independent of background opacity"
         );
-        assert!(
-            pixels
-                .iter()
-                .any(|pixel| i16::from(pixel[1]) > i16::from(pixel[0]) * 2)
-        );
-        assert!(pixels.iter().any(|pixel| {
-            pixel[0] > 70
-                && pixel[1] > 70
-                && pixel[2] > 70
-                && (pixel[0] as i16 - pixel[1] as i16).abs() < 20
-                && (pixel[1] as i16 - pixel[2] as i16).abs() < 20
-        }));
-        assert!(
-            pixels
-                .iter()
-                .any(|pixel| pixel[0] > 150 && pixel[1] < 100 && pixel[2] > 150)
-        );
+        if opacity == 1.0 {
+            assert!(pixels.iter().any(|pixel| pixel[2] > 80));
+            assert!(
+                pixels
+                    .iter()
+                    .any(|pixel| i16::from(pixel[0]) > i16::from(pixel[1]) * 2)
+            );
+            assert!(
+                pixels
+                    .iter()
+                    .any(|pixel| i16::from(pixel[1]) > i16::from(pixel[0]) * 2)
+            );
+            assert!(pixels.iter().any(|pixel| {
+                pixel[0] > 70
+                    && pixel[1] > 70
+                    && pixel[2] > 70
+                    && (pixel[0] as i16 - pixel[1] as i16).abs() < 20
+                    && (pixel[1] as i16 - pixel[2] as i16).abs() < 20
+            }));
+            assert!(
+                pixels
+                    .iter()
+                    .any(|pixel| pixel[0] > 150 && pixel[1] < 100 && pixel[2] > 150)
+            );
+        }
         drop(bytes);
         readback.unmap();
     }
