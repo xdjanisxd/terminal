@@ -2001,6 +2001,7 @@ dependencies = [
  "swash",
  "terminal-core",
  "terminal-workspace",
+ "unicode-width",
  "wgpu",
  "winit",
 ]
