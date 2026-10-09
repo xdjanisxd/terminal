@@ -56,3 +56,9 @@ fn glyph_fragment(input: Output) -> @location(0) vec4<f32> {
     let alpha = textureSample(glyph_atlas, glyph_sampler, input.uv).r;
     return vec4<f32>(input.color.rgb, input.color.a * alpha);
 }
+
+// Backgrounds replace the clear rather than accumulating alpha over it.
+@fragment
+fn background_fragment(input: Output) -> @location(0) vec4<f32> {
+    return vec4<f32>(input.color.rgb * input.color.a, input.color.a);
+}

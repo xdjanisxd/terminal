@@ -124,14 +124,27 @@ pub struct Binding {
     pub command: Command,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Config {
+    pub window: WindowConfig,
     pub shell: Option<ShellConfig>,
     pub font: FontConfig,
     pub theme: Theme,
     pub bindings: Vec<Binding>,
     pub workspace: WorkspaceDefinition,
     pub projects: Vec<ProjectRoot>,
+}
+
+/// Native window settings; opacity is validated before entering runtime state.
+#[derive(Clone, Debug, PartialEq)]
+pub struct WindowConfig {
+    pub opacity: f32,
+}
+
+impl Default for WindowConfig {
+    fn default() -> Self {
+        Self { opacity: 1.0 }
+    }
 }
 
 /// Global launch policy for fresh local-shell sessions, never runtime state.
@@ -172,6 +185,7 @@ pub struct ProjectRoot {
 impl Default for Config {
     fn default() -> Self {
         Self {
+            window: WindowConfig::default(),
             shell: None,
             font: FontConfig::default(),
             theme: Theme::default(),
@@ -238,6 +252,16 @@ impl Config {
         let raw: RawConfig =
             toml::from_str(source).map_err(|error| ConfigError(error.to_string()))?;
         let mut config = Self::default();
+        if let Some(window) = raw.window
+            && let Some(opacity) = window.opacity
+        {
+            if !opacity.is_finite() || !(0.0..=1.0).contains(&opacity) {
+                return Err(ConfigError(
+                    "window.opacity: expected a finite number in 0.0..=1.0".into(),
+                ));
+            }
+            config.window.opacity = opacity as f32;
+        }
         if let Some(shell) = raw.shell {
             if shell.program.trim().is_empty() || shell.program.contains('\0') {
                 return Err(ConfigError(
@@ -466,12 +490,19 @@ impl std::error::Error for ConfigError {}
 #[derive(Deserialize, Default)]
 #[serde(default, deny_unknown_fields)]
 struct RawConfig {
+    window: Option<RawWindow>,
     shell: Option<ShellConfig>,
     font: Option<RawFont>,
     theme: Option<RawTheme>,
     bindings: Option<Vec<RawBinding>>,
     workspace: Option<WorkspaceDefinition>,
     projects: Option<Vec<ProjectRoot>>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default, deny_unknown_fields)]
+struct RawWindow {
+    opacity: Option<f64>,
 }
 
 #[derive(Deserialize, Default)]
@@ -994,5 +1025,38 @@ args = ["-NoLogo", "two words", "", "'literal'"]
         assert_eq!(config.bindings[0].command, Command::FocusPaneUp);
         assert_eq!(config.bindings[1].key.key, "ArrowDown");
         assert_eq!(config.bindings[1].command, Command::FocusPaneDown);
+    }
+}
+
+#[cfg(test)]
+mod window_tests {
+    use super::Config;
+    #[test]
+    fn opacity_defaults_and_valid_boundaries() {
+        for source in ["", "[window]"] {
+            assert_eq!(Config::parse(source).unwrap().window.opacity, 1.0);
+        }
+        for opacity in ["0.0", "0.85", "1.0", "0", "1"] {
+            let config = Config::parse(&format!("[window]\nopacity = {opacity}")).unwrap();
+            assert_eq!(config.window.opacity, opacity.parse::<f32>().unwrap());
+        }
+    }
+    #[test]
+    fn opacity_rejects_invalid_values_and_unknown_fields() {
+        for value in [
+            "-0.01",
+            "1.01",
+            "1.00000000001",
+            "nan",
+            "inf",
+            "-inf",
+            "'0.85'",
+            "true",
+            "[]",
+        ] {
+            let error = Config::parse(&format!("[window]\nopacity = {value}")).unwrap_err();
+            assert!(error.to_string().contains("opacity"), "{error}");
+        }
+        assert!(Config::parse("[window]\nopactiy = 0.85").is_err());
     }
 }

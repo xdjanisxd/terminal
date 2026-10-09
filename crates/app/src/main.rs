@@ -928,6 +928,12 @@ impl Application {
                     startup_milestone("workspace-restore-end");
                     self.workspace_loaded = true;
                 }
+                if config.window != self.config.window {
+                    if let Some(renderer) = self.renderer.as_mut() {
+                        renderer.set_background_opacity(config.window.opacity);
+                    }
+                    self.invalidate_frame();
+                }
                 if config.theme != self.config.theme {
                     if let Some(renderer) = self.renderer.as_mut() {
                         renderer.set_theme(render_theme(&config.theme));
@@ -1722,10 +1728,11 @@ impl Application {
         }
 
         let window = self.window.as_ref().unwrap();
-        match Renderer::new_with_font_settings(
+        match Renderer::new_with_window_settings(
             Arc::clone(window),
             font_request(&self.config.font),
             f32::from(self.config.font.size),
+            self.config.window.opacity,
         ) {
             Ok(mut renderer) => {
                 renderer.set_theme(render_theme(&self.config.theme));
@@ -6955,10 +6962,18 @@ mod tests {
             config_path: path.clone(),
             ..Application::default()
         };
-        fs::write(&path, "[theme]\nbackground = '#123456'").unwrap();
+        fs::write(
+            &path,
+            "[window]\nopacity = 0.85\n[theme]\nbackground = '#123456'",
+        )
+        .unwrap();
         app.reload_config();
         assert_eq!(app.config.theme.background, Rgb(0x12, 0x34, 0x56));
 
+        assert_eq!(app.config.window.opacity, 0.85);
+        fs::write(&path, "[window]\nopacity = nan").unwrap();
+        app.reload_config();
+        assert_eq!(app.config.window.opacity, 0.85);
         fs::write(&path, "[theme]\nbackground = 'invalid'").unwrap();
         app.reload_config();
         assert_eq!(app.config.theme.background, Rgb(0x12, 0x34, 0x56));

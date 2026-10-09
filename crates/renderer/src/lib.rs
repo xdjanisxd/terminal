@@ -153,6 +153,8 @@ pub struct Renderer {
     cell_metrics: CellMetrics,
     draw_resources: Option<DrawResources>,
     theme: RenderTheme,
+    background_opacity: f32,
+    transparency_supported: bool,
 }
 
 impl Renderer {
@@ -186,6 +188,26 @@ impl Renderer {
         font_request: FontRequest,
         logical_font_size: f32,
     ) -> Result<Self, RendererInitError> {
+        Self::new_with_window_settings(window, font_request, logical_font_size, 1.0)
+    }
+
+    pub fn new_with_window_settings(
+        window: Arc<Window>,
+        font_request: FontRequest,
+        logical_font_size: f32,
+        opacity: f32,
+    ) -> Result<Self, RendererInitError> {
+        #[cfg(target_os = "linux")]
+        let background_opacity = if opacity.is_finite() && (0.0..=1.0).contains(&opacity) {
+            opacity
+        } else {
+            1.0
+        };
+        #[cfg(not(target_os = "linux"))]
+        let background_opacity = {
+            let _ = opacity;
+            1.0
+        };
         startup_milestone("fonts-started");
         let font_stage = startup_stage("font-family-preparation");
         let font_system = FontSystem::load_system(font_request).map_err(|error| {
@@ -200,6 +222,15 @@ impl Renderer {
             })?;
         drop(metrics_stage);
         startup_milestone("fonts-ready");
+        use winit::raw_window_handle::{HasWindowHandle, RawWindowHandle};
+        if let Ok(handle) = window.window_handle() {
+            let backend = match handle.as_raw() {
+                RawWindowHandle::Wayland(_) => "Wayland",
+                RawWindowHandle::Xlib(_) | RawWindowHandle::Xcb(_) => "X11",
+                _ => "other",
+            };
+            emit_diagnostic(format_args!("renderer event=window backend={backend}"));
+        }
         let size = SurfaceSize::new(window.inner_size().width, window.inner_size().height);
         startup_milestone("gpu-started");
         let (surface, adapter, device, queue) = initialize_gpu(&window)?;
@@ -227,6 +258,8 @@ impl Renderer {
             cell_metrics,
             draw_resources: None,
             theme: RenderTheme::default(),
+            background_opacity,
+            transparency_supported: false,
         };
         renderer.reconfigure();
         emit_diagnostic(format_args!(
@@ -337,7 +370,11 @@ impl Renderer {
         overlay: Option<&TextOverlay>,
     ) -> RedrawOutcome {
         let projection_start = Instant::now();
-        let mut data = TerminalRenderData::from_terminal_with_theme(state, &self.theme);
+        let mut data = TerminalRenderData::from_terminal_with_opacity(
+            state,
+            &self.theme,
+            self.effective_opacity(),
+        );
         if let Some(overlay) = overlay {
             data.apply_text_overlay(overlay, &self.theme);
         }
@@ -357,7 +394,8 @@ impl Renderer {
     ) -> RedrawOutcome {
         let projection_start = Instant::now();
         let projection_stage = startup_stage("initial-projection");
-        let data = project_panes(panes, overlay, &self.theme);
+        let data =
+            project_panes_with_opacity(panes, overlay, &self.theme, self.effective_opacity());
         drop(projection_stage);
         if let Some(stats) = &mut self.throughput {
             stats.projection += projection_start.elapsed();
@@ -371,6 +409,28 @@ impl Renderer {
             projection_start.elapsed().as_micros()
         ));
         self.redraw_data(Some(&data))
+    }
+
+    /// Linux composition policy; other platforms retain opaque rendering.
+    pub fn set_background_opacity(&mut self, opacity: f32) {
+        #[cfg(target_os = "linux")]
+        if opacity.is_finite()
+            && (0.0..=1.0).contains(&opacity)
+            && self.background_opacity != opacity
+        {
+            self.background_opacity = opacity;
+            self.reconfigure();
+        }
+        #[cfg(not(target_os = "linux"))]
+        let _ = opacity;
+    }
+
+    fn effective_opacity(&self) -> f32 {
+        if self.transparency_supported {
+            self.background_opacity
+        } else {
+            1.0
+        }
     }
 
     pub fn set_theme(&mut self, theme: RenderTheme) {
@@ -425,6 +485,7 @@ impl Renderer {
                 if let (Some(data), Some(size), Some(configuration)) =
                     (data, self.size, self.configuration.as_ref())
                 {
+                    let transparent = self.effective_opacity() < 1.0;
                     let draw_resources_created = self.draw_resources.is_none();
                     let resources = self.draw_resources.get_or_insert_with(|| {
                         DrawResources::new(&self.device, configuration.format)
@@ -434,6 +495,11 @@ impl Renderer {
                         .texture
                         .create_view(&wgpu::TextureViewDescriptor::default());
                     drop(view_stage);
+                    let draw_view = if transparent {
+                        resources.composition_target(&self.device, size)
+                    } else {
+                        view.clone()
+                    };
                     let mut clear_next = true;
                     for (index, (pane_data, rect, focused)) in data.iter().enumerate() {
                         let rect = [
@@ -449,7 +515,7 @@ impl Renderer {
                             &self.device,
                             &self.queue,
                             FrameContext {
-                                target: &view,
+                                target: &draw_view,
                                 surface_size: size,
                                 cell_metrics: self.cell_metrics,
                                 ui: &self.theme.ui,
@@ -478,8 +544,42 @@ impl Renderer {
                             work.queue_submissions,
                         ));
                     }
+                    if clear_next && transparent {
+                        let mut color = self.theme.background.0;
+                        color[3] = self.background_opacity;
+                        clear_background(
+                            &self.device,
+                            &self.queue,
+                            &draw_view,
+                            color,
+                            wgpu::TextureFormat::Rgba8Unorm,
+                        );
+                    }
+                    if transparent {
+                        let composition_started = Instant::now();
+                        resources.compose(&self.device, &self.queue, &view);
+                        if let Some(stats) = &mut self.throughput {
+                            stats.submission += composition_started.elapsed();
+                        }
+                        emit_diagnostic(format_args!(
+                            "renderer frame={frame_id} event=composed queue_submissions=1"
+                        ));
+                    }
                 } else {
-                    self.queue.submit(std::iter::empty());
+                    if self.effective_opacity() < 1.0 {
+                        let view = frame.texture.create_view(&Default::default());
+                        let mut color = self.theme.background.0;
+                        color[3] = self.effective_opacity();
+                        clear_background(
+                            &self.device,
+                            &self.queue,
+                            &view,
+                            color,
+                            self.configuration.as_ref().unwrap().format,
+                        );
+                    } else {
+                        self.queue.submit(std::iter::empty());
+                    }
                     emit_diagnostic(format_args!(
                         "renderer frame={frame_id} event=frame-rendered terminal_data=false"
                     ));
@@ -559,7 +659,7 @@ impl Renderer {
             return false;
         };
         let configuration_stage = startup_stage("surface-capabilities-and-config");
-        let Some(configuration) =
+        let Some(mut configuration) =
             self.surface
                 .get_default_config(&self.adapter, size.width(), size.height())
         else {
@@ -571,6 +671,24 @@ impl Renderer {
             ));
             return false;
         };
+        self.transparency_supported = false;
+        if self.background_opacity < 1.0 {
+            let capabilities = self.surface.get_capabilities(&self.adapter);
+            if supports_transparency(&capabilities.alpha_modes) {
+                configuration.alpha_mode = wgpu::CompositeAlphaMode::PreMultiplied;
+                self.transparency_supported = true;
+            } else {
+                eprintln!(
+                    "window opacity unavailable: surface does not support premultiplied alpha; using opaque background"
+                );
+            }
+        }
+        emit_diagnostic(format_args!(
+            "renderer event=opacity requested={} effective={} alpha_mode={:?}",
+            self.background_opacity,
+            self.effective_opacity(),
+            configuration.alpha_mode
+        ));
         drop(configuration_stage);
         let draw_resources_reset = needs_draw_resource_rebuild(
             self.configuration.as_ref().map(|current| current.format),
@@ -711,16 +829,27 @@ fn initialize_gpu(
     Err(last_error.expect("at least one GPU backend is attempted"))
 }
 
+#[cfg(test)]
 fn project_panes(
     panes: &[PaneRenderInput<'_>],
     overlay: Option<&TextOverlay>,
     theme: &RenderTheme,
 ) -> Vec<(TerminalRenderData, [u32; 4], bool)> {
+    project_panes_with_opacity(panes, overlay, theme, 1.0)
+}
+
+fn project_panes_with_opacity(
+    panes: &[PaneRenderInput<'_>],
+    overlay: Option<&TextOverlay>,
+    theme: &RenderTheme,
+    opacity: f32,
+) -> Vec<(TerminalRenderData, [u32; 4], bool)> {
     let multiple = panes.len() > 1;
     panes
         .iter()
         .map(|pane| {
-            let mut data = TerminalRenderData::from_terminal_with_theme(pane.terminal, theme);
+            let mut data =
+                TerminalRenderData::from_terminal_with_opacity(pane.terminal, theme, opacity);
             data.scrollbar_hover = pane.scrollbar_hover;
             if !pane.focused {
                 data.cursor = None;
@@ -733,6 +862,59 @@ fn project_panes(
             (data, pane.rect, multiple && pane.focused)
         })
         .collect()
+}
+
+fn clear_background(
+    device: &wgpu::Device,
+    queue: &wgpu::Queue,
+    target: &wgpu::TextureView,
+    color: [f32; 4],
+    format: wgpu::TextureFormat,
+) {
+    let channel = |value: f32| {
+        if format.is_srgb() {
+            let encoded = if value <= 0.0031308 {
+                12.92 * value
+            } else {
+                1.055 * value.powf(1.0 / 2.4) - 0.055
+            };
+            let stored = encoded * color[3];
+            if stored <= 0.04045 {
+                stored / 12.92
+            } else {
+                ((stored + 0.055) / 1.055).powf(2.4)
+            }
+        } else {
+            value * color[3]
+        }
+    };
+    let mut encoder = device.create_command_encoder(&Default::default());
+    {
+        let _pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+            label: Some("terminal empty background clear"),
+            color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                view: target,
+                resolve_target: None,
+                ops: wgpu::Operations {
+                    load: wgpu::LoadOp::Clear(wgpu::Color {
+                        r: channel(color[0]) as f64,
+                        g: channel(color[1]) as f64,
+                        b: channel(color[2]) as f64,
+                        a: color[3] as f64,
+                    }),
+                    store: wgpu::StoreOp::Store,
+                },
+            })],
+            depth_stencil_attachment: None,
+            timestamp_writes: None,
+            occlusion_query_set: None,
+        });
+    }
+    queue.submit(Some(encoder.finish()));
+}
+
+fn supports_transparency(modes: &[wgpu::CompositeAlphaMode]) -> bool {
+    modes.contains(&wgpu::CompositeAlphaMode::PreMultiplied)
 }
 
 fn needs_reconfigure(
@@ -856,5 +1038,21 @@ mod tests {
             Some(wgpu::TextureFormat::Rgba8UnormSrgb),
             wgpu::TextureFormat::Bgra8UnormSrgb
         ));
+    }
+}
+
+#[cfg(test)]
+mod alpha_tests {
+    #[test]
+    fn only_explicit_premultiplication_is_supported() {
+        use wgpu::CompositeAlphaMode::*;
+        assert!(super::supports_transparency(&[Opaque, PreMultiplied]));
+        assert!(!super::supports_transparency(&[
+            Opaque,
+            Auto,
+            Inherit,
+            PostMultiplied
+        ]));
+        assert!(!super::supports_transparency(&[]));
     }
 }
