@@ -1,0 +1,32 @@
+[
+  {
+    "command": "cargo fmt --all -- --check",
+    "exit_code": 0,
+    "seconds": 0.71
+  },
+  {
+    "command": "cargo check --workspace --all-targets",
+    "exit_code": 0,
+    "seconds": 1.7
+  },
+  {
+    "command": "cargo test --workspace --all-targets",
+    "exit_code": 0,
+    "seconds": 40.91
+  },
+  {
+    "command": "cargo clippy --workspace --all-targets -- -D warnings",
+    "exit_code": 0,
+    "seconds": 1.75
+  },
+  {
+    "command": "cargo build --release -p terminal-app",
+    "exit_code": 0,
+    "seconds": 7.99
+  },
+  {
+    "command": "git diff --check",
+    "exit_code": 0,
+    "seconds": 0.03
+  }
+]

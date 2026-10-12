@@ -127,6 +127,11 @@ command = "reset_font_size"
 key = "Ctrl+Shift+P"
 command = "open_palette"
 
+# Show keyboard hints beside visible HTTP/HTTPS URLs.
+[[bindings]]
+key = "Ctrl+Shift+U"
+command = "open_url_hints"
+
 # Open the searchable tab picker.
 [[bindings]]
 key = "Ctrl+Shift+Space"

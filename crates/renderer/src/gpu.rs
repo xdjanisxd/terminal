@@ -1320,7 +1320,29 @@ mod tests {
         }
     }
 
+    #[test]
+    #[ignore = "requires a native GPU adapter and system monospace font"]
+    fn native_gpu_url_hints_preserve_surrounding_alpha() {
+        for format in [
+            wgpu::TextureFormat::Rgba8Unorm,
+            wgpu::TextureFormat::Rgba8UnormSrgb,
+        ] {
+            for opacity in [0.0, 0.85, 1.0] {
+                render_native_frame_with_overlay(opacity, format, false, true);
+            }
+        }
+    }
+
     fn render_native_frame_with_palette(opacity: f32, format: wgpu::TextureFormat, palette: bool) {
+        render_native_frame_with_overlay(opacity, format, palette, false);
+    }
+
+    fn render_native_frame_with_overlay(
+        opacity: f32,
+        format: wgpu::TextureFormat,
+        palette: bool,
+        hints: bool,
+    ) {
         const WIDTH: u32 = 768;
         const HEIGHT: u32 = 600;
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
@@ -1452,6 +1474,42 @@ mod tests {
             &mut fonts,
         );
 
+        if hints {
+            let labels = [crate::HintLabel {
+                row: 10,
+                start: 0,
+                end: 1,
+                text: "AJ".into(),
+            }];
+            let drawing = crate::hints::drawings(
+                &labels,
+                [0, 0, WIDTH, HEIGHT],
+                crate::CellMetrics::from_physical(96, 25, 25.0),
+                fonts.cell_metrics(1.0, 11.0).unwrap(),
+                &theme,
+                opacity,
+            )
+            .remove(0);
+            resources.draw_pane(
+                &device,
+                &queue,
+                FrameContext {
+                    target: &target,
+                    surface_size: SurfaceSize::new(WIDTH, HEIGHT).unwrap(),
+                    cell_metrics: drawing.metrics,
+                    ui: &theme.ui,
+                },
+                &drawing.data,
+                &mut fonts,
+                super::PaneDraw {
+                    rect: drawing.rect,
+                    clear: false,
+                    focused_border: false,
+                    text_offset: drawing.text_offset,
+                    rectangles: &drawing.rectangles,
+                },
+            );
+        }
         if palette {
             let panel = crate::PalettePanel {
                 title: "Command Palette",
@@ -1563,6 +1621,14 @@ mod tests {
         // Colored cell background replaces the clear; alpha must not accumulate.
         let colored = pixels[0];
         assert!((f32::from(colored[3]) - opacity * 255.0).abs() <= 1.0);
+        if hints {
+            let label_background = pixels[260 * WIDTH as usize + 98];
+            let expected_alpha = (opacity.max(0.94) + opacity * (1.0 - opacity.max(0.94))) * 255.0;
+            assert!(
+                (f32::from(label_background[3]) - expected_alpha).abs() <= 2.0,
+                "hint alpha {label_background:?}, opacity={opacity}"
+            );
+        }
         if palette {
             let panel_background = pixels[50 * WIDTH as usize + 120];
             let expected_alpha = (opacity.max(0.94) + opacity * (1.0 - opacity.max(0.94))) * 255.0;

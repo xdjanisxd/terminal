@@ -21,6 +21,10 @@ mod search;
 mod shell;
 mod startup;
 mod throughput;
+#[cfg(test)]
+#[path = "tests/url_hints.rs"]
+mod url_hint_tests;
+mod url_hints;
 mod window_chrome;
 mod window_effects;
 
@@ -117,6 +121,9 @@ struct Application {
     activity_frame: usize,
     activity_deadline: Option<Instant>,
     search: Option<Search>,
+    url_hints: Option<url_hints::Session>,
+    url_click: Option<(url_hints::Occurrence, PhysicalPosition<f64>)>,
+    hint_keys_held: HashSet<PhysicalKey>,
     tab_rename: Option<String>,
 }
 
@@ -661,6 +668,9 @@ impl Default for Application {
             activity_frame: 0,
             activity_deadline: None,
             search: None,
+            url_hints: None,
+            url_click: None,
+            hint_keys_held: HashSet::new(),
             tab_rename: None,
         }
     }
@@ -1142,6 +1152,8 @@ impl Application {
             return;
         }
         self.search = None;
+        self.url_hints = None;
+        self.url_click = None;
         let next_runtime = self
             .inactive_panes
             .remove(&next)
@@ -1232,7 +1244,15 @@ impl Application {
     }
 
     fn dispatch_command(&mut self, command: Command) {
+        self.url_hints = None;
+        self.url_click = None;
         match command {
+            Command::OpenUrlHints => {
+                self.prepare_panel_input();
+                self.search = None;
+                self.url_hints = url_hints::Session::new(&self.terminal);
+                self.invalidate_frame();
+            }
             Command::SelectLeft
             | Command::SelectRight
             | Command::SelectWordLeft
@@ -1649,6 +1669,8 @@ impl Application {
     }
 
     fn prepare_panel_input(&mut self) {
+        self.url_hints = None;
+        self.url_click = None;
         if let Some(button) = self.pressed_mouse_button.take() {
             self.send_mouse_event(MouseEvent::Release(button));
         }
@@ -1658,6 +1680,115 @@ impl Application {
         self.scrollbar_drag = None;
         self.scrollbar_click_held = false;
         self.set_scrollbar_hover(None);
+    }
+
+    fn validate_url_hints(&mut self) {
+        if self
+            .url_hints
+            .as_ref()
+            .is_some_and(|session| !session.valid(&self.terminal))
+        {
+            self.url_hints = None;
+            self.invalidate_frame();
+        }
+    }
+
+    fn open_hint_url(&mut self, url: &str) {
+        self.url_hints = None;
+        self.url_click = None;
+        if let Err(error) = url_hints::open_with(url, terminal_platform::open_url) {
+            self.workspace_notice = Some(format!("Could not open URL: {error}"));
+        }
+        self.invalidate_frame();
+    }
+
+    fn terminal_command(&self, physical: PhysicalKey) -> Option<Command> {
+        configured_command(&self.config, physical, self.modifiers).filter(|command| {
+            *command != Command::OpenUrlHints || url_hints::enabled(&self.terminal)
+        })
+    }
+
+    fn route_url_hint_key(
+        &mut self,
+        key: &Key,
+        physical: PhysicalKey,
+        text: Option<&str>,
+        repeat: bool,
+    ) -> bool {
+        let active = self.url_hints.is_some();
+        let configured = configured_command(&self.config, physical, self.modifiers);
+        if repeat && self.hint_keys_held.contains(&physical) && (!active || configured.is_none()) {
+            return true;
+        }
+        // A key arriving during stale-session cancellation still belongs to
+        // that session and must not be forwarded to the PTY.
+        self.validate_url_hints();
+        if !active {
+            return false;
+        }
+        if configured.is_none() {
+            self.hint_keys_held.insert(physical);
+        } else {
+            self.hint_keys_held.remove(&physical);
+        }
+        self.handle_url_hint_key(key, physical, text, repeat);
+        true
+    }
+
+    fn handle_url_hint_key(
+        &mut self,
+        key: &Key,
+        physical: PhysicalKey,
+        text: Option<&str>,
+        repeat: bool,
+    ) {
+        if let Some(command) = configured_command(&self.config, physical, self.modifiers) {
+            if repeat && command == Command::OpenUrlHints {
+                return;
+            }
+            self.dispatch_command(command);
+            self.invalidate_frame();
+            return;
+        }
+        if repeat {
+            return;
+        }
+        let Some(mut session) = self.url_hints.take() else {
+            return;
+        };
+        match key {
+            Key::Named(NamedKey::Escape) => {
+                self.invalidate_frame();
+                return;
+            }
+            Key::Named(NamedKey::Backspace) => session.backspace(),
+            _ if !self.modifiers.intersects(
+                ModifiersState::CONTROL | ModifiersState::ALT | ModifiersState::SUPER,
+            ) =>
+            {
+                let input = match key {
+                    Key::Character(c) => Some(c.as_str()),
+                    _ => text,
+                };
+                if let Some(url) = input.and_then(|input| session.push(input)) {
+                    self.open_hint_url(&url);
+                    return;
+                }
+            }
+            _ => {}
+        }
+        self.url_hints = Some(session);
+        self.invalidate_frame();
+    }
+
+    fn url_at_pointer(&self) -> Option<url_hints::Occurrence> {
+        let position = self.local_pointer_position(self.pointer_position?)?;
+        let (column, row) = terminal_cell_at(
+            position,
+            self.renderer.as_ref()?.cell_metrics(),
+            self.terminal.dimensions(),
+        )?;
+        url_hints::at(&self.terminal, row, column)
     }
 
     fn handle_search_key(&mut self, key: &Key, text: Option<&str>) {
@@ -1900,6 +2031,7 @@ impl Application {
         } else {
             false
         };
+        self.validate_url_hints();
         self.frame.begin_redraw();
         let ui_stage = startup_stage("initial-ui-and-pane-layout");
         let overlay = self
@@ -1923,6 +2055,25 @@ impl Application {
         let renderer = self.renderer.as_mut()?;
         renderer.set_title_bar(title_bar);
         renderer.set_palette(palette);
+        renderer.set_url_hints(
+            self.url_hints
+                .as_ref()
+                .map(|session| {
+                    session
+                        .visible()
+                        .map(|(candidate, hint)| {
+                            let first = candidate.spans[0];
+                            terminal_renderer::HintLabel {
+                                row: first.row,
+                                start: first.start,
+                                end: url_hints::label_end(&self.terminal, first),
+                                text: hint.into(),
+                            }
+                        })
+                        .collect()
+                })
+                .unwrap_or_default(),
+        );
         let panes: Vec<_> = self
             .workspace
             .active_tab()
@@ -2092,6 +2243,8 @@ impl Application {
         ) {
             if pane_id == self.active_runtime_pane {
                 if self.terminal.dimensions() != dimensions {
+                    self.url_hints = None;
+                    self.url_click = None;
                     let started = std::time::Instant::now();
                     self.terminal.resize(dimensions);
                     terminal_resize_time += started.elapsed();
@@ -2507,6 +2660,8 @@ impl Application {
     }
 
     fn scroll_to_offset(&mut self, offset: usize) {
+        self.url_hints = None;
+        self.url_click = None;
         let current = self.terminal.viewport_offset();
         let delta = (offset as i64 - current as i64).clamp(i32::MIN as i64, i32::MAX as i64) as i32;
         if delta != 0 && self.terminal.scroll_viewport_rows(delta) {
@@ -2717,6 +2872,9 @@ impl ApplicationHandler<PtyWake> for Application {
                     self.write_to_pty(bytes.to_vec());
                 }
                 if !focused {
+                    self.url_hints = None;
+                    self.url_click = None;
+                    self.hint_keys_held.clear();
                     self.chrome = window_chrome::Interaction::default();
                     self.invalidate_frame();
                     self.pressed_mouse_button = None;
@@ -2751,6 +2909,11 @@ impl ApplicationHandler<PtyWake> for Application {
             WindowEvent::CursorMoved { position, .. } => {
                 if self.selection_dragging {
                     emit_diagnostic(format_args!("app event=selection-move"));
+                }
+                if self.url_click.as_ref().is_some_and(|(_, press)| {
+                    (position.x - press.x).abs() > 3.0 || (position.y - press.y).abs() > 3.0
+                }) {
+                    self.url_click = None;
                 }
                 self.pointer_position = Some(position);
                 let hit = self.chrome_hit();
@@ -2849,6 +3012,14 @@ impl ApplicationHandler<PtyWake> for Application {
                 }
             }
             WindowEvent::MouseInput { state, button, .. } => {
+                if button == MouseButton::Left
+                    && state == ElementState::Released
+                    && let Some((candidate, _)) = self.url_click.take()
+                    && self.modifiers == ModifiersState::CONTROL
+                    && self.url_at_pointer().as_ref() == Some(&candidate)
+                {
+                    self.open_hint_url(&candidate.url);
+                }
                 if self.handle_chrome_mouse(event_loop, state, button) {
                     return;
                 }
@@ -2899,6 +3070,16 @@ impl ApplicationHandler<PtyWake> for Application {
                     }
                     self.set_scrollbar_hover(self.scrollbar_hit(position));
                     return;
+                }
+                if button == MouseButton::Left
+                    && state == ElementState::Pressed
+                    && self.modifiers == ModifiersState::CONTROL
+                    && let Some(candidate) = self.url_at_pointer()
+                    && let Some(position) = self.pointer_position
+                {
+                    self.url_hints = None;
+                    self.url_click = Some((candidate, position));
+                    self.invalidate_frame();
                 }
                 if button == MouseButton::Left
                     && state == ElementState::Pressed
@@ -2978,6 +3159,9 @@ impl ApplicationHandler<PtyWake> for Application {
                 }
             }
             WindowEvent::MouseWheel { delta, .. } => {
+                self.url_hints = None;
+                self.url_click = None;
+                self.invalidate_frame();
                 if self.panel_open() || self.chrome_hit().is_some() || self.chrome.held {
                     return;
                 }
@@ -3011,11 +3195,22 @@ impl ApplicationHandler<PtyWake> for Application {
                     }
                 }
             }
+            WindowEvent::KeyboardInput { event, .. } if event.state == ElementState::Released => {
+                self.hint_keys_held.remove(&event.physical_key);
+            }
             WindowEvent::KeyboardInput { event, .. } if event.state == ElementState::Pressed => {
                 emit_diagnostic(format_args!(
                     "app event=keyboard logical={:?} physical={:?} text={:?}",
                     event.logical_key, event.physical_key, event.text
                 ));
+                if self.route_url_hint_key(
+                    &event.logical_key,
+                    event.physical_key,
+                    event.text.as_deref(),
+                    event.repeat,
+                ) {
+                    return;
+                }
                 if self.workspace_notice.is_some() {
                     self.workspace_notice = None;
                     self.invalidate_frame();
@@ -3038,14 +3233,13 @@ impl ApplicationHandler<PtyWake> for Application {
                     self.handle_palette_key(&event.logical_key, event.text.as_deref());
                 } else if self.tab_picker.is_some() {
                     self.handle_tab_picker_key(&event.logical_key, event.text.as_deref());
-                } else if let Some(command) =
-                    configured_command(&self.config, event.physical_key, self.modifiers)
-                {
+                } else if let Some(command) = self.terminal_command(event.physical_key) {
                     self.dispatch_command(command);
                 } else if event.physical_key == PhysicalKey::Code(KeyCode::KeyF)
                     && self.modifiers == ModifiersState::CONTROL
                     && self.terminal.active_screen() == terminal_core::ScreenKind::Primary
                 {
+                    self.url_hints = None;
                     self.search = Some(Search::default());
                     self.invalidate_frame();
                 } else if let Some(bytes) =
@@ -5047,18 +5241,18 @@ mod tests {
     }
 
     #[derive(Debug, Default)]
-    struct SmokeTransport {
+    pub(super) struct SmokeTransport {
         process_state: Option<terminal_pty::PtyLifecycle>,
-        writes_started: Vec<Vec<u8>>,
+        pub(super) writes_started: Vec<Vec<u8>>,
         replies_written: Vec<Vec<u8>>,
         reply_write_failures: Vec<(Vec<u8>, terminal_pty::PtyError)>,
     }
 
     // Observe the real session.write result, not just acceptance by the worker
     // queue. No production API or worker scheduling changes are needed.
-    struct SmokeSession<S> {
-        session: S,
-        transport: std::sync::Arc<std::sync::Mutex<SmokeTransport>>,
+    pub(super) struct SmokeSession<S> {
+        pub(super) session: S,
+        pub(super) transport: std::sync::Arc<std::sync::Mutex<SmokeTransport>>,
     }
 
     impl<S: terminal_pty::PtySession> terminal_pty::PtySession for SmokeSession<S> {

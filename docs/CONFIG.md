@@ -269,13 +269,20 @@ The complete command names accepted in a binding are:
 | Clipboard and scrollback | `copy`, `paste`, `page_up`, `page_down` |
 | Keyboard selection | `select_left`, `select_right`, `select_word_left`, `select_word_right` |
 | Font | `increase_font_size`, `decrease_font_size`, `reset_font_size` |
-| Pickers and workspaces | `open_palette`, `open_tab_picker`, `save_current_workspace`, `set_pane_startup_command`, `clear_pane_startup_command`, `open_workspace_picker`, `delete_workspace`, `open_target` |
+| Pickers and workspaces | `open_palette`, `open_url_hints`, `open_tab_picker`, `save_current_workspace`, `set_pane_startup_command`, `clear_pane_startup_command`, `open_workspace_picker`, `delete_workspace`, `open_target` |
 | Tabs and panes | `new_tab`, `split_horizontal`, `split_vertical`, `next_tab`, `previous_tab`, `next_pane`, `previous_pane`, `focus_pane_left`, `focus_pane_right`, `focus_pane_up`, `focus_pane_down`, `resize_pane_left`, `resize_pane_right`, `resize_pane_up`, `resize_pane_down`, `toggle_pane_zoom`, `close_pane`, `rename_tab` |
 
 These are command names, not all default shortcuts. The example has every
 default binding with a short comment. The command palette also lists app
 commands and project actions. `rename_tab` prompts for a local title;
 palette and prompt input do not reach the PTY.
+
+`open_url_hints` defaults to Ctrl+Shift+U. Explicit binding lists replace defaults,
+and configured chords take precedence during Hint Mode. The mode accepts
+A S D F J K L (case insensitive), filters by prefix, opens on completion,
+backtracks with Backspace, and cancels with Escape. Ctrl+left-click opens a
+visible HTTP/HTTPS URL without a binding. Both gestures are restricted to the
+Primary screen with mouse reporting off. See [URL Hint Mode](URL_HINT_MODE.md).
 
 The default Shift+Left/Right and Ctrl+Shift+Left/Right bindings extend the
 shared terminal selection. They apply on Primary with normal cursor keys,
