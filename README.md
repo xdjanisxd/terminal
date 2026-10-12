@@ -105,6 +105,7 @@ These are the bindings in `terminal-config` on this branch. Commands without a d
 | `Ctrl+Shift+=` | `increase_font_size` | Increase font size. |
 | `Ctrl+-` | `decrease_font_size` | Decrease font size. |
 | `Ctrl+0` | `reset_font_size` | Reset to the configured size. |
+| `Ctrl+Shift+U` | `open_url_hints` | Show keyboard hints beside visible HTTP/HTTPS URLs. |
 | `Ctrl+Shift+P` | `open_palette` | Open the command palette. |
 | `Ctrl+Shift+Space` | `open_tab_picker` | Open the searchable tab picker. |
 | `Ctrl+Shift+T` | `new_tab` | Open a new tab. |
@@ -128,6 +129,12 @@ These are the bindings in `terminal-config` on this branch. Commands without a d
 | `Ctrl+Shift+W` | `close_pane` | Close the focused pane. |
 
 `Ctrl+F` opens scrollback search through the app's input handling; it is not a configurable default binding.
+
+URL Hint Mode uses A S D F J K L, filters by prefix, opens immediately on a
+complete hint, supports Backspace, and cancels with Escape. Ctrl+left-click
+opens visible URL text; dragging still selects. Both features stay inactive on
+alternate screens and while an application requests mouse reporting. See
+[URL Hint Mode](docs/URL_HINT_MODE.md) for detection and verification details.
 
 ## Saved Workspaces
 

@@ -68,6 +68,11 @@ pub const COMMANDS: &[CommandInfo] = &[
         in_palette: true,
     },
     CommandInfo {
+        command: Command::OpenUrlHints,
+        name: "URL Hint Mode",
+        in_palette: true,
+    },
+    CommandInfo {
         command: Command::OpenPalette,
         name: "Command Palette",
         in_palette: false,

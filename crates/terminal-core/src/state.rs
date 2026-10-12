@@ -391,6 +391,48 @@ impl TerminalState {
         self.screen.wrap_pending()
     }
 
+    /// Soft-wrap width for a visible row; zero denotes a hard line boundary.
+    pub fn viewport_wrap_columns(&self, row: usize) -> usize {
+        if row >= self.dimensions().rows() {
+            return 0;
+        }
+        let history_top = if self.active_screen() == ScreenKind::Primary {
+            self.scrollback_len().saturating_sub(self.viewport_offset())
+        } else {
+            0
+        };
+        let absolute = self.screen.selection_history_origin() + history_top + row;
+        self.screen.selection_row_wrap_columns(absolute)
+    }
+
+    /// Capture-time width of the projected row. Historical rows can be wider
+    /// than the current viewport after a resize; this does not expose hidden text.
+    pub fn viewport_row_columns(&self, row: usize) -> usize {
+        if row >= self.dimensions().rows() {
+            return 0;
+        }
+        if self.active_screen() == ScreenKind::Primary {
+            let source = self.scrollback_len().saturating_sub(self.viewport_offset()) + row;
+            if source < self.scrollback_len() {
+                return self.scrollback_row(source).map_or(0, <[_]>::len);
+            }
+        }
+        self.dimensions().columns()
+    }
+
+    /// Whether the viewport starts partway through a retained wrapped line.
+    pub fn viewport_starts_in_wrapped_line(&self) -> bool {
+        if self.active_screen() != ScreenKind::Primary {
+            return false;
+        }
+        let top = self.scrollback_len().saturating_sub(self.viewport_offset());
+        top > 0
+            && self
+                .screen
+                .selection_row_wrap_columns(self.screen.selection_history_origin() + top - 1)
+                != 0
+    }
+
     /// Returns a cell from the current viewport projection.
     ///
     /// Historical rows retain their capture-time widths. A column outside a historical

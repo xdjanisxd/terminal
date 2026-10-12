@@ -7,6 +7,30 @@ fn state(columns: usize, rows: usize) -> TerminalState {
     TerminalState::new(TerminalDimensions::new(columns, rows).unwrap())
 }
 
+#[test]
+fn viewport_wrap_metadata_follows_history_and_clipped_top() {
+    let mut terminal = state(5, 2);
+    for character in "abcdefghijk".chars() {
+        terminal.print_character(character).unwrap();
+    }
+    assert_eq!(terminal.scrollback_len(), 1);
+    assert!(terminal.viewport_starts_in_wrapped_line());
+    assert_eq!(terminal.viewport_wrap_columns(0), 5);
+    assert_eq!(terminal.viewport_wrap_columns(1), 0);
+    assert_eq!(terminal.viewport_wrap_columns(2), 0);
+    assert!(terminal.scroll_viewport_rows(1));
+    assert!(!terminal.viewport_starts_in_wrapped_line());
+    assert_eq!(terminal.viewport_wrap_columns(0), 5);
+    assert_eq!(terminal.viewport_cell(0, 0).unwrap().character(), 'a');
+    terminal.switch_to_alternate_screen();
+    assert!(!terminal.viewport_starts_in_wrapped_line());
+    assert_eq!(terminal.viewport_wrap_columns(0), 0);
+    for character in "uvwxyz".chars() {
+        terminal.print_character(character).unwrap();
+    }
+    assert_eq!(terminal.viewport_wrap_columns(0), 5);
+}
+
 fn row_text(row: &[Cell]) -> String {
     row.iter().map(|cell| cell.character()).collect()
 }

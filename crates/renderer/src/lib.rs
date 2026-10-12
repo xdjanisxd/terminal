@@ -5,7 +5,9 @@
 
 mod title_bar;
 pub use title_bar::{CONTROL_WIDTH, TITLE_BAR_HEIGHT, TitleBar};
+mod hints;
 mod palette;
+pub use hints::HintLabel;
 pub use palette::PalettePanel;
 mod font;
 mod startup;
@@ -145,6 +147,8 @@ impl Error for RendererInitError {}
 pub struct Renderer {
     title_bar: Option<TitleBar>,
     palette: Option<PalettePanel>,
+    url_hints: Vec<HintLabel>,
+    hint_pane: Option<[u32; 4]>,
     throughput: Option<ThroughputRenderStats>,
     window: Arc<Window>,
     surface: wgpu::Surface<'static>,
@@ -253,6 +257,8 @@ impl Renderer {
         let mut renderer = Self {
             title_bar: None,
             palette: None,
+            url_hints: Vec::new(),
+            hint_pane: None,
             throughput: throughput::enabled().then(ThroughputRenderStats::default),
             window,
             surface,
@@ -395,6 +401,7 @@ impl Renderer {
             projection_start.elapsed().as_micros()
         ));
         let size = self.window.inner_size();
+        self.hint_pane = Some([0, 0, size.width, size.height]);
         self.redraw_data(Some(&[(data, [0, 0, size.width, size.height], false)]))
     }
 
@@ -405,8 +412,17 @@ impl Renderer {
     ) -> RedrawOutcome {
         let projection_start = Instant::now();
         let projection_stage = startup_stage("initial-projection");
-        let mut data =
-            project_panes_with_opacity(panes, overlay, &self.theme, self.effective_opacity());
+        self.hint_pane = panes.iter().find(|pane| pane.focused).map(|pane| pane.rect);
+        let mut data = project_panes_with_opacity(
+            panes,
+            overlay,
+            &self.theme,
+            if self.transparency_supported {
+                self.background_opacity
+            } else {
+                1.0
+            },
+        );
         if self.palette.is_some() {
             for (pane, _, _) in &mut data {
                 palette::dim(pane, &self.theme);
@@ -451,6 +467,10 @@ impl Renderer {
 
     pub fn set_title_bar(&mut self, title_bar: Option<TitleBar>) {
         self.title_bar = title_bar;
+    }
+
+    pub fn set_url_hints(&mut self, labels: Vec<HintLabel>) {
+        self.url_hints = labels;
     }
 
     pub fn set_palette(&mut self, palette: Option<PalettePanel>) {
@@ -569,6 +589,45 @@ impl Renderer {
                             draw_resources_created,
                             work.queue_submissions,
                         ));
+                    }
+                    if !self.url_hints.is_empty()
+                        && let Some(rect) = self.hint_pane
+                    {
+                        let scale = self.window.scale_factor();
+                        if let Ok(metrics) = self.font_system.cell_metrics(scale, 11.0) {
+                            for drawing in hints::drawings(
+                                &self.url_hints,
+                                rect,
+                                self.cell_metrics,
+                                metrics,
+                                &self.theme,
+                                if self.transparency_supported {
+                                    self.background_opacity
+                                } else {
+                                    1.0
+                                },
+                            ) {
+                                resources.draw_pane(
+                                    &self.device,
+                                    &self.queue,
+                                    FrameContext {
+                                        target: &draw_view,
+                                        surface_size: size,
+                                        cell_metrics: metrics,
+                                        ui: &self.theme.ui,
+                                    },
+                                    &drawing.data,
+                                    &mut self.font_system,
+                                    PaneDraw {
+                                        rect: drawing.rect,
+                                        clear: false,
+                                        focused_border: false,
+                                        text_offset: drawing.text_offset,
+                                        rectangles: &drawing.rectangles,
+                                    },
+                                );
+                            }
+                        }
                     }
                     if let Some(bar) = &self.title_bar {
                         let scale = self.window.scale_factor();
