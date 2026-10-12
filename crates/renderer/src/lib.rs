@@ -5,6 +5,8 @@
 
 mod title_bar;
 pub use title_bar::{CONTROL_WIDTH, TITLE_BAR_HEIGHT, TitleBar};
+mod palette;
+pub use palette::PalettePanel;
 mod font;
 mod startup;
 pub use startup::{
@@ -142,6 +144,7 @@ impl Error for RendererInitError {}
 /// `wgpu` device, queue, and native surface lifecycle owned by the renderer.
 pub struct Renderer {
     title_bar: Option<TitleBar>,
+    palette: Option<PalettePanel>,
     throughput: Option<ThroughputRenderStats>,
     window: Arc<Window>,
     surface: wgpu::Surface<'static>,
@@ -249,6 +252,7 @@ impl Renderer {
 
         let mut renderer = Self {
             title_bar: None,
+            palette: None,
             throughput: throughput::enabled().then(ThroughputRenderStats::default),
             window,
             surface,
@@ -382,6 +386,9 @@ impl Renderer {
         if let Some(overlay) = overlay {
             data.apply_text_overlay(overlay, &self.theme);
         }
+        if self.palette.is_some() {
+            palette::dim(&mut data, &self.theme);
+        }
         emit_diagnostic(format_args!(
             "renderer event=projection cells={} elapsed_us={}",
             data.cells.len(),
@@ -398,8 +405,13 @@ impl Renderer {
     ) -> RedrawOutcome {
         let projection_start = Instant::now();
         let projection_stage = startup_stage("initial-projection");
-        let data =
+        let mut data =
             project_panes_with_opacity(panes, overlay, &self.theme, self.effective_opacity());
+        if self.palette.is_some() {
+            for (pane, _, _) in &mut data {
+                palette::dim(pane, &self.theme);
+            }
+        }
         drop(projection_stage);
         if let Some(stats) = &mut self.throughput {
             stats.projection += projection_start.elapsed();
@@ -439,6 +451,10 @@ impl Renderer {
 
     pub fn set_title_bar(&mut self, title_bar: Option<TitleBar>) {
         self.title_bar = title_bar;
+    }
+
+    pub fn set_palette(&mut self, palette: Option<PalettePanel>) {
+        self.palette = palette;
     }
 
     pub fn set_theme(&mut self, theme: RenderTheme) {
@@ -595,6 +611,49 @@ impl Renderer {
                                 },
                             );
                             clear_next = false;
+                        }
+                    }
+                    if let Some(panel) = &self.palette {
+                        let scale = self.window.scale_factor();
+                        let top = if self.title_bar.is_some() {
+                            (TITLE_BAR_HEIGHT * scale).round() as u32
+                        } else {
+                            0
+                        };
+                        if let Ok(metrics) = self.font_system.cell_metrics(scale, 13.0)
+                            && let Some(drawing) = palette::drawing(
+                                panel,
+                                [size.width(), size.height()],
+                                top,
+                                scale,
+                                metrics,
+                                &self.theme,
+                                if self.transparency_supported {
+                                    self.background_opacity
+                                } else {
+                                    1.0
+                                },
+                            )
+                        {
+                            resources.draw_pane(
+                                &self.device,
+                                &self.queue,
+                                FrameContext {
+                                    target: &draw_view,
+                                    surface_size: size,
+                                    cell_metrics: drawing.metrics,
+                                    ui: &self.theme.ui,
+                                },
+                                &drawing.data,
+                                &mut self.font_system,
+                                PaneDraw {
+                                    rect: drawing.rect,
+                                    clear: false,
+                                    focused_border: false,
+                                    text_offset: drawing.text_offset,
+                                    rectangles: &drawing.rectangles,
+                                },
+                            );
                         }
                     }
                     if clear_next && transparent {

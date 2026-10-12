@@ -8,6 +8,9 @@
 mod branding;
 mod commands;
 #[cfg(all(test, target_os = "linux"))]
+#[path = "tests/linux_palette.rs"]
+mod linux_palette_tests;
+#[cfg(all(test, target_os = "linux"))]
 #[path = "tests/linux_window_effects.rs"]
 mod linux_window_effects_tests;
 #[cfg(all(test, target_os = "linux"))]
@@ -42,10 +45,11 @@ use terminal_pty::{
     PortablePtyBackend, PtyOutput, PtySize, PtySpawnConfig, PtyWorker, PtyWorkerEvent,
 };
 use terminal_renderer::{
-    CellMetrics, FontRequest, OverlayLine, PaneRenderInput, RedrawOutcome, RenderTheme, Renderer,
-    RendererDiagnosticState, Rgba, ScrollbarGeometry, ScrollbarHit, ScrollbarRenderData,
-    SearchHighlight, SearchMarker, SurfaceSize, TextOverlay, UiRenderTheme, diagnostics_enabled,
-    emit_diagnostic, initialize_startup_diagnostics, startup_milestone, startup_stage,
+    CellMetrics, FontRequest, OverlayLine, PalettePanel, PaneRenderInput, RedrawOutcome,
+    RenderTheme, Renderer, RendererDiagnosticState, Rgba, ScrollbarGeometry, ScrollbarHit,
+    ScrollbarRenderData, SearchHighlight, SearchMarker, SurfaceSize, TextOverlay, UiRenderTheme,
+    diagnostics_enabled, emit_diagnostic, initialize_startup_diagnostics, startup_milestone,
+    startup_stage,
 };
 use terminal_workspace::{
     LayoutDefinition, PaneDirection, PaneId, PaneRect, SessionDefinition, SplitAxis, Tab, TabId,
@@ -1286,7 +1290,16 @@ impl Application {
                 }
             }
             Command::OpenPalette => {
+                if let Some(button) = self.pressed_mouse_button.take() {
+                    self.send_mouse_event(MouseEvent::Release(button));
+                }
                 self.palette = Some(Palette::with_projects(&self.config.projects));
+                self.target_click_held = false;
+                self.selection_dragging = false;
+                self.selection_edge = None;
+                self.scrollbar_drag = None;
+                self.scrollbar_click_held = false;
+                self.set_scrollbar_hover(None);
                 self.invalidate_frame();
             }
             Command::OpenTabPicker => {
@@ -1586,40 +1599,16 @@ impl Application {
         self.invalidate_frame();
     }
 
-    fn palette_overlay(&self) -> Option<TextOverlay> {
+    fn palette_panel(&self) -> Option<PalettePanel> {
         let palette = self.palette.as_ref()?;
-        let mut lines = vec![OverlayLine {
-            text: format!(" Command Palette > {}", palette.query()),
-            selected: false,
-            accent_column: None,
-        }];
-        let matches = palette.matches();
-        if matches.is_empty() {
-            lines.push(OverlayLine {
-                text: " No matching commands".into(),
-                selected: false,
-                accent_column: None,
-            });
-        } else {
-            lines.extend(matches.iter().enumerate().map(|(index, info)| OverlayLine {
-                text: format!(
-                    " {} {}",
-                    if index == palette.selected() {
-                        '>'
-                    } else {
-                        ' '
-                    },
-                    info.name
-                ),
-                selected: index == palette.selected(),
-                accent_column: None,
-            }));
-        }
-        Some(TextOverlay {
-            lines,
-            bottom: false,
-            search_matches: Vec::new(),
-            search_markers: Vec::new(),
+        Some(PalettePanel {
+            query: palette.query().into(),
+            entries: palette
+                .matches()
+                .iter()
+                .map(|entry| entry.name.clone())
+                .collect(),
+            selected: palette.selected(),
         })
     }
 
@@ -1916,9 +1905,15 @@ impl Application {
         let overlay = self
             .workspace_overlay()
             .or_else(|| self.tab_rename_overlay())
-            .or_else(|| self.search_overlay())
-            .or_else(|| self.palette_overlay())
-            .or_else(|| self.tab_picker_overlay());
+            .or_else(|| self.search_overlay());
+        let palette = overlay.is_none().then(|| self.palette_panel()).flatten();
+        let overlay = overlay.or_else(|| {
+            if palette.is_none() {
+                self.tab_picker_overlay()
+            } else {
+                None
+            }
+        });
 
         let scrollback_input_enabled = self.scrollbar_input_enabled();
 
@@ -1931,6 +1926,7 @@ impl Application {
         let surface = self.content_rect(size);
         let renderer = self.renderer.as_mut()?;
         renderer.set_title_bar(title_bar);
+        renderer.set_palette(palette);
         let panes: Vec<_> = self
             .workspace
             .active_tab()
@@ -2798,6 +2794,9 @@ impl ApplicationHandler<PtyWake> for Application {
                         return;
                     }
                 }
+                if self.palette.is_some() {
+                    return;
+                }
                 if let Some(grab_y) = self.scrollbar_drag {
                     if let Some(geometry) = self.scrollbar_geometry()
                         && let Some((_, rect)) = self.pane_rects().and_then(|rects| {
@@ -2855,6 +2854,9 @@ impl ApplicationHandler<PtyWake> for Application {
             }
             WindowEvent::MouseInput { state, button, .. } => {
                 if self.handle_chrome_mouse(event_loop, state, button) {
+                    return;
+                }
+                if self.palette.is_some() {
                     return;
                 }
                 if state == ElementState::Pressed {
@@ -2980,7 +2982,7 @@ impl ApplicationHandler<PtyWake> for Application {
                 }
             }
             WindowEvent::MouseWheel { delta, .. } => {
-                if self.chrome_hit().is_some() || self.chrome.held {
+                if self.palette.is_some() || self.chrome_hit().is_some() || self.chrome.held {
                     return;
                 }
                 self.focus_pane_at_pointer();
@@ -4015,6 +4017,14 @@ fn render_theme(theme: &terminal_config::Theme) -> RenderTheme {
         accent: rgba(theme.selection_foreground, 1.0),
         ..UiRenderTheme::default()
     };
+    // Semantic secondary colors follow either light or dark surfaces by default.
+    // Scrollbar defaults retain their independent appearance; explicit overrides
+    // below still apply to both their established consumers and the palette.
+    for channel in 0..3 {
+        ui.muted.0[channel] = ui.foreground.0[channel] * 0.86 + ui.background.0[channel] * 0.14;
+        ui.border.0[channel] = ui.foreground.0[channel] * 0.28 + ui.background.0[channel] * 0.72;
+    }
+    ui.muted.0[3] = 1.0;
     if let Some(muted) = theme.ui_muted {
         ui.muted = rgba(muted, 1.0);
         ui.scrollbar_thumb = ui.muted;
@@ -4062,6 +4072,30 @@ fn render_theme(theme: &terminal_config::Theme) -> RenderTheme {
 #[cfg(test)]
 mod theme_resolution_tests {
     use super::{Config, Rgb, render_theme};
+
+    #[test]
+    fn secondary_ui_colors_follow_light_and_dark_themes_and_explicit_overrides() {
+        let dark =
+            Config::parse("[theme]\nbackground = '#101820'\nforeground = '#e0e8f0'").unwrap();
+        let light =
+            Config::parse("[theme]\nbackground = '#f0f4f8'\nforeground = '#182028'").unwrap();
+        let dark = render_theme(&dark.theme).ui;
+        let light = render_theme(&light.theme).ui;
+        assert!(dark.muted.0[0] > dark.background.0[0]);
+        assert!(light.muted.0[0] < light.background.0[0]);
+        assert_ne!(light.border, dark.border);
+        let explicit =
+            Config::parse("[theme]\nui_muted = '#123456'\nui_border = '#654321'").unwrap();
+        let resolved = render_theme(&explicit.theme).ui;
+        assert_eq!(
+            resolved.muted.0,
+            [18.0 / 255.0, 52.0 / 255.0, 86.0 / 255.0, 1.0]
+        );
+        assert_eq!(
+            resolved.border.0,
+            [101.0 / 255.0, 67.0 / 255.0, 33.0 / 255.0, 1.0]
+        );
+    }
 
     #[test]
     fn semantic_colors_fall_back_independently() {
@@ -7118,15 +7152,55 @@ mod tests {
             app.palette.as_ref().unwrap().chosen(),
             Some(PaletteAction::Command(Command::Paste))
         );
-        assert!(
-            app.palette_overlay()
-                .unwrap()
-                .lines
-                .iter()
-                .any(|line| line.selected)
-        );
+        let panel = app.palette_panel().unwrap();
+        assert_eq!(panel.query, "paste");
+        assert_eq!(panel.entries[panel.selected], "Paste");
         app.handle_palette_key(&Key::Named(NamedKey::Escape), None);
         assert!(app.palette.is_none());
+    }
+
+    #[test]
+    fn palette_reload_preserves_query_selection_and_focus() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "terminal-palette-{}-{nonce}.toml",
+            std::process::id()
+        ));
+        let mut app = Application {
+            config_path: path.clone(),
+            ..Application::default()
+        };
+        let active = app.workspace.active_pane();
+        app.selection_dragging = true;
+        app.scrollbar_drag = Some(1.0);
+        app.target_click_held = true;
+        app.pressed_mouse_button = Some(terminal_core::MouseButton::Left);
+        app.dispatch_command(Command::OpenPalette);
+        assert!(!app.selection_dragging);
+        assert!(app.scrollbar_drag.is_none());
+        assert!(!app.target_click_held);
+        assert!(app.pressed_mouse_button.is_none());
+        app.handle_palette_key(&Key::Character("page".into()), Some("page"));
+        app.handle_palette_key(&Key::Named(NamedKey::ArrowDown), None);
+        let chosen = app.palette.as_ref().unwrap().chosen();
+        fs::write(&path, "[theme]\nbackground = '#f0f4f8'\nforeground = '#182028'\n[window]\nopacity = 0.5\nblur = true").unwrap();
+        app.reload_config();
+        let panel = app.palette_panel().unwrap();
+        assert_eq!(panel.query, "page");
+        assert_eq!(panel.selected, 1);
+        assert_eq!(app.palette.as_ref().unwrap().chosen(), chosen);
+        assert_eq!(app.config.window.opacity, 0.5);
+        fs::write(&path, "[theme]\nbackground = 'invalid'").unwrap();
+        app.reload_config();
+        assert_eq!(app.config.theme.background, Rgb(240, 244, 248));
+        assert_eq!(app.workspace.active_pane(), active);
+        app.handle_palette_key(&Key::Named(NamedKey::Escape), None);
+        assert!(app.palette_panel().is_none());
+        assert_eq!(app.workspace.active_pane(), active);
+        fs::remove_file(path).unwrap();
     }
 
     #[test]

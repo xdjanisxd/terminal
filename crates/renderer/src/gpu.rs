@@ -1304,6 +1304,23 @@ mod tests {
     }
 
     fn render_native_frame(opacity: f32, format: wgpu::TextureFormat) {
+        render_native_frame_with_palette(opacity, format, false);
+    }
+
+    #[test]
+    #[ignore = "requires a native GPU adapter and system monospace font"]
+    fn native_gpu_palette_preserves_surrounding_alpha() {
+        for format in [
+            wgpu::TextureFormat::Rgba8Unorm,
+            wgpu::TextureFormat::Rgba8UnormSrgb,
+        ] {
+            for opacity in [0.0, 0.5, 0.85, 1.0] {
+                render_native_frame_with_palette(opacity, format, true);
+            }
+        }
+    }
+
+    fn render_native_frame_with_palette(opacity: f32, format: wgpu::TextureFormat, palette: bool) {
         const WIDTH: u32 = 768;
         const HEIGHT: u32 = 600;
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
@@ -1379,17 +1396,22 @@ mod tests {
             background: crate::Rgba([0.2, 0.3, 0.4, 1.0]),
             ..Default::default()
         };
-        let data = TerminalRenderData::from_terminal_with_opacity(&terminal, &theme, opacity);
+        let mut data = TerminalRenderData::from_terminal_with_opacity(&terminal, &theme, opacity);
+        if palette {
+            crate::palette::dim(&mut data, &theme);
+        }
         let wide_cell = data
             .cells
             .iter()
             .find(|cell| cell.character == '界')
             .expect("wide lead cell");
         assert_eq!(wide_cell.width, 2);
-        assert_eq!(
-            wide_cell.foreground.0,
-            [230.0 / 255.0, 30.0 / 255.0, 230.0 / 255.0, 1.0]
-        );
+        if !palette {
+            assert_eq!(
+                wide_cell.foreground.0,
+                [230.0 / 255.0, 30.0 / 255.0, 230.0 / 255.0, 1.0]
+            );
+        }
         let mut resources = DrawResources::new(&device, format);
         let mut fonts =
             FontSystem::load_system(FontRequest::default()).expect("system monospace font");
@@ -1430,6 +1452,42 @@ mod tests {
             &mut fonts,
         );
 
+        if palette {
+            let panel = crate::PalettePanel {
+                query: "terminal".into(),
+                entries: vec!["New Tab".into(), "Split Vertical".into()],
+                selected: 1,
+            };
+            let drawing = crate::palette::drawing(
+                &panel,
+                [WIDTH, HEIGHT],
+                32,
+                1.0,
+                fonts.cell_metrics(1.0, 13.0).unwrap(),
+                &theme,
+                opacity,
+            )
+            .unwrap();
+            resources.draw_pane(
+                &device,
+                &queue,
+                FrameContext {
+                    target: &target,
+                    surface_size: SurfaceSize::new(WIDTH, HEIGHT).unwrap(),
+                    cell_metrics: drawing.metrics,
+                    ui: &theme.ui,
+                },
+                &drawing.data,
+                &mut fonts,
+                super::PaneDraw {
+                    rect: drawing.rect,
+                    clear: false,
+                    focused_border: false,
+                    text_offset: drawing.text_offset,
+                    rectangles: &drawing.rectangles,
+                },
+            );
+        }
         if opacity < 1.0 {
             resources.compose(&device, &queue, &view);
         }
@@ -1500,6 +1558,20 @@ mod tests {
         // Colored cell background replaces the clear; alpha must not accumulate.
         let colored = pixels[0];
         assert!((f32::from(colored[3]) - opacity * 255.0).abs() <= 1.0);
+        if palette {
+            let panel_background = pixels[50 * WIDTH as usize + 120];
+            let expected_alpha = (opacity.max(0.94) + opacity * (1.0 - opacity.max(0.94))) * 255.0;
+            assert!(
+                (f32::from(panel_background[3]) - expected_alpha).abs() <= 2.0,
+                "palette background {panel_background:?}, opacity {opacity}"
+            );
+            assert!(
+                pixels[80 * WIDTH as usize + 114..180 * WIDTH as usize + 650]
+                    .iter()
+                    .any(|p| p[3] > panel_background[3])
+                    || opacity == 1.0
+            );
+        }
         assert!(
             pixels
                 .iter()
@@ -1507,7 +1579,7 @@ mod tests {
                 || opacity == 1.0,
             "foreground coverage must remain independent of background opacity"
         );
-        if opacity == 1.0 {
+        if opacity == 1.0 && !palette {
             assert!(pixels.iter().any(|pixel| pixel[2] > 80));
             assert!(
                 pixels

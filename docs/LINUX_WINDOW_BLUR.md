@@ -77,8 +77,10 @@ never to produce the effect.
 | Blur omitted | Defaults to false, including live reload. |
 | Unsupported/disabled compositor | Existing opacity-only path remains functional. |
 
-Selection and UI retain their existing opaque backgrounds; ANSI backgrounds
-retain their existing opacity rules. Blur strength belongs to the compositor.
+Selection and generic text overlays retain their opaque backgrounds; ANSI
+backgrounds retain their existing opacity rules. The redesigned
+[Command Palette](COMMAND_PALETTE_UI_POLISH.md) uses a local translucent panel
+and alpha-preserving dimming. Blur strength belongs to the compositor.
 Transparent rendering still requires a premultiplied surface; the existing
 opaque fallback for unsupported alpha modes remains unchanged.
 

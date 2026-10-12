@@ -73,6 +73,13 @@ impl CellMetrics {
     pub fn leading(self) -> f32 {
         f32::from_bits(self.leading)
     }
+
+    /// Adds symmetric vertical spacing to UI rows without changing glyph size.
+    pub(crate) fn with_vertical_padding(mut self, padding: u32) -> Self {
+        self.height += padding * 2;
+        self.baseline += padding;
+        self
+    }
 }
 
 /// Positioned glyph produced from the renderer's selected font face.
