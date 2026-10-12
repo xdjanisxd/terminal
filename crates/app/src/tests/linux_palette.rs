@@ -5,8 +5,19 @@ use winit::platform::wayland::{EventLoopBuilderExtWayland, WindowExtWayland};
 #[test]
 #[ignore = "requires KDE Wayland and a GPU; run this test alone"]
 fn native_wayland_palette_theme_opacity_and_interaction() {
+    native_panel_acceptance(false);
+}
+
+#[test]
+#[ignore = "requires KDE Wayland and a GPU; run this test alone"]
+fn native_wayland_tab_picker_theme_opacity_and_interaction() {
+    native_panel_acceptance(true);
+}
+
+fn native_panel_acceptance(tab_picker: bool) {
     struct Driver {
         app: Application,
+        tab_picker: bool,
         background: Option<(Arc<Window>, Renderer)>,
         phase: usize,
         deadline: Instant,
@@ -195,12 +206,36 @@ fn native_wayland_palette_theme_opacity_and_interaction() {
                     .success()
             );
         }
+        fn open(&mut self) {
+            self.app.dispatch_command(if self.tab_picker {
+                Command::OpenTabPicker
+            } else {
+                Command::OpenPalette
+            });
+        }
+        fn state(&self) -> &Palette {
+            if self.tab_picker {
+                self.app.tab_picker.as_ref()
+            } else {
+                self.app.palette.as_ref()
+            }
+            .unwrap()
+        }
         fn key(&mut self, key: NamedKey) {
-            self.app.handle_palette_key(&Key::Named(key), None);
+            if self.tab_picker {
+                self.app.handle_tab_picker_key(&Key::Named(key), None);
+            } else {
+                self.app.handle_palette_key(&Key::Named(key), None);
+            }
         }
         fn query(&mut self, query: &str) {
-            self.app
-                .handle_palette_key(&Key::Character(query.into()), Some(query));
+            if self.tab_picker {
+                self.app
+                    .handle_tab_picker_key(&Key::Character(query.into()), Some(query));
+            } else {
+                self.app
+                    .handle_palette_key(&Key::Character(query.into()), Some(query));
+            }
         }
     }
     impl ApplicationHandler<PtyWake> for Driver {
@@ -311,27 +346,49 @@ fn native_wayland_palette_theme_opacity_and_interaction() {
                     assert_eq!(
                         configured_command(
                             &self.app.config,
-                            PhysicalKey::Code(KeyCode::KeyP),
+                            PhysicalKey::Code(if self.tab_picker {
+                                KeyCode::Space
+                            } else {
+                                KeyCode::KeyP
+                            }),
                             ModifiersState::CONTROL | ModifiersState::SHIFT
                         ),
-                        Some(Command::OpenPalette)
+                        Some(if self.tab_picker {
+                            Command::OpenTabPicker
+                        } else {
+                            Command::OpenPalette
+                        })
                     );
-                    self.app.dispatch_command(Command::OpenPalette);
+                    if self.tab_picker {
+                        self.app
+                            .workspace
+                            .set_active_tab_custom_title(Some("Fixture tab 00".into()));
+                        for index in 1..30 {
+                            self.app.dispatch_command(Command::NewTab);
+                            self.app.workspace.set_active_tab_custom_title(Some(format!(
+                                "Fixture tab {index:02} {}",
+                                "界e\u{301} long title ".repeat(8)
+                            )));
+                        }
+                        let pane = self.app.workspace.tabs()[0].active_pane;
+                        self.app.record_background_output(pane);
+                    }
+                    self.open();
                     self.query("a");
                     self.key(NamedKey::ArrowUp);
-                    assert_eq!(self.app.palette.as_ref().unwrap().selected(), 0);
+                    assert_eq!(self.state().selected(), 0);
                     self.key(NamedKey::ArrowDown);
-                    assert_eq!(self.app.palette.as_ref().unwrap().selected(), 1);
+                    assert_eq!(self.state().selected(), 1);
                     self.key(NamedKey::ArrowUp);
-                    assert_eq!(self.app.palette.as_ref().unwrap().selected(), 0);
+                    assert_eq!(self.state().selected(), 0);
                     for _ in 0..12 {
                         self.key(NamedKey::ArrowDown);
                     }
                 }
                 1..=16 => {
                     let i = self.phase - 1;
-                    assert_eq!(self.app.palette.as_ref().unwrap().selected(), 12);
-                    assert_eq!(self.app.palette.as_ref().unwrap().query(), "a");
+                    assert_eq!(self.state().selected(), 12);
+                    assert_eq!(self.state().query(), "a");
                     self.snapshot(&format!(
                         "{}-{}-{}",
                         if i < 8 { "dark" } else { "light" },
@@ -346,18 +403,34 @@ fn native_wayland_palette_theme_opacity_and_interaction() {
                         self.app.reload_config();
                         assert_eq!(self.app.config.window.opacity, 0.85);
                         self.query("zzzz-no-match");
-                        self.key(NamedKey::Enter);
-                        assert!(self.app.palette.is_some());
+                        if !self.tab_picker {
+                            self.key(NamedKey::Enter);
+                            assert!(self.app.panel_open());
+                        }
                     }
                 }
                 17 => {
                     self.snapshot("no-matches");
+                    if self.tab_picker {
+                        let pane = self.app.workspace.active_pane();
+                        self.key(NamedKey::Enter);
+                        assert!(!self.app.panel_open());
+                        assert_eq!(self.app.workspace.active_pane(), pane);
+                    }
                     self.key(NamedKey::Escape);
                     let active = self.app.workspace.active_pane();
-                    self.app.dispatch_command(Command::OpenPalette);
-                    self.query("split vertical");
-                    self.key(NamedKey::Enter);
-                    assert!(self.app.palette.is_none());
+                    if self.tab_picker {
+                        self.open();
+                        self.query("Fixture tab 01");
+                        self.key(NamedKey::Enter);
+                        assert!(self.app.active_tab_title().starts_with("Fixture tab 01"));
+                        self.app.dispatch_command(Command::SplitVertical);
+                    } else {
+                        self.open();
+                        self.query("split vertical");
+                        self.key(NamedKey::Enter);
+                    }
+                    assert!(!self.app.panel_open());
                     assert_eq!(
                         self.app
                             .workspace
@@ -373,7 +446,7 @@ fn native_wayland_palette_theme_opacity_and_interaction() {
                 }
                 18 => {
                     self.snapshot("split-command-executed");
-                    self.app.dispatch_command(Command::OpenPalette);
+                    self.open();
                     for _ in 0..25 {
                         self.key(NamedKey::ArrowDown);
                     }
@@ -427,7 +500,7 @@ fn native_wayland_palette_theme_opacity_and_interaction() {
                     assert_eq!(self.app.workspace.active_pane(), pane);
                     assert_eq!(self.app.terminal.selected_text(), selection);
                     assert_eq!(self.app.terminal.viewport_offset(), offset);
-                    assert!(self.app.palette.is_some());
+                    assert!(self.app.panel_open());
                 }
                 19 => {
                     self.snapshot("split-window-palette");
@@ -465,15 +538,25 @@ fn native_wayland_palette_theme_opacity_and_interaction() {
                     self.key(NamedKey::Escape);
                     let pane = self.app.workspace.active_pane();
                     for _ in 0..3 {
-                        self.app.dispatch_command(Command::OpenPalette);
+                        self.open();
                         self.key(NamedKey::Escape);
                         assert_eq!(self.app.workspace.active_pane(), pane);
                     }
-                    self.app.dispatch_command(Command::OpenPalette);
-                    self.query("new tab");
+                    self.open();
+                    self.query(if self.tab_picker {
+                        "Fixture tab 00"
+                    } else {
+                        "new tab"
+                    });
                     self.key(NamedKey::Enter);
-                    assert!(self.app.palette.is_none());
-                    assert_eq!(self.app.workspace.tabs().len(), 2);
+                    assert!(!self.app.panel_open());
+                    assert_eq!(
+                        self.app.workspace.tabs().len(),
+                        if self.tab_picker { 30 } else { 2 }
+                    );
+                    if self.tab_picker {
+                        assert_eq!(self.app.active_tab_title(), "Fixture tab 00");
+                    }
                 }
                 23 => {
                     self.snapshot("new-tab-executed");
@@ -499,7 +582,7 @@ fn native_wayland_palette_theme_opacity_and_interaction() {
                             (size.height as f64 / scale).round() as u32,
                         ]);
                         self.configure(5);
-                        self.app.dispatch_command(Command::OpenPalette);
+                        self.open();
                         self.geometry(x + 100, y + 100, 600, 500);
                     } else {
                         event_loop.exit();
@@ -507,7 +590,7 @@ fn native_wayland_palette_theme_opacity_and_interaction() {
                 }
                 24 => {
                     assert!(self.app.window.as_ref().unwrap().scale_factor() > 1.0);
-                    assert!(self.app.palette.is_some());
+                    assert!(self.app.panel_open());
                     self.snapshot("fractional-scale-blur");
                     self.configure(13);
                 }
@@ -537,6 +620,7 @@ fn native_wayland_palette_theme_opacity_and_interaction() {
     };
     let mut driver = Driver {
         app,
+        tab_picker,
         background: None,
         phase: 0,
         deadline: Instant::now() + Duration::from_secs(1),
@@ -559,5 +643,10 @@ fn native_wayland_palette_theme_opacity_and_interaction() {
         std::panic::resume_unwind(panic);
     }
     assert!(matches!(driver.phase, 24 | 26));
+    eprintln!(
+        "native panel acceptance: tab_picker={tab_picker} phases={} fractional_scale={}",
+        driver.phase,
+        driver.fractional.is_some()
+    );
     std::fs::remove_file(path).unwrap();
 }
