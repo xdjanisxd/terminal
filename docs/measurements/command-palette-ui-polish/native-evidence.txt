@@ -1,0 +1,102 @@
+terminal-diagnostic seq=2 renderer event=window backend=Wayland
+terminal-diagnostic seq=3 renderer event=adapter backend=Vulkan name="Intel(R) Iris(R) Xe Graphics (ADL GT2)" driver="Intel open-source Mesa driver"
+terminal-diagnostic seq=4 renderer event=opacity requested=1 effective=1 alpha_mode=Auto
+terminal-diagnostic seq=8 renderer event=window backend=Wayland
+terminal-diagnostic seq=9 renderer event=adapter backend=Vulkan name="Intel(R) Iris(R) Xe Graphics (ADL GT2)" driver="Intel open-source Mesa driver"
+terminal-diagnostic seq=10 renderer event=opacity requested=0 effective=0 alpha_mode=PreMultiplied
+terminal-diagnostic seq=13 app event=terminal-grid-resized drawable=800x600 scale_factor=1 cell_metrics=CellMetrics { width: 10, height: 19, baseline: 15, pixels_per_em: 1098907648, ascent: 1097703424, descent: 1081180160, leading: 0 } grids=1 pty_resize_commands=0 terminal_us=4737 pty_us=0
+terminal-diagnostic seq=23 renderer frame=1 event=frame-presented suboptimal=false outcome=presented
+terminal-diagnostic seq=28 app event=scale-factor-changed scale_factor=1
+terminal-diagnostic seq=37 renderer frame=2 event=frame-presented suboptimal=false outcome=presented
+terminal-diagnostic seq=40 app event=terminal-grid-resized drawable=800x600 scale_factor=1 cell_metrics=CellMetrics { width: 10, height: 19, baseline: 15, pixels_per_em: 1098907648, ascent: 1097703424, descent: 1081180160, leading: 0 } grids=0 pty_resize_commands=0 terminal_us=0 pty_us=0
+terminal-diagnostic seq=53 renderer frame=3 event=frame-presented suboptimal=false outcome=presented
+terminal-diagnostic seq=63 renderer frame=4 event=frame-presented suboptimal=false outcome=presented
+terminal-diagnostic seq=76 renderer frame=5 event=frame-presented suboptimal=false outcome=presented
+[4259449.276]  -> org_kde_kwin_blur_manager#18.create(new id org_kde_kwin_blur#138, wl_surface#86)
+[4259449.297]  -> org_kde_kwin_blur#138.commit()
+terminal-diagnostic seq=86 renderer frame=6 event=frame-presented suboptimal=false outcome=presented
+terminal-diagnostic seq=99 renderer frame=7 event=frame-presented suboptimal=false outcome=presented
+[4263123.793]  -> org_kde_kwin_blur_manager#18.unset(wl_surface#86)
+[4263123.809]  -> org_kde_kwin_blur#138.release()
+terminal-diagnostic seq=102 renderer event=opacity requested=0.5 effective=0.5 alpha_mode=PreMultiplied
+terminal-diagnostic seq=117 renderer frame=8 event=frame-presented suboptimal=false outcome=presented
+[4265245.155]  -> org_kde_kwin_blur_manager#18.create(new id org_kde_kwin_blur#142, wl_surface#86)
+[4265245.178]  -> org_kde_kwin_blur#142.commit()
+terminal-diagnostic seq=133 renderer frame=9 event=frame-presented suboptimal=false outcome=presented
+[4267498.268]  -> org_kde_kwin_blur_manager#18.unset(wl_surface#86)
+[4267498.278]  -> org_kde_kwin_blur#142.release()
+terminal-diagnostic seq=136 renderer event=opacity requested=0.85 effective=0.85 alpha_mode=PreMultiplied
+terminal-diagnostic seq=151 renderer frame=10 event=frame-presented suboptimal=false outcome=presented
+[4269624.463]  -> org_kde_kwin_blur_manager#18.create(new id org_kde_kwin_blur#183, wl_surface#86)
+[4269624.488]  -> org_kde_kwin_blur#183.commit()
+terminal-diagnostic seq=167 renderer frame=11 event=frame-presented suboptimal=false outcome=presented
+[4271789.688]  -> org_kde_kwin_blur_manager#18.unset(wl_surface#86)
+[4271789.704]  -> org_kde_kwin_blur#183.release()
+terminal-diagnostic seq=170 renderer event=opacity requested=1 effective=1 alpha_mode=Auto
+terminal-diagnostic seq=184 renderer frame=12 event=frame-presented suboptimal=false outcome=presented
+[4273932.749]  -> org_kde_kwin_blur_manager#18.create(new id org_kde_kwin_blur#191, wl_surface#86)
+[4273932.768]  -> org_kde_kwin_blur#191.commit()
+terminal-diagnostic seq=199 renderer frame=13 event=frame-presented suboptimal=false outcome=presented
+[4276050.947]  -> org_kde_kwin_blur_manager#18.unset(wl_surface#86)
+[4276050.962]  -> org_kde_kwin_blur#191.release()
+terminal-diagnostic seq=202 renderer event=opacity requested=0 effective=0 alpha_mode=PreMultiplied
+terminal-diagnostic seq=217 renderer frame=14 event=frame-presented suboptimal=false outcome=presented
+[4278172.423]  -> org_kde_kwin_blur_manager#18.create(new id org_kde_kwin_blur#203, wl_surface#86)
+[4278172.445]  -> org_kde_kwin_blur#203.commit()
+terminal-diagnostic seq=233 renderer frame=15 event=frame-presented suboptimal=false outcome=presented
+[4280372.018]  -> org_kde_kwin_blur_manager#18.unset(wl_surface#86)
+[4280372.031]  -> org_kde_kwin_blur#203.release()
+terminal-diagnostic seq=236 renderer event=opacity requested=0.5 effective=0.5 alpha_mode=PreMultiplied
+terminal-diagnostic seq=251 renderer frame=16 event=frame-presented suboptimal=false outcome=presented
+[4282486.597]  -> org_kde_kwin_blur_manager#18.create(new id org_kde_kwin_blur#215, wl_surface#86)
+[4282486.617]  -> org_kde_kwin_blur#215.commit()
+terminal-diagnostic seq=267 renderer frame=17 event=frame-presented suboptimal=false outcome=presented
+[4284670.071]  -> org_kde_kwin_blur_manager#18.unset(wl_surface#86)
+[4284670.083]  -> org_kde_kwin_blur#215.release()
+terminal-diagnostic seq=270 renderer event=opacity requested=0.85 effective=0.85 alpha_mode=PreMultiplied
+terminal-diagnostic seq=285 renderer frame=18 event=frame-presented suboptimal=false outcome=presented
+[4286790.004]  -> org_kde_kwin_blur_manager#18.create(new id org_kde_kwin_blur#227, wl_surface#86)
+[4286790.028]  -> org_kde_kwin_blur#227.commit()
+terminal-diagnostic seq=301 renderer frame=19 event=frame-presented suboptimal=false outcome=presented
+[4288962.673]  -> org_kde_kwin_blur_manager#18.unset(wl_surface#86)
+[4288962.685]  -> org_kde_kwin_blur#227.release()
+terminal-diagnostic seq=304 renderer event=opacity requested=1 effective=1 alpha_mode=Auto
+terminal-diagnostic seq=318 renderer frame=20 event=frame-presented suboptimal=false outcome=presented
+[4291076.587]  -> org_kde_kwin_blur_manager#18.create(new id org_kde_kwin_blur#235, wl_surface#86)
+[4291076.608]  -> org_kde_kwin_blur#235.commit()
+terminal-diagnostic seq=333 renderer frame=21 event=frame-presented suboptimal=false outcome=presented
+terminal-diagnostic seq=336 renderer event=opacity requested=0.85 effective=0.85 alpha_mode=PreMultiplied
+terminal-diagnostic seq=351 renderer frame=22 event=frame-presented suboptimal=false outcome=presented
+terminal-diagnostic seq=358 app event=terminal-grid-resized drawable=800x600 scale_factor=1 cell_metrics=CellMetrics { width: 10, height: 19, baseline: 15, pixels_per_em: 1098907648, ascent: 1097703424, descent: 1081180160, leading: 0 } grids=2 pty_resize_commands=0 terminal_us=4645 pty_us=0
+terminal-diagnostic seq=373 renderer frame=23 event=frame-presented suboptimal=false outcome=presented
+terminal-diagnostic seq=390 renderer frame=24 event=frame-presented suboptimal=false outcome=presented
+terminal-diagnostic seq=397 renderer event=opacity requested=0.85 effective=0.85 alpha_mode=PreMultiplied
+terminal-diagnostic seq=400 app event=terminal-grid-resized drawable=320x190 scale_factor=1 cell_metrics=CellMetrics { width: 10, height: 19, baseline: 15, pixels_per_em: 1098907648, ascent: 1097703424, descent: 1081180160, leading: 0 } grids=2 pty_resize_commands=0 terminal_us=129 pty_us=5
+terminal-diagnostic seq=416 renderer frame=25 event=frame-presented suboptimal=false outcome=presented
+terminal-diagnostic seq=432 renderer frame=26 event=frame-presented suboptimal=false outcome=presented
+terminal-diagnostic seq=438 renderer event=opacity requested=0.85 effective=0.85 alpha_mode=PreMultiplied
+terminal-diagnostic seq=441 app event=terminal-grid-resized drawable=800x600 scale_factor=1 cell_metrics=CellMetrics { width: 10, height: 19, baseline: 15, pixels_per_em: 1098907648, ascent: 1097703424, descent: 1081180160, leading: 0 } grids=2 pty_resize_commands=0 terminal_us=3310 pty_us=0
+terminal-diagnostic seq=457 renderer frame=27 event=frame-presented suboptimal=false outcome=presented
+terminal-diagnostic seq=463 renderer event=opacity requested=0.85 effective=0.85 alpha_mode=PreMultiplied
+terminal-diagnostic seq=466 app event=terminal-grid-resized drawable=1920x1038 scale_factor=1 cell_metrics=CellMetrics { width: 10, height: 19, baseline: 15, pixels_per_em: 1098907648, ascent: 1097703424, descent: 1081180160, leading: 0 } grids=2 pty_resize_commands=0 terminal_us=24554 pty_us=0
+terminal-diagnostic seq=483 renderer frame=28 event=frame-presented suboptimal=false outcome=presented
+terminal-diagnostic seq=490 renderer event=opacity requested=0.85 effective=0.85 alpha_mode=PreMultiplied
+terminal-diagnostic seq=493 app event=terminal-grid-resized drawable=800x600 scale_factor=1 cell_metrics=CellMetrics { width: 10, height: 19, baseline: 15, pixels_per_em: 1098907648, ascent: 1097703424, descent: 1081180160, leading: 0 } grids=2 pty_resize_commands=0 terminal_us=3216 pty_us=0
+terminal-diagnostic seq=509 renderer frame=29 event=frame-presented suboptimal=false outcome=presented
+terminal-diagnostic seq=525 renderer frame=30 event=frame-presented suboptimal=false outcome=presented
+terminal-diagnostic seq=531 app event=terminal-grid-resized drawable=800x600 scale_factor=1 cell_metrics=CellMetrics { width: 10, height: 19, baseline: 15, pixels_per_em: 1098907648, ascent: 1097703424, descent: 1081180160, leading: 0 } grids=1 pty_resize_commands=0 terminal_us=4500 pty_us=0
+terminal-diagnostic seq=543 renderer frame=31 event=frame-presented suboptimal=false outcome=presented
+terminal-diagnostic seq=548 renderer event=opacity requested=1 effective=1 alpha_mode=Auto
+terminal-diagnostic seq=551 app event=scale-factor-changed scale_factor=1.2
+terminal-diagnostic seq=561 renderer frame=32 event=frame-presented suboptimal=false outcome=presented
+terminal-diagnostic seq=564 renderer event=opacity requested=0.85 effective=0.85 alpha_mode=PreMultiplied
+terminal-diagnostic seq=567 app event=terminal-grid-resized drawable=720x600 scale_factor=1.2 cell_metrics=CellMetrics { width: 12, height: 23, baseline: 18, pixels_per_em: 1100585370, ascent: 1099862836, descent: 1083237991, leading: 0 } grids=3 pty_resize_commands=0 terminal_us=3268 pty_us=0
+terminal-diagnostic seq=580 renderer frame=33 event=frame-presented suboptimal=false outcome=presented
+terminal-diagnostic seq=585 app event=terminal-grid-resized drawable=720x600 scale_factor=1.2 cell_metrics=CellMetrics { width: 12, height: 23, baseline: 18, pixels_per_em: 1100585370, ascent: 1099862836, descent: 1083237991, leading: 0 } grids=0 pty_resize_commands=0 terminal_us=0 pty_us=0
+terminal-diagnostic seq=595 renderer frame=34 event=frame-presented suboptimal=false outcome=presented
+terminal-diagnostic seq=606 renderer frame=35 event=frame-presented suboptimal=false outcome=presented
+[  18514.630]  -> org_kde_kwin_blur#235.release()
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 145 filtered out; finished in 61.67s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

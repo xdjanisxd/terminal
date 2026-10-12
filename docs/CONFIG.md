@@ -196,14 +196,28 @@ focus borders, and borders. Their fallback and override relationships are:
 | `ui_background` | Defaults to terminal `background`. |
 | `ui_foreground` | Defaults to terminal `foreground`; when set, also supplies selected UI text and the scrollbar thumb hover color. |
 | `ui_selected_background` | Defaults to `selection_background`; also supplies active search color. |
-| `ui_muted` | Supplies muted UI text and the scrollbar thumb. |
+| `ui_muted` | Defaults to a blend of UI foreground (86%) and background (14%) for secondary text. When explicitly set, also supplies the scrollbar thumb. |
 | `ui_accent` | Defaults to `selection_foreground`; supplies focus and search accents. |
-| `ui_border` | Supplies borders, scrollbar track, and scrollbar track hover color. |
+| `ui_border` | Defaults to a blend of UI foreground (28%) and background (72%) for subtle borders. When explicitly set, also supplies scrollbar track and track hover colors. |
 
 Any remaining UI values keep renderer defaults. The more specific optional
 `search_match_background`, `search_active_background`,
 `scrollbar_thumb`, and `scrollbar_thumb_hover` fields override their
 related semantic UI colors. The example includes every theme field.
+
+Ctrl+Shift+P opens a compact command palette centered below the custom title bar.
+It uses semantic UI background, foreground, selection, muted, and border colors,
+including live theme changes. Up/Down navigate, Enter executes, and Escape closes;
+the active result stays visible in the bounded list. It remains keyboard driven,
+and content mouse events do not change terminal selection or pane focus while it
+is open. The custom title bar retains its controls and hover behavior.
+
+On Linux, the surrounding terminal keeps its configured opacity and compositor
+blur. Palette dimming softens terminal colors without adding background alpha or
+a black overlay. The panel alone has a minimum background coverage of 94% for
+readability at low window opacity; foreground text is not faded with the window.
+At opacity 1 the panel follows the existing opaque path. Tiny windows omit
+secondary header/footer text before clipping the query and results.
 
 The compact custom title bar uses terminal `background` (including Linux opacity
 and KDE Wayland blur), `ui_muted` for the centered directory, `ui_foreground` for
