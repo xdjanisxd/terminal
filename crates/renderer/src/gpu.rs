@@ -1454,9 +1454,14 @@ mod tests {
 
         if palette {
             let panel = crate::PalettePanel {
+                title: "Command Palette",
+                placeholder: "Search commands…",
+                empty_message: "No matching commands",
+                footer: "↑↓ Navigate   Enter Run   Esc Close",
                 query: "terminal".into(),
                 entries: vec!["New Tab".into(), "Split Vertical".into()],
                 selected: 1,
+                ..crate::PalettePanel::default()
             };
             let drawing = crate::palette::drawing(
                 &panel,

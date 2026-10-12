@@ -1,0 +1,75 @@
+[ 424691.453] wp_fractional_scale_v1#36.preferred_scale(120)
+terminal-diagnostic seq=2 renderer event=window backend=Wayland
+terminal-diagnostic seq=3 renderer event=adapter backend=Vulkan name="Intel(R) Iris(R) Xe Graphics (ADL GT2)" driver="Intel open-source Mesa driver"
+terminal-diagnostic seq=4 renderer event=opacity requested=1 effective=1 alpha_mode=Auto
+terminal-diagnostic seq=6 renderer event=created scale_factor=1 cell_metrics=CellMetrics { width: 10, height: 19, baseline: 15, pixels_per_em: 1098907648, ascent: 1097703424, descent: 1081180160, leading: 0 } state=RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 1920, height: 1010 }), configured_size: Some(SurfaceSize { width: 1920, height: 1010 }) }
+[ 425365.576] wp_fractional_scale_v1#92.preferred_scale(120)
+terminal-diagnostic seq=8 renderer event=window backend=Wayland
+terminal-diagnostic seq=9 renderer event=adapter backend=Vulkan name="Intel(R) Iris(R) Xe Graphics (ADL GT2)" driver="Intel open-source Mesa driver"
+terminal-diagnostic seq=10 renderer event=opacity requested=0 effective=0 alpha_mode=PreMultiplied
+terminal-diagnostic seq=12 renderer event=created scale_factor=1 cell_metrics=CellMetrics { width: 10, height: 19, baseline: 15, pixels_per_em: 1098907648, ascent: 1097703424, descent: 1081180160, leading: 0 } state=RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }
+[ 433222.902]  -> org_kde_kwin_blur_manager#18.create(new id org_kde_kwin_blur#139, wl_surface#87)
+[ 433222.918]  -> org_kde_kwin_blur#139.commit()
+[ 437003.142]  -> org_kde_kwin_blur#139.release()
+terminal-diagnostic seq=272 renderer event=opacity requested=0.5 effective=0.5 alpha_mode=PreMultiplied
+[ 439078.698]  -> org_kde_kwin_blur_manager#18.create(new id org_kde_kwin_blur#143, wl_surface#87)
+[ 439078.713]  -> org_kde_kwin_blur#143.commit()
+[ 441404.316]  -> org_kde_kwin_blur#143.release()
+terminal-diagnostic seq=400 renderer event=opacity requested=0.85 effective=0.85 alpha_mode=PreMultiplied
+[ 443463.434]  -> org_kde_kwin_blur_manager#18.create(new id org_kde_kwin_blur#140, wl_surface#87)
+[ 443463.457]  -> org_kde_kwin_blur#140.commit()
+[ 445596.584]  -> org_kde_kwin_blur#140.release()
+terminal-diagnostic seq=500 renderer event=opacity requested=1 effective=1 alpha_mode=Auto
+[ 447623.787]  -> org_kde_kwin_blur_manager#18.create(new id org_kde_kwin_blur#182, wl_surface#87)
+[ 447623.805]  -> org_kde_kwin_blur#182.commit()
+[ 449656.271]  -> org_kde_kwin_blur#182.release()
+terminal-diagnostic seq=580 renderer event=opacity requested=0 effective=0 alpha_mode=PreMultiplied
+[ 451711.487]  -> org_kde_kwin_blur_manager#18.create(new id org_kde_kwin_blur#189, wl_surface#87)
+[ 451711.509]  -> org_kde_kwin_blur#189.commit()
+[ 453810.925]  -> org_kde_kwin_blur#189.release()
+terminal-diagnostic seq=666 renderer event=opacity requested=0.5 effective=0.5 alpha_mode=PreMultiplied
+[ 455870.133]  -> org_kde_kwin_blur_manager#18.create(new id org_kde_kwin_blur#202, wl_surface#87)
+[ 455870.150]  -> org_kde_kwin_blur#202.commit()
+[ 457969.971]  -> org_kde_kwin_blur#202.release()
+terminal-diagnostic seq=780 renderer event=opacity requested=0.85 effective=0.85 alpha_mode=PreMultiplied
+[ 460018.266]  -> org_kde_kwin_blur_manager#18.create(new id org_kde_kwin_blur#214, wl_surface#87)
+[ 460018.287]  -> org_kde_kwin_blur#214.commit()
+[ 462140.784]  -> org_kde_kwin_blur#214.release()
+terminal-diagnostic seq=922 renderer event=opacity requested=1 effective=1 alpha_mode=Auto
+[ 464188.807]  -> org_kde_kwin_blur_manager#18.create(new id org_kde_kwin_blur#226, wl_surface#87)
+[ 464188.828]  -> org_kde_kwin_blur#226.commit()
+terminal-diagnostic seq=1028 renderer event=opacity requested=0.85 effective=0.85 alpha_mode=PreMultiplied
+config reload rejected; keeping last valid config: /tmp/terminal-palette-native-27690.toml: window.opacity: expected a finite number in 0.0..=1.0
+terminal-diagnostic seq=1167 renderer event=resize requested=320x190 previous=RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }
+terminal-diagnostic seq=1168 renderer event=opacity requested=0.85 effective=0.85 alpha_mode=PreMultiplied
+terminal-diagnostic seq=1221 renderer event=resize requested=800x600 previous=RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 320, height: 190 }), configured_size: Some(SurfaceSize { width: 320, height: 190 }) }
+terminal-diagnostic seq=1222 renderer event=opacity requested=0.85 effective=0.85 alpha_mode=PreMultiplied
+terminal-diagnostic seq=1245 renderer event=resize requested=1920x1038 previous=RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }
+terminal-diagnostic seq=1246 renderer event=opacity requested=0.85 effective=0.85 alpha_mode=PreMultiplied
+terminal-diagnostic seq=1284 renderer event=resize requested=800x600 previous=RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 1920, height: 1038 }), configured_size: Some(SurfaceSize { width: 1920, height: 1038 }) }
+terminal-diagnostic seq=1285 renderer event=opacity requested=0.85 effective=0.85 alpha_mode=PreMultiplied
+[ 481870.655] wp_fractional_scale_v1#36.preferred_scale(144)
+[ 481870.671] wp_fractional_scale_v1#92.preferred_scale(144)
+terminal-diagnostic seq=1337 renderer event=resize requested=1920x998 previous=RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 1920, height: 1010 }), configured_size: Some(SurfaceSize { width: 1920, height: 1010 }) }
+terminal-diagnostic seq=1338 renderer event=opacity requested=1 effective=1 alpha_mode=Auto
+terminal-diagnostic seq=1342 app state-change trigger=scale-factor-changed-received state=AppDiagnosticState { window_size: Some((720, 600)), scale_factor: Some(1.2), cell_metrics: Some(CellMetrics { width: 10, height: 19, baseline: 15, pixels_per_em: 1098907648, ascent: 1097703424, descent: 1081180160, leading: 0 }), terminal_grid: (80, 29), frame_dirty: true, redraw_queued: true, dpi_sync_pending: false, restore_pending: false, recovery_redraw: Idle, renderer: Some(RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }) }
+terminal-diagnostic seq=1346 renderer event=resize requested=720x600 previous=RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }
+terminal-diagnostic seq=1347 renderer event=opacity requested=0.85 effective=0.85 alpha_mode=PreMultiplied
+[ 486915.847]  -> org_kde_kwin_blur#226.release()
+native panel acceptance: tab_picker=true phases=26 fractional_scale=true
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 147 filtered out; finished in 62.24s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+Command Palette regression run:
+native panel acceptance: tab_picker=false phases=26 fractional_scale=true
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 147 filtered out; finished in 63.48s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+Environment:
+KWin version: 6.3.6
+Qt Version: 6.8.2
+Compositing Type: OpenGL
+OpenGL renderer string: Mesa Intel(R) Iris(R) Xe Graphics (ADL GT2)
+Mesa version: 25.0.7

@@ -1290,19 +1290,12 @@ impl Application {
                 }
             }
             Command::OpenPalette => {
-                if let Some(button) = self.pressed_mouse_button.take() {
-                    self.send_mouse_event(MouseEvent::Release(button));
-                }
+                self.prepare_panel_input();
                 self.palette = Some(Palette::with_projects(&self.config.projects));
-                self.target_click_held = false;
-                self.selection_dragging = false;
-                self.selection_edge = None;
-                self.scrollbar_drag = None;
-                self.scrollbar_click_held = false;
-                self.set_scrollbar_hover(None);
                 self.invalidate_frame();
             }
             Command::OpenTabPicker => {
+                self.prepare_panel_input();
                 let entries = self
                     .workspace
                     .tabs()
@@ -1602,6 +1595,10 @@ impl Application {
     fn palette_panel(&self) -> Option<PalettePanel> {
         let palette = self.palette.as_ref()?;
         Some(PalettePanel {
+            title: "Command Palette",
+            placeholder: "Search commands…",
+            empty_message: "No matching commands",
+            footer: "↑↓ Navigate   Enter Run   Esc Close",
             query: palette.query().into(),
             entries: palette
                 .matches()
@@ -1609,55 +1606,58 @@ impl Application {
                 .map(|entry| entry.name.clone())
                 .collect(),
             selected: palette.selected(),
+            ..PalettePanel::default()
         })
     }
 
-    fn tab_picker_overlay(&self) -> Option<TextOverlay> {
+    fn tab_picker_panel(&self) -> Option<PalettePanel> {
         let picker = self.tab_picker.as_ref()?;
-        let mut lines = vec![OverlayLine {
-            text: format!(" Tab Picker > {}", picker.query()),
-            selected: false,
-            accent_column: None,
-        }];
-        let matches = picker.matches();
-        if matches.is_empty() {
-            lines.push(OverlayLine {
-                text: " No matching tabs".into(),
-                selected: false,
-                accent_column: None,
-            });
-        } else {
-            lines.extend(matches.iter().enumerate().map(|(index, entry)| {
-                let activity = match &entry.action {
-                    PaletteAction::SwitchTab(tab_index)
-                        if self
-                            .workspace
-                            .tabs()
-                            .get(*tab_index)
-                            .is_some_and(|tab| self.unseen_tab_activity.contains(&tab.id)) =>
-                    {
-                        ['|', '/', '-', '\\'][self.activity_frame]
-                    }
-                    _ => ' ',
+        let (entries, accent_columns) = picker
+            .matches()
+            .iter()
+            .map(|entry| {
+                let active = match &entry.action {
+                    PaletteAction::SwitchTab(index) => self
+                        .workspace
+                        .tabs()
+                        .get(*index)
+                        .is_some_and(|tab| self.unseen_tab_activity.contains(&tab.id)),
+                    _ => false,
                 };
-                OverlayLine {
-                    text: format!(
-                        " {} {} {}",
-                        if index == picker.selected() { '>' } else { ' ' },
-                        activity,
-                        entry.name
-                    ),
-                    selected: index == picker.selected(),
-                    accent_column: (activity != ' ').then_some(3),
-                }
-            }));
-        }
-        Some(TextOverlay {
-            lines,
-            bottom: false,
-            search_matches: Vec::new(),
-            search_markers: Vec::new(),
+                let activity = if active {
+                    ['|', '/', '-', '\\'][self.activity_frame]
+                } else {
+                    ' '
+                };
+                (format!("{activity} {}", entry.name), active.then_some(0))
+            })
+            .unzip();
+        Some(PalettePanel {
+            title: "Tab Picker",
+            placeholder: "Search tabs…",
+            empty_message: "No matching tabs",
+            footer: "↑↓ / j k Navigate   Enter Select   Esc Close",
+            query: picker.query().into(),
+            entries,
+            accent_columns,
+            selected: picker.selected(),
         })
+    }
+
+    fn panel_open(&self) -> bool {
+        self.palette.is_some() || self.tab_picker.is_some()
+    }
+
+    fn prepare_panel_input(&mut self) {
+        if let Some(button) = self.pressed_mouse_button.take() {
+            self.send_mouse_event(MouseEvent::Release(button));
+        }
+        self.target_click_held = false;
+        self.selection_dragging = false;
+        self.selection_edge = None;
+        self.scrollbar_drag = None;
+        self.scrollbar_click_held = false;
+        self.set_scrollbar_hover(None);
     }
 
     fn handle_search_key(&mut self, key: &Key, text: Option<&str>) {
@@ -1906,14 +1906,10 @@ impl Application {
             .workspace_overlay()
             .or_else(|| self.tab_rename_overlay())
             .or_else(|| self.search_overlay());
-        let palette = overlay.is_none().then(|| self.palette_panel()).flatten();
-        let overlay = overlay.or_else(|| {
-            if palette.is_none() {
-                self.tab_picker_overlay()
-            } else {
-                None
-            }
-        });
+        let palette = overlay
+            .is_none()
+            .then(|| self.palette_panel().or_else(|| self.tab_picker_panel()))
+            .flatten();
 
         let scrollback_input_enabled = self.scrollbar_input_enabled();
 
@@ -2794,7 +2790,7 @@ impl ApplicationHandler<PtyWake> for Application {
                         return;
                     }
                 }
-                if self.palette.is_some() {
+                if self.panel_open() {
                     return;
                 }
                 if let Some(grab_y) = self.scrollbar_drag {
@@ -2856,7 +2852,7 @@ impl ApplicationHandler<PtyWake> for Application {
                 if self.handle_chrome_mouse(event_loop, state, button) {
                     return;
                 }
-                if self.palette.is_some() {
+                if self.panel_open() {
                     return;
                 }
                 if state == ElementState::Pressed {
@@ -2982,7 +2978,7 @@ impl ApplicationHandler<PtyWake> for Application {
                 }
             }
             WindowEvent::MouseWheel { delta, .. } => {
-                if self.palette.is_some() || self.chrome_hit().is_some() || self.chrome.held {
+                if self.panel_open() || self.chrome_hit().is_some() || self.chrome.held {
                     return;
                 }
                 self.focus_pane_at_pointer();
@@ -7097,11 +7093,7 @@ mod tests {
         app.record_background_output(first_pane);
         assert!(app.unseen_tab_activity.contains(&first_tab));
         app.dispatch_command(Command::OpenTabPicker);
-        assert!(
-            app.tab_picker_overlay().unwrap().lines[1]
-                .text
-                .contains("| Terminal 1")
-        );
+        assert!(app.tab_picker_panel().unwrap().entries[0].contains("| Terminal 1"));
         app.dispatch_command(Command::PreviousTab);
         assert!(!app.unseen_tab_activity.contains(&first_tab));
         app.record_background_output(first_pane);
@@ -7129,11 +7121,7 @@ mod tests {
             deadline + Duration::from_millis(300)
         );
         assert_eq!(app.activity_frame, 1);
-        assert!(
-            app.tab_picker_overlay().unwrap().lines[1]
-                .text
-                .contains("/ Terminal 1")
-        );
+        assert!(app.tab_picker_panel().unwrap().entries[0].contains("/ Terminal 1"));
         app.handle_tab_picker_key(&Key::Named(NamedKey::Escape), None);
         assert_eq!(
             app.tick_tab_activity(deadline + Duration::from_secs(1)),
@@ -7141,6 +7129,66 @@ mod tests {
         );
         assert_eq!(app.activity_frame, 1);
         assert!(app.activity_deadline.is_none());
+    }
+
+    #[test]
+    fn tab_picker_reload_preserves_state_and_cleans_up_modal_input() {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let path = std::env::temp_dir().join(format!(
+            "terminal-picker-{}-{nonce}.toml",
+            std::process::id()
+        ));
+        let mut app = Application {
+            config_path: path.clone(),
+            workspace_loaded: true,
+            ..Application::default()
+        };
+        app.dispatch_command(Command::NewTab);
+        let active = app.workspace.active_pane();
+        app.selection_dragging = true;
+        app.selection_edge = Some((1, 0, 0, Instant::now()));
+        app.scrollbar_drag = Some(1.0);
+        app.scrollbar_click_held = true;
+        app.target_click_held = true;
+        app.pressed_mouse_button = Some(terminal_core::MouseButton::Left);
+        app.dispatch_command(Command::OpenTabPicker);
+        assert!(!app.selection_dragging);
+        assert!(app.selection_edge.is_none());
+        assert!(app.scrollbar_drag.is_none());
+        assert!(!app.scrollbar_click_held);
+        assert!(!app.target_click_held);
+        assert!(app.pressed_mouse_button.is_none());
+        app.handle_tab_picker_key(&Key::Character("Terminal".into()), Some("Terminal"));
+        app.handle_tab_picker_key(&Key::Named(NamedKey::ArrowDown), None);
+        let chosen = app.tab_picker.as_ref().unwrap().chosen();
+        for (background, opacity, blur) in [("#f0f4f8", 0.5, true), ("#15191f", 0.85, false)] {
+            fs::write(&path, format!("[theme]\nbackground = '{background}'\n[window]\nopacity = {opacity}\nblur = {blur}")).unwrap();
+            app.reload_config();
+            let panel = app.tab_picker_panel().unwrap();
+            assert_eq!(panel.query, "Terminal");
+            assert_eq!(panel.selected, 1);
+            assert_eq!(app.tab_picker.as_ref().unwrap().chosen(), chosen);
+            assert_eq!(app.config.window.opacity, opacity);
+            assert_eq!(app.config.window.blur, blur);
+            assert_eq!(app.workspace.active_pane(), active);
+        }
+        fs::write(&path, "[theme]\nbackground = 'invalid'").unwrap();
+        app.reload_config();
+        assert_eq!(app.config.theme.background, Rgb(21, 25, 31));
+        assert_eq!(app.tab_picker_panel().unwrap().selected, 1);
+        app.handle_tab_picker_key(&Key::Named(NamedKey::Escape), None);
+        assert!(!app.panel_open());
+        assert_eq!(app.workspace.active_pane(), active);
+        app.dispatch_command(Command::OpenTabPicker);
+        app.handle_tab_picker_key(&Key::Character("no-such-tab".into()), Some("no-such-tab"));
+        assert!(app.tab_picker_panel().unwrap().entries.is_empty());
+        app.handle_tab_picker_key(&Key::Named(NamedKey::Enter), None);
+        assert!(!app.panel_open());
+        assert_eq!(app.workspace.active_pane(), active);
+        fs::remove_file(path).unwrap();
     }
 
     #[test]

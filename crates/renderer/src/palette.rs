@@ -2,8 +2,14 @@
 use crate::{CellMetrics, RenderCell, RenderText, RenderTheme, Rgba, TerminalRenderData};
 use unicode_width::UnicodeWidthChar;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct PalettePanel {
+    pub title: &'static str,
+    pub placeholder: &'static str,
+    pub empty_message: &'static str,
+    pub footer: &'static str,
+    /// Optional accent cell columns, indexed by entry; missing entries have no accent.
+    pub accent_columns: Vec<Option<usize>>,
     pub query: String,
     pub entries: Vec<String>,
     pub selected: usize,
@@ -93,7 +99,7 @@ pub(crate) fn drawing(
         border,
     ));
     let mut cells: Vec<RenderCell> = Vec::new();
-    let mut line = |row: usize, text: &str, foreground: Rgba| {
+    let mut line = |row: usize, text: &str, foreground: Rgba, accent: Option<usize>| {
         let mut column = 0;
         let capacity = columns as usize;
         let total: usize = text.chars().map(|c| c.width().unwrap_or(0)).sum();
@@ -120,7 +126,11 @@ pub(crate) fn drawing(
                 width,
                 character,
                 text: RenderText::Combined(character.to_string()),
-                foreground,
+                foreground: if accent == Some(column) {
+                    theme.ui.accent
+                } else {
+                    foreground
+                },
                 background,
                 underline: false,
             });
@@ -140,18 +150,18 @@ pub(crate) fn drawing(
         }
     };
     if header == 2 {
-        line(0, "Command Palette", theme.ui.muted);
+        line(0, panel.title, theme.ui.muted, None);
     }
     if panel.query.is_empty() {
-        line(header - 1, "Search commands…", theme.ui.muted);
+        line(header - 1, panel.placeholder, theme.ui.muted, None);
     } else {
         // Keep the insertion end visible while typing a long query.
         let tail: String = panel.query.chars().rev().take(columns as usize).collect();
         let query: String = tail.chars().rev().collect();
-        line(header - 1, &query, theme.ui.foreground);
+        line(header - 1, &query, theme.ui.foreground, None);
     }
     if panel.entries.is_empty() && visible > 0 {
-        line(header, "No matching commands", theme.ui.muted);
+        line(header, panel.empty_message, theme.ui.muted, None);
     } else {
         for (index, entry) in panel.entries.iter().enumerate().skip(first).take(visible) {
             let row = header + index - first;
@@ -177,15 +187,12 @@ pub(crate) fn drawing(
                 } else {
                     theme.ui.foreground
                 },
+                panel.accent_columns.get(index).copied().flatten(),
             );
         }
     }
     if footer != 0 {
-        line(
-            rows - 1,
-            "↑↓ Navigate   Enter Run   Esc Close",
-            theme.ui.muted,
-        );
+        line(rows - 1, panel.footer, theme.ui.muted, None);
     }
     Some(PaletteDrawing {
         data: TerminalRenderData {
@@ -216,6 +223,11 @@ mod tests {
             query: String::new(),
             entries: (0..30).map(|i| format!("Command {i}")).collect(),
             selected,
+            title: "Command Palette",
+            placeholder: "Search commands…",
+            empty_message: "No matching commands",
+            footer: "↑↓ Navigate   Enter Run   Esc Close",
+            ..PalettePanel::default()
         }
     }
 
@@ -293,6 +305,88 @@ mod tests {
                 assert!(draw.data.cells.iter().any(|c| c.character == '…'));
             }
         }
+    }
+
+    #[test]
+    fn picker_shares_layout_and_clips_unicode_with_activity_accents() {
+        let mut picker = panel(29);
+        picker.title = "Tab Picker";
+        picker.placeholder = "Search tabs…";
+        picker.empty_message = "No matching tabs";
+        picker.footer = "↑↓ / j k Navigate   Enter Select   Esc Close";
+        picker.entries[29] = format!("| {}", "界e\u{301} long tab title ".repeat(8));
+        picker.accent_columns = vec![None; 30];
+        picker.accent_columns[29] = Some(0);
+        for scale in [1.0, 1.2, 2.0] {
+            for size in [[800, 600], [320, 300]] {
+                for light in [false, true] {
+                    let mut theme = RenderTheme::default();
+                    theme.ui.background = if light {
+                        Rgba([0.95, 0.96, 0.98, 1.0])
+                    } else {
+                        Rgba([0.05, 0.06, 0.08, 1.0])
+                    };
+                    for opacity in [0.0, 0.5, 0.85, 1.0] {
+                        let metrics = CellMetrics::from_physical(
+                            (8.0 * scale) as u32,
+                            (16.0 * scale) as u32,
+                            13.0 * scale as f32,
+                        );
+                        let draw =
+                            drawing(&picker, size, 32, scale, metrics, &theme, opacity).unwrap();
+                        let reference =
+                            drawing(&panel(29), size, 32, scale, metrics, &theme, opacity).unwrap();
+                        assert_eq!(draw.rect, reference.rect);
+                        assert_eq!(draw.rectangles, reference.rectangles);
+                        assert_eq!(draw.data.surface_background.0[3], opacity.max(0.94));
+                        assert_eq!(
+                            draw.data.surface_background.0[..3],
+                            theme.ui.background.0[..3]
+                        );
+                        assert!(draw.data.cells.iter().any(|c| c.character == '|'
+                            && c.column == 0
+                            && c.foreground == theme.ui.accent));
+                        assert!(draw.data.cells.iter().any(|c| c.character == '…'));
+                        assert!(
+                            draw.data
+                                .cells
+                                .iter()
+                                .any(|c| c.text.as_str() == "e\u{301}")
+                        );
+                        assert!(
+                            draw.data
+                                .cells
+                                .iter()
+                                .all(|c| c.column + c.width <= draw.data.columns)
+                        );
+                        assert!(draw.rect[0] + draw.rect[2] <= size[0]);
+                        assert!(draw.rect[1] + draw.rect[3] <= size[1]);
+                    }
+                }
+            }
+        }
+        picker.entries.clear();
+        let draw = drawing(
+            &picker,
+            [800, 600],
+            32,
+            1.0,
+            CellMetrics::from_physical(8, 16, 13.0),
+            &RenderTheme::default(),
+            0.5,
+        )
+        .unwrap();
+        let row = |row| {
+            draw.data
+                .cells
+                .iter()
+                .filter(|c| c.row == row)
+                .map(|c| c.text.as_str())
+                .collect::<String>()
+        };
+        assert_eq!(row(0), "Tab Picker");
+        assert_eq!(row(1), "Search tabs…");
+        assert_eq!(row(2), "No matching tabs");
     }
 
     #[test]
