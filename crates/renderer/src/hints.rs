@@ -77,6 +77,7 @@ pub(crate) fn drawings(
                     foreground: theme.ui.selected_foreground,
                     background,
                     underline: false,
+                    bold: false,
                 })
                 .collect(),
             cursor: None,

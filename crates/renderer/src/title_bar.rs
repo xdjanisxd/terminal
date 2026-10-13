@@ -59,6 +59,7 @@ pub(crate) fn drawing(
             foreground: theme.ui.muted,
             background,
             underline: false,
+            bold: false,
         });
         column += width;
     }
