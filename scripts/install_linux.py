@@ -75,6 +75,14 @@ def refresh(data):
                       file=sys.stderr)
 
 
+def warn_legacy_launcher(data):
+    legacy = data / "applications/terminal.desktop"
+    if legacy.exists() or legacy.is_symlink():
+        print(f"Warning: legacy launcher {legacy} was preserved because this "
+              "installer has no ownership record for it. Review it manually; "
+              f"the canonical launcher is {APP_ID}.desktop.", file=sys.stderr)
+
+
 def install(action, binary=None):
     if sys.platform != "linux":
         raise ValueError("this installer supports Linux only")
@@ -85,6 +93,7 @@ def install(action, binary=None):
     if not data.is_absolute():
         data = home / ".local/share"
     paths = destinations(home, data)
+    warn_legacy_launcher(data)
     record = data / "terminal/desktop-install.json"
     if record.is_symlink():
         raise ValueError(f"refusing symlinked installation record: {record}")

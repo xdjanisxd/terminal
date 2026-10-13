@@ -107,6 +107,24 @@ class InstallationTests(unittest.TestCase):
             installer.install("install", self.home / "missing")
         self.assertFalse(self.data.exists())
 
+    def test_legacy_launcher_is_reported_and_preserved(self):
+        legacy = self.data / "applications/terminal.desktop"
+        legacy.parent.mkdir(parents=True)
+        legacy.write_text("[Desktop Entry]\nExec=terminal\n")
+        with patch("sys.stderr") as errors:
+            self.install()
+            installer.install("uninstall")
+        self.assertEqual(legacy.read_text(), "[Desktop Entry]\nExec=terminal\n")
+        self.assertIn("no ownership record", str(errors.write.call_args_list))
+
+    def test_legacy_symlink_is_never_followed_or_removed(self):
+        legacy = self.data / "applications/terminal.desktop"
+        legacy.parent.mkdir(parents=True)
+        legacy.symlink_to(self.data / "missing.desktop")
+        self.install()
+        installer.install("uninstall")
+        self.assertTrue(legacy.is_symlink())
+
     def test_relative_xdg_is_ignored(self):
         with patch.dict(os.environ, {"XDG_DATA_HOME": "relative"}):
             self.install()

@@ -115,6 +115,7 @@ struct Application {
     config_path: PathBuf,
     saved_workspaces_path: PathBuf,
     project_root_override: Option<PathBuf>,
+    execute: Option<ExecuteCommand>,
     palette: Option<Palette>,
     tab_picker: Option<Palette>,
     saved_workspace_picker: Option<(Palette, SavedPickerMode)>,
@@ -205,6 +206,27 @@ fn selection_edge_direction(row: usize, rows: usize) -> Option<i32> {
 struct CliOptions {
     project_root: Option<PathBuf>,
     workspace: Option<PathBuf>,
+    execute: Option<ExecuteCommand>,
+}
+
+/// A process launch, kept separate from persisted workspace configuration.
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct ExecuteCommand {
+    program: OsString,
+    args: Vec<OsString>,
+}
+
+const CLI_USAGE: &str = "Usage: terminal [--project-root DIRECTORY] [--workspace CONFIG.toml] [-e|--execute|-- COMMAND [ARGS...]]";
+
+impl ExecuteCommand {
+    fn spawn_config(&self, size: PtySize, root: Option<PathBuf>) -> PtySpawnConfig {
+        let config = PtySpawnConfig::new(PathBuf::from(&self.program), size)
+            .with_arguments(self.args.clone());
+        match root {
+            Some(root) => config.with_working_directory(root),
+            None => config,
+        }
+    }
 }
 
 impl CliOptions {
@@ -213,6 +235,17 @@ impl CliOptions {
         let mut args = args.into_iter();
         while let Some(arg) = args.next() {
             match arg.to_str() {
+                Some("-e" | "--execute" | "--") => {
+                    let program = args
+                        .next()
+                        .filter(|arg| !arg.is_empty())
+                        .ok_or("command execution needs a nonempty COMMAND")?;
+                    options.execute = Some(ExecuteCommand {
+                        program,
+                        args: args.collect(),
+                    });
+                    break;
+                }
                 Some("--help" | "-h") => return Ok(None),
                 Some("--project-root") if options.project_root.is_none() => {
                     let path =
@@ -664,6 +697,7 @@ impl Default for Application {
             config_path: config_path(),
             saved_workspaces_path: app_storage_directory().join("workspaces.toml"),
             project_root_override: None,
+            execute: None,
             palette: None,
             tab_picker: None,
             saved_workspace_picker: None,
@@ -915,6 +949,7 @@ impl Application {
             pty_wake_proxy: Some(pty_wake_proxy.clone()),
             config_path: cli.workspace.unwrap_or_else(config_path),
             project_root_override: cli.project_root,
+            execute: cli.execute,
             ..Self::default()
         };
         drop(state_stage);
@@ -953,7 +988,20 @@ impl Application {
                 }
                 if !self.workspace_loaded {
                     startup_milestone("workspace-restore-begin");
-                    self.load_workspace(&config.workspace);
+                    if self.execute.is_some() {
+                        // Desktop commands must not inherit configured layouts or startup
+                        // input. Relative arguments resolve against the caller's directory.
+                        let definition = WorkspaceDefinition {
+                            project_root: self
+                                .project_root_override
+                                .clone()
+                                .or_else(|| std::env::current_dir().ok()),
+                            ..WorkspaceDefinition::default()
+                        };
+                        self.load_workspace(&definition);
+                    } else {
+                        self.load_workspace(&config.workspace);
+                    }
                     startup_milestone("workspace-restore-end");
                     self.workspace_loaded = true;
                 }
@@ -2352,24 +2400,37 @@ impl Application {
         if self.pty.is_none()
             && let Some((root, startup)) = self.workspace.pane_launch(self.active_runtime_pane)
         {
+            let execute = self.execute.take();
             self.pending_startup_command = self
                 .workspace
                 .pane_startup_command(self.active_runtime_pane)
+                .filter(|_| execute.is_none())
                 .filter(|_| shell::startup_command_allowed(self.config.shell.as_ref()))
                 .map(str::to_owned);
-            self.pty = match spawn_local_shell(
+            let configuration = match &execute {
+                Some(command) => {
+                    command.spawn_config(pty_size_for_terminal(self.terminal.dimensions()), root)
+                }
+                None => spawn_config_for_session(
+                    pty_size_for_terminal(self.terminal.dimensions()),
+                    root,
+                    startup,
+                    self.config.shell.as_ref(),
+                ),
+            };
+            self.pty = match spawn_configured_session(
                 proxy.clone(),
                 Arc::clone(&self.pty_wake_pending),
-                self.terminal.dimensions(),
                 self.active_runtime_pane,
-                root,
-                startup,
-                self.config.shell.as_ref(),
+                configuration,
             ) {
                 Ok(worker) => Some(worker),
                 Err(error) => {
                     eprintln!("{error}");
                     self.workspace_notice = Some(error);
+                    if execute.is_some() {
+                        self.session_exit_requested = true;
+                    }
                     None
                 }
             };
@@ -3435,14 +3496,23 @@ fn spawn_local_shell(
     startup: SessionDefinition,
     shell: Option<&ShellConfig>,
 ) -> Result<PtyWorker, String> {
+    let configuration =
+        spawn_config_for_session(pty_size_for_terminal(dimensions), root, startup, shell);
+    spawn_configured_session(proxy, wake_pending, pane_id, configuration)
+}
+
+fn spawn_configured_session(
+    proxy: EventLoopProxy<PtyWake>,
+    wake_pending: Arc<AtomicBool>,
+    pane_id: PaneId,
+    configuration: PtySpawnConfig,
+) -> Result<PtyWorker, String> {
     let observer = startup::observer(pane_id);
     startup::milestone(pane_id, "session-preparation-begin");
     emit_diagnostic(format_args!("app event=pty-backend-start"));
     let backend = PortablePtyBackend::new();
     startup::milestone(pane_id, "pty-backend-created");
     emit_diagnostic(format_args!("app event=pty-session-spawn-start"));
-    let configuration =
-        spawn_config_for_session(pty_size_for_terminal(dimensions), root, startup, shell);
     startup_milestone("pty-config-ready");
     startup::milestone(pane_id, "session-config-ready");
     let session = match shell::spawn(&backend, configuration, observer) {
@@ -4496,13 +4566,11 @@ fn main() {
     let cli = match CliOptions::parse(std::env::args_os().skip(1)) {
         Ok(Some(cli)) => cli,
         Ok(None) => {
-            println!("Usage: terminal [--project-root DIRECTORY] [--workspace CONFIG.toml]");
+            println!("{CLI_USAGE}");
             return;
         }
         Err(error) => {
-            eprintln!(
-                "{error}\nUsage: terminal [--project-root DIRECTORY] [--workspace CONFIG.toml]"
-            );
+            eprintln!("{error}\n{CLI_USAGE}");
             std::process::exit(2);
         }
     };
@@ -5918,6 +5986,105 @@ mod tests {
     }
 
     #[test]
+    fn cli_execution_preserves_all_child_arguments() {
+        for delimiter in ["-e", "--execute", "--"] {
+            let child: Vec<OsString> = [
+                "vim",
+                "two words/çalışma 日本語.txt",
+                "",
+                "'literal'",
+                "\"quoted\"",
+                "$HOME; touch unexpected",
+                "--help",
+                "--workspace",
+                "-e",
+                "--",
+            ]
+            .into_iter()
+            .map(OsString::from)
+            .collect();
+            let parsed =
+                CliOptions::parse(std::iter::once(OsString::from(delimiter)).chain(child.clone()))
+                    .unwrap()
+                    .unwrap();
+            let command = parsed.execute.unwrap();
+            assert_eq!(command.program, child[0]);
+            assert_eq!(command.args, child[1..]);
+            let config = command.spawn_config(PtySize::new(24, 80).unwrap(), Some("root".into()));
+            assert_eq!(config.program(), std::path::Path::new("vim"));
+            assert_eq!(config.arguments(), &child[1..]);
+            assert_eq!(
+                config.working_directory(),
+                Some(std::path::Path::new("root"))
+            );
+            assert!(config.environment().is_empty());
+            assert!(CliOptions::parse([OsString::from(delimiter)]).is_err());
+            assert!(CliOptions::parse([OsString::from(delimiter), OsString::new()]).is_err());
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn cli_execution_preserves_non_utf8_program_and_arguments() {
+        use std::os::unix::ffi::OsStringExt;
+        let program = OsString::from_vec(b"./program-\xff".to_vec());
+        let argument = OsString::from_vec(b"file-\xfe".to_vec());
+        let command = CliOptions::parse(["-e".into(), program.clone(), argument.clone()])
+            .unwrap()
+            .unwrap()
+            .execute
+            .unwrap();
+        assert_eq!(command.program, program);
+        assert_eq!(command.args, [argument]);
+    }
+
+    #[test]
+    fn cli_execution_uses_one_runtime_pane_without_changing_configured_workspace() {
+        let path = std::env::temp_dir().join(format!(
+            "terminal-execution-config-{}.toml",
+            std::process::id()
+        ));
+        fs::write(&path, "[shell]\nprogram = 'unused-configured-shell'\n[workspace]\nproject_root = '/configured-root'\n[[workspace.tabs]]\ntitle = 'Saved layout'\nlayout = { kind = 'pane', session = 'local_shell', startup_command = 'must not run' }\n[[workspace.tabs]]\ntitle = 'Second'\nlayout = { kind = 'pane', session = 'local_shell' }\n").unwrap();
+        let mut app = Application {
+            config_path: path.clone(),
+            execute: Some(super::ExecuteCommand {
+                program: "vim".into(),
+                args: vec!["file.txt".into()],
+            }),
+            ..Application::default()
+        };
+        app.reload_config();
+        assert_eq!(app.workspace.panes().len(), 1);
+        assert_eq!(
+            app.workspace
+                .pane_launch(app.active_runtime_pane)
+                .unwrap()
+                .0,
+            Some(std::env::current_dir().unwrap())
+        );
+        assert!(
+            app.workspace
+                .pane_startup_command(app.active_runtime_pane)
+                .is_none()
+        );
+        assert_eq!(app.config.workspace.tabs.len(), 2);
+        let mut normal = Application {
+            config_path: path.clone(),
+            ..Application::default()
+        };
+        normal.reload_config();
+        assert_eq!(normal.workspace.definition(), normal.config.workspace);
+        assert_eq!(normal.workspace.panes().len(), 2);
+        assert_eq!(
+            normal
+                .workspace
+                .pane_startup_command(normal.active_runtime_pane),
+            Some("must not run")
+        );
+        fs::remove_file(path).unwrap();
+    }
+
+    #[test]
     fn cli_accepts_root_and_workspace_file_and_rejects_bad_input() {
         let root = std::env::temp_dir();
         let file = root.join(format!("terminal-workspace-{}.toml", std::process::id()));
@@ -5931,6 +6098,18 @@ mod tests {
         let parsed = CliOptions::parse(args).unwrap().unwrap();
         assert_eq!(parsed.project_root, Some(root.canonicalize().unwrap()));
         assert_eq!(parsed.workspace, Some(file.canonicalize().unwrap()));
+        let parsed = CliOptions::parse([
+            "--workspace".into(),
+            file.clone().into_os_string(),
+            "--project-root".into(),
+            root.into_os_string(),
+            "-e".into(),
+            "vim".into(),
+            "--help".into(),
+        ])
+        .unwrap()
+        .unwrap();
+        assert_eq!(parsed.execute.unwrap().args, [OsString::from("--help")]);
         assert!(CliOptions::parse(vec!["--workspace".into(), "missing-file".into()]).is_err());
         assert!(CliOptions::parse(vec!["--unknown".into()]).is_err());
         assert_eq!(CliOptions::parse(vec!["--help".into()]).unwrap(), None);

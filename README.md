@@ -74,6 +74,33 @@ If `~/.local/bin` is not on PATH, add `export PATH="$HOME/.local/bin:$PATH"` to 
 
 **macOS:** Install to your user-local directory with `mkdir -p ~/.local/bin` and `install -m 755 terminal ~/.local/bin/terminal`. If needed, add `export PATH="$HOME/.local/bin:$PATH"` to `~/.zshrc`, then reopen the shell or run `source ~/.zshrc`. A common system-wide alternative is `sudo install -m 755 terminal /usr/local/bin/terminal`. Run `terminal --help` from a new shell to check PATH.
 
+## Command execution
+
+Run a program directly in a PTY using any of these equivalent forms:
+
+```sh
+terminal -e vim "notes with spaces.txt"
+terminal --execute nvim "çalışma 日本語.txt"
+terminal -- btop
+```
+
+Place Terminal options (`--project-root DIRECTORY`, `--workspace CONFIG.toml`)
+before the execution delimiter. Every argument after it belongs to the child,
+including flags such as `--help`. A command is required. Your calling shell
+handles its own quoting; Terminal preserves the resulting argument boundaries
+without interpreting shell syntax. To request shell syntax explicitly, use
+`terminal -e sh -c 'command1 && command2'`.
+
+Command launches use one pane, the caller's working directory (or
+`--project-root`), and the configured appearance. They bypass configured shell
+arguments, shell integration, workspace layouts, and pane startup commands.
+The command is runtime state and is not saved as a workspace startup command.
+The last pane's exit closes the window for both successful and unsuccessful
+child exits; a failed spawn reports the executable and closes without fallback.
+Terminal retains its existing application exit-status policy rather than
+forwarding the child's exit code. Normal launches and Saved Workspaces keep
+their existing behavior. See [KDE integration](docs/LINUX_DESKTOP_INTEGRATION.md#kde-default-terminal-and-command-launches).
+
 ## Configuration
 
 The default file is `%APPDATA%\terminal\config.toml` on Windows and `${XDG_CONFIG_HOME:-$HOME/.config}/terminal/config.toml` on Linux and macOS. `TERMINAL_CONFIG` selects a different file. A missing file uses built-in defaults; the app does not create it. To customize Terminal, create a config at that path using [config.example.toml](config.example.toml) as a reference. See the [configuration reference](docs/CONFIG.md) for validation, paths, and reload behavior.
