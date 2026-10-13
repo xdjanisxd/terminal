@@ -391,3 +391,15 @@ are described in [Linux workspace restoration](LINUX_WORKSPACE_RESTORE.md).
 Shell configuration remains in `config.toml`; Saved Workspaces contain local-shell
 session definitions, roots, layout/focus, and explicit commands rather than shell
 executable/argument snapshots.
+
+## Bold font rendering
+
+SGR 1 selects the matching native Bold face from the configured font family
+when a usable face with matching style/stretch and character coverage exists.
+The renderer shapes with that face before rasterization; Bold does not change
+ANSI foreground colors or the regular-face terminal grid and baseline.
+Unicode fallback faces use their own Bold companions when available. Otherwise,
+the renderer applies a restrained synthesized weight to regular outlines;
+already weighted faces receive no extra synthesis. Font-family changes retain
+the startup/restart behavior described above. See the
+[native Bold findings](NATIVE_BOLD_FONT.md) for validation and limitations.

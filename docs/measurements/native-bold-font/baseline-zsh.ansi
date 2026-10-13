@@ -1,0 +1,25 @@
+[1m[7m%[27m[1m[0m                                                                                [0m[27m[24m[Jdellian% [K[?2004hssource /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh;  [KZZSH_HIGHLIGHT_STYLES[command]='fg=green,bold'; ZSH_HIGHLIGHT_STYLES[unknown-toke [Knn]='fg=red,bold'; PROMPT='Native Bold %> '[?2004l
+[1m[7m%[27m[1m[0m                                                                                [0m[27m[24m[JNative Bold [K[?2004heecho "syntax highlighting" && invalid-comman[44D[32me[32mc[32mh[32mo[39m [33m"[33ms[33my[33mn[33mt[33ma[33mx[33m [33mh[33mi[33mg[33mh[33ml[33mi[33mg[33mh[33mt[33mi[33mn[33mg[33m"[39m[4C[1m[31mi[1m[31mn[1m[31mv[1m[31ma[1m[31ml[1m[31mi[1m[31md[1m[31m-[1m[31mc[1m[31mo[1m[31mm[1m[31mm[1m[31ma[1m[31mn[1m[31md[0m[39m[?2004l
+[1m[7m%[27m[1m[0m                                                                                ^C^C^C[0m[27m[24m[JNative Bold [K[?2004h[?2004l
+[1m[7m%[27m[1m[0m                                                                                ^C^C^C^C[K[?2004h[?2004l
+[1m[7m%[27m[1m[0m                                                                                ^C[0m[27m[24m[JNative Bold [K[?2004h[?2004l
+^C^C[1m[7m%[27m[1m[0m                                                                                ^C^C^C[K[?2004h[?2004l
+[1m[7m%[27m[1m[0m                                                                                ^C^C[0m[27m[24m[JNative Bold [?2004h[?2004l
+[1m[7m%[27m[1m[0m                                                                                ^C^C[0m[27m[24m[JNative Bold [K[?2004h[1m[7m%[27m[1m[0m                                                                                [0m[27m[24m[JNative Bold [?2004h[?2004l^C[1m[7m%[27m[1m[0m                                                                                ^C[0m[27m[24m[JNative Bold [K[?2004h[?2004l^C^C[0m[27m[24m[JNative Bold [K[?2004h[?2004l
+[1m[7m%[27m[1m[0m                                                                                ^C[?2004h[?2004l
+[1m[7m%[27m[1m[0m                                                                                ^C^C[0m[27m[24m[JNative Bold [K[?2004l
+[1m[7m%[27m[1m[0m                                                                                ^C^C[0m[27m[24m[JNative Bold [K[?2004h[?2004l
+[1m[7m%[27m[1m[0m                                                                                ^C[?2004h[?2004l
+[1m[7m%[27m[1m[0m                                                                                ^C^C[K[?2004h[?2004l
+[1m[7m%[27m[1m[0m                                                                                ^C^C[?2004h[?2004l
+[1m[7m%[27m[1m[0m                                                                                ^C[?2004l
+[1m[7m%[27m[1m[0m                                                                                [?2004h[?2004l
+[1m[7m%[27m[1m[0m                                                                                ^C[0m[27m[24m[JNative Bold [K[?2004h[?2004l
+[1m[7m%[27m[1m[0m                                                                                [0m[27m[24m[JNative Bold [K[?2004h[?2004l
+[1m[7m%[27m[1m[0m                                                                                ^C^C[0m[27m[24m[JNative Bold [?2004l
+[1m[7m%[27m[1m[0m                                                                                [0m[27m[24m[JNative Bold [K[?2004h[?2004l[1m[7m%[27m[1m[0m                                                                                ^C^C[K[?2004h[?2004l
+[1m[7m%[27m[1m[0m                                                                                ^C^C[0m[27m[24m[JNative Bold [K[?2004h[?2004l
+^Ce[?2004l
+[1m[7m%[27m[1m[0m                                                                                [0m[27m[24m[JNative Bold [K[?2004hxxit[1m[31mx[1m[31mi[1m[31mt[0m[39m[?2004l
+zsh: command not found: xit
+[1m[7m%[27m[1m[0m                                                                                [0m[27m[24m[JNative Bold [K[?2004h
