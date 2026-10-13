@@ -47,6 +47,56 @@ the executable name). The installer
 refuses to overwrite unrelated or modified destination files, including symlinks.
 Resolve a reported conflict by backing up/moving that file before retrying.
 
+The canonical desktop entry is `io.github.xdjanisxd.terminal.desktop`.
+If `terminal.desktop` exists in the user application directory, the installer
+warns and preserves it, including dangling symlinks. It has no ownership record
+for that legacy name; matching names or executable paths do not prove ownership.
+Review duplicate launchers manually and select the canonical entry in KDE.
+
+## KDE default terminal and command launches
+
+KDE's `Terminal=true` applications are launched through KIO's
+`DesktopExecParser`. It reads `[General] TerminalApplication` from `kdeglobals`,
+expands the application's desktop `Exec` field and file placeholders, then
+prepends the configured terminal and `-e`. Vim's `Exec=vim %F` therefore produces
+`terminal -e /usr/bin/vim /path/to/file.txt` on the verified system. Konsole gets
+additional special handling; arbitrary terminal emulators receive `-e` without
+Konsole-specific title/icon arguments. KDE may explicitly supply `/bin/sh -c`
+for desktop commands containing shell syntax; Terminal executes that supplied
+program directly. See [KIO's implementation](https://invent.kde.org/frameworks/kio/-/blob/master/src/core/desktopexecparser.cpp).
+
+Previously Terminal rejected `-e` during CLI parsing and exited before creating
+a window. It now accepts `-e`, `--execute`, and `--` followed by an executable
+and separate arguments. See [command execution](../README.md#command-execution)
+for options, working directory, quoting, and workspace behavior. No extra `-e`
+belongs in Terminal's own desktop entry: its `Exec` remains a normal Terminal
+launch, with `Terminal=false` to avoid recursive terminal launching.
+
+Verified on 2026-10-13 with KDE Wayland, kioclient 6.3.4 and KIO 6.13.0:
+
+- An isolated KDE `text/plain=vim.desktop` association opened a `.txt` file with
+  spaces, Turkish characters, and Japanese characters. Captured `/proc` argv
+  confirmed `terminal -e /usr/bin/vim ... <exact path>`. Vim recorded the exact
+  opened filename, then its exit closed Terminal.
+- Native integration tests exercised all three delimiters, exact arguments
+  (including empty arguments and literal shell metacharacters), PTY attachment,
+  working directory, zero/nonzero exit, child reaping, and unchanged saved data.
+  Vim and Neovim opened Unicode/space paths in real Wayland windows and closed
+  them after editor exit. A missing executable closed without shell fallback.
+- `terminal -e btop` rendered its interactive process monitor in a real Wayland
+  window. SIGINT to btop exited it and closed Terminal; the child was reaped.
+  Normal Zsh startup rendered an interactive prompt and closed cleanly. The
+  existing native Bash/Zsh lifecycle suite passed for tabs, splits, startup
+  commands, and unsuccessful exits.
+
+The KDE association test used temporary settings and a Vim desktop entry with
+only test commands added to record the opened path and quit automatically; live
+user associations and desktop entries were preserved. These are automated native
+checks, not a physical mouse double-click test. Native execution was tested on
+Linux; equivalent Windows/macOS command launches were not tested. The user's
+installed binary is separate from the build: run the installer after building
+to update it for everyday KDE launches.
+
 ## Uninstall
 
 From a checkout or extracted release respectively:
