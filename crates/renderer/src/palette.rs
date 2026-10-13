@@ -133,6 +133,7 @@ pub(crate) fn drawing(
                 },
                 background,
                 underline: false,
+                bold: false,
             });
             column += width;
         }
@@ -146,6 +147,7 @@ pub(crate) fn drawing(
                 foreground,
                 background,
                 underline: false,
+                bold: false,
             });
         }
     };

@@ -34,6 +34,7 @@ struct GpuGlyphKey {
     face: String,
     glyph_id: u16,
     pixels_per_em: u32,
+    bold: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -689,6 +690,7 @@ impl DrawResources {
                     face: shaped_glyph.face_cache_identity(),
                     glyph_id: shaped_glyph.glyph_id(),
                     pixels_per_em: pixels_per_em.to_bits(),
+                    bold: cell.bold,
                 };
                 atlas_lookups += 1;
                 let entry = if let Some(entry) = self.glyph_atlas.get(&key) {
@@ -696,7 +698,7 @@ impl DrawResources {
                 } else {
                     raster_calls += 1;
                     font_system
-                        .rasterize_glyph(shaped_glyph, pixels_per_em)
+                        .rasterize_glyph_with_bold(shaped_glyph, pixels_per_em, cell.bold)
                         .ok()
                         .and_then(|bitmap| self.glyph_atlas.get_or_insert(queue, key, &bitmap))
                 };
@@ -1413,6 +1415,11 @@ mod tests {
         terminal.print_character('\u{301}').unwrap();
         terminal.line_feed();
         terminal.carriage_return();
+        terminal.print_character('A').unwrap();
+        terminal.set_text_intensity(terminal_core::TextIntensity::Bold);
+        terminal.print_character('A').unwrap();
+        terminal.set_text_intensity(terminal_core::TextIntensity::Normal);
+        terminal.print_character('A').unwrap();
         assert_eq!(terminal.screen().cell(0, 2).unwrap().character(), '界');
         let theme = crate::RenderTheme {
             background: crate::Rgba([0.2, 0.3, 0.4, 1.0]),
@@ -1451,6 +1458,7 @@ mod tests {
                         face: wide_glyph.face_cache_identity(),
                         glyph_id: wide_bitmap.glyph_id(),
                         pixels_per_em: pixels_per_em.to_bits(),
+                        bold: false,
                     },
                     &wide_bitmap,
                 )
@@ -1651,6 +1659,19 @@ mod tests {
             "foreground coverage must remain independent of background opacity"
         );
         if opacity == 1.0 && !palette {
+            // Same glyph and color, normal / bold / normal. This exercises both
+            // atlas weights and proves the reset cannot reuse the bold bitmap.
+            let coverage = |column: usize| {
+                (25..50)
+                    .flat_map(|row| {
+                        (column * 96..(column + 1) * 96)
+                            .map(move |x| pixels[row * WIDTH as usize + x])
+                    })
+                    .map(|p| u64::from(p[0]) + u64::from(p[1]))
+                    .sum::<u64>()
+            };
+            assert!(coverage(1) > coverage(0));
+            assert_eq!(coverage(0), coverage(2));
             assert!(pixels.iter().any(|pixel| pixel[2] > 80));
             assert!(
                 pixels

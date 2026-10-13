@@ -2,7 +2,7 @@
 
 use terminal_core::{
     CellColor, CellOccupancy, CursorVisibility, InverseVideo, ScreenKind, TerminalState,
-    UnderlineStyle,
+    TextIntensity, UnderlineStyle,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -89,6 +89,7 @@ pub struct RenderCell {
     pub foreground: Rgba,
     pub background: Rgba,
     pub underline: bool,
+    pub bold: bool,
 }
 
 /// Most terminal cells contain one scalar. Keep its UTF-8 bytes in the cell
@@ -242,6 +243,7 @@ impl TerminalRenderData {
                     foreground,
                     background,
                     underline,
+                    bold: attributes.intensity() == TextIntensity::Bold,
                 });
             }
         }
@@ -327,6 +329,7 @@ impl TerminalRenderData {
                     },
                     background,
                     underline: false,
+                    bold: false,
                 });
             }
         }
@@ -665,6 +668,29 @@ mod tests {
             state.screen().cell(0, 0).unwrap().attributes().foreground(),
             CellColor::Indexed(1)
         );
+    }
+
+    #[test]
+    fn ncurses_bold_projection_preserves_colors_and_resets_weight() {
+        let mut state = TerminalState::new(TerminalDimensions::new(20, 2).unwrap());
+        let mut parser = terminal_core::TerminalParser::new();
+        parser.advance(&mut state, b"\x1b(B\x1b[0;1mH\x1b(B\x1b[melp\x1b[1;31mR\x1b[22mN\x1b[1;38;2;10;20;30mT\x1b[0mZ").unwrap();
+        let theme = RenderTheme::default();
+        let data = TerminalRenderData::from_terminal_with_theme(&state, &theme);
+        assert!(data.cells[0].bold);
+        assert_eq!(data.cells[0].foreground, theme.foreground);
+        assert!(data.cells[1..4].iter().all(|cell| !cell.bold));
+        assert!(data.cells[4].bold);
+        assert!(!data.cells[5].bold);
+        assert_eq!(data.cells[4].foreground, theme.ansi[1]);
+        assert_eq!(data.cells[5].foreground, theme.ansi[1]);
+        assert!(data.cells[6].bold);
+        assert_eq!(
+            data.cells[6].foreground,
+            Rgba([10.0 / 255.0, 20.0 / 255.0, 30.0 / 255.0, 1.0])
+        );
+        assert!(!data.cells[7].bold);
+        assert_eq!(data.cells[7].foreground, theme.foreground);
     }
 
     #[test]

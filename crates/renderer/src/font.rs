@@ -218,6 +218,7 @@ struct GlyphCacheKey {
     face_id: ID,
     glyph_id: u16,
     pixels_per_em: u32,
+    bold: bool,
 }
 
 struct GlyphCache {
@@ -483,11 +484,21 @@ impl FontSystem {
         glyph: &ShapedGlyph,
         pixels_per_em: f32,
     ) -> Result<GlyphBitmap, FontProcessingError> {
+        self.rasterize_glyph_with_bold(glyph, pixels_per_em, false)
+    }
+
+    pub(super) fn rasterize_glyph_with_bold(
+        &mut self,
+        glyph: &ShapedGlyph,
+        pixels_per_em: f32,
+        bold: bool,
+    ) -> Result<GlyphBitmap, FontProcessingError> {
         validate_pixels_per_em(pixels_per_em)?;
         let key = GlyphCacheKey {
             face_id: glyph.face_id,
             glyph_id: glyph.glyph_id,
             pixels_per_em: pixels_per_em.to_bits(),
+            bold,
         };
         if let Some(bitmap) = self.glyph_cache.get(key) {
             return Ok(bitmap);
@@ -505,6 +516,11 @@ impl FontSystem {
                     .build();
                 let mut renderer = Render::new(&[Source::Outline]);
                 renderer.format(Format::Alpha);
+                if bold {
+                    // Synthesize weight on the resolved primary or fallback outline.
+                    // Keep shaping advances and terminal cell metrics unchanged.
+                    renderer.embolden(pixels_per_em / 24.0);
+                }
                 let image = renderer
                     .render(&mut scaler, glyph.glyph_id)
                     .ok_or(FontProcessingError::GlyphNotRasterizable(glyph.glyph_id))?;
@@ -1006,6 +1022,29 @@ mod tests {
     }
 
     #[test]
+    fn bold_rasterization_preserves_advance_and_separates_cached_weights() {
+        for mut system in [fixture_system(), fallback_system(4)] {
+            for size in [16.0, 32.0] {
+                let shaped = system.shape_text("Ae\u{301}", size).unwrap();
+                for glyph in shaped.glyphs() {
+                    let normal = system.rasterize_glyph(glyph, size).unwrap();
+                    let bold = system.rasterize_glyph_with_bold(glyph, size, true).unwrap();
+                    assert_eq!(normal.advance(), bold.advance());
+                    let coverage = |bitmap: &super::GlyphBitmap| {
+                        bitmap.pixels().iter().map(|&v| u64::from(v)).sum::<u64>()
+                    };
+                    assert!(coverage(&bold) > coverage(&normal));
+                    assert_eq!(system.rasterize_glyph(glyph, size).unwrap(), normal);
+                    assert_eq!(
+                        system.rasterize_glyph_with_bold(glyph, size, true).unwrap(),
+                        bold
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
     fn chooses_the_primary_face_when_it_supports_text() {
         let mut system = fixture_system();
 
@@ -1037,6 +1076,7 @@ mod tests {
             face_id: shaped.glyphs()[0].face_id,
             glyph_id: shaped.glyphs()[0].glyph_id,
             pixels_per_em: 16.0f32.to_bits(),
+            bold: false,
         };
         system.rasterize_glyph(&shaped.glyphs()[0], 16.0).unwrap();
         system.rasterize_glyph(&shaped.glyphs()[2], 16.0).unwrap();
