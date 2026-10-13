@@ -1,0 +1,4 @@
+regular: baseline/candidate pixels identical = True
+bold: baseline/candidate pixels identical = False
+reset: baseline/candidate pixels identical = True
+regular colors: baseline/candidate pixels identical = True

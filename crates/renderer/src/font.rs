@@ -1,7 +1,7 @@
-//! Renderer-owned font discovery and initial face selection.
+//! Renderer-owned font discovery, face selection, shaping, and rasterization.
 //!
-//! Shaping, fallback execution, rasterization, and glyph caching intentionally
-//! build on this retained database later.
+//! Native Bold companions and Unicode fallback share the retained database;
+//! terminal cell metrics always come from the configured primary face.
 
 use std::collections::{HashMap, VecDeque};
 use std::error::Error;
@@ -9,7 +9,7 @@ use std::fmt;
 
 #[cfg(any(target_os = "linux", test))]
 use fontdb::Source as FontSource;
-use fontdb::{Database, Family, ID, Query};
+use fontdb::{Database, Family, ID, Query, Weight};
 #[cfg(any(target_os = "linux", test))]
 use std::path::Path;
 #[cfg(target_os = "linux")]
@@ -311,8 +311,9 @@ pub(super) struct FontSystem {
     fallback_candidates: Vec<ID>,
     fallback_by_character: HashMap<char, Option<ID>>,
     glyph_cache: GlyphCache,
-    shaped_cache: HashMap<String, ShapedText>,
-    shaped_lru: VecDeque<String>,
+    bold_companions: HashMap<ID, Option<ID>>,
+    shaped_cache: HashMap<(String, bool), ShapedText>,
+    shaped_lru: VecDeque<(String, bool)>,
     shaped_pixels_per_em: Option<u32>,
 }
 
@@ -396,6 +397,7 @@ impl FontSystem {
             fallback_candidates,
             fallback_by_character: HashMap::new(),
             glyph_cache: GlyphCache::new(cache_capacity),
+            bold_companions: HashMap::new(),
             shaped_cache: HashMap::new(),
             shaped_lru: VecDeque::new(),
             shaped_pixels_per_em: None,
@@ -417,6 +419,15 @@ impl FontSystem {
         text: &str,
         pixels_per_em: f32,
     ) -> Result<(ShapedText, bool), FontProcessingError> {
+        self.shape_text_cached_with_bold(text, pixels_per_em, false)
+    }
+
+    pub(super) fn shape_text_cached_with_bold(
+        &mut self,
+        text: &str,
+        pixels_per_em: f32,
+        bold: bool,
+    ) -> Result<(ShapedText, bool), FontProcessingError> {
         validate_pixels_per_em(pixels_per_em)?;
         if text.is_empty() {
             return Ok((ShapedText::default(), true));
@@ -427,21 +438,26 @@ impl FontSystem {
             self.shaped_lru.clear();
             self.shaped_pixels_per_em = Some(scale);
         }
-        if let Some(shaped) = self.shaped_cache.get(text).cloned() {
-            if let Some(position) = self.shaped_lru.iter().position(|key| key == text) {
+        let key = (text.to_owned(), bold);
+        if let Some(shaped) = self.shaped_cache.get(&key).cloned() {
+            if let Some(position) = self
+                .shaped_lru
+                .iter()
+                .position(|candidate| candidate == &key)
+            {
                 let key = self.shaped_lru.remove(position).expect("known cache key");
                 self.shaped_lru.push_back(key);
             }
             return Ok((shaped, true));
         }
-        let shaped = self.shape_text_uncached(text, pixels_per_em)?;
+        let shaped = self.shape_text_uncached(text, pixels_per_em, bold)?;
         if self.shaped_cache.len() == SHAPED_TEXT_CACHE_CAPACITY
             && let Some(oldest) = self.shaped_lru.pop_front()
         {
             self.shaped_cache.remove(&oldest);
         }
-        self.shaped_cache.insert(text.to_owned(), shaped.clone());
-        self.shaped_lru.push_back(text.to_owned());
+        self.shaped_cache.insert(key.clone(), shaped.clone());
+        self.shaped_lru.push_back(key);
         Ok((shaped, false))
     }
 
@@ -449,12 +465,20 @@ impl FontSystem {
         &mut self,
         text: &str,
         pixels_per_em: f32,
+        bold: bool,
     ) -> Result<ShapedText, FontProcessingError> {
         let mut glyphs = Vec::new();
         let mut run_start = 0;
         let mut run_face = None;
         for (offset, character) in text.char_indices() {
-            let face = self.face_for_character(character);
+            let regular = self.face_for_character(character);
+            let face = if bold {
+                self.bold_companion(regular)
+                    .filter(|face| self.face_supports(*face, character))
+                    .unwrap_or(regular)
+            } else {
+                regular
+            };
             if let Some(previous_face) = run_face
                 && face != previous_face
             {
@@ -503,6 +527,7 @@ impl FontSystem {
         if let Some(bitmap) = self.glyph_cache.get(key) {
             return Ok(bitmap);
         }
+        let synthesize = bold && !self.face_is_bold(glyph.face_id);
         let scale_context = &mut self.scale_context;
         let bitmap = self
             .database
@@ -516,10 +541,10 @@ impl FontSystem {
                     .build();
                 let mut renderer = Render::new(&[Source::Outline]);
                 renderer.format(Format::Alpha);
-                if bold {
-                    // Synthesize weight on the resolved primary or fallback outline.
-                    // Keep shaping advances and terminal cell metrics unchanged.
-                    renderer.embolden(pixels_per_em / 24.0);
+                if synthesize {
+                    // A restrained fallback keeps counters open at small sizes.
+                    // Native Bold outlines must never receive additional weight.
+                    renderer.embolden(pixels_per_em / 48.0);
                 }
                 let image = renderer
                     .render(&mut scaler, glyph.glyph_id)
@@ -537,6 +562,60 @@ impl FontSystem {
             .ok_or(FontProcessingError::FaceDataUnavailable)??;
         self.glyph_cache.insert(key, bitmap.clone());
         Ok(bitmap)
+    }
+
+    fn face_is_bold(&self, face: ID) -> bool {
+        self.database
+            .face(face)
+            .is_some_and(|info| info.weight >= Weight::SEMIBOLD)
+    }
+
+    fn bold_companion(&mut self, regular: ID) -> Option<ID> {
+        if self
+            .database
+            .face(regular)
+            .is_some_and(|info| info.weight >= Weight::BOLD)
+        {
+            return Some(regular);
+        }
+        if let Some(face) = self.bold_companions.get(&regular) {
+            return *face;
+        }
+        let selected = self.database.face(regular).and_then(|info| {
+            let families: Vec<_> = info
+                .families
+                .iter()
+                .map(|(name, _)| Family::Name(name))
+                .collect();
+            let candidate = self.database.query(&Query {
+                families: &families,
+                weight: Weight::BOLD,
+                stretch: info.stretch,
+                style: info.style,
+            })?;
+            let bold = self.database.face(candidate)?;
+            // fontdb can return a nearest regular face: reject that substitute.
+            if bold.weight < Weight::SEMIBOLD
+                || bold.style != info.style
+                || bold.stretch != info.stretch
+                || (info.monospaced && !bold.monospaced)
+                || !bold.families.iter().any(|(name, _)| {
+                    info.families
+                        .iter()
+                        .any(|(regular_name, _)| regular_name == name)
+                })
+            {
+                return None;
+            }
+            self.database
+                .with_face_data(candidate, |data, index| {
+                    FontRef::from_index(data, index as usize).is_some()
+                })
+                .filter(|valid| *valid)
+                .map(|_| candidate)
+        });
+        self.bold_companions.insert(regular, selected);
+        selected
     }
 
     fn face_for_character(&mut self, character: char) -> ID {
@@ -573,6 +652,7 @@ impl FontSystem {
         glyphs: &mut Vec<ShapedGlyph>,
     ) -> Result<(), FontProcessingError> {
         let primary_face = self.primary_face;
+        let primary_bold = self.bold_companion(primary_face);
         let shape_context = &mut self.shape_context;
         self.database
             .with_face_data(face_id, |data, index| {
@@ -583,7 +663,7 @@ impl FontSystem {
                 shaper.shape_with(|cluster| {
                     glyphs.extend(cluster.glyphs.iter().map(|glyph| ShapedGlyph {
                         face_id,
-                        is_fallback: face_id != primary_face,
+                        is_fallback: face_id != primary_face && Some(face_id) != primary_bold,
                         glyph_id: glyph.id,
                         advance: glyph.advance,
                         offset_x: glyph.x,
@@ -1019,6 +1099,166 @@ mod tests {
             system.shape_text("A", 0.0),
             Err(FontProcessingError::InvalidPixelsPerEm)
         );
+    }
+
+    fn paired_fixture_system() -> (FontSystem, fontdb::ID, fontdb::ID) {
+        let mut database = fontdb::Database::new();
+        let mut add = |weight, name: &str| {
+            database.push_face_info(FaceInfo {
+                id: fontdb::ID::dummy(),
+                source: Source::Binary(Arc::new(TEST_FONT.to_vec())),
+                index: 0,
+                families: vec![("Paired Mono".to_owned(), Language::English_UnitedStates)],
+                post_script_name: name.to_owned(),
+                style: Style::Normal,
+                weight,
+                stretch: Stretch::Normal,
+                monospaced: true,
+            })
+        };
+        let regular = add(Weight::NORMAL, "Paired-Regular");
+        let bold = add(Weight::BOLD, "Paired-Bold");
+        (
+            FontSystem::with_primary_face(database, regular, 16).unwrap(),
+            regular,
+            bold,
+        )
+    }
+
+    #[test]
+    fn native_bold_is_shaped_with_its_face_and_never_emboldened() {
+        // Same bytes under separate fixture identities test selection and synthesis
+        // independently from host fonts. Real native outlines are tested separately.
+        let (mut system, regular, bold) = paired_fixture_system();
+        let metrics = system.cell_metrics(1.25, 16.0).unwrap();
+        for size in [16.0, 20.0, 32.0] {
+            let (normal, hit) = system
+                .shape_text_cached_with_bold("Ae\u{301}", size, false)
+                .unwrap();
+            assert!(!hit);
+            let (weighted, hit) = system
+                .shape_text_cached_with_bold("Ae\u{301}", size, true)
+                .unwrap();
+            assert!(!hit);
+            assert!(normal.glyphs().iter().all(|g| g.face_id == regular));
+            assert!(
+                weighted
+                    .glyphs()
+                    .iter()
+                    .all(|g| g.face_id == bold && !g.uses_fallback())
+            );
+            for glyph in weighted.glyphs() {
+                let native = system.rasterize_glyph_with_bold(glyph, size, true).unwrap();
+                assert_eq!(native, system.rasterize_glyph(glyph, size).unwrap());
+            }
+            assert_eq!(
+                system
+                    .shape_text_cached_with_bold("Ae\u{301}", size, false)
+                    .unwrap(),
+                (normal, true)
+            );
+            assert_eq!(
+                system
+                    .shape_text_cached_with_bold("Ae\u{301}", size, true)
+                    .unwrap(),
+                (weighted, true)
+            );
+        }
+        assert_eq!(system.cell_metrics(1.25, 16.0).unwrap(), metrics);
+        // A configured primary that is already Bold must not get more weight.
+        system.primary_face = bold;
+        assert_eq!(system.bold_companion(bold), Some(bold));
+    }
+
+    #[test]
+    fn missing_native_bold_keeps_unicode_coverage_and_uses_restrained_synthesis() {
+        for mut system in [fixture_system(), fallback_system(16)] {
+            let normal = system.shape_text("Ae\u{301}", 16.0).unwrap();
+            let (bold, _) = system
+                .shape_text_cached_with_bold("Ae\u{301}", 16.0, true)
+                .unwrap();
+            assert_eq!(normal, bold);
+            assert!(bold.glyphs().iter().all(|g| g.glyph_id != 0));
+            for glyph in bold.glyphs() {
+                let regular = system.rasterize_glyph(glyph, 16.0).unwrap();
+                let weighted = system.rasterize_glyph_with_bold(glyph, 16.0, true).unwrap();
+                assert_eq!(regular.advance(), weighted.advance());
+                assert_ne!(regular.pixels(), weighted.pixels());
+            }
+        }
+    }
+
+    #[test]
+    fn bold_resolution_rejects_invalid_data_and_mismatched_style() {
+        let (mut system, regular, bold) = paired_fixture_system();
+        let mut info = system.database.face(bold).unwrap().clone();
+        system.database.remove_face(bold);
+        info.style = Style::Italic;
+        let italic = system.database.push_face_info(info.clone());
+        assert_eq!(system.bold_companion(regular), None);
+        system.bold_companions.clear();
+        system.database.remove_face(italic);
+        info.style = Style::Normal;
+        info.source = Source::Binary(Arc::new(vec![1, 2, 3]));
+        system.database.push_face_info(info);
+        assert_eq!(system.bold_companion(regular), None);
+    }
+
+    #[test]
+    #[ignore = "requires installed JetBrainsMono Nerd Font Mono regular and Bold faces"]
+    fn native_jetbrains_bold_uses_distinct_outlines_and_preserves_grid() {
+        let mut system =
+            FontSystem::load_system(FontRequest::Family("JetBrainsMono Nerd Font Mono".into()))
+                .unwrap();
+        let primary = system.primary_face;
+        let companion = system.bold_companion(primary).expect("native Bold face");
+        assert_ne!(primary, companion);
+        for scale in [1.0, 1.25, 2.0] {
+            let size = 16.0 * scale as f32;
+            let metrics = system.cell_metrics(scale, 16.0).unwrap();
+            let regular = system.shape_text("Ag0@é", size).unwrap();
+            let (bold, _) = system
+                .shape_text_cached_with_bold("Ag0@é", size, true)
+                .unwrap();
+            assert_eq!(regular.glyphs().len(), bold.glyphs().len());
+            for (regular, bold) in regular.glyphs().iter().zip(bold.glyphs()) {
+                assert_eq!(bold.face_id, companion);
+                assert_eq!(regular.advance(), bold.advance());
+                let normal = system.rasterize_glyph(regular, size).unwrap();
+                let weighted = system.rasterize_glyph_with_bold(bold, size, true).unwrap();
+                assert_ne!(normal.pixels(), weighted.pixels());
+                assert_eq!(weighted, system.rasterize_glyph(bold, size).unwrap());
+            }
+            assert_eq!(metrics, system.cell_metrics(scale, 16.0).unwrap());
+        }
+        let (unicode, _) = system
+            .shape_text_cached_with_bold("日本語 \u{e0b0} \u{f120}", 16.0, true)
+            .unwrap();
+        assert!(unicode.glyphs().iter().all(|g| g.glyph_id != 0));
+        assert!(unicode.glyphs().iter().any(|g| g.uses_fallback()));
+        eprintln!(
+            "regular={} bold={}",
+            system.database.face(primary).unwrap().post_script_name,
+            system.database.face(companion).unwrap().post_script_name
+        );
+    }
+
+    #[test]
+    #[ignore = "requires installed regular-only Noto Mono"]
+    fn native_regular_only_family_uses_synthesis_without_family_substitution() {
+        let mut system = FontSystem::load_system(FontRequest::Family("Noto Mono".into())).unwrap();
+        let primary = system.primary_face;
+        assert_eq!(system.bold_companion(primary), None);
+        let (bold, _) = system
+            .shape_text_cached_with_bold("Ag0@", 16.0, true)
+            .unwrap();
+        assert!(bold.glyphs().iter().all(|g| g.face_id == primary));
+        for glyph in bold.glyphs() {
+            let regular = system.rasterize_glyph(glyph, 16.0).unwrap();
+            let synthesized = system.rasterize_glyph_with_bold(glyph, 16.0, true).unwrap();
+            assert_ne!(regular.pixels(), synthesized.pixels());
+            assert_eq!(regular.advance(), synthesized.advance());
+        }
     }
 
     #[test]

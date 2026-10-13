@@ -1,0 +1,7 @@
+Baseline source: 1fde87726d9ec9adb1b00599bbb5bb905c6bd65f
+Candidate source: uncommitted feat/native-bold-font implementation
+Linux KDE Wayland; both outputs initially and finally 1x
+JetBrainsMono Nerd Font Mono; logical size 16; opacity 1; blur false
+Zsh 5.9; Vim 9.1; Neovim 0.10.4; MTR 0.95
+terminal-baseline SHA256 ef8e10bc4256a57c0cde7aa0dbc45324c4f179347090814e165abfa115a631dc
+terminal-candidate SHA256 14a0aa6aa6447a81b3dfca7f20b2334980ebd53ecaceb7b1270dbb711b63cb35

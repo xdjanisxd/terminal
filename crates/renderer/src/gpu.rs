@@ -679,9 +679,11 @@ impl DrawResources {
             }
             let pixels_per_em = frame.cell_metrics.pixels_per_em();
             shape_calls += 1;
-            let Ok((shaped, cache_hit)) =
-                font_system.shape_text_cached(cell.text.as_str(), pixels_per_em)
-            else {
+            let Ok((shaped, cache_hit)) = font_system.shape_text_cached_with_bold(
+                cell.text.as_str(),
+                pixels_per_em,
+                cell.bold,
+            ) else {
                 continue;
             };
             shape_misses += usize::from(!cache_hit);
