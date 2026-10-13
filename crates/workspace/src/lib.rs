@@ -703,20 +703,35 @@ impl Workspace {
         true
     }
     pub fn close_active_pane(&mut self) -> Option<PaneId> {
-        let active = self.active_pane();
-        let tab = &mut self.tabs[self.active_tab];
+        self.close_pane(self.active_pane())
+    }
+
+    /// Removes a pane in any tab without moving focus away from surviving panes.
+    /// The final pane is retained; the application owns final-session shutdown.
+    pub fn close_pane(&mut self, active: PaneId) -> Option<PaneId> {
+        let tab_index = self
+            .tabs
+            .iter()
+            .position(|tab| tab.panes().iter().any(|pane| pane.id == active))?;
+        let tab = &mut self.tabs[tab_index];
         let panes = tab.panes();
         if panes.len() == 1 {
             if self.tabs.len() == 1 {
                 return None;
             }
-            self.tabs.remove(self.active_tab);
-            self.active_tab = self.active_tab.min(self.tabs.len() - 1);
+            self.tabs.remove(tab_index);
+            if tab_index < self.active_tab {
+                self.active_tab -= 1;
+            } else if tab_index == self.active_tab {
+                self.active_tab = self.active_tab.min(self.tabs.len() - 1);
+            }
         } else {
             let position = panes.iter().position(|pane| pane.id == active).unwrap();
             assert!(tab.layout.remove(active));
-            let remaining = tab.panes();
-            tab.active_pane = remaining[position.min(remaining.len() - 1)].id;
+            if tab.active_pane == active {
+                let remaining = tab.panes();
+                tab.active_pane = remaining[position.min(remaining.len() - 1)].id;
+            }
         }
         Some(active)
     }

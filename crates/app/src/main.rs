@@ -19,6 +19,9 @@ mod linux_workspace_tests;
 mod saved_workspaces;
 mod search;
 mod shell;
+#[cfg(test)]
+#[path = "tests/shell_lifecycle.rs"]
+mod shell_lifecycle;
 mod startup;
 mod throughput;
 #[cfg(test)]
@@ -84,6 +87,8 @@ struct Application {
     pty_wake_proxy: Option<EventLoopProxy<PtyWake>>,
     pty_wake_pending: Arc<AtomicBool>,
     pty_drain_deferred: bool,
+    exited_panes: HashSet<PaneId>,
+    session_exit_requested: bool,
     frame: FrameState,
     dpi_size_sync: PhysicalSizeSync,
     pending_resize: PendingResize,
@@ -631,6 +636,8 @@ impl Default for Application {
             pty_wake_proxy: None,
             pty_wake_pending: Arc::new(AtomicBool::new(false)),
             pty_drain_deferred: false,
+            exited_panes: HashSet::new(),
+            session_exit_requested: false,
             frame: FrameState::default(),
             dpi_size_sync: PhysicalSizeSync::default(),
             pending_resize: PendingResize::default(),
@@ -854,6 +861,7 @@ impl Application {
         })();
         match result {
             Ok(workspace) => {
+                self.exited_panes.clear();
                 self.pty.take();
                 self.pending_startup_command = None;
                 self.inactive_panes.clear();
@@ -979,6 +987,7 @@ impl Application {
     fn load_workspace(&mut self, definition: &WorkspaceDefinition) {
         let _workspace_stage = startup_stage("workspace-model-and-runtimes");
         let workspace = Workspace::from_definition(definition).expect("validated workspace config");
+        self.exited_panes.clear();
         self.pending_startup_command = None;
         let active = workspace.active_pane();
         let dimensions = self.terminal.dimensions();
@@ -1223,8 +1232,20 @@ impl Application {
     }
 
     fn close_pane(&mut self) {
-        let closing_tab = self.workspace.active_tab().id;
-        if let Some(closed) = self.workspace.close_active_pane() {
+        self.remove_pane(self.workspace.active_pane());
+    }
+
+    fn remove_pane(&mut self, pane: PaneId) {
+        let Some(closing_tab) = self
+            .workspace
+            .tabs()
+            .iter()
+            .find(|tab| tab.panes().iter().any(|candidate| candidate.id == pane))
+            .map(|tab| tab.id)
+        else {
+            return;
+        };
+        if let Some(closed) = self.workspace.close_pane(pane) {
             if !self
                 .workspace
                 .tabs()
@@ -1239,7 +1260,35 @@ impl Application {
             if let Some(size) = self.window.as_ref().map(|window| window.inner_size()) {
                 self.resize_terminal_to_viewport(size);
             }
+            self.update_workspace_title();
             self.invalidate_frame();
+        }
+    }
+
+    fn close_exited_panes(&mut self) {
+        // Removal follows the drain so queued events retain their original owner.
+        // Workspace ordering makes simultaneous exits deterministic.
+        let exited = std::mem::take(&mut self.exited_panes);
+        // The diagnostic workload owns its EOF/exit/final-frame completion.
+        if self
+            .throughput
+            .as_ref()
+            .is_some_and(|stats| stats.workload.is_some())
+        {
+            return;
+        }
+        for pane in self.workspace.panes() {
+            if !exited.contains(&pane.id) || self.session_exit_requested {
+                continue;
+            }
+            if self.workspace.panes().len() == 1 {
+                self.session_exit_requested = true;
+                self.pending_startup_command = None;
+                self.pty.take();
+                emit_diagnostic(format_args!("app event=last-shell-exited"));
+            } else {
+                self.remove_pane(pane.id);
+            }
         }
     }
 
@@ -2286,6 +2335,9 @@ impl Application {
     }
 
     fn start_local_shell(&mut self) {
+        if self.session_exit_requested {
+            return;
+        }
         if self
             .throughput
             .as_ref()
@@ -2443,6 +2495,9 @@ impl Application {
                     stats.output(bytes, Duration::ZERO);
                     stats.data_dirty = was_dirty || visible.contains(pane_id);
                 }
+                if matches!(event, PtyWorkerEvent::Output(PtyOutput::Exited(_))) {
+                    self.exited_panes.insert(*pane_id);
+                }
                 handle_background_pty_event(*pane_id, runtime, event);
                 if is_output && let Some(stats) = &mut self.throughput {
                     stats.parse += parse_started.unwrap().elapsed();
@@ -2452,6 +2507,7 @@ impl Application {
         for pane_id in background_output {
             self.record_background_output(pane_id);
         }
+        self.close_exited_panes();
         // Continue on the next event-loop turn. Repeated proxy notifications can
         // run ahead of Windows redraw events even when each drain is bounded.
         if yielded {
@@ -2540,6 +2596,7 @@ impl Application {
                 if let Some(stats) = &mut self.throughput {
                     stats.exit_code = status.code_value();
                 }
+                self.exited_panes.insert(self.active_runtime_pane);
                 emit_diagnostic(format_args!("app pty-output=exited status={status:?}"));
                 false
             }
@@ -2743,6 +2800,10 @@ impl ApplicationHandler<PtyWake> for Application {
         if std::mem::take(&mut self.pty_drain_deferred) {
             self.pty_wake_pending.store(false, Ordering::Release);
             self.drain_pty_events(true);
+        }
+        if self.session_exit_requested {
+            event_loop.exit();
+            return;
         }
         if self.finish_throughput_workload(event_loop) {
             return;
@@ -3328,19 +3389,32 @@ impl ApplicationHandler<PtyWake> for Application {
                 }
             }
         }
+        if self.session_exit_requested {
+            event_loop.exit();
+            return;
+        }
         self.finish_throughput_workload(event_loop);
     }
 
     fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
         self.report_throughput();
+        self.shutdown_sessions();
         #[cfg(target_os = "linux")]
         {
-            // GPU backends and native effects borrow winit's Wayland display.
-            // Release them while the event loop still owns that connection,
-            // with the renderer gone before its window/surface owner.
+            // Release GPU/native effects before winit releases the display.
             self.renderer = None;
             self.window = None;
         }
+    }
+}
+
+impl Application {
+    fn shutdown_sessions(&mut self) {
+        self.session_exit_requested = true;
+        self.exited_panes.clear();
+        self.pending_startup_command = None;
+        self.pty.take();
+        self.inactive_panes.clear();
     }
 }
 
