@@ -1,0 +1,28 @@
+1x: original HEAD vs None: entire screenshot identical
+1x: original HEAD vs 1.0: entire screenshot identical
+1x static 0.75: regular/reset/regular color rows identical; Bold row differs
+1x static 1.25: regular/reset/regular color rows identical; Bold row differs
+1x variable 0.75: regular/reset/regular color rows identical; Bold row differs
+1x variable 1.25: regular/reset/regular color rows identical; Bold row differs
+1.25x: original HEAD vs None: entire screenshot identical
+1.25x: original HEAD vs 1.0: entire screenshot identical
+1.25x static 0.75: regular/reset/regular color rows identical; Bold row differs
+1.25x static 1.25: regular/reset/regular color rows identical; Bold row differs
+1.25x variable 0.75: regular/reset/regular color rows identical; Bold row differs
+1.25x variable 1.25: regular/reset/regular color rows identical; Bold row differs
+2x: original HEAD vs None: entire screenshot identical
+2x: original HEAD vs 1.0: entire screenshot identical
+2x static 0.75: regular/reset/regular color rows identical; Bold row differs
+2x static 1.25: regular/reset/regular color rows identical; Bold row differs
+2x variable 0.75: regular/reset/regular color rows identical; Bold row differs
+2x variable 1.25: regular/reset/regular color rows identical; Bold row differs
+2x Noto Mono 0.75: entire screenshot unchanged
+2x Noto Mono 1.25: entire screenshot unchanged
+1x static 12px light 0.75: regular/reset/color/blank rows identical; Bold row differs
+1x static 12px light 1.25: regular/reset/color/blank rows identical; Bold row differs
+1x variable 12px light 0.75: regular/reset/color/blank rows identical; Bold row differs
+1x variable 12px light 1.25: regular/reset/color/blank rows identical; Bold row differs
+2x static 20px light 0.75: regular/reset/color/blank rows identical; Bold row differs
+2x static 20px light 1.25: regular/reset/color/blank rows identical; Bold row differs
+2x variable 20px light 0.75: regular/reset/color/blank rows identical; Bold row differs
+2x variable 20px light 1.25: regular/reset/color/blank rows identical; Bold row differs

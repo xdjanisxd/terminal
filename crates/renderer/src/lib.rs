@@ -207,6 +207,22 @@ impl Renderer {
         logical_font_size: f32,
         opacity: f32,
     ) -> Result<Self, RendererInitError> {
+        Self::new_with_bold_intensity(window, font_request, logical_font_size, opacity, 1.0)
+    }
+
+    /// Bold intensity is fixed for this renderer, like the initial font family.
+    pub fn new_with_bold_intensity(
+        window: Arc<Window>,
+        font_request: FontRequest,
+        logical_font_size: f32,
+        opacity: f32,
+        bold_intensity: f32,
+    ) -> Result<Self, RendererInitError> {
+        if !bold_intensity.is_finite() || !(0.75..=1.25).contains(&bold_intensity) {
+            return Err(RendererInitError::new(
+                "bold intensity must be finite and in 0.75..=1.25",
+            ));
+        }
         #[cfg(target_os = "linux")]
         let background_opacity = if opacity.is_finite() && (0.0..=1.0).contains(&opacity) {
             opacity
@@ -220,9 +236,11 @@ impl Renderer {
         };
         startup_milestone("fonts-started");
         let font_stage = startup_stage("font-family-preparation");
-        let font_system = FontSystem::load_system(font_request).map_err(|error| {
-            RendererInitError::new(format!("could not load terminal font: {error}"))
-        })?;
+        let font_system = FontSystem::load_system(font_request)
+            .map_err(|error| {
+                RendererInitError::new(format!("could not load terminal font: {error}"))
+            })?
+            .with_bold_intensity(bold_intensity);
         drop(font_stage);
         let metrics_stage = startup_stage("font-metrics");
         let cell_metrics = font_system
@@ -277,8 +295,9 @@ impl Renderer {
         };
         renderer.reconfigure();
         emit_diagnostic(format_args!(
-            "renderer event=created scale_factor={} cell_metrics={:?} state={:?}",
+            "renderer event=created scale_factor={} bold_intensity={} cell_metrics={:?} state={:?}",
             renderer.window.scale_factor(),
+            bold_intensity,
             renderer.cell_metrics,
             renderer.diagnostic_state()
         ));

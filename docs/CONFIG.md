@@ -167,16 +167,45 @@ provided; any desired flags or launcher arguments must be explicit.
 
 ## Font
 
-`[font]` has two optional fields:
+`[font]` has three optional fields:
 
 | Field | Value | Default |
 | --- | --- | --- |
 | `family` | Name of an installed monospace font | Platform-selected monospace font |
 | `size` | Integer logical pixels from 1 through 256 | `16` |
+| `bold_intensity` | Finite number from `0.75` through `1.25` | `1.0` |
 
 The renderer scales the size for display DPI. A missing or proportional family
 can prevent renderer initialization. The font shortcuts adjust size during the
 current run; editing `[font]` requires a restart.
+
+`bold_intensity` controls actual font weight for SGR 1 text. Omission or `1.0`
+keeps the existing native Bold selection and rasterization exactly. Other values
+multiply the selected native Bold face's OpenType weight (usually 700). A usable
+variable `wght` axis receives that target, clamped to its supported range, in
+both shaping and rasterization. Without a native Bold companion, a usable
+variable face uses 700 as the reference for nondefault intensity; `1.0` still
+preserves the existing missing-Bold fallback. Consequently this case need not
+have a continuous transition through `1.0`.
+
+Static families use the nearest installed compatible Semibold-or-heavier face
+(weight 600 or above), matching family, style, and stretch. Equal-distance ties
+favor the weight closest to the original Bold, then stable face identity.
+For example, a family with weights 600/700/800 typically selects Semibold at
+`0.75`, Bold at `1.0`, and ExtraBold at `1.25`. Static adjustment is discrete;
+several values may select the same face. If the chosen face lacks a character,
+the usual native Bold companion or regular fallback retains Unicode coverage.
+
+Fonts without a usable weight axis or another compatible weight keep their
+existing native Bold or restrained synthesis. A nondefault request that cannot
+select a closer static weight emits a diagnostic once per resolved regular face
+per renderer. Intensity never increases synthesis, dilates outlines, or changes
+bitmap alpha. It does not change regular text, ANSI colors, the regular-face
+cell grid, or its baseline. Individual fonts can have weight-dependent advances
+or overhangs, so supported weights do not guarantee identical glyph placement
+or visible thickness across different families. Weight-axis adjustment uses
+the existing default values of other axes; custom/named variation instances
+are not configurable.
 
 ## Theme
 

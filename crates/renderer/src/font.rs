@@ -86,6 +86,7 @@ impl CellMetrics {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ShapedGlyph {
     face_id: ID,
+    weight: Option<u32>,
     is_fallback: bool,
     glyph_id: u16,
     advance: f32,
@@ -97,7 +98,7 @@ pub struct ShapedGlyph {
 
 impl ShapedGlyph {
     pub(crate) fn face_cache_identity(&self) -> String {
-        self.face_id.to_string()
+        format!("{}:{:?}", self.face_id, self.weight)
     }
 
     pub fn glyph_id(&self) -> u16 {
@@ -216,6 +217,7 @@ const SHAPED_TEXT_CACHE_CAPACITY: usize = 512;
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
 struct GlyphCacheKey {
     face_id: ID,
+    weight: Option<u32>,
     glyph_id: u16,
     pixels_per_em: u32,
     bold: bool,
@@ -312,12 +314,23 @@ pub(super) struct FontSystem {
     fallback_by_character: HashMap<char, Option<ID>>,
     glyph_cache: GlyphCache,
     bold_companions: HashMap<ID, Option<ID>>,
+    bold_intensity: f32,
+    bold_instances: HashMap<ID, (ID, Option<u32>)>,
     shaped_cache: HashMap<(String, bool), ShapedText>,
     shaped_lru: VecDeque<(String, bool)>,
     shaped_pixels_per_em: Option<u32>,
 }
 
 impl FontSystem {
+    /// Consuming initialization prevents changing weight under retained GPU frames.
+    pub(super) fn with_bold_intensity(mut self, intensity: f32) -> Self {
+        self.bold_intensity = intensity;
+        self.bold_instances.clear();
+        self.shaped_cache.clear();
+        self.shaped_lru.clear();
+        self.glyph_cache = GlyphCache::new(self.glyph_cache.capacity);
+        self
+    }
     pub(super) fn cell_metrics(
         &self,
         scale_factor: f64,
@@ -398,6 +411,8 @@ impl FontSystem {
             fallback_by_character: HashMap::new(),
             glyph_cache: GlyphCache::new(cache_capacity),
             bold_companions: HashMap::new(),
+            bold_intensity: 1.0,
+            bold_instances: HashMap::new(),
             shaped_cache: HashMap::new(),
             shaped_lru: VecDeque::new(),
             shaped_pixels_per_em: None,
@@ -469,34 +484,44 @@ impl FontSystem {
     ) -> Result<ShapedText, FontProcessingError> {
         let mut glyphs = Vec::new();
         let mut run_start = 0;
-        let mut run_face = None;
+        let mut run_face: Option<(ID, Option<u32>)> = None;
         for (offset, character) in text.char_indices() {
             let regular = self.face_for_character(character);
-            let face = if bold {
-                self.bold_companion(regular)
-                    .filter(|face| self.face_supports(*face, character))
-                    .unwrap_or(regular)
+            let instance = if bold {
+                let instance = self.bold_instance(regular);
+                if self.face_supports(instance.0, character) {
+                    instance
+                } else {
+                    (
+                        self.bold_companion(regular)
+                            .filter(|face| self.face_supports(*face, character))
+                            .unwrap_or(regular),
+                        None,
+                    )
+                }
             } else {
-                regular
+                (regular, None)
             };
             if let Some(previous_face) = run_face
-                && face != previous_face
+                && instance != previous_face
             {
                 self.shape_run(
                     &text[run_start..offset],
                     run_start as u32,
-                    previous_face,
+                    previous_face.0,
+                    previous_face.1,
                     pixels_per_em,
                     &mut glyphs,
                 )?;
                 run_start = offset;
             }
-            run_face = Some(face);
+            run_face = Some(instance);
         }
         self.shape_run(
             &text[run_start..],
             run_start as u32,
-            run_face.unwrap_or(self.primary_face),
+            run_face.unwrap_or((self.primary_face, None)).0,
+            run_face.unwrap_or((self.primary_face, None)).1,
             pixels_per_em,
             &mut glyphs,
         )?;
@@ -520,6 +545,7 @@ impl FontSystem {
         validate_pixels_per_em(pixels_per_em)?;
         let key = GlyphCacheKey {
             face_id: glyph.face_id,
+            weight: glyph.weight,
             glyph_id: glyph.glyph_id,
             pixels_per_em: pixels_per_em.to_bits(),
             bold,
@@ -527,7 +553,7 @@ impl FontSystem {
         if let Some(bitmap) = self.glyph_cache.get(key) {
             return Ok(bitmap);
         }
-        let synthesize = bold && !self.face_is_bold(glyph.face_id);
+        let synthesize = bold && glyph.weight.is_none() && !self.face_is_bold(glyph.face_id);
         let scale_context = &mut self.scale_context;
         let bitmap = self
             .database
@@ -538,6 +564,11 @@ impl FontSystem {
                     .builder(font)
                     .size(pixels_per_em)
                     .hint(true)
+                    // Swash retains builder coordinates in its context. An empty
+                    // variations iterator does not reset a previous weight.
+                    .normalized_coords(font.variations().normalized_coords(
+                        glyph.weight.map(|weight| ("wght", f32::from_bits(weight))),
+                    ))
                     .build();
                 let mut renderer = Render::new(&[Source::Outline]);
                 renderer.format(Format::Alpha);
@@ -568,6 +599,81 @@ impl FontSystem {
         self.database
             .face(face)
             .is_some_and(|info| info.weight >= Weight::SEMIBOLD)
+    }
+
+    fn bold_instance(&mut self, regular: ID) -> (ID, Option<u32>) {
+        let native = self.bold_companion(regular);
+        let unchanged = (native.unwrap_or(regular), None);
+        if self.bold_intensity == 1.0 {
+            return unchanged;
+        }
+        if let Some(instance) = self.bold_instances.get(&regular) {
+            return *instance;
+        }
+        let reference = native
+            .and_then(|id| self.database.face(id))
+            .map_or(700.0, |face| f32::from(face.weight.0));
+        let target = reference * self.bold_intensity;
+        let variable_weight = self
+            .database
+            .with_face_data(unchanged.0, |data, index| {
+                let font = FontRef::from_index(data, index as usize)?;
+                let axis = font
+                    .variations()
+                    .find(|axis| axis.tag() == swash::tag_from_bytes(b"wght"))?;
+                (axis.min_value().is_finite()
+                    && axis.max_value().is_finite()
+                    && axis.min_value() < axis.max_value())
+                .then(|| target.clamp(axis.min_value(), axis.max_value()).to_bits())
+            })
+            .flatten();
+        let instance = if let Some(weight) = variable_weight {
+            (unchanged.0, Some(weight))
+        } else if native.is_some() {
+            let info = self.database.face(regular).expect("resolved face");
+            let selected = self
+                .database
+                .faces()
+                .filter(|face| {
+                    face.weight >= Weight::SEMIBOLD
+                        && face.style == info.style
+                        && face.stretch == info.stretch
+                        && (!info.monospaced || face.monospaced)
+                        && face.families.iter().any(|(name, _)| {
+                            info.families.iter().any(|(original, _)| name == original)
+                        })
+                        && self
+                            .database
+                            .with_face_data(face.id, |data, index| {
+                                FontRef::from_index(data, index as usize).is_some()
+                            })
+                            .unwrap_or(false)
+                })
+                .min_by_key(|face| {
+                    (
+                        (f32::from(face.weight.0) - target).abs().to_bits(),
+                        (f32::from(face.weight.0) - reference).abs().to_bits(),
+                        face.id.to_string(),
+                    )
+                })
+                .map(|face| face.id)
+                .unwrap_or(unchanged.0);
+            if selected == unchanged.0 {
+                eprintln!(
+                    "font.bold_intensity: face {} has no closer supported native weight; keeping native Bold",
+                    unchanged.0
+                );
+            }
+            (selected, None)
+        } else {
+            eprintln!(
+                "font.bold_intensity: face {} has no adjustable weight; keeping existing bold fallback",
+                regular
+            );
+            unchanged
+        };
+        self.bold_instances.insert(regular, instance);
+        instance
     }
 
     fn bold_companion(&mut self, regular: ID) -> Option<ID> {
@@ -648,22 +754,34 @@ impl FontSystem {
         text: &str,
         source_offset: u32,
         face_id: ID,
+        weight: Option<u32>,
         pixels_per_em: f32,
         glyphs: &mut Vec<ShapedGlyph>,
     ) -> Result<(), FontProcessingError> {
         let primary_face = self.primary_face;
-        let primary_bold = self.bold_companion(primary_face);
+        let primary_bold = self.bold_instance(primary_face).0;
+        let primary_native_bold = self.bold_companion(primary_face);
         let shape_context = &mut self.shape_context;
         self.database
             .with_face_data(face_id, |data, index| {
                 let font = FontRef::from_index(data, index as usize)
                     .ok_or(FontProcessingError::InvalidFaceData)?;
-                let mut shaper = shape_context.builder(font).size(pixels_per_em).build();
+                let mut shaper =
+                    shape_context
+                        .builder(font)
+                        .size(pixels_per_em)
+                        .normalized_coords(font.variations().normalized_coords(
+                            weight.map(|weight| ("wght", f32::from_bits(weight))),
+                        ))
+                        .build();
                 shaper.add_str(text);
                 shaper.shape_with(|cluster| {
                     glyphs.extend(cluster.glyphs.iter().map(|glyph| ShapedGlyph {
                         face_id,
-                        is_fallback: face_id != primary_face && Some(face_id) != primary_bold,
+                        weight,
+                        is_fallback: face_id != primary_face
+                            && face_id != primary_bold
+                            && Some(face_id) != primary_native_bold,
                         glyph_id: glyph.id,
                         advance: glyph.advance,
                         offset_x: glyph.x,
@@ -840,6 +958,395 @@ mod tests {
     };
 
     const TEST_FONT: &[u8] = include_bytes!("../tests/fixtures/Tuffy.ttf");
+
+    fn variable_system(intensity: f32) -> FontSystem {
+        let mut database = fontdb::Database::new();
+        database.load_font_data(
+            include_bytes!("../tests/fixtures/JetBrainsMono-variable.ttf").to_vec(),
+        );
+        FontSystem::from_database(database, FontRequest::Family("JetBrains Mono".into()))
+            .unwrap()
+            .with_bold_intensity(intensity)
+    }
+
+    #[test]
+    fn intensity_preserves_default_and_unsupported_font_bitmaps() {
+        for intensity in [0.75, 1.0, 1.25] {
+            let mut reference = fixture_system();
+            let mut candidate = fixture_system().with_bold_intensity(intensity);
+            for size in [12.0, 16.0, 20.0, 32.0] {
+                for bold in [false, true] {
+                    let reference_text = reference
+                        .shape_text_cached_with_bold("Ae\u{301}", size, bold)
+                        .unwrap()
+                        .0;
+                    let candidate_text = candidate
+                        .shape_text_cached_with_bold("Ae\u{301}", size, bold)
+                        .unwrap()
+                        .0;
+                    assert_eq!(candidate_text, reference_text);
+                    for (a, b) in reference_text.glyphs().iter().zip(candidate_text.glyphs()) {
+                        assert_eq!(
+                            reference.rasterize_glyph_with_bold(a, size, bold).unwrap(),
+                            candidate.rasterize_glyph_with_bold(b, size, bold).unwrap()
+                        );
+                    }
+                }
+            }
+            assert_eq!(
+                candidate.bold_instances.len(),
+                usize::from(intensity != 1.0)
+            );
+        }
+        let (mut reference, _, _) = paired_fixture_system();
+        let (candidate, _, _) = paired_fixture_system();
+        let mut candidate = candidate.with_bold_intensity(1.0);
+        let a = reference
+            .shape_text_cached_with_bold("A", 16.0, true)
+            .unwrap()
+            .0;
+        let b = candidate
+            .shape_text_cached_with_bold("A", 16.0, true)
+            .unwrap()
+            .0;
+        assert_eq!(
+            reference
+                .rasterize_glyph_with_bold(&a.glyphs()[0], 16.0, true)
+                .unwrap(),
+            candidate
+                .rasterize_glyph_with_bold(&b.glyphs()[0], 16.0, true)
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn variable_intensity_clamps_separates_caches_and_preserves_grid() {
+        let mut light = variable_system(0.75);
+        let mut heavy = variable_system(1.25);
+        for scale in [1.0, 1.25, 2.0] {
+            for logical_size in [12.0, 16.0, 20.0] {
+                let size = scale as f32 * logical_size;
+                assert_eq!(
+                    light.cell_metrics(scale, logical_size).unwrap(),
+                    heavy.cell_metrics(scale, logical_size).unwrap()
+                );
+                let normal = light.shape_text("Ag0@é e\u{301}", size).unwrap();
+                let (a, hit) = light
+                    .shape_text_cached_with_bold("Ag0@é e\u{301}", size, true)
+                    .unwrap();
+                assert!(!hit);
+                let b = heavy
+                    .shape_text_cached_with_bold("Ag0@é e\u{301}", size, true)
+                    .unwrap()
+                    .0;
+                assert_eq!(a.glyphs().len(), b.glyphs().len());
+                for ((a, b), normal) in a.glyphs().iter().zip(b.glyphs()).zip(normal.glyphs()) {
+                    assert_eq!(a.weight, Some(525.0f32.to_bits()));
+                    assert_eq!(b.weight, Some(800.0f32.to_bits()));
+                    assert_ne!(a.face_cache_identity(), b.face_cache_identity());
+                    assert_eq!(a.advance, b.advance);
+                    assert_eq!(a.advance, normal.advance);
+                    assert_eq!(a.cluster_range(), normal.cluster_range());
+                    assert!(!a.uses_fallback());
+                    let bitmap = light.rasterize_glyph_with_bold(a, size, true).unwrap();
+                    assert_eq!(
+                        bitmap,
+                        light.rasterize_glyph(a, size).unwrap(),
+                        "native variable outline must never be synthesized"
+                    );
+                    assert_eq!(
+                        bitmap,
+                        light.rasterize_glyph_with_bold(a, size, true).unwrap()
+                    );
+                }
+                let first = &a.glyphs()[0];
+                assert_ne!(
+                    light.rasterize_glyph_with_bold(first, size, true).unwrap(),
+                    heavy
+                        .rasterize_glyph_with_bold(&b.glyphs()[0], size, true)
+                        .unwrap()
+                );
+                assert_eq!(
+                    light
+                        .shape_text_cached_with_bold("Ag0@é e\u{301}", size, true)
+                        .unwrap(),
+                    (a, true)
+                );
+                assert_eq!(light.shape_text("Ag0@é e\u{301}", size).unwrap(), normal);
+            }
+        }
+        // Even the same font system must not reuse a shape/bitmap from an old instance.
+        let old = light
+            .shape_text_cached_with_bold("A", 16.0, true)
+            .unwrap()
+            .0;
+        let old_bitmap = light
+            .rasterize_glyph_with_bold(&old.glyphs()[0], 16.0, true)
+            .unwrap();
+        let mut changed = light.with_bold_intensity(1.25);
+        let (new, hit) = changed
+            .shape_text_cached_with_bold("A", 16.0, true)
+            .unwrap();
+        assert!(!hit);
+        assert_ne!(
+            old_bitmap,
+            changed
+                .rasterize_glyph_with_bold(&new.glyphs()[0], 16.0, true)
+                .unwrap()
+        );
+        assert_eq!(
+            old_bitmap,
+            changed
+                .rasterize_glyph_with_bold(&old.glyphs()[0], 16.0, true)
+                .unwrap()
+        );
+        assert_eq!(changed.glyph_cache.entries.len(), 2);
+    }
+
+    #[test]
+    fn variable_regular_bitmaps_after_bold_match_fresh_rasterization() {
+        for intensity in [0.75, 1.0, 1.25] {
+            let mut system = variable_system(intensity);
+            let bold = system
+                .shape_text_cached_with_bold("Ag0@é", 16.0, true)
+                .unwrap()
+                .0;
+            for glyph in bold.glyphs() {
+                system.rasterize_glyph_with_bold(glyph, 16.0, true).unwrap();
+            }
+            let normal = system.shape_text("RED GREEN BLUE", 16.0).unwrap();
+            let mut fresh = variable_system(1.0);
+            let reference = fresh.shape_text("RED GREEN BLUE", 16.0).unwrap();
+            for (a, b) in normal.glyphs().iter().zip(reference.glyphs()) {
+                assert_eq!(
+                    system.rasterize_glyph(a, 16.0).unwrap(),
+                    fresh.rasterize_glyph(b, 16.0).unwrap(),
+                    "{intensity}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn static_intensity_uses_compatible_faces_and_preserves_default_on_ties() {
+        let (mut system, regular, bold) = paired_fixture_system();
+        let mut face = system.database.face(bold).unwrap().clone();
+        face.weight = Weight::SEMIBOLD;
+        face.post_script_name = "Paired-Semibold".into();
+        let semibold = system.database.push_face_info(face.clone());
+        face.weight = Weight::EXTRA_BOLD;
+        face.post_script_name = "Paired-ExtraBold".into();
+        let extra = system.database.push_face_info(face.clone());
+        face.weight = Weight(875);
+        face.style = Style::Italic;
+        let mismatched = system.database.push_face_info(face.clone());
+        face.style = Style::Normal;
+        face.source = Source::Binary(Arc::new(vec![0]));
+        let invalid = system.database.push_face_info(face);
+        for (intensity, expected) in [
+            (0.75, semibold),
+            (1.0, bold),
+            (1.25, extra),
+            (650.0 / 700.0, bold),
+        ] {
+            system = system.with_bold_intensity(intensity);
+            assert_eq!(system.bold_instance(regular), (expected, None));
+            assert_ne!(expected, mismatched);
+            assert_ne!(expected, invalid);
+            let shaped = system
+                .shape_text_cached_with_bold("Ae\u{301}", 16.0, true)
+                .unwrap()
+                .0;
+            assert!(
+                shaped
+                    .glyphs()
+                    .iter()
+                    .all(|g| g.face_id == expected && !g.uses_fallback())
+            );
+            for glyph in shaped.glyphs() {
+                assert_eq!(
+                    system.rasterize_glyph_with_bold(glyph, 16.0, true).unwrap(),
+                    system.rasterize_glyph(glyph, 16.0).unwrap()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn intensity_face_without_character_keeps_original_native_bold_coverage() {
+        let (mut system, regular, bold) = paired_fixture_system();
+        let mut bytes = TEST_FONT.to_vec();
+        let tables = u16::from_be_bytes([bytes[4], bytes[5]]) as usize;
+        for offset in (12..12 + tables * 16).step_by(16) {
+            if &bytes[offset..offset + 4] == b"cmap" {
+                bytes[offset..offset + 4].copy_from_slice(b"xxxx");
+            }
+        }
+        let mut face = system.database.face(bold).unwrap().clone();
+        face.source = Source::Binary(Arc::new(bytes));
+        face.weight = Weight::EXTRA_BOLD;
+        let extra = system.database.push_face_info(face);
+        system = system.with_bold_intensity(1.25);
+        assert_eq!(system.bold_instance(regular).0, extra);
+        assert!(!system.face_supports(extra, 'A'));
+        let shaped = system
+            .shape_text_cached_with_bold("Ae\u{301}", 16.0, true)
+            .unwrap()
+            .0;
+        assert!(
+            shaped.glyphs().iter().all(|glyph| glyph.face_id == bold
+                && glyph.glyph_id != 0
+                && !glyph.uses_fallback())
+        );
+    }
+
+    #[test]
+    #[ignore = "requires installed JetBrainsMono Nerd Font Mono weight faces"]
+    fn native_static_intensity_selects_real_weight_faces() {
+        for intensity in [0.75, 1.0, 1.25] {
+            let mut system =
+                FontSystem::load_system(FontRequest::Family("JetBrainsMono Nerd Font Mono".into()))
+                    .unwrap()
+                    .with_bold_intensity(intensity);
+            let instance = system.bold_instance(system.primary_face);
+            let expected = if intensity < 1.0 {
+                600
+            } else if intensity > 1.0 {
+                800
+            } else {
+                700
+            };
+            assert_eq!(system.database.face(instance.0).unwrap().weight.0, expected);
+            for scale in [1.0, 1.25, 2.0] {
+                let metrics = system.cell_metrics(scale, 16.0).unwrap();
+                let text = system
+                    .shape_text_cached_with_bold(
+                        "Ag0@é e\u{301} \u{e0b0} \u{f120}",
+                        scale as f32 * 16.0,
+                        true,
+                    )
+                    .unwrap()
+                    .0;
+                for glyph in text.glyphs() {
+                    assert_eq!(glyph.face_id, instance.0);
+                    assert!(!glyph.uses_fallback());
+                    assert_eq!(
+                        system
+                            .rasterize_glyph_with_bold(glyph, scale as f32 * 16.0, true)
+                            .unwrap(),
+                        system.rasterize_glyph(glyph, scale as f32 * 16.0).unwrap()
+                    );
+                }
+                assert_eq!(system.cell_metrics(scale, 16.0).unwrap(), metrics);
+            }
+        }
+    }
+
+    #[test]
+    #[ignore = "requires native fonts and the variable fixture through FONTCONFIG_FILE"]
+    fn native_variable_unicode_fallback_rasterization() {
+        for intensity in [0.75, 1.0, 1.25] {
+            let mut system = FontSystem::load_system(FontRequest::Family("JetBrains Mono".into()))
+                .unwrap()
+                .with_bold_intensity(intensity);
+            for size in [16.0, 20.0, 32.0] {
+                for ch in "Native weight: regular / Bold / reset Ag0@8 BDPQ counters é e\u{301} ┌─┬─┐ │ └─┴─┘".chars() {
+                    let shaped=system.shape_text_cached_with_bold(&ch.to_string(),size,false).unwrap().0;
+                    for glyph in shaped.glyphs() { system.rasterize_glyph(glyph,size).unwrap(); }
+                }
+                for bold in [false, true] {
+                    let shaped = system
+                        .shape_text_cached_with_bold("Ag0@ 日本語", size, bold)
+                        .unwrap()
+                        .0;
+                    for glyph in shaped.glyphs() {
+                        let bitmap = system.rasterize_glyph_with_bold(glyph, size, bold);
+                        if glyph.uses_fallback() {
+                            eprintln!(
+                                "size={size} intensity={intensity} bold={bold} face={:?} glyph={} bitmap={:?}",
+                                system.database.face(glyph.face_id).unwrap(),
+                                glyph.glyph_id,
+                                bitmap.as_ref().map(|b| (
+                                    b.width,
+                                    b.height,
+                                    b.bearing_x,
+                                    b.bearing_y
+                                ))
+                            );
+                            assert!(bitmap.is_ok());
+                            let bitmap = bitmap.unwrap();
+                            assert!(
+                                bitmap.width > 0
+                                    && bitmap.height > 0
+                                    && bitmap.width <= 64
+                                    && bitmap.height <= 64
+                            );
+                            assert!(
+                                bitmap.pixels.iter().any(|pixel| *pixel != 0),
+                                "blank fallback at size={size} intensity={intensity} bold={bold}"
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn variable_weight_api_changes_native_outlines_without_changing_advance() {
+        use swash::{
+            FontRef,
+            scale::{Render, ScaleContext, Source},
+            shape::ShapeContext,
+            zeno::Format,
+        };
+        let font = FontRef::from_index(
+            include_bytes!("../tests/fixtures/JetBrainsMono-variable.ttf"),
+            0,
+        )
+        .unwrap();
+        let axis = font
+            .variations()
+            .find(|axis| axis.tag() == swash::tag_from_bytes(b"wght"))
+            .unwrap();
+        assert_eq!(
+            (axis.min_value(), axis.default_value(), axis.max_value()),
+            (100.0, 400.0, 800.0)
+        );
+        for size in [12.0, 16.0, 20.0, 32.0] {
+            let mut previous = None;
+            for weight in [525.0, 600.0, 700.0] {
+                let mut shape = ShapeContext::new();
+                let mut shaper = shape
+                    .builder(font)
+                    .size(size)
+                    .variations([("wght", weight)])
+                    .build();
+                shaper.add_str("Ag0@");
+                let mut glyphs = Vec::new();
+                shaper.shape_with(|cluster| glyphs.extend_from_slice(cluster.glyphs));
+                let mut scale = ScaleContext::new();
+                let mut scaler = scale
+                    .builder(font)
+                    .size(size)
+                    .hint(true)
+                    .variations([("wght", weight)])
+                    .build();
+                let mut render = Render::new(&[Source::Outline]);
+                render.format(Format::Alpha);
+                let bitmaps: Vec<_> = glyphs
+                    .iter()
+                    .map(|g| render.render(&mut scaler, g.id).unwrap().data)
+                    .collect();
+                let advances: Vec<_> = glyphs.iter().map(|g| g.advance).collect();
+                if let Some((prior_bitmaps, prior_advances)) = previous {
+                    assert_ne!(bitmaps, prior_bitmaps);
+                    assert_eq!(advances, prior_advances);
+                }
+                previous = Some((bitmaps, advances));
+            }
+        }
+    }
 
     fn database_with_face(family: &str, monospaced: bool) -> fontdb::Database {
         let mut database = fontdb::Database::new();
@@ -1314,6 +1821,7 @@ mod tests {
         system.rasterize_glyph(&shaped.glyphs()[1], 16.0).unwrap();
         let first_key = GlyphCacheKey {
             face_id: shaped.glyphs()[0].face_id,
+            weight: None,
             glyph_id: shaped.glyphs()[0].glyph_id,
             pixels_per_em: 16.0f32.to_bits(),
             bold: false,

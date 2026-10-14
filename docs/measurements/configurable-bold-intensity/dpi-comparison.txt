@@ -1,0 +1,2 @@
+static: live 1x -> 1.25x -> 2x -> 1x; return screenshot identical
+variable: live 1x -> 1.25x -> 2x -> 1x; return screenshot identical

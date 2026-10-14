@@ -13,6 +13,10 @@ mod linux_palette_tests;
 #[cfg(all(test, target_os = "linux"))]
 #[path = "tests/linux_window_effects.rs"]
 mod linux_window_effects_tests;
+
+#[cfg(all(test, target_os = "linux"))]
+#[path = "tests/bold_intensity_native.rs"]
+mod bold_intensity_native_tests;
 #[cfg(all(test, target_os = "linux"))]
 #[path = "tests/linux_workspace.rs"]
 mod linux_workspace_tests;
@@ -2055,11 +2059,12 @@ impl Application {
         }
 
         let window = self.window.as_ref().unwrap();
-        match Renderer::new_with_window_settings(
+        match Renderer::new_with_bold_intensity(
             Arc::clone(window),
             font_request(&self.config.font),
             f32::from(self.config.font.size),
             self.config.window.opacity,
+            self.config.font.bold_intensity,
         ) {
             Ok(mut renderer) => {
                 renderer.set_theme(render_theme(&self.config.theme));
@@ -7747,11 +7752,16 @@ mod tests {
         };
         fs::write(
             &path,
-            "[window]\nopacity = 0.85\nblur = true\n[theme]\nbackground = '#123456'",
+            "[font]\nbold_intensity = 0.75\n[window]\nopacity = 0.85\nblur = true\n[theme]\nbackground = '#123456'",
         )
         .unwrap();
         app.reload_config();
         assert_eq!(app.config.theme.background, Rgb(0x12, 0x34, 0x56));
+
+        assert_eq!(app.config.font.bold_intensity, 0.75);
+        fs::write(&path, "[font]\nbold_intensity = nan").unwrap();
+        app.reload_config();
+        assert_eq!(app.config.font.bold_intensity, 0.75);
 
         assert_eq!(app.config.window.opacity, 0.85);
         assert!(app.config.window.blur);
