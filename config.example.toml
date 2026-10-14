@@ -26,6 +26,9 @@
 [font]
 # family = "Cascadia Mono" # Installed monospace family; default: platform choice.
 size = 16 # Logical pixels, 1..=256. Restart after editing [font].
+# bold_intensity = 1.0 # Finite 0.75..=1.25; native weight ratio, not stroke thickening.
+# Uses a variable wght axis or nearest compatible Semibold/heavier face.
+# Fonts without adjustable weight keep existing Bold. See docs/CONFIG.md.
 
 [theme]
 # Every color is #RRGGBB. Omitted fields use their built-in defaults.

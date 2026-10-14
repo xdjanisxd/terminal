@@ -165,10 +165,11 @@ pub struct ShellConfig {
 }
 
 /// Terminal font selection and size in logical pixels.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct FontConfig {
     pub family: Option<String>,
     pub size: u16,
+    pub bold_intensity: f32,
 }
 
 impl Default for FontConfig {
@@ -176,6 +177,7 @@ impl Default for FontConfig {
         Self {
             family: None,
             size: 16,
+            bold_intensity: 1.0,
         }
     }
 }
@@ -291,6 +293,14 @@ impl Config {
             config.shell = Some(shell);
         }
         if let Some(font) = raw.font {
+            if let Some(intensity) = font.bold_intensity {
+                if !intensity.is_finite() || !(0.75..=1.25).contains(&intensity) {
+                    return Err(ConfigError(
+                        "font.bold_intensity: expected a finite number in 0.75..=1.25".into(),
+                    ));
+                }
+                config.font.bold_intensity = intensity as f32;
+            }
             if let Some(family) = font.family {
                 if family.trim().is_empty() {
                     return Err(ConfigError(
@@ -518,6 +528,7 @@ struct RawWindow {
 struct RawFont {
     family: Option<String>,
     size: Option<i64>,
+    bold_intensity: Option<f64>,
 }
 
 #[derive(Deserialize, Default)]
@@ -826,6 +837,39 @@ args = ["-NoLogo", "two words", "", "'literal'"]
         let size = Config::parse("[font]\nsize = 20").unwrap();
         assert_eq!(size.font.family, None);
         assert_eq!(size.font.size, 20);
+    }
+
+    #[test]
+    fn bold_intensity_defaults_boundaries_and_invalid_values() {
+        assert_eq!(Config::parse("").unwrap().font.bold_intensity, 1.0);
+        for value in ["0.75", "1", "1.0", "1.25"] {
+            assert_eq!(
+                Config::parse(&format!("[font]\nbold_intensity = {value}"))
+                    .unwrap()
+                    .font
+                    .bold_intensity,
+                value.parse::<f32>().unwrap()
+            );
+        }
+        for value in [
+            "0.749999999",
+            "1.250000001",
+            "-1",
+            "nan",
+            "inf",
+            "-inf",
+            "'1.0'",
+            "true",
+            "[]",
+        ] {
+            assert!(
+                Config::parse(&format!("[font]\nbold_intensity = {value}"))
+                    .unwrap_err()
+                    .to_string()
+                    .contains("bold_intensity"),
+                "{value}"
+            );
+        }
     }
     #[test]
     fn invalid_font_settings_name_the_field() {

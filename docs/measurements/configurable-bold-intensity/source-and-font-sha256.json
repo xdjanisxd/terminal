@@ -1,0 +1,15 @@
+{
+  "crates/renderer/src/font.rs": "f4fa8c3a6b55ecc10eb44f312c711e51737ae5dffbcc5b9808603bec639adaa9",
+  "crates/renderer/src/gpu.rs": "d294ab12c965f2c3ff92eefd8858e38a06c3f3ee5a15f3a10b3ea5003bf73d00",
+  "crates/renderer/src/lib.rs": "6291432e622d2264d653f90f3d3d7a0bc960b551785bb28cefd1a369ff8753d5",
+  "crates/config/src/lib.rs": "f246528deb4f464302e593c35b009276ff18f8fad2dbced0ddb70e5ec3f37793",
+  "crates/app/src/main.rs": "c77e2a96ee5be7fdd8d2efca2cb6dc93f8e6102f588ac8356e728566bef7c3a1",
+  "crates/app/src/tests/bold_intensity_native.rs": "79900fdde132bbd2e9bcd4dd55570c3610be78519d616f8ebdde5fa070a5c4cb",
+  "crates/renderer/tests/fixtures/JetBrainsMono-variable.ttf": "3cfafa86e28b87184d592fef82846e8c10cb48653c62efcda34f082da225ec34",
+  "/tmp/bold-intensity-evidence/verified/terminal-candidate": "62a7ebb7863c8a8441026a672b9773840668524c4fa2ff9a58a9f2ff74547a7a",
+  "/tmp/bold-intensity-evidence/verified/terminal-baseline": "14a0aa6aa6447a81b3dfca7f20b2334980ebd53ecaceb7b1270dbb711b63cb35",
+  "/home/dellian/.local/share/fonts/JetBrainsMono/JetBrainsMonoNerdFontMono-Regular.ttf": "f2a5ea6cfab397445ffab00c0370927b66d61e560a05db5db271b42006381c1a",
+  "/home/dellian/.local/share/fonts/JetBrainsMono/JetBrainsMonoNerdFontMono-SemiBold.ttf": "d3955c56fca699f37ebc153d0a6e331b8784f66fd8a3af5e20c30b90869201c4",
+  "/home/dellian/.local/share/fonts/JetBrainsMono/JetBrainsMonoNerdFontMono-Bold.ttf": "bfcf9a917276ffc058867d87cbc8a5b2f1ab0f4b710e9170dc02763ccb80bd4b",
+  "/home/dellian/.local/share/fonts/JetBrainsMono/JetBrainsMonoNerdFontMono-ExtraBold.ttf": "1c4ccf0d5fb2d45f04d3efd50f60951fb63281b0375ede992d2b4beb694d2daa"
+}

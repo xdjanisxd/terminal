@@ -1289,6 +1289,59 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "requires a GPU and JetBrains Mono variable font, or FONTCONFIG_FILE pointing to fixtures"]
+    fn native_gpu_atlas_separates_variable_weight_instances() {
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
+        let adapter =
+            pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))
+                .unwrap();
+        let (device, queue) =
+            pollster::block_on(adapter.request_device(&crate::renderer_device_descriptor()))
+                .unwrap();
+        let mut resources = DrawResources::new(&device, wgpu::TextureFormat::Bgra8UnormSrgb);
+        let mut fonts = FontSystem::load_system(FontRequest::Family("JetBrains Mono".into()))
+            .unwrap()
+            .with_bold_intensity(0.75);
+        let light = fonts
+            .shape_text_cached_with_bold("A", 20.0, true)
+            .unwrap()
+            .0;
+        let light_bitmap = fonts
+            .rasterize_glyph_with_bold(&light.glyphs()[0], 20.0, true)
+            .unwrap();
+        fonts = fonts.with_bold_intensity(1.25);
+        let heavy = fonts
+            .shape_text_cached_with_bold("A", 20.0, true)
+            .unwrap()
+            .0;
+        let heavy_bitmap = fonts
+            .rasterize_glyph_with_bold(&heavy.glyphs()[0], 20.0, true)
+            .unwrap();
+        assert_eq!(light.glyphs()[0].glyph_id(), heavy.glyphs()[0].glyph_id());
+        assert_ne!(light_bitmap, heavy_bitmap);
+        let key = |glyph: &crate::font::ShapedGlyph| super::GpuGlyphKey {
+            face: glyph.face_cache_identity(),
+            glyph_id: glyph.glyph_id(),
+            pixels_per_em: 20.0f32.to_bits(),
+            bold: true,
+        };
+        let light_key = key(&light.glyphs()[0]);
+        let heavy_key = key(&heavy.glyphs()[0]);
+        assert_ne!(light_key, heavy_key);
+        let a = resources
+            .glyph_atlas
+            .get_or_insert(&queue, light_key.clone(), &light_bitmap)
+            .unwrap();
+        let b = resources
+            .glyph_atlas
+            .get_or_insert(&queue, heavy_key.clone(), &heavy_bitmap)
+            .unwrap();
+        assert_ne!(a.slot, b.slot);
+        assert_eq!(resources.glyph_atlas.get(&light_key).unwrap().slot, a.slot);
+        assert_eq!(resources.glyph_atlas.get(&heavy_key).unwrap().slot, b.slot);
+    }
+
+    #[test]
     #[ignore = "requires a native GPU adapter and system monospace font"]
     fn native_gpu_renders_backgrounds_glyphs_underlines_and_cursor() {
         render_native_frame(1.0, wgpu::TextureFormat::Rgba8Unorm);
