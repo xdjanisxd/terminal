@@ -1,7 +1,9 @@
+mod support;
+
 use terminal_core::{
-    AutoWrapMode, Cell, CellColor, CharacterInsertionMode, CursorKeyMode, CursorVisibility,
-    InverseVideo, ItalicStyle, TerminalDimensions, TerminalReply, TerminalState, TextIntensity,
-    UnderlineStyle, VerticalScrollingMargins,
+    AutoWrapMode, CellColor, CharacterInsertionMode, CursorKeyMode, CursorVisibility, InverseVideo,
+    ItalicStyle, TerminalDimensions, TerminalReply, TerminalState, TextIntensity, UnderlineStyle,
+    VerticalScrollingMargins,
 };
 
 fn labeled_state() -> TerminalState {
@@ -44,7 +46,7 @@ fn insert_characters_shifts_only_the_current_row_and_clamps_counts() {
 }
 
 #[test]
-fn inserted_character_cells_are_canonical_blanks_and_moved_cells_keep_attributes() {
+fn inserted_character_cells_are_background_blanks_and_moved_cells_keep_attributes() {
     let mut state = labeled_state();
     state.set_text_intensity(TextIntensity::Bold);
     state.set_italic_style(ItalicStyle::Italic);
@@ -60,7 +62,7 @@ fn inserted_character_cells_are_canonical_blanks_and_moved_cells_keep_attributes
     state.insert_characters(1);
 
     assert_eq!(state.screen().cell(1, 3), Some(&styled));
-    assert_eq!(state.screen().cell(1, 1), Some(&Cell::default()));
+    support::assert_blank(state.screen().cell(1, 1).unwrap(), CellColor::Indexed(22));
     assert_eq!(state.screen().cell(1, 0).unwrap().character(), 'f');
 }
 

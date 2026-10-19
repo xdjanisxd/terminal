@@ -142,12 +142,12 @@ impl ScreenGrid {
         character: char,
         attributes: CellAttributes,
     ) {
-        self.clear_wide_at(row, column);
+        self.clear_wide_at(row, column, Cell::blank(attributes.background()));
         let index = self
             .index_of(row, column)
             .expect("terminal state keeps cell writes in bounds");
         self.cells[index] = Cell::new(character, attributes);
-        self.normalize_row(row);
+        self.normalize_row(row, Cell::default());
     }
 
     /// Writes one complete two-column character at an in-bounds leading column.
@@ -159,18 +159,18 @@ impl ScreenGrid {
         attributes: CellAttributes,
     ) {
         debug_assert!(column + 1 < self.dimensions.columns());
-        self.clear_wide_at(row, column);
-        self.clear_wide_at(row, column + 1);
+        self.clear_wide_at(row, column, Cell::blank(attributes.background()));
+        self.clear_wide_at(row, column + 1, Cell::blank(attributes.background()));
         let index = self
             .index_of(row, column)
             .expect("terminal state keeps cell writes in bounds");
         self.cells[index] = Cell::wide_lead(character, attributes);
         self.cells[index + 1] = Cell::wide_continuation();
-        self.normalize_row(row);
+        self.normalize_row(row, Cell::default());
     }
 
     pub(crate) fn insert_cells(&mut self, row: usize, column: usize, count: usize, cell: Cell) {
-        self.clear_wide_at(row, column);
+        self.clear_wide_at(row, column, Cell::blank(cell.attributes().background()));
         self.shift_right(row, column, count, cell);
     }
 
@@ -181,17 +181,17 @@ impl ScreenGrid {
         character: char,
         attributes: CellAttributes,
     ) {
-        self.clear_wide_at(row, column);
+        self.clear_wide_at(row, column, Cell::blank(attributes.background()));
         if column + 1 < self.dimensions.columns() {
-            self.clear_wide_at(row, column + 1);
+            self.clear_wide_at(row, column + 1, Cell::blank(attributes.background()));
         }
-        self.shift_right(row, column, 2, Cell::default());
+        self.shift_right(row, column, 2, Cell::blank(attributes.background()));
         if column + 1 < self.dimensions.columns() {
             self.write_wide(row, column, character, attributes);
         }
     }
 
-    pub(crate) fn delete_cells(&mut self, row: usize, column: usize, count: usize) {
+    pub(crate) fn delete_cells(&mut self, row: usize, column: usize, count: usize, blank: Cell) {
         let index = self
             .index_of(row, column)
             .expect("terminal state keeps cell writes in bounds");
@@ -204,12 +204,12 @@ impl ScreenGrid {
         if count < row_end - index {
             self.cells.copy_within(index + count..row_end, index);
         }
-        self.cells[row_end - count..row_end].fill(Cell::default());
-        self.normalize_row(row);
+        self.cells[row_end - count..row_end].fill(blank);
+        self.normalize_row(row, blank);
     }
 
-    pub(crate) fn erase_cells(&mut self, start: usize, end: usize) {
-        self.cells[start..end].fill(Cell::default());
+    pub(crate) fn erase_cells(&mut self, start: usize, end: usize, blank: Cell) {
+        self.cells[start..end].fill(blank);
         let columns = self.dimensions.columns();
         let first_row = start / columns;
         let last_row = (end - 1) / columns;
@@ -217,7 +217,7 @@ impl ScreenGrid {
             if end >= (row + 1) * columns {
                 self.wrapped[row] = 0;
             }
-            self.normalize_row(row);
+            self.normalize_row(row, blank);
         }
     }
 
@@ -236,31 +236,31 @@ impl ScreenGrid {
                 .copy_within(index..row_end - count, index + count);
         }
         self.cells[index..index + count].fill(cell);
-        self.normalize_row(row);
+        self.normalize_row(row, Cell::blank(cell.attributes().background()));
     }
 
-    fn clear_wide_at(&mut self, row: usize, column: usize) {
+    fn clear_wide_at(&mut self, row: usize, column: usize, blank: Cell) {
         let index = self
             .index_of(row, column)
             .expect("terminal state keeps cell writes in bounds");
         match self.cells[index].occupancy() {
             CellOccupancy::Single => {}
             CellOccupancy::WideLead => {
-                self.cells[index] = Cell::default();
+                self.cells[index] = blank;
                 if column + 1 < self.dimensions.columns() {
-                    self.cells[index + 1] = Cell::default();
+                    self.cells[index + 1] = blank;
                 }
             }
             CellOccupancy::WideContinuation => {
-                self.cells[index] = Cell::default();
+                self.cells[index] = blank;
                 if column > 0 {
-                    self.cells[index - 1] = Cell::default();
+                    self.cells[index - 1] = blank;
                 }
             }
         }
     }
 
-    fn normalize_row(&mut self, row: usize) {
+    fn normalize_row(&mut self, row: usize, blank: Cell) {
         let columns = self.dimensions.columns();
         let start = row * columns;
         let end = start + columns;
@@ -273,7 +273,7 @@ impl ScreenGrid {
                         || self.cells[start + column + 1].occupancy()
                             != CellOccupancy::WideContinuation
                     {
-                        self.cells[start + column] = Cell::default();
+                        self.cells[start + column] = blank;
                     }
                     column += 1;
                 }
@@ -281,7 +281,7 @@ impl ScreenGrid {
                     if column == 0
                         || self.cells[start + column - 1].occupancy() != CellOccupancy::WideLead
                     {
-                        self.cells[start + column] = Cell::default();
+                        self.cells[start + column] = blank;
                     }
                     column += 1;
                 }
@@ -311,12 +311,22 @@ impl ScreenGrid {
         })
     }
 
-    pub(crate) fn scroll_region_up(&mut self, margins: VerticalScrollingMargins, rows: usize) {
-        self.scroll_region(margins, rows, ScrollDirection::Up);
+    pub(crate) fn scroll_region_up(
+        &mut self,
+        margins: VerticalScrollingMargins,
+        rows: usize,
+        blank: Cell,
+    ) {
+        self.scroll_region(margins, rows, ScrollDirection::Up, blank);
     }
 
-    pub(crate) fn scroll_region_down(&mut self, margins: VerticalScrollingMargins, rows: usize) {
-        self.scroll_region(margins, rows, ScrollDirection::Down);
+    pub(crate) fn scroll_region_down(
+        &mut self,
+        margins: VerticalScrollingMargins,
+        rows: usize,
+        blank: Cell,
+    ) {
+        self.scroll_region(margins, rows, ScrollDirection::Down, blank);
     }
 
     fn scroll_region(
@@ -324,6 +334,7 @@ impl ScreenGrid {
         margins: VerticalScrollingMargins,
         rows: usize,
         direction: ScrollDirection,
+        blank: Cell,
     ) {
         if margins.bottom() >= self.dimensions.rows() {
             return;
@@ -340,7 +351,7 @@ impl ScreenGrid {
         let region_end = (margins.bottom() + 1) * columns;
         let shifted_cells = rows * columns;
         if rows == region_height {
-            self.cells[region_start..region_end].fill(Cell::default());
+            self.cells[region_start..region_end].fill(blank);
             self.wrapped[margins.top()..=margins.bottom()].fill(0);
             return;
         }
@@ -352,7 +363,7 @@ impl ScreenGrid {
                 self.wrapped[margins.bottom() + 1 - rows..=margins.bottom()].fill(0);
                 self.cells
                     .copy_within(region_start + shifted_cells..region_end, region_start);
-                self.cells[region_end - shifted_cells..region_end].fill(Cell::default());
+                self.cells[region_end - shifted_cells..region_end].fill(blank);
             }
             ScrollDirection::Down => {
                 self.wrapped.copy_within(
@@ -364,7 +375,7 @@ impl ScreenGrid {
                     region_start..region_end - shifted_cells,
                     region_start + shifted_cells,
                 );
-                self.cells[region_start..region_start + shifted_cells].fill(Cell::default());
+                self.cells[region_start..region_start + shifted_cells].fill(blank);
             }
         }
     }
@@ -397,7 +408,7 @@ impl ScreenGrid {
         self.dimensions = dimensions;
         self.cells = cells;
         for row in 0..dimensions.rows() {
-            self.normalize_row(row);
+            self.normalize_row(row, Cell::default());
         }
         self.cursor.clamp_to(dimensions);
     }
@@ -441,7 +452,7 @@ mod tests {
         *grid.cell_mut(1, 4).unwrap() = Cell::new('X', attributes);
         let styled = *grid.cell(1, 4).unwrap();
 
-        grid.delete_cells(1, 2, 2);
+        grid.delete_cells(1, 2, 2, Cell::default());
 
         assert_eq!(row_text(&grid, 1), "fgX  ");
         assert_eq!(grid.cell(1, 2), Some(&styled));
@@ -450,7 +461,7 @@ mod tests {
         assert_eq!(row_text(&grid, 0), "abcde");
         assert_eq!(row_text(&grid, 2), "klmno");
 
-        grid.delete_cells(1, 0, usize::MAX);
+        grid.delete_cells(1, 0, usize::MAX, Cell::default());
         assert_eq!(row_text(&grid, 1), "     ");
     }
 
@@ -460,7 +471,7 @@ mod tests {
         let mut up = labeled_grid();
         let up_above = [*up.cell(0, 0).unwrap(), *up.cell(0, 1).unwrap()];
         let up_below = [*up.cell(5, 0).unwrap(), *up.cell(5, 1).unwrap()];
-        up.scroll_region_up(margins, 1);
+        up.scroll_region_up(margins, 1, Cell::default());
         assert_eq!(
             (0..6).map(|row| row_text(&up, row)).collect::<Vec<_>>(),
             ["ab", "ef", "gh", "ij", "  ", "kl"]
@@ -469,7 +480,7 @@ mod tests {
         assert_eq!([*up.cell(5, 0).unwrap(), *up.cell(5, 1).unwrap()], up_below);
 
         let mut down = labeled_grid();
-        down.scroll_region_down(margins, 1);
+        down.scroll_region_down(margins, 1, Cell::default());
         assert_eq!(
             (0..6).map(|row| row_text(&down, row)).collect::<Vec<_>>(),
             ["ab", "  ", "cd", "ef", "gh", "kl"]
@@ -487,7 +498,11 @@ mod tests {
         *grid.cell_mut(3, 0).unwrap() = Cell::new('X', attributes);
         let styled = *grid.cell(3, 0).unwrap();
 
-        grid.scroll_region_up(VerticalScrollingMargins::new(1, 4, 6).unwrap(), 1);
+        grid.scroll_region_up(
+            VerticalScrollingMargins::new(1, 4, 6).unwrap(),
+            1,
+            Cell::default(),
+        );
 
         assert_eq!(grid.cell(2, 0), Some(&styled));
         for column in 0..2 {
@@ -502,9 +517,9 @@ mod tests {
                 let mut grid = labeled_grid();
                 let margins = VerticalScrollingMargins::new(1, 4, 6).unwrap();
                 if scroll_up {
-                    grid.scroll_region_up(margins, count);
+                    grid.scroll_region_up(margins, count, Cell::default());
                 } else {
-                    grid.scroll_region_down(margins, count);
+                    grid.scroll_region_down(margins, count, Cell::default());
                 }
                 assert_eq!(row_text(&grid, 0), "ab");
                 assert_eq!(row_text(&grid, 5), "kl");
@@ -518,9 +533,9 @@ mod tests {
             let mut grid = labeled_grid();
             let margins = VerticalScrollingMargins::new(2, 2, 6).unwrap();
             if scroll_up {
-                grid.scroll_region_up(margins, usize::MAX);
+                grid.scroll_region_up(margins, usize::MAX, Cell::default());
             } else {
-                grid.scroll_region_down(margins, usize::MAX);
+                grid.scroll_region_down(margins, usize::MAX, Cell::default());
             }
             assert_eq!(row_text(&grid, 1), "cd");
             assert_eq!(row_text(&grid, 2), "  ");
@@ -531,14 +546,22 @@ mod tests {
     #[test]
     fn region_scroll_supports_ranges_touching_either_screen_edge() {
         let mut top = labeled_grid();
-        top.scroll_region_up(VerticalScrollingMargins::new(0, 2, 6).unwrap(), 1);
+        top.scroll_region_up(
+            VerticalScrollingMargins::new(0, 2, 6).unwrap(),
+            1,
+            Cell::default(),
+        );
         assert_eq!(
             (0..6).map(|row| row_text(&top, row)).collect::<Vec<_>>(),
             ["cd", "ef", "  ", "gh", "ij", "kl"]
         );
 
         let mut bottom = labeled_grid();
-        bottom.scroll_region_down(VerticalScrollingMargins::new(3, 5, 6).unwrap(), 1);
+        bottom.scroll_region_down(
+            VerticalScrollingMargins::new(3, 5, 6).unwrap(),
+            1,
+            Cell::default(),
+        );
         assert_eq!(
             (0..6).map(|row| row_text(&bottom, row)).collect::<Vec<_>>(),
             ["ab", "cd", "ef", "  ", "gh", "ij"]

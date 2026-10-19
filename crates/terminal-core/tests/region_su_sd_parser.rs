@@ -1,5 +1,7 @@
+mod support;
+
 use terminal_core::{
-    Cell, CellColor, TerminalDimensions, TerminalParser, TerminalState, TextIntensity,
+    CellColor, TerminalDimensions, TerminalParser, TerminalState, TextIntensity,
     VerticalScrollingMargins,
 };
 
@@ -141,9 +143,9 @@ fn parser_su_sd_preserve_active_sgr_and_moved_cell_attributes() {
         assert_eq!(moved.attributes().background(), CellColor::Indexed(22));
         assert_eq!(moved.attributes().intensity(), TextIntensity::Bold);
         for column in 0..2 {
-            assert_eq!(
-                state.screen().cell(exposed_row, column),
-                Some(&Cell::default())
+            support::assert_blank(
+                state.screen().cell(exposed_row, column).unwrap(),
+                CellColor::Indexed(22),
             );
         }
 

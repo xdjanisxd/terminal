@@ -79,7 +79,7 @@ impl ScreenState {
         self.viewport_offset = self.viewport_offset.min(self.scrollback_len());
     }
 
-    fn scroll_region_up(&mut self, margins: VerticalScrollingMargins, rows: usize) {
+    fn scroll_region_up(&mut self, margins: VerticalScrollingMargins, rows: usize, blank: Cell) {
         let height = margins.bottom() - margins.top() + 1;
         let rows = rows.min(height);
         if rows == 0 {
@@ -124,7 +124,7 @@ impl ScreenState {
         }
 
         let started = self.throughput.as_ref().map(|_| std::time::Instant::now());
-        self.grid.scroll_region_up(margins, rows);
+        self.grid.scroll_region_up(margins, rows, blank);
         if let Some(stats) = &mut self.throughput {
             stats.grid_scroll += started.unwrap().elapsed();
             stats.scrolls += 1;
@@ -299,16 +299,25 @@ impl ScreenSet {
         self.alternate.resize(dimensions);
     }
 
-    pub(crate) fn scroll_region_up(&mut self, margins: VerticalScrollingMargins, rows: usize) {
-        self.active_state_mut().scroll_region_up(margins, rows);
+    pub(crate) fn scroll_region_up(
+        &mut self,
+        margins: VerticalScrollingMargins,
+        rows: usize,
+        blank: Cell,
+    ) {
+        self.active_state_mut()
+            .scroll_region_up(margins, rows, blank);
     }
 
     pub(crate) fn scroll_region_up_without_history(
         &mut self,
         margins: VerticalScrollingMargins,
         rows: usize,
+        blank: Cell,
     ) {
-        self.active_state_mut().grid.scroll_region_up(margins, rows);
+        self.active_state_mut()
+            .grid
+            .scroll_region_up(margins, rows, blank);
     }
 
     pub(crate) fn primary_scrollback_len(&self) -> usize {
@@ -410,7 +419,7 @@ mod throughput_tests {
         for character in 'a'..='f' {
             for state in [&mut observed, &mut plain] {
                 *state.grid.cell_mut(0, 0).unwrap() = Cell::new(character, Default::default());
-                state.scroll_region_up(margins, 1);
+                state.scroll_region_up(margins, 1, Cell::default());
             }
             assert_eq!(observed.grid, plain.grid);
             assert_eq!(observed.history_origin, plain.history_origin);

@@ -1,3 +1,5 @@
+mod support;
+
 use terminal_core::{
     AutoWrapMode, Cell, CellColor, CharacterInsertionMode, CursorKeyMode, CursorVisibility,
     InverseVideo, ItalicStyle, TerminalDimensions, TerminalState, TextIntensity, UnderlineStyle,
@@ -111,7 +113,10 @@ fn nel_at_bottom_margin_scrolls_only_region_and_preserves_cells_and_state() {
         outside_below
     );
     for column in 0..3 {
-        assert_eq!(state.screen().cell(4, column), Some(&Cell::default()));
+        support::assert_blank(
+            state.screen().cell(4, column).unwrap(),
+            CellColor::Indexed(4),
+        );
     }
     assert_eq!((state.cursor().row(), state.cursor().column()), (4, 0));
     assert_eq!(*state.current_rendition(), rendition);

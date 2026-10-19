@@ -5,8 +5,24 @@ use terminal_core::{
     TextIntensity, UnderlineStyle,
 };
 
+/// Straight-alpha encoded sRGB channels; alpha is linear coverage.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Rgba(pub [f32; 4]);
+
+impl Rgba {
+    /// Decode only at the GPU boundary when the target encodes sRGB on write.
+    pub(crate) fn linearized(self) -> Self {
+        let mut color = self.0;
+        for channel in &mut color[..3] {
+            *channel = if *channel <= 0.04045 {
+                *channel / 12.92
+            } else {
+                ((*channel + 0.055) / 1.055).powf(2.4)
+            };
+        }
+        Self(color)
+    }
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RenderTheme {
@@ -861,6 +877,27 @@ mod tests {
 mod opacity_tests {
     use super::*;
     use terminal_core::{CellColor, InverseVideo, TerminalDimensions};
+    #[test]
+    fn painted_and_erased_rgb_backgrounds_project_identically_at_every_opacity() {
+        let mut state = TerminalState::new(TerminalDimensions::new(6, 1).unwrap());
+        terminal_core::TerminalParser::new()
+            .advance(&mut state, b"\x1b[?25l\x1b[48;2;32;32;32m  \x1b[K\x1b[49m")
+            .unwrap();
+        let theme = RenderTheme::default();
+        for opacity in [0.0, 0.85, 1.0] {
+            let data = TerminalRenderData::from_terminal_with_opacity(&state, &theme, opacity);
+            assert_eq!(data.cells.len(), 6);
+            for cell in &data.cells {
+                assert_eq!(
+                    cell.background,
+                    Rgba([32.0 / 255.0, 32.0 / 255.0, 32.0 / 255.0, opacity])
+                );
+                assert_eq!(cell.foreground, theme.foreground);
+                assert!(!cell.bold && !cell.underline);
+            }
+        }
+    }
+
     #[test]
     fn opacity_changes_backgrounds_after_inverse_resolution() {
         let mut state = TerminalState::new(TerminalDimensions::new(5, 1).unwrap());

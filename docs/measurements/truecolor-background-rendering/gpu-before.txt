@@ -1,0 +1,19 @@
+   Compiling terminal-renderer v0.0.0 (/home/dellian/codes/terminal/crates/renderer)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.29s
+     Running unittests src/lib.rs (target/debug/deps/terminal_renderer-37523175de943073)
+
+running 1 test
+
+thread 'gpu::tests::native_gpu_background_opacity_and_srgb_premultiplication' (202616) panicked at crates/renderer/src/gpu.rs:1666:13:
+format=Rgba8UnormSrgb opacity=0.5 background=[62, 75, 85, 128] expected=25.5
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test gpu::tests::native_gpu_background_opacity_and_srgb_premultiplication ... FAILED
+
+failures:
+
+failures:
+    gpu::tests::native_gpu_background_opacity_and_srgb_premultiplication
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 86 filtered out; finished in 1.19s
+
+error: test failed, to rerun pass `-p terminal-renderer --lib`

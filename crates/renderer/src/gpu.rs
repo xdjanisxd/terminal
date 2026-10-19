@@ -873,6 +873,25 @@ impl DrawResources {
                 });
             }
         }
+        // Projection/theme channels are encoded sRGB. sRGB attachments encode
+        // shader output on write and blend in linear light, including the
+        // translucent intermediate target. Leave non-sRGB targets unchanged.
+        if self.format.is_srgb() {
+            for instance in &mut self.rectangles {
+                instance.color = crate::Rgba(instance.color).linearized().0;
+            }
+            for instance in &mut self.glyphs {
+                instance.color = crate::Rgba(instance.color).linearized().0;
+            }
+            for instance in &mut overlays {
+                instance.color = crate::Rgba(instance.color).linearized().0;
+            }
+        }
+        let clear_color = if self.format.is_srgb() {
+            data.surface_background.linearized().0
+        } else {
+            data.surface_background.0
+        };
         let rectangle_count = self.rectangles.len();
         let glyph_count = self.glyphs.len();
         let instance_generation = generation_start.elapsed();
@@ -920,12 +939,9 @@ impl DrawResources {
                     ops: wgpu::Operations {
                         load: if pane_draw.clear {
                             wgpu::LoadOp::Clear(wgpu::Color {
-                                r: (data.surface_background.0[0] * data.surface_background.0[3])
-                                    as f64,
-                                g: (data.surface_background.0[1] * data.surface_background.0[3])
-                                    as f64,
-                                b: (data.surface_background.0[2] * data.surface_background.0[3])
-                                    as f64,
+                                r: (clear_color[0] * clear_color[3]) as f64,
+                                g: (clear_color[1] * clear_color[3]) as f64,
+                                b: (clear_color[2] * clear_color[3]) as f64,
                                 a: data.surface_background.0[3] as f64,
                             })
                         } else {
@@ -1476,6 +1492,12 @@ mod tests {
         terminal.set_text_intensity(terminal_core::TextIntensity::Normal);
         terminal.print_character('A').unwrap();
         assert_eq!(terminal.screen().cell(0, 2).unwrap().character(), '界');
+        let swatches = [(32, 32, 32), (57, 57, 57), (68, 68, 68), (120, 169, 255)];
+        for (row, &(red, green, blue)) in swatches.iter().enumerate() {
+            terminal.set_cursor_position(row + 16, 0).unwrap();
+            terminal.set_background_color(CellColor::Rgb { red, green, blue });
+            terminal.print_character(' ').unwrap();
+        }
         let theme = crate::RenderTheme {
             background: crate::Rgba([0.2, 0.3, 0.4, 1.0]),
             ..Default::default()
@@ -1657,21 +1679,12 @@ mod tests {
         let bytes = slice.get_mapped_range();
         let (pixels, remainder) = bytes.as_chunks::<4>();
         assert!(remainder.is_empty(), "RGBA readback must have whole pixels");
-        let encode = |x: f32| {
-            if format.is_srgb() {
-                if x <= 0.0031308 {
-                    12.92 * x
-                } else {
-                    1.055 * x.powf(1.0 / 2.4) - 0.055
-                }
-            } else {
-                x
-            }
-        };
+        // Theme and terminal channels are encoded sRGB, so stored flat pixels
+        // must retain their byte values on both linear and sRGB targets.
         let expected = [
-            encode(0.2) * opacity * 255.0,
-            encode(0.3) * opacity * 255.0,
-            encode(0.4) * opacity * 255.0,
+            0.2 * opacity * 255.0,
+            0.3 * opacity * 255.0,
+            0.4 * opacity * 255.0,
             opacity * 255.0,
         ];
         let background = pixels[(HEIGHT as usize - 1) * WIDTH as usize + WIDTH as usize - 1];
@@ -1680,6 +1693,26 @@ mod tests {
                 (f32::from(actual) - expected).abs() <= 2.0,
                 "format={format:?} opacity={opacity} background={background:?} expected={expected}"
             );
+        }
+        if !palette && !hints {
+            for (row, &(red, green, blue)) in swatches.iter().enumerate() {
+                let pixel = pixels[(row + 16) * 25 * WIDTH as usize];
+                for (actual, channel) in pixel[..3].iter().zip([red, green, blue]) {
+                    assert!(
+                        (f32::from(*actual) - f32::from(channel) * opacity).abs() <= 2.0,
+                        "RGB swatch {red},{green},{blue} format={format:?} opacity={opacity}: {pixel:?}"
+                    );
+                }
+            }
+            // Underline coverage is solid: foreground must retain RGB and alpha
+            // independently of the terminal background opacity.
+            let underline = pixels[24 * WIDTH as usize + 100];
+            for (actual, expected) in underline.into_iter().zip([20, 230, 20, 255]) {
+                assert!(
+                    (i32::from(actual) - expected).abs() <= 2,
+                    "underline {underline:?}"
+                );
+            }
         }
         // Colored cell background replaces the clear; alpha must not accumulate.
         let colored = pixels[0];
@@ -1753,5 +1786,58 @@ mod tests {
         }
         drop(bytes);
         readback.unmap();
+        if !palette && !hints {
+            // The no-pane/empty-frame clear must agree with normal drawing,
+            // both directly to a surface and through translucent composition.
+            for intermediate in [false, true] {
+                let target = if intermediate {
+                    resources.composition_target(&device, SurfaceSize::new(WIDTH, HEIGHT).unwrap())
+                } else {
+                    view.clone()
+                };
+                crate::clear_background(
+                    &device,
+                    &queue,
+                    &target,
+                    [0.2, 0.3, 0.4, opacity],
+                    format,
+                    !intermediate,
+                );
+                if intermediate {
+                    resources.compose(&device, &queue, &view);
+                }
+                let mut encoder = device.create_command_encoder(&Default::default());
+                encoder.copy_texture_to_buffer(
+                    texture.as_image_copy(),
+                    wgpu::TexelCopyBufferInfo {
+                        buffer: &readback,
+                        layout: wgpu::TexelCopyBufferLayout {
+                            offset: 0,
+                            bytes_per_row: Some(WIDTH * 4),
+                            rows_per_image: Some(HEIGHT),
+                        },
+                    },
+                    texture.size(),
+                );
+                queue.submit(Some(encoder.finish()));
+                let slice = readback.slice(..);
+                let (sender, receiver) = std::sync::mpsc::channel();
+                slice.map_async(wgpu::MapMode::Read, move |result| {
+                    sender.send(result).unwrap()
+                });
+                device.poll(wgpu::PollType::wait()).unwrap();
+                receiver.recv().unwrap().unwrap();
+                let bytes = slice.get_mapped_range();
+                for (actual, expected) in bytes[..4].iter().zip(expected) {
+                    assert!(
+                        (f32::from(*actual) - expected).abs() <= 2.0,
+                        "empty clear format={format:?} opacity={opacity} intermediate={intermediate}: {:?}",
+                        &bytes[..4]
+                    );
+                }
+                drop(bytes);
+                readback.unmap();
+            }
+        }
     }
 }

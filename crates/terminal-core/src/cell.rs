@@ -162,6 +162,14 @@ impl Cell {
         }
     }
 
+    /// A nonprinting erased cell carries only the current background color.
+    pub(crate) fn blank(background: CellColor) -> Self {
+        Self {
+            attributes: CellAttributes::new(CellColor::Default, background),
+            ..Self::default()
+        }
+    }
+
     pub const fn character(self) -> char {
         self.character
     }
