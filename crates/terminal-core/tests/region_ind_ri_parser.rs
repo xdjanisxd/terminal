@@ -1,5 +1,7 @@
+mod support;
+
 use terminal_core::{
-    Cell, CellColor, TerminalDimensions, TerminalParser, TerminalState, TextIntensity,
+    CellColor, TerminalDimensions, TerminalParser, TerminalState, TextIntensity,
     VerticalScrollingMargins,
 };
 
@@ -101,7 +103,10 @@ fn active_rendition_survives_parser_driven_region_scroll() {
     assert_eq!(moved.attributes().background(), CellColor::Indexed(22));
     assert_eq!(moved.attributes().intensity(), TextIntensity::Bold);
     for column in 0..2 {
-        assert_eq!(state.screen().cell(4, column), Some(&Cell::default()));
+        support::assert_blank(
+            state.screen().cell(4, column).unwrap(),
+            CellColor::Indexed(22),
+        );
     }
     parser.advance(&mut state, b"Y").unwrap();
     assert_eq!(state.screen().cell(4, 0).unwrap().character(), 'Y');

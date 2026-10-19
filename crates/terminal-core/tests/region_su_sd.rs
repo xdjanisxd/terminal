@@ -1,6 +1,8 @@
+mod support;
+
 use terminal_core::{
-    AutoWrapMode, Cell, CellColor, CharacterInsertionMode, CursorKeyMode, CursorVisibility,
-    InverseVideo, ItalicStyle, TerminalDimensions, TerminalState, TextIntensity, UnderlineStyle,
+    AutoWrapMode, CellColor, CharacterInsertionMode, CursorKeyMode, CursorVisibility, InverseVideo,
+    ItalicStyle, TerminalDimensions, TerminalState, TextIntensity, UnderlineStyle,
     VerticalScrollingMargins,
 };
 
@@ -146,9 +148,9 @@ fn region_scroll_preserves_complete_cells_and_unrelated_terminal_state() {
 
         assert_eq!(state.screen().cell(moved_row, 0), Some(&styled));
         for column in 0..2 {
-            assert_eq!(
-                state.screen().cell(exposed_row, column),
-                Some(&Cell::default())
+            support::assert_blank(
+                state.screen().cell(exposed_row, column).unwrap(),
+                CellColor::Indexed(22),
             );
         }
         assert_eq!(state.cursor(), cursor);

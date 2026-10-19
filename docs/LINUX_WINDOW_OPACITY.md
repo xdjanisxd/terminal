@@ -21,6 +21,12 @@ glyph coverage, cursor, selection, search highlights, and UI colors retain their
 existing alpha values. Some existing cursor/UI colors are already translucent;
 the setting does not multiply their alpha. Theme RGB values are unchanged.
 
+Theme and terminal RGB channels are encoded sRGB. Rendering to an sRGB attachment
+decodes them before linear-light blending; the attachment encodes the result on
+write. See the later [color/background correction](TRUECOLOR_BACKGROUND_RENDERING.md)
+for the original double-encoding defect and updated readback evidence. The opacity
+and explicit-background policy described here is unchanged.
+
 ## Implementation
 
 - Configuration owns a separate `WindowConfig`, with validation before conversion

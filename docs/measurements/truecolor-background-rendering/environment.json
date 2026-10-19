@@ -1,0 +1,108 @@
+{
+  "revision": "faeeef5ebd9c6df75befa575e8089f3d8bb73896",
+  "branch": "fix/truecolor-background-rendering",
+  "versions": {
+    "alacritty": "alacritty 0.15.1",
+    "neovim": "NVIM v0.10.4",
+    "vim": "VIM - Vi IMproved 9.1 (2024 Jan 02, compiled May 23 2025 00:48:59)",
+    "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)"
+  },
+  "sha256": {
+    "before": "59f171b7d01f042b371bbd70f07fdfdb85367d69aaef80ef44b5fda99c8767e6",
+    "candidate": "70a7d1608092ac106d0b39180724e9abbac85b8d1eb9c77b80edffd380aaf74a",
+    "nvim-init": "cbb36d0804db91ece31a5e151e133f22910e6221bfb82b170dfe13a1c3f44144",
+    "nvim-colorscheme": "dcb85d2f2c6613a9d3d09c601ef2ef8c4d10f568a490fba58e9cf6c34e3f9cbd",
+    "source-frame": "e2a38e7e9d1b97915d77ecda69766122ed7e1ca030c292348b734c4cde78a881"
+  },
+  "formats": {
+    "replay-candidate-replay": {
+      "format": [
+        "Bgra8UnormSrgb"
+      ],
+      "scale": [
+        "1"
+      ],
+      "opacity": [
+        [
+          "1",
+          "1",
+          "Auto"
+        ]
+      ]
+    },
+    "transparent-candidate-fixture": {
+      "format": [
+        "Bgra8UnormSrgb"
+      ],
+      "scale": [
+        "1"
+      ],
+      "opacity": [
+        [
+          "0.85",
+          "0.85",
+          "PreMultiplied"
+        ]
+      ]
+    },
+    "dpi-1.25-candidate-fixture": {
+      "format": [
+        "Bgra8UnormSrgb"
+      ],
+      "scale": [
+        "1.25"
+      ],
+      "opacity": [
+        [
+          "1",
+          "1",
+          "Auto"
+        ]
+      ]
+    },
+    "dpi-2-candidate-fixture": {
+      "format": [
+        "Bgra8UnormSrgb"
+      ],
+      "scale": [
+        "2"
+      ],
+      "opacity": [
+        [
+          "1",
+          "1",
+          "Auto"
+        ],
+        [
+          "1",
+          "1",
+          "Auto"
+        ]
+      ]
+    },
+    "dpi-2-final-candidate-fixture": {
+      "format": [
+        "Bgra8UnormSrgb"
+      ],
+      "scale": [
+        "1"
+      ]
+    },
+    "dpi-2-final-candidate-nvim-config": {
+      "format": [
+        "Bgra8UnormSrgb"
+      ],
+      "scale": [
+        "1"
+      ]
+    }
+  },
+  "cleanup": {
+    "monitor_scales_restored": [
+      1.0,
+      1.0
+    ],
+    "original_neovim_configs_unchanged": true,
+    "all_capture_processes_exited": true
+  }
+}

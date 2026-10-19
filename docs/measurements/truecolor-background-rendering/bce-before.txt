@@ -1,0 +1,42 @@
+   Compiling terminal-core v0.0.0 (/home/dellian/codes/terminal/crates/terminal-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.17s
+     Running tests/background_erase.rs (target/debug/deps/background_erase-5469a3a84437c8f2)
+
+running 3 tests
+test partial_wide_erasure_uses_background_and_removes_target_and_combining_marks ... FAILED
+test background_reset_and_full_rendition_reset_restore_default_erasure ... FAILED
+test erased_and_exposed_cells_use_current_background_without_text_styles ... FAILED
+
+failures:
+
+---- partial_wide_erasure_uses_background_and_removes_target_and_combining_marks stdout ----
+
+thread 'partial_wide_erasure_uses_background_and_removes_target_and_combining_marks' (73) panicked at crates/terminal-core/tests/background_erase.rs:62:9:
+assertion `left == right` failed
+  left: CellAttributes { foreground: Default, background: Default, intensity: Normal, italic: Upright, underline: Disabled, inverse: Disabled }
+ right: CellAttributes { foreground: Default, background: Rgb { red: 68, green: 68, blue: 68 }, intensity: Normal, italic: Upright, underline: Disabled, inverse: Disabled }
+
+---- background_reset_and_full_rendition_reset_restore_default_erasure stdout ----
+
+thread 'background_reset_and_full_rendition_reset_restore_default_erasure' (71) panicked at crates/terminal-core/tests/background_erase.rs:53:9:
+assertion `left == right` failed
+  left: Default
+ right: Rgb { red: 57, green: 57, blue: 57 }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- erased_and_exposed_cells_use_current_background_without_text_styles stdout ----
+
+thread 'erased_and_exposed_cells_use_current_background_without_text_styles' (72) panicked at crates/terminal-core/tests/background_erase.rs:36:17:
+assertion `left == right` failed: 44 [27, 91, 75] alternate=false
+  left: CellAttributes { foreground: Default, background: Default, intensity: Normal, italic: Upright, underline: Disabled, inverse: Disabled }
+ right: CellAttributes { foreground: Default, background: Indexed(4), intensity: Normal, italic: Upright, underline: Disabled, inverse: Disabled }
+
+
+failures:
+    background_reset_and_full_rendition_reset_restore_default_erasure
+    erased_and_exposed_cells_use_current_background_without_text_styles
+    partial_wide_erasure_uses_background_and_removes_target_and_combining_marks
+
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p terminal-core --test background_erase`

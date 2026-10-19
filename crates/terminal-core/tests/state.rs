@@ -1,3 +1,5 @@
+mod support;
+
 use terminal_core::{
     AutoWrapMode, CellColor, CharacterInsertionMode, CursorError, CursorKeyMode, CursorMovement,
     CursorVisibility, EraseDirection, EraseRegion, InverseVideo, ItalicStyle, PrintError,
@@ -1070,7 +1072,10 @@ fn full_screen_scroll_moves_complete_cells_and_preserves_rendition_and_modes() {
 
     assert_eq!(state.screen().cell(1, 0), Some(&styled));
     for column in 0..3 {
-        assert_default_cell(&state, 3, column);
+        support::assert_blank(
+            state.screen().cell(3, column).unwrap(),
+            CellColor::Indexed(22),
+        );
     }
     assert_eq!(state.cursor(), cursor);
     assert_eq!(*state.current_rendition(), rendition);
@@ -1082,7 +1087,7 @@ fn full_screen_scroll_moves_complete_cells_and_preserves_rendition_and_modes() {
 }
 
 #[test]
-fn scroll_down_moves_attributes_and_clears_new_top_rows_with_default_cells() {
+fn scroll_down_moves_attributes_and_clears_new_top_rows_with_background_blanks() {
     let mut state = TerminalState::new(TerminalDimensions::new(2, 3).unwrap());
     state.set_text_intensity(TextIntensity::Bold);
     state.set_italic_style(ItalicStyle::Italic);
@@ -1102,7 +1107,10 @@ fn scroll_down_moves_attributes_and_clears_new_top_rows_with_default_cells() {
     assert_eq!(state.screen().cell(2, 0), Some(&styled));
     for row in 0..2 {
         for column in 0..2 {
-            assert_default_cell(&state, row, column);
+            support::assert_blank(
+                state.screen().cell(row, column).unwrap(),
+                CellColor::Indexed(255),
+            );
         }
     }
     assert_eq!(state.cursor(), cursor);
@@ -1187,7 +1195,10 @@ fn bottom_index_scrolls_styled_cells_and_preserves_terminal_state() {
 
     assert_eq!(state.screen().cell(0, 0), Some(&styled));
     for column in 0..3 {
-        assert_default_cell(&state, 2, column);
+        support::assert_blank(
+            state.screen().cell(2, column).unwrap(),
+            CellColor::Indexed(22),
+        );
     }
     assert_eq!((state.cursor().row(), state.cursor().column()), (2, 1));
     assert_eq!(*state.current_rendition(), rendition);
@@ -1199,7 +1210,7 @@ fn bottom_index_scrolls_styled_cells_and_preserves_terminal_state() {
 }
 
 #[test]
-fn top_reverse_index_scrolls_styled_cells_and_clears_default_top_row() {
+fn top_reverse_index_scrolls_styled_cells_and_clears_top_row_with_background() {
     let mut state = styled_control_state();
     let styled = *state.screen().cell(1, 0).unwrap();
     let rendition = *state.current_rendition();
@@ -1211,7 +1222,10 @@ fn top_reverse_index_scrolls_styled_cells_and_clears_default_top_row() {
 
     assert_eq!(state.screen().cell(2, 0), Some(&styled));
     for column in 0..3 {
-        assert_default_cell(&state, 0, column);
+        support::assert_blank(
+            state.screen().cell(0, column).unwrap(),
+            CellColor::Indexed(22),
+        );
     }
     assert_eq!((state.cursor().row(), state.cursor().column()), (0, 2));
     assert_eq!(*state.current_rendition(), rendition);
@@ -1248,7 +1262,10 @@ fn bottom_next_line_scrolls_up_and_preserves_rendition_and_modes() {
 
     assert_eq!(state.screen().cell(0, 0), Some(&styled));
     for column in 0..3 {
-        assert_default_cell(&state, 2, column);
+        support::assert_blank(
+            state.screen().cell(2, column).unwrap(),
+            CellColor::Indexed(22),
+        );
     }
     assert_eq!((state.cursor().row(), state.cursor().column()), (2, 0));
     assert_eq!(*state.current_rendition(), rendition);

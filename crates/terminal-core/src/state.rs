@@ -757,15 +757,16 @@ impl TerminalState {
         Ok(())
     }
 
-    /// Inserts canonical blank cells from the cursor through the final column.
+    /// Inserts blank cells using the current background from the cursor through the final column.
     ///
     /// The count is normalized so zero inserts one cell, then clamped by the
     /// bounded grid width. This explicit current-row editing operation preserves
     /// the cursor but cancels delayed wrap, matching erase and other cursor edits.
     pub fn insert_characters(&mut self, count: usize) {
+        let blank = Cell::blank(self.current_rendition.background());
         let cursor = self.cursor();
         self.screen
-            .insert_cells(cursor.row(), cursor.column(), count.max(1), Cell::default());
+            .insert_cells(cursor.row(), cursor.column(), count.max(1), blank);
         self.screen.set_wrap_pending(false);
     }
 
@@ -775,24 +776,26 @@ impl TerminalState {
     /// bounded grid width. This explicit current-row editing operation preserves
     /// the cursor but cancels delayed wrap, matching ICH and erase.
     pub fn delete_characters(&mut self, count: usize) {
+        let blank = Cell::blank(self.current_rendition.background());
         let cursor = self.cursor();
         self.screen
-            .delete_cells(cursor.row(), cursor.column(), count.max(1));
+            .delete_cells(cursor.row(), cursor.column(), count.max(1), blank);
         self.screen.set_wrap_pending(false);
     }
 
-    /// Erases canonical blank cells beginning at the cursor without shifting cells.
+    /// Erases cells using the current background beginning at the cursor without shifting cells.
     ///
     /// The count is normalized so zero erases one cell, then clamped by the
     /// bounded current-row suffix. This explicit current-row editing operation
     /// preserves the cursor but cancels delayed wrap, matching existing erase,
     /// ICH, and DCH behavior.
     pub fn erase_characters(&mut self, count: usize) {
+        let blank = Cell::blank(self.current_rendition.background());
         let cursor = self.cursor();
         let columns = self.dimensions().columns();
         let start = cursor.row() * columns + cursor.column();
         let width = count.max(1).min(columns - cursor.column());
-        self.screen.erase_cells(start, start + width);
+        self.screen.erase_cells(start, start + width, blank);
         self.screen.set_wrap_pending(false);
     }
 
@@ -816,6 +819,7 @@ impl TerminalState {
     /// Alternate scrolls without history. The cursor column and any
     /// delayed-wrap condition are unchanged.
     pub fn line_feed(&mut self) {
+        let blank = Cell::blank(self.current_rendition.background());
         let started = self
             .screen
             .throughput_stats()
@@ -823,7 +827,7 @@ impl TerminalState {
         let cursor = self.cursor();
         let margins = self.screen.vertical_scrolling_margins();
         if cursor.row() == margins.bottom() {
-            self.screen.scroll_region_up(margins, 1);
+            self.screen.scroll_region_up(margins, 1, blank);
         } else if cursor.row() + 1 < self.dimensions().rows() {
             self.screen.move_cursor(1, 0);
         }
@@ -840,10 +844,11 @@ impl TerminalState {
     /// Outside the scrolling region, movement remains bounded by the screen and
     /// never scrolls. The cursor column is preserved and delayed wrap is cancelled.
     pub fn index(&mut self) {
+        let blank = Cell::blank(self.current_rendition.background());
         let cursor_row = self.cursor().row();
         let margins = self.screen.vertical_scrolling_margins();
         if cursor_row == margins.bottom() {
-            self.screen.scroll_region_up(margins, 1);
+            self.screen.scroll_region_up(margins, 1, blank);
         } else if cursor_row + 1 < self.dimensions().rows() {
             self.screen.move_cursor(1, 0);
         }
@@ -855,10 +860,11 @@ impl TerminalState {
     /// Outside the scrolling region, movement remains bounded by the screen and
     /// never scrolls. The cursor column is preserved and delayed wrap is cancelled.
     pub fn reverse_index(&mut self) {
+        let blank = Cell::blank(self.current_rendition.background());
         let cursor_row = self.cursor().row();
         let margins = self.screen.vertical_scrolling_margins();
         if cursor_row == margins.top() {
-            self.screen.scroll_region_down(margins, 1);
+            self.screen.scroll_region_down(margins, 1, blank);
         } else if cursor_row > 0 {
             self.screen.move_cursor(-1, 0);
         }
@@ -874,31 +880,34 @@ impl TerminalState {
     /// Scrolls the active vertical scrolling region upward without moving the cursor.
     ///
     /// The count is clamped to the region height. Newly exposed rows use the
-    /// canonical default blank cell. Current rendition and delayed wrap are
+    /// current background color. Current rendition and delayed wrap are
     /// preserved. A full-screen Primary `SU` is deliberate terminal scrolling
     /// and captures each displaced top row; restricted regions do not.
     pub fn scroll_up(&mut self, rows: usize) {
+        let blank = Cell::blank(self.current_rendition.background());
         let margins = self.screen.vertical_scrolling_margins();
-        self.screen.scroll_region_up(margins, rows);
+        self.screen.scroll_region_up(margins, rows, blank);
     }
 
     /// Scrolls the active vertical scrolling region downward without moving the cursor.
     ///
     /// The count is clamped to the region height. Newly exposed rows use the
-    /// canonical default blank cell. Current rendition and delayed wrap are
+    /// current background color. Current rendition and delayed wrap are
     /// preserved.
     pub fn scroll_down(&mut self, rows: usize) {
+        let blank = Cell::blank(self.current_rendition.background());
         let margins = self.screen.vertical_scrolling_margins();
-        self.screen.scroll_region_down(margins, rows);
+        self.screen.scroll_region_down(margins, rows, blank);
     }
 
     /// Inserts blank lines from the cursor through the bottom active margin.
     ///
     /// This is a no-op when the cursor is outside the active scrolling region.
     /// The bounded subregion keeps rows above the cursor unchanged; its count
-    /// is clamped and exposed rows use canonical default blank cells. Delayed
+    /// is clamped and exposed rows use current background colors. Delayed
     /// wrap is preserved because this operation does not move the cursor.
     pub fn insert_lines(&mut self, rows: usize) {
+        let blank = Cell::blank(self.current_rendition.background());
         let cursor_row = self.cursor().row();
         let margins = self.screen.vertical_scrolling_margins();
         if cursor_row < margins.top() || cursor_row > margins.bottom() {
@@ -908,16 +917,17 @@ impl TerminalState {
         let affected =
             VerticalScrollingMargins::new(cursor_row, margins.bottom(), self.dimensions().rows())
                 .expect("cursor and active bottom margin define an in-bounds subregion");
-        self.screen.scroll_region_down(affected, rows);
+        self.screen.scroll_region_down(affected, rows, blank);
     }
 
     /// Deletes lines from the cursor through the bottom active margin.
     ///
     /// This is a no-op when the cursor is outside the active scrolling region.
     /// The bounded subregion keeps rows above the cursor unchanged; its count
-    /// is clamped and exposed rows use canonical default blank cells. Delayed
+    /// is clamped and exposed rows use current background colors. Delayed
     /// wrap is preserved because this operation does not move the cursor.
     pub fn delete_lines(&mut self, rows: usize) {
+        let blank = Cell::blank(self.current_rendition.background());
         let cursor_row = self.cursor().row();
         let margins = self.screen.vertical_scrolling_margins();
         if cursor_row < margins.top() || cursor_row > margins.bottom() {
@@ -927,7 +937,8 @@ impl TerminalState {
         let affected =
             VerticalScrollingMargins::new(cursor_row, margins.bottom(), self.dimensions().rows())
                 .expect("cursor and active bottom margin define an in-bounds subregion");
-        self.screen.scroll_region_up_without_history(affected, rows);
+        self.screen
+            .scroll_region_up_without_history(affected, rows, blank);
     }
 
     /// Moves left one column without erasing and without reverse wrapping.
@@ -981,8 +992,9 @@ impl TerminalState {
         self.screen.set_wrap_pending(false);
     }
 
-    /// Erases default blank cells in the selected region without moving the cursor.
+    /// Erases cells using the current background in the selected region without moving the cursor.
     pub fn erase(&mut self, region: EraseRegion, direction: EraseDirection) {
+        let blank = Cell::blank(self.current_rendition.background());
         let cursor = self.cursor();
         let columns = self.dimensions().columns();
         let cursor_index = cursor.row() * columns + cursor.column();
@@ -999,7 +1011,7 @@ impl TerminalState {
             EraseDirection::EntireRegion => (region_start, region_end),
         };
 
-        self.screen.erase_cells(start, end);
+        self.screen.erase_cells(start, end, blank);
         self.screen.set_wrap_pending(false);
     }
 

@@ -1,7 +1,9 @@
+mod support;
+
 use terminal_core::{
-    AutoWrapMode, Cell, CellColor, CharacterInsertionMode, CursorKeyMode, CursorVisibility,
-    InverseVideo, ItalicStyle, TerminalDimensions, TerminalReply, TerminalState, TextIntensity,
-    UnderlineStyle, VerticalScrollingMargins,
+    AutoWrapMode, CellColor, CharacterInsertionMode, CursorKeyMode, CursorVisibility, InverseVideo,
+    ItalicStyle, TerminalDimensions, TerminalReply, TerminalState, TextIntensity, UnderlineStyle,
+    VerticalScrollingMargins,
 };
 
 fn labeled_state() -> TerminalState {
@@ -44,7 +46,7 @@ fn erase_characters_clears_only_the_bounded_current_row_range() {
 }
 
 #[test]
-fn erase_characters_uses_canonical_blanks_without_changing_untouched_cells() {
+fn erase_characters_uses_background_blanks_without_changing_untouched_cells() {
     let mut state = labeled_state();
     state.set_text_intensity(TextIntensity::Bold);
     state.set_italic_style(ItalicStyle::Italic);
@@ -60,8 +62,8 @@ fn erase_characters_uses_canonical_blanks_without_changing_untouched_cells() {
 
     state.erase_characters(2);
 
-    assert_eq!(state.screen().cell(1, 1), Some(&Cell::default()));
-    assert_eq!(state.screen().cell(1, 2), Some(&Cell::default()));
+    support::assert_blank(state.screen().cell(1, 1).unwrap(), CellColor::Indexed(22));
+    support::assert_blank(state.screen().cell(1, 2).unwrap(), CellColor::Indexed(22));
     assert_eq!(state.screen().cell(1, 3), Some(&styled));
     assert_eq!(state.screen().cell(1, 4), Some(&untouched));
 }

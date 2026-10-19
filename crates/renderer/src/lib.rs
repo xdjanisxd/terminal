@@ -742,7 +742,8 @@ impl Renderer {
                             &self.queue,
                             &draw_view,
                             color,
-                            wgpu::TextureFormat::Rgba8Unorm,
+                            self.configuration.as_ref().unwrap().format,
+                            false,
                         );
                     }
                     if transparent {
@@ -766,6 +767,7 @@ impl Renderer {
                             &view,
                             color,
                             self.configuration.as_ref().unwrap().format,
+                            true,
                         );
                     } else {
                         self.queue.submit(std::iter::empty());
@@ -895,7 +897,8 @@ impl Renderer {
         }
         self.configuration = Some(configuration);
         emit_diagnostic(format_args!(
-            "renderer event=reconfigure result=configured present_mode={present_mode:?} draw_resources_reset={draw_resources_reset} configure_us={configure_us} state={:?}",
+            "renderer event=reconfigure result=configured present_mode={present_mode:?} format={:?} draw_resources_reset={draw_resources_reset} configure_us={configure_us} state={:?}",
+            self.configuration.as_ref().unwrap().format,
             self.diagnostic_state(),
         ));
         true
@@ -1060,19 +1063,18 @@ fn clear_background(
     target: &wgpu::TextureView,
     color: [f32; 4],
     format: wgpu::TextureFormat,
+    stored_premultiplication: bool,
 ) {
     let channel = |value: f32| {
+        let decode = |value| Rgba([value, value, value, 1.0]).linearized().0[0];
         if format.is_srgb() {
-            let encoded = if value <= 0.0031308 {
-                12.92 * value
+            if stored_premultiplication {
+                // Direct-to-surface empty frame: compositor expects stored RGB
+                // premultiplied by alpha, just like the final composition pass.
+                decode(value * color[3])
             } else {
-                1.055 * value.powf(1.0 / 2.4) - 0.055
-            };
-            let stored = encoded * color[3];
-            if stored <= 0.04045 {
-                stored / 12.92
-            } else {
-                ((stored + 0.055) / 1.055).powf(2.4)
+                // Intermediate target: blend in linear light before composition.
+                decode(value) * color[3]
             }
         } else {
             value * color[3]

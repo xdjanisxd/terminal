@@ -1,0 +1,7 @@
+cargo fmt --all -- --check 0
+cargo check --workspace --all-targets --offline 0
+cargo test --workspace --all-targets --offline 0
+cargo test --workspace --doc --offline 0
+cargo clippy --workspace --all-targets --offline -- -D warnings 0
+cargo build --release -p terminal-app --offline 0
+git diff --check 0

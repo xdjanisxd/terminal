@@ -1,0 +1,12 @@
+dpi-final 0
+backdrop 0
+native_gpu_validates_terminal_pipelines 0
+native_gpu_atlas_separates_variable_weight_instances 0
+native_gpu_renders_backgrounds_glyphs_underlines_and_cursor 0
+native_gpu_background_opacity_and_srgb_premultiplication 0
+native_gpu_palette_preserves_surrounding_alpha 0
+native_gpu_url_hints_preserve_surrounding_alpha 0
+blur-lifecycle 0
+palette 0
+tab-picker 0
+bold-lifecycle 0

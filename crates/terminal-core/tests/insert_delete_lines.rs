@@ -1,7 +1,9 @@
+mod support;
+
 use terminal_core::{
-    AutoWrapMode, Cell, CellColor, CharacterInsertionMode, CursorKeyMode, CursorVisibility,
-    InverseVideo, ItalicStyle, TerminalDimensions, TerminalReply, TerminalState, TextIntensity,
-    UnderlineStyle, VerticalScrollingMargins,
+    AutoWrapMode, CellColor, CharacterInsertionMode, CursorKeyMode, CursorVisibility, InverseVideo,
+    ItalicStyle, TerminalDimensions, TerminalReply, TerminalState, TextIntensity, UnderlineStyle,
+    VerticalScrollingMargins,
 };
 
 type LineOperation = fn(&mut TerminalState, usize);
@@ -111,7 +113,7 @@ fn line_operations_are_no_ops_outside_margins_and_use_full_screen_defaults() {
 }
 
 #[test]
-fn line_operations_preserve_complete_cells_canonical_blanks_and_unrelated_state() {
+fn line_operations_preserve_complete_cells_background_blanks_and_unrelated_state() {
     for (operation, source_row, moved_row, blank_rows) in [
         (TerminalState::insert_lines as LineOperation, 2, 3, [2, 2]),
         (TerminalState::delete_lines as LineOperation, 3, 2, [4, 4]),
@@ -144,7 +146,10 @@ fn line_operations_preserve_complete_cells_canonical_blanks_and_unrelated_state(
         assert_eq!(state.screen().cell(moved_row, 0), Some(&styled));
         for row in blank_rows {
             for column in 0..2 {
-                assert_eq!(state.screen().cell(row, column), Some(&Cell::default()));
+                support::assert_blank(
+                    state.screen().cell(row, column).unwrap(),
+                    CellColor::Indexed(22),
+                );
             }
         }
         assert_eq!(state.cursor(), cursor);

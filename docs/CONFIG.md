@@ -210,6 +210,8 @@ are not configurable.
 ## Theme
 
 All `[theme]` fields are optional. Colors are six-digit `#RRGGBB` strings.
+RGB values use encoded sRGB channels, matching terminal 24-bit RGB colors;
+GPU color-space conversion does not redefine palette entries or theme values.
 The terminal color fields are `foreground`, `background`, `cursor`,
 `selection_foreground`, `selection_background`, and `ansi`. The `ansi`
 array contains exactly 16 colors for indexes 0–15. Omitted values use the
