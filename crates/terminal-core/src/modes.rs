@@ -34,9 +34,19 @@ pub struct TerminalModes {
     cursor_visibility: CursorVisibility,
     auto_wrap: AutoWrapMode,
     character_insertion: CharacterInsertionMode,
+    origin: bool,
 }
 
 impl TerminalModes {
+    /// Whether cursor addressing is relative to the active scrolling margins.
+    pub const fn origin(self) -> bool {
+        self.origin
+    }
+
+    pub(crate) fn set_origin(&mut self, enabled: bool) {
+        self.origin = enabled;
+    }
+
     /// Returns the current cursor visibility.
     pub const fn cursor_visibility(self) -> CursorVisibility {
         self.cursor_visibility

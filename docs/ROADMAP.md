@@ -49,6 +49,11 @@ Completion marks require tested acceptance criteria, not code presence alone.
   - [x] Add bounded CNL/CPL cursor-next/previous-line movement with column reset and no scrolling
   - [x] Add typed SGR faint intensity with ordered `1`/`2`/`22` semantics through the existing rendition model
   - [x] Add conservative fixed DA2 secondary-device-attributes replies through the existing bounded reply FIFO
+  - [x] Render italic and faint visibly, with style-separated bitmap caches and unchanged cell advances
+  - [x] Support atomic colon RGB/indexed colors, conceal, strike-through, and basic `4:0/1` underline forms
+  - [x] Implement DECOM addressing, homing, margin-relative CPR, and origin-aware saved cursor restoration
+  - [x] Route DECSC/DECRC, RIS, and non-erasing DECSTR through core-owned semantic operations
+  - [ ] Native italic faces, blink, extended underline styles/colors, DECSCA/selective erase, horizontal margins, and further CSI/DEC coverage (see [scope and evidence](TERMINAL_COMPATIBILITY.md))
 - [x] Implement Unicode combining and wide-cell invariants
   - [x] Add typed wide-cell lead/continuation representation and bounded grid/write invariants
   - [x] Add width-zero combining-mark attachment to narrow and wide base cells without cursor advancement

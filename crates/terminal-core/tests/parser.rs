@@ -993,13 +993,11 @@ fn unsupported_sgr_parameters_and_subparameters_are_individual_no_ops() {
     parser.advance(&mut state, b"\x1b[32;44m").unwrap();
     let initial = *state.current_rendition();
 
-    parser
-        .advance(&mut state, b"\x1b[5;8;9;38;48;58;999m")
-        .unwrap();
+    parser.advance(&mut state, b"\x1b[5;38;48;58;999m").unwrap();
     assert_eq!(state.current_rendition(), &initial);
 
     parser
-        .advance(&mut state, b"\x1b[1;38:2:255:0:0;3m")
+        .advance(&mut state, b"\x1b[1;38:7:255:0:0;3m")
         .unwrap();
     assert_eq!(state.current_rendition().intensity(), TextIntensity::Bold);
     assert_eq!(state.current_rendition().italic(), ItalicStyle::Italic);
@@ -1305,9 +1303,16 @@ fn empty_and_colon_extended_color_parameters_are_handled_deterministically() {
     );
     assert_eq!(
         state.current_rendition().foreground(),
-        CellColor::Indexed(16)
+        CellColor::Indexed(196)
     );
-    assert_eq!(state.current_rendition().background(), CellColor::Default);
+    assert_eq!(
+        state.current_rendition().background(),
+        CellColor::Rgb {
+            red: 1,
+            green: 3,
+            blue: 4
+        }
+    );
 }
 
 #[test]

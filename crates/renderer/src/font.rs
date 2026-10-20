@@ -18,7 +18,7 @@ use swash::{
     FontRef,
     scale::{Render, ScaleContext, Source},
     shape::ShapeContext,
-    zeno::Format,
+    zeno::{Format, Transform},
 };
 
 pub const DEFAULT_LOGICAL_FONT_SIZE: f32 = 16.0;
@@ -221,6 +221,7 @@ struct GlyphCacheKey {
     glyph_id: u16,
     pixels_per_em: u32,
     bold: bool,
+    italic: bool,
 }
 
 struct GlyphCache {
@@ -542,6 +543,16 @@ impl FontSystem {
         pixels_per_em: f32,
         bold: bool,
     ) -> Result<GlyphBitmap, FontProcessingError> {
+        self.rasterize_glyph_with_style(glyph, pixels_per_em, bold, false)
+    }
+
+    pub(super) fn rasterize_glyph_with_style(
+        &mut self,
+        glyph: &ShapedGlyph,
+        pixels_per_em: f32,
+        bold: bool,
+        italic: bool,
+    ) -> Result<GlyphBitmap, FontProcessingError> {
         validate_pixels_per_em(pixels_per_em)?;
         let key = GlyphCacheKey {
             face_id: glyph.face_id,
@@ -549,6 +560,7 @@ impl FontSystem {
             glyph_id: glyph.glyph_id,
             pixels_per_em: pixels_per_em.to_bits(),
             bold,
+            italic,
         };
         if let Some(bitmap) = self.glyph_cache.get(key) {
             return Ok(bitmap);
@@ -572,6 +584,11 @@ impl FontSystem {
                     .build();
                 let mut renderer = Render::new(&[Source::Outline]);
                 renderer.format(Format::Alpha);
+                if italic {
+                    // Shear outlines around the baseline, retaining fixed cell
+                    // advances and the existing native Bold/variation selection.
+                    renderer.transform(Some(Transform::new(1.0, 0.0, 0.2, 1.0, 0.0, 0.0)));
+                }
                 if synthesize {
                     // A restrained fallback keeps counters open at small sizes.
                     // Native Bold outlines must never receive additional weight.
@@ -970,6 +987,47 @@ mod tests {
     }
 
     #[test]
+    fn italic_rasterization_preserves_advances_and_separates_style_size_and_weight() {
+        for mut system in [fixture_system(), variable_system(1.25)] {
+            for size in [12.0, 20.0, 32.0] {
+                for bold in [false, true] {
+                    let shaped = system
+                        .shape_text_cached_with_bold("Ae\u{301}", size, bold)
+                        .unwrap()
+                        .0;
+                    let glyph = &shaped.glyphs()[0];
+                    let upright = system
+                        .rasterize_glyph_with_style(glyph, size, bold, false)
+                        .unwrap();
+                    let italic = system
+                        .rasterize_glyph_with_style(glyph, size, bold, true)
+                        .unwrap();
+                    assert_ne!(italic.pixels(), upright.pixels());
+                    assert_eq!(italic.advance(), upright.advance());
+                    assert_eq!(
+                        system
+                            .rasterize_glyph_with_style(glyph, size, bold, false)
+                            .unwrap(),
+                        upright
+                    );
+                    assert_eq!(
+                        system
+                            .rasterize_glyph_with_style(glyph, size, bold, true)
+                            .unwrap(),
+                        italic
+                    );
+                    for mark in &shaped.glyphs()[1..] {
+                        let bitmap = system
+                            .rasterize_glyph_with_style(mark, size, bold, true)
+                            .unwrap();
+                        assert_eq!(bitmap.advance(), mark.advance());
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
     fn intensity_preserves_default_and_unsupported_font_bitmaps() {
         for intensity in [0.75, 1.0, 1.25] {
             let mut reference = fixture_system();
@@ -1260,6 +1318,10 @@ mod tests {
                         .unwrap()
                         .0;
                     for glyph in shaped.glyphs() {
+                        let italic = system
+                            .rasterize_glyph_with_style(glyph, size, bold, true)
+                            .unwrap();
+                        assert_eq!(italic.advance(), glyph.advance());
                         let bitmap = system.rasterize_glyph_with_bold(glyph, size, bold);
                         if glyph.uses_fallback() {
                             eprintln!(
@@ -1825,6 +1887,7 @@ mod tests {
             glyph_id: shaped.glyphs()[0].glyph_id,
             pixels_per_em: 16.0f32.to_bits(),
             bold: false,
+            italic: false,
         };
         system.rasterize_glyph(&shaped.glyphs()[0], 16.0).unwrap();
         system.rasterize_glyph(&shaped.glyphs()[2], 16.0).unwrap();

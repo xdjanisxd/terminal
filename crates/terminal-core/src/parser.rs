@@ -23,6 +23,7 @@ const ALTERNATE_SCREEN_MODE: u16 = 47;
 const ALTERNATE_SCREEN_CLEAR_MODE: u16 = 1047;
 const ALTERNATE_SCREEN_SAVE_RESTORE_MODE: u16 = 1049;
 const INSERT_REPLACE_MODE: u16 = 4;
+const ORIGIN_MODE: u16 = 6;
 const AUTO_WRAP_MODE: u16 = 7;
 const CURSOR_VISIBILITY_MODE: u16 = 25;
 const MOUSE_PRESS_MODE: u16 = 1000;
@@ -38,6 +39,7 @@ const CLEAR_ALL_TAB_STOPS: u16 = 3;
 enum ExtendedColorChannel {
     Foreground,
     Background,
+    Ignored,
 }
 
 /// Incremental raw-byte parser for the supported terminal-core semantics.
@@ -216,6 +218,7 @@ impl<'a> SemanticPerformer<'a> {
                     };
                     self.terminal.set_character_insertion(insertion);
                 }
+                (true, ORIGIN_MODE) => self.terminal.set_origin_mode(enabled),
                 (true, AUTO_WRAP_MODE) => {
                     let auto_wrap = if enabled {
                         AutoWrapMode::Enabled
@@ -271,6 +274,7 @@ impl<'a> SemanticPerformer<'a> {
         let mut parameters = params.iter();
         while let Some(parameter) = parameters.next() {
             let [attribute] = parameter else {
+                self.dispatch_sgr_subparameters(parameter);
                 continue;
             };
 
@@ -281,16 +285,21 @@ impl<'a> SemanticPerformer<'a> {
                 3 => self.terminal.set_italic_style(ItalicStyle::Italic),
                 4 => self.terminal.set_underline_style(UnderlineStyle::Enabled),
                 7 => self.terminal.set_inverse_video(InverseVideo::Enabled),
+                8 => self.terminal.set_concealed(true),
+                9 => self.terminal.set_strikethrough(true),
                 22 => self.terminal.set_text_intensity(TextIntensity::Normal),
                 23 => self.terminal.set_italic_style(ItalicStyle::Upright),
                 24 => self.terminal.set_underline_style(UnderlineStyle::Disabled),
                 27 => self.terminal.set_inverse_video(InverseVideo::Disabled),
+                28 => self.terminal.set_concealed(false),
+                29 => self.terminal.set_strikethrough(false),
                 code @ 30..=37 => self
                     .terminal
                     .set_foreground_color(CellColor::Indexed((code - 30) as u8)),
                 38 => {
                     self.dispatch_extended_color(&mut parameters, ExtendedColorChannel::Foreground)
                 }
+                58 => self.dispatch_extended_color(&mut parameters, ExtendedColorChannel::Ignored),
                 39 => self.terminal.set_foreground_color(CellColor::Default),
                 code @ 40..=47 => self
                     .terminal
@@ -306,6 +315,44 @@ impl<'a> SemanticPerformer<'a> {
                     .terminal
                     .set_background_color(CellColor::Indexed((code - 100 + 8) as u8)),
                 _ => {}
+            }
+        }
+    }
+
+    fn dispatch_sgr_subparameters(&mut self, values: &[u16]) {
+        // A colon group is atomic: invalid payload never becomes another SGR.
+        let (channel, payload) = match values {
+            [38, payload @ ..] => (ExtendedColorChannel::Foreground, payload),
+            [48, payload @ ..] => (ExtendedColorChannel::Background, payload),
+            [4, style @ 0..=1] => {
+                self.terminal.set_underline_style(if *style == 0 {
+                    UnderlineStyle::Disabled
+                } else {
+                    UnderlineStyle::Enabled
+                });
+                return;
+            }
+            _ => return,
+        };
+        let color = match payload {
+            [5, index] => u8::try_from(*index).ok().map(CellColor::Indexed),
+            [2, red, green, blue] | [2, 0, red, green, blue] => {
+                match (
+                    u8::try_from(*red),
+                    u8::try_from(*green),
+                    u8::try_from(*blue),
+                ) {
+                    (Ok(red), Ok(green), Ok(blue)) => Some(CellColor::Rgb { red, green, blue }),
+                    _ => None,
+                }
+            }
+            _ => None,
+        };
+        if let Some(color) = color {
+            match channel {
+                ExtendedColorChannel::Foreground => self.terminal.set_foreground_color(color),
+                ExtendedColorChannel::Background => self.terminal.set_background_color(color),
+                ExtendedColorChannel::Ignored => {}
             }
         }
     }
@@ -342,6 +389,7 @@ impl<'a> SemanticPerformer<'a> {
                     ExtendedColorChannel::Background => self
                         .terminal
                         .set_background_color(CellColor::Indexed(index)),
+                    ExtendedColorChannel::Ignored => {}
                 }
             }
             2 => {
@@ -374,6 +422,7 @@ impl<'a> SemanticPerformer<'a> {
                 match channel {
                     ExtendedColorChannel::Foreground => self.terminal.set_foreground_color(color),
                     ExtendedColorChannel::Background => self.terminal.set_background_color(color),
+                    ExtendedColorChannel::Ignored => {}
                 }
             }
             // An unknown selector has no defined payload length. Ignore the
@@ -537,6 +586,9 @@ impl vte::Perform for SemanticPerformer<'_> {
         }
 
         match byte {
+            b'7' => self.terminal.save_cursor(),
+            b'8' => self.terminal.restore_cursor(),
+            b'c' => self.terminal.hard_reset(),
             b'D' => self.terminal.index(),
             b'E' => self.terminal.next_line(),
             b'H' => self.terminal.set_horizontal_tab_stop(),
@@ -584,6 +636,13 @@ impl vte::Perform for SemanticPerformer<'_> {
         let Some((values, count)) = simple_csi_parameters(params) else {
             return;
         };
+
+        if action == 'p' && intermediates == b"!" {
+            if count == 0 || (count == 1 && values[0] == 0) {
+                self.terminal.soft_reset();
+            }
+            return;
+        }
 
         if action == 'u'
             && intermediates.len() == 1

@@ -465,23 +465,25 @@ impl TerminalState {
         self.sync_keyboard_reporting();
     }
 
-    /// Saves the active screen's cursor and current rendition in its bounded local slot.
+    /// Saves the active screen's cursor, rendition, and origin mode in its local slot.
     ///
     /// This does not move the cursor, modify cells, change modes, or enqueue replies.
     /// The slot is intentionally separate for each screen so future alternate-screen
     /// semantics can save Primary before switching without sharing mutable state.
     pub fn save_cursor(&mut self) {
-        self.screen.save_cursor(self.current_rendition);
+        self.screen
+            .save_cursor(self.current_rendition, self.terminal_modes.origin());
     }
 
-    /// Restores the active screen's saved cursor and current rendition when initialized.
+    /// Restores the active screen's saved cursor, rendition, and origin mode when initialized.
     ///
     /// Restore before any save is a safe no-op. Saved coordinates are clamped to the
     /// active screen's current dimensions; the stored coordinates remain unchanged so
     /// a later growth can restore their original value. Delayed wrap is not saved and
     /// is cancelled on successful restore, matching other explicit cursor movement.
     pub fn restore_cursor(&mut self) {
-        if let Some(rendition) = self.screen.restore_cursor() {
+        if let Some((rendition, origin)) = self.screen.restore_cursor() {
+            self.terminal_modes.set_origin(origin);
             self.current_rendition = rendition;
             self.screen.set_wrap_pending(false);
         }
@@ -574,7 +576,7 @@ impl TerminalState {
         self.pending_replies.push(TerminalReply::TerminalStatus)
     }
 
-    /// Queues a cursor-position report using the current absolute screen coordinates.
+    /// Queues a cursor-position report, relative to the top margin under DECOM.
     ///
     /// The reply captures one-based coordinates at request time. It returns
     /// `false` without changing terminal state when the fixed-capacity reply
@@ -582,7 +584,12 @@ impl TerminalState {
     #[must_use]
     pub fn request_cursor_position_report(&mut self) -> bool {
         let cursor = self.cursor();
-        let row = u16::try_from(cursor.row() + 1)
+        let origin = if self.terminal_modes.origin() {
+            self.vertical_scrolling_margins().top()
+        } else {
+            0
+        };
+        let row = u16::try_from(cursor.row().saturating_sub(origin) + 1)
             .expect("validated terminal dimensions fit cursor-position reply coordinates");
         let column = u16::try_from(cursor.column() + 1)
             .expect("validated terminal dimensions fit cursor-position reply coordinates");
@@ -592,7 +599,7 @@ impl TerminalState {
 
     /// Replaces the vertical scrolling margins when they are valid for the screen.
     ///
-    /// A successful update homes the cursor at the screen origin and cancels
+    /// A successful update homes the cursor at the current mode origin and cancels
     /// delayed wrap. Invalid input leaves all terminal state unchanged. The
     /// representation permits a one-row region so one-row screens remain valid.
     pub fn set_vertical_scrolling_margins(&mut self, top: usize, bottom: usize) -> bool {
@@ -602,14 +609,18 @@ impl TerminalState {
         };
 
         self.screen.set_vertical_scrolling_margins(margins);
-        self.screen
-            .set_cursor_position(0, 0)
-            .expect("screen origin is always in bounds");
+        self.move_cursor(CursorMovement::Position { row: 0, column: 0 });
         self.screen.set_wrap_pending(false);
         true
     }
 
-    /// Moves the cursor to an in-bounds zero-based coordinate.
+    /// Enables or disables DECOM, homing the cursor even on repeated requests.
+    pub fn set_origin_mode(&mut self, enabled: bool) {
+        self.terminal_modes.set_origin(enabled);
+        self.move_cursor(CursorMovement::Position { row: 0, column: 0 });
+    }
+
+    /// Moves the cursor to an in-bounds absolute zero-based coordinate.
     pub fn set_cursor_position(
         &mut self,
         row: usize,
@@ -622,16 +633,30 @@ impl TerminalState {
         result
     }
 
-    /// Applies a typed cursor movement, clamping at screen edges.
+    /// Applies cursor movement within screen bounds, or active margins under DECOM.
     pub fn move_cursor(&mut self, movement: CursorMovement) {
         let cursor = self.cursor();
         let dimensions = self.dimensions();
-        let maximum_row = dimensions.rows() - 1;
+        let (minimum_row, maximum_row) = if self.terminal_modes.origin() {
+            let margins = self.vertical_scrolling_margins();
+            (margins.top(), margins.bottom())
+        } else {
+            (0, dimensions.rows() - 1)
+        };
         let maximum_column = dimensions.columns() - 1;
         let (row, column) = match movement {
-            CursorMovement::Up(amount) => (cursor.row().saturating_sub(amount), cursor.column()),
+            CursorMovement::Up(amount) => (
+                cursor
+                    .row()
+                    .saturating_sub(amount)
+                    .clamp(minimum_row, maximum_row),
+                cursor.column(),
+            ),
             CursorMovement::Down(amount) => (
-                cursor.row().saturating_add(amount).min(maximum_row),
+                cursor
+                    .row()
+                    .saturating_add(amount)
+                    .clamp(minimum_row, maximum_row),
                 cursor.column(),
             ),
             CursorMovement::Forward(amount) => (
@@ -641,13 +666,17 @@ impl TerminalState {
             CursorMovement::Backward(amount) => {
                 (cursor.row(), cursor.column().saturating_sub(amount))
             }
-            CursorMovement::Position { row, column } => {
-                (row.min(maximum_row), column.min(maximum_column))
-            }
+            CursorMovement::Position { row, column } => (
+                row.saturating_add(minimum_row).min(maximum_row),
+                column.min(maximum_column),
+            ),
             CursorMovement::HorizontalAbsolute(column) => {
                 (cursor.row(), column.min(maximum_column))
             }
-            CursorMovement::VerticalAbsolute(row) => (row.min(maximum_row), cursor.column()),
+            CursorMovement::VerticalAbsolute(row) => (
+                row.saturating_add(minimum_row).min(maximum_row),
+                cursor.column(),
+            ),
         };
 
         self.screen
@@ -659,7 +688,7 @@ impl TerminalState {
     /// Moves down by a bounded count and returns to the first column without scrolling.
     ///
     /// This is CNL-style explicit cursor positioning, not NEL: it uses the
-    /// ordinary screen bounds even when scrolling margins are active. Zero is
+    /// screen bounds, or active margins under DECOM. Zero is
     /// normalized to one for callers using terminal control-function counts.
     pub fn cursor_next_line(&mut self, rows: usize) {
         self.move_cursor(CursorMovement::Down(rows.max(1)));
@@ -669,7 +698,7 @@ impl TerminalState {
     /// Moves up by a bounded count and returns to the first column without scrolling.
     ///
     /// This is CPL-style explicit cursor positioning, not RI: it uses the
-    /// ordinary screen bounds even when scrolling margins are active. Zero is
+    /// screen bounds, or active margins under DECOM. Zero is
     /// normalized to one for callers using terminal control-function counts.
     pub fn cursor_previous_line(&mut self, rows: usize) {
         self.move_cursor(CursorMovement::Up(rows.max(1)));
@@ -1042,6 +1071,16 @@ impl TerminalState {
         self.current_rendition.set_intensity(intensity);
     }
 
+    /// Controls SGR conceal without changing stored text or selection data.
+    pub fn set_concealed(&mut self, concealed: bool) {
+        self.current_rendition.set_concealed(concealed);
+    }
+
+    /// Controls SGR strike-through.
+    pub fn set_strikethrough(&mut self, strikethrough: bool) {
+        self.current_rendition.set_strikethrough(strikethrough);
+    }
+
     /// Sets the current italic style.
     pub fn set_italic_style(&mut self, italic: ItalicStyle) {
         self.current_rendition.set_italic(italic);
@@ -1134,6 +1173,36 @@ impl TerminalState {
         let pending_replies = std::mem::take(&mut self.pending_replies);
         *self = Self::new(self.dimensions());
         self.pending_replies = pending_replies;
+    }
+
+    /// DECSTR resets supported DEC presentation state without erasing either
+    /// buffer, history, selection, tab stops, or moving the active cursor.
+    /// Auto-wrap returns to the emulator's enabled startup default.
+    pub fn soft_reset(&mut self) {
+        self.terminal_modes = TerminalModes::default();
+        self.input_modes.set_cursor_keys(CursorKeyMode::Normal);
+        self.current_rendition = CellAttributes::default();
+        self.current_target = None;
+        self.screen
+            .set_vertical_scrolling_margins(VerticalScrollingMargins::full_screen(
+                self.dimensions().rows(),
+            ));
+        self.screen.set_wrap_pending(false);
+        self.screen.reset_saved_cursor();
+    }
+
+    /// RIS clears both screens/history and restores startup state. Host title
+    /// and directory metadata and replies already generated remain available.
+    pub fn hard_reset(&mut self) {
+        let title = self.shell_title.take();
+        let directory = self.working_directory_uri.take();
+        let title_version = self.shell_title_version;
+        let prompt_version = self.shell_prompt_version;
+        self.reset();
+        self.shell_title = title;
+        self.working_directory_uri = directory;
+        self.shell_title_version = title_version;
+        self.shell_prompt_version = prompt_version;
     }
 
     fn attach_combining_mark(&mut self, character: char) -> Result<(), PrintError> {

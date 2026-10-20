@@ -60,6 +60,9 @@ pub(crate) fn drawing(
             background,
             underline: false,
             bold: false,
+            italic: false,
+            concealed: false,
+            strikethrough: false,
         });
         column += width;
     }
