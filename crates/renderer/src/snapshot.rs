@@ -452,6 +452,30 @@ mod tests {
     };
 
     #[test]
+    fn emoji_projection_and_selection_keep_terminal_cell_spans() {
+        let mut state = TerminalState::new(TerminalDimensions::new(8, 2).unwrap());
+        TerminalParser::new()
+            .advance(&mut state, "A🚀B".as_bytes())
+            .unwrap();
+        let data = TerminalRenderData::from_terminal(&state);
+        let spans = data
+            .cells
+            .iter()
+            .map(|c| (c.character, c.column, c.width))
+            .collect::<Vec<_>>();
+        assert_eq!(spans, [('A', 0, 1), ('🚀', 1, 2), ('B', 3, 1)]);
+        state.begin_selection(0, 2);
+        state.extend_selection(0, 3);
+        assert_eq!(state.selected_text().as_deref(), Some("🚀B"));
+        let selected = TerminalRenderData::from_terminal(&state);
+        assert_eq!(selected.cells[1].width, 2);
+        assert_eq!(
+            selected.cells[1].background,
+            RenderTheme::default().selection_background
+        );
+    }
+
+    #[test]
     fn italic_dim_conceal_and_strike_preserve_colors_opacity_selection_and_text() {
         let mut state = TerminalState::new(TerminalDimensions::new(8, 2).unwrap());
         TerminalParser::new().advance(&mut state,

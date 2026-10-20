@@ -16,7 +16,7 @@ use std::path::Path;
 use std::process::Command;
 use swash::{
     FontRef,
-    scale::{Render, ScaleContext, Source},
+    scale::{Render, ScaleContext, Source, StrikeWith, image::Content},
     shape::ShapeContext,
     zeno::{Format, Transform},
 };
@@ -139,10 +139,12 @@ impl ShapedText {
     }
 }
 
-/// CPU-side alpha bitmap and placement for one rasterized glyph.
+/// CPU-side bitmap and placement for one rasterized glyph.
+/// Masks have one coverage byte per pixel; color has straight-alpha sRGB RGBA.
 #[derive(Clone, Debug, PartialEq)]
 pub struct GlyphBitmap {
     glyph_id: u16,
+    is_color: bool,
     pixels: Vec<u8>,
     width: u32,
     height: u32,
@@ -152,6 +154,10 @@ pub struct GlyphBitmap {
 }
 
 impl GlyphBitmap {
+    pub fn is_color(&self) -> bool {
+        self.is_color
+    }
+
     pub fn glyph_id(&self) -> u16 {
         self.glyph_id
     }
@@ -202,7 +208,7 @@ impl fmt::Display for FontProcessingError {
             Self::GlyphNotRasterizable(glyph_id) => {
                 write!(
                     formatter,
-                    "glyph {glyph_id} cannot be rasterized as an alpha outline"
+                    "glyph {glyph_id} has no supported outline or bitmap"
                 )
             }
         }
@@ -582,7 +588,12 @@ impl FontSystem {
                         glyph.weight.map(|weight| ("wght", f32::from_bits(weight))),
                     ))
                     .build();
-                let mut renderer = Render::new(&[Source::Outline]);
+                let mut renderer = Render::new(&[
+                    Source::ColorOutline(0),
+                    Source::ColorBitmap(StrikeWith::BestFit),
+                    Source::Outline,
+                    Source::Bitmap(StrikeWith::BestFit),
+                ]);
                 renderer.format(Format::Alpha);
                 if italic {
                     // Shear outlines around the baseline, retaining fixed cell
@@ -594,11 +605,25 @@ impl FontSystem {
                     // Native Bold outlines must never receive additional weight.
                     renderer.embolden(pixels_per_em / 48.0);
                 }
-                let image = renderer
+                let mut image = renderer
                     .render(&mut scaler, glyph.glyph_id)
                     .ok_or(FontProcessingError::GlyphNotRasterizable(glyph.glyph_id))?;
+                // Swash's COLR layer compositor produces premultiplied bytes;
+                // decoded color bitmaps (including Noto's PNGs) are straight.
+                if matches!(image.source, Source::ColorOutline(_)) {
+                    for pixel in image.data.as_chunks_mut::<4>().0 {
+                        let alpha = u32::from(pixel[3]);
+                        for channel in &mut pixel[..3] {
+                            *channel = (u32::from(*channel) * 255 + alpha / 2)
+                                .checked_div(alpha)
+                                .unwrap_or(0)
+                                .min(255) as u8;
+                        }
+                    }
+                }
                 Ok(GlyphBitmap {
                     glyph_id: glyph.glyph_id,
+                    is_color: image.content == Content::Color,
                     pixels: image.data,
                     width: image.placement.width,
                     height: image.placement.height,
@@ -975,6 +1000,100 @@ mod tests {
     };
 
     const TEST_FONT: &[u8] = include_bytes!("../tests/fixtures/Tuffy.ttf");
+
+    // Add one COLRv0 layer to the existing licensed outline fixture. This
+    // exercises color rasterization on CI without relying on installed fonts.
+    fn color_fixture_system() -> FontSystem {
+        let glyph = swash::FontRef::from_index(TEST_FONT, 0)
+            .unwrap()
+            .charmap()
+            .map('A');
+        let mut colr = vec![0, 0, 0, 1, 0, 0, 0, 14, 0, 0, 0, 20, 0, 1];
+        colr.extend_from_slice(&glyph.to_be_bytes());
+        colr.extend_from_slice(&[0, 0, 0, 1]);
+        colr.extend_from_slice(&glyph.to_be_bytes());
+        colr.extend_from_slice(&[0, 0]);
+        let cpal = vec![0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 14, 0, 0, 240, 160, 80, 255];
+        let count = u16::from_be_bytes(TEST_FONT[4..6].try_into().unwrap()) as usize;
+        let directory_end = 12 + count * 16;
+        let mut bytes = TEST_FONT[..directory_end].to_vec();
+        bytes.resize(directory_end + 32, 0);
+        bytes.extend_from_slice(&TEST_FONT[directory_end..]);
+        bytes[4..6].copy_from_slice(&((count + 2) as u16).to_be_bytes());
+        for offset in (12..directory_end).step_by(16) {
+            let old = u32::from_be_bytes(bytes[offset + 8..offset + 12].try_into().unwrap());
+            bytes[offset + 8..offset + 12].copy_from_slice(&(old + 32).to_be_bytes());
+        }
+        for (index, (tag, table)) in [(b"COLR", colr), (b"CPAL", cpal)].into_iter().enumerate() {
+            while !bytes.len().is_multiple_of(4) {
+                bytes.push(0);
+            }
+            let record = directory_end + index * 16;
+            bytes[record..record + 4].copy_from_slice(tag);
+            let start = bytes.len() as u32;
+            bytes[record + 8..record + 12].copy_from_slice(&start.to_be_bytes());
+            bytes[record + 12..record + 16].copy_from_slice(&(table.len() as u32).to_be_bytes());
+            bytes.extend_from_slice(&table);
+        }
+        // OpenType table directories are sorted by tag for binary search.
+        let mut records = bytes[12..directory_end + 32]
+            .as_chunks::<16>()
+            .0
+            .iter()
+            .map(|record| record.to_vec())
+            .collect::<Vec<_>>();
+        records.sort_by(|a, b| a[..4].cmp(&b[..4]));
+        for (dest, record) in bytes[12..directory_end + 32]
+            .as_chunks_mut::<16>()
+            .0
+            .iter_mut()
+            .zip(records)
+        {
+            dest.copy_from_slice(&record);
+        }
+        let mut database = fontdb::Database::new();
+        database.load_font_data(bytes);
+        let face = database.faces().next().unwrap().id;
+        FontSystem::with_primary_face(database, face, GLYPH_CACHE_CAPACITY).unwrap()
+    }
+
+    #[test]
+    fn color_glyphs_preserve_rgba_and_cache_identity_without_changing_masks() {
+        let mut system = color_fixture_system();
+        let mut reference = fixture_system();
+        for size in [16.0, 20.0, 32.0] {
+            let shaped = system.shape_text("AB", size).unwrap();
+            let color = system.rasterize_glyph(&shaped.glyphs()[0], size).unwrap();
+            assert!(color.is_color());
+            assert_eq!(
+                color.pixels().len(),
+                (color.width() * color.height() * 4) as usize
+            );
+            assert!(
+                color
+                    .pixels()
+                    .as_chunks::<4>()
+                    .0
+                    .iter()
+                    .any(|p| p[3] > 200 && p[2] > p[1] && p[1] > p[0])
+            );
+            assert_eq!(
+                color,
+                system.rasterize_glyph(&shaped.glyphs()[0], size).unwrap()
+            );
+            let normal = reference.shape_text("B", size).unwrap();
+            let mask = system.rasterize_glyph(&shaped.glyphs()[1], size).unwrap();
+            assert!(!mask.is_color());
+            assert_eq!(
+                mask.pixels(),
+                reference
+                    .rasterize_glyph(&normal.glyphs()[0], size)
+                    .unwrap()
+                    .pixels()
+            );
+        }
+        assert_eq!(system.glyph_cache.entries.len(), 6);
+    }
 
     fn variable_system(intensity: f32) -> FontSystem {
         let mut database = fontdb::Database::new();
@@ -1640,6 +1759,50 @@ mod tests {
             assert!(metrics.descent() > 0.0);
             assert!(metrics.height() >= metrics.baseline());
         }
+    }
+
+    #[test]
+    #[ignore = "requires installed Noto Color Emoji"]
+    fn native_color_emoji_rasterization() {
+        let mut system = FontSystem::load_system(FontRequest::default()).unwrap();
+        let metrics = system.cell_metrics(1.0, 16.0).unwrap();
+        for size in [16.0, 20.0, 32.0, 48.0] {
+            let shaped = system.shape_text("🚀", size).unwrap();
+            let glyph = &shaped.glyphs()[0];
+            assert!(glyph.uses_fallback());
+            assert_ne!(glyph.glyph_id(), 0);
+            assert!(
+                system
+                    .database
+                    .face(glyph.face_id)
+                    .unwrap()
+                    .families
+                    .iter()
+                    .any(|(name, _)| name == "Noto Color Emoji")
+            );
+            let bitmap = system.rasterize_glyph(glyph, size).unwrap();
+            assert!(bitmap.is_color());
+            assert_eq!(
+                bitmap.pixels().len(),
+                (bitmap.width() * bitmap.height() * 4) as usize
+            );
+            assert!(bitmap.width() > 0 && bitmap.height() > 0);
+            assert!(bitmap.pixels().iter().any(|&byte| byte != 0));
+            for (bold, italic) in [(false, false), (true, false), (false, true), (true, true)] {
+                let styled = system
+                    .rasterize_glyph_with_style(glyph, size, bold, italic)
+                    .unwrap();
+                // Bitmap strikes are not synthetically weighted or sheared.
+                assert_eq!(bitmap, styled);
+                assert_eq!(
+                    styled,
+                    system
+                        .rasterize_glyph_with_style(glyph, size, bold, italic)
+                        .unwrap()
+                );
+            }
+        }
+        assert_eq!(metrics, system.cell_metrics(1.0, 16.0).unwrap());
     }
 
     #[test]

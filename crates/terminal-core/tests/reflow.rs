@@ -87,6 +87,25 @@ fn valid_cells(state: &TerminalState) {
 }
 
 #[test]
+fn emoji_widths_and_text_survive_scrollback_reflow() {
+    let mut state = state(8, 2, "A🚀B 🚀C\r\nnext 🚀 line\r\nend");
+    assert!(state.scrollback_len() > 0);
+    let expected = text(&mut state);
+    for columns in [4, 12, 3, 8] {
+        resize(&mut state, columns, 2);
+        assert_eq!(text(&mut state), expected, "columns={columns}");
+        valid_cells(&state);
+        for row in 0..state.scrollback_len() {
+            for cell in state.scrollback_row(row).unwrap() {
+                if cell.character() == '🚀' {
+                    assert!(cell.is_wide_lead());
+                }
+            }
+        }
+    }
+}
+
+#[test]
 fn hard_breaks_soft_wraps_attributes_links_spaces_and_combining_survive_round_trips() {
     let input = "abcdefghijk\r\n\r\n\x1b[1;3;4;38;2;1;2;3m界e\u{301}  \x1b[0m\x1b]8;;https://example.com\x1b\\link\x1b]8;;\x1b\\";
     let mut state = state(8, 8, input);
