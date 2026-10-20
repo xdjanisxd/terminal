@@ -7,6 +7,7 @@ mod grid;
 mod input;
 mod modes;
 mod parser;
+mod reflow;
 mod reply;
 mod screens;
 mod scrollback;

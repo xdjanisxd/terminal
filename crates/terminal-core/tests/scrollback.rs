@@ -234,7 +234,7 @@ fn captured_cells_preserve_combining_wide_occupancy_and_rendition() {
 }
 
 #[test]
-fn reset_clears_primary_history_and_resize_retains_capture_time_widths() {
+fn reset_clears_primary_history_and_resize_reflows_historical_widths() {
     let mut state = state(4, 2);
     write_row(&mut state, 0, "wide");
     write_row(&mut state, 1, "row!");
@@ -242,9 +242,9 @@ fn reset_clears_primary_history_and_resize_retains_capture_time_widths() {
     state.index();
     state.resize(TerminalDimensions::new(2, 3).unwrap());
 
-    assert_eq!(state.scrollback_len(), 1);
-    assert_eq!(state.scrollback_row(0).unwrap().len(), 4);
-    assert_eq!(row_text(state.scrollback_row(0).unwrap()), "wide");
+    assert_eq!(state.scrollback_len(), 2);
+    assert_eq!(row_text(state.scrollback_row(0).unwrap()), "wi");
+    assert_eq!(row_text(state.scrollback_row(1).unwrap()), "de");
 
     state.reset();
     assert_eq!(state.scrollback_len(), 0);
@@ -330,7 +330,7 @@ fn resize_clamps_the_offset_and_reset_returns_the_viewport_to_bottom() {
     assert!(state.page_up());
 
     state.resize(TerminalDimensions::new(1, 3).unwrap());
-    assert_eq!(state.viewport_offset(), 1);
+    assert_eq!(state.viewport_offset(), 2);
     assert_eq!(state.viewport_cell(0, 0).unwrap().character(), 'a');
     assert_eq!(state.viewport_cell(0, 1), None);
 

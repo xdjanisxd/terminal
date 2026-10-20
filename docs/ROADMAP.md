@@ -65,6 +65,7 @@ Completion marks require tested acceptance criteria, not code presence alone.
   - [x] Add DEC `?1049` alternate-screen save/reset/switch/restore semantics through project-owned saved-cursor state
   - [x] Add bounded Primary-screen scrollback capture for full-screen upward scrolling with deterministic eviction
   - [x] Audit and test resize coherence across both screens, saved cursor slots, tabs, margins, and mixed-width Primary history
+  - [x] Add [Primary scrollback reflow](SCROLLBACK_REFLOW.md), preserving hard breaks, Unicode cell payloads, insertion/saved cursors, selection and viewport anchors, with bounded streaming history, regression tests and resize benchmarks; native Linux/Windows visual acceptance remains pending.
 - [x] Validate against representative modern shells and TUIs
   - Deterministic `terminal-core` fixtures cover shell prompt redraw, full-screen editor alternate-screen behavior, and multiplexer-style region/mode/reply traffic without external runtime dependencies.
 

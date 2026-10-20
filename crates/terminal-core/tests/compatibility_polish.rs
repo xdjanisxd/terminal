@@ -154,7 +154,8 @@ fn decom_save_restore_and_1049_preserve_primary_and_scrollback() {
     state.resize(TerminalDimensions::new(2, 1).unwrap());
     feed(&mut state, b"\x1b8\x1b[999d");
     assert_eq!(cursor(&state), (0, 1));
-    assert_eq!(state.scrollback_len(), history);
+    // Shrinking moves rows above the cursor into history and rewraps text.
+    assert_eq!(state.scrollback_len(), 7);
 }
 
 #[test]

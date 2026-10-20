@@ -60,6 +60,41 @@ impl ScreenGrid {
         self.cells.get(start..start + columns)
     }
 
+    /// Installs already normalized rows produced by screen resize/reflow.
+    pub(crate) fn from_rows(
+        dimensions: TerminalDimensions,
+        rows: impl IntoIterator<Item = (Vec<Cell>, usize)>,
+    ) -> Self {
+        let mut grid = Self::new(dimensions);
+        for (row, (cells, wrapped)) in rows.into_iter().take(dimensions.rows()).enumerate() {
+            let start = row * dimensions.columns();
+            let count = cells.len().min(dimensions.columns());
+            grid.cells[start..start + count].copy_from_slice(&cells[..count]);
+            grid.wrapped[row] = wrapped;
+        }
+        grid
+    }
+
+    /// Height-only transport copies the surviving rectangle once; only rows
+    /// crossing the history boundary need separate row allocations.
+    pub(crate) fn with_row_transfer(
+        &self,
+        dimensions: TerminalDimensions,
+        skip: usize,
+        prefix: std::collections::VecDeque<(Vec<Cell>, usize)>,
+    ) -> Self {
+        debug_assert_eq!(dimensions.columns(), self.dimensions.columns());
+        let prefix_len = prefix.len();
+        let mut grid = Self::from_rows(dimensions, prefix);
+        let count = (self.dimensions.rows() - skip).min(dimensions.rows() - prefix_len);
+        let columns = dimensions.columns();
+        grid.cells[prefix_len * columns..(prefix_len + count) * columns]
+            .copy_from_slice(&self.cells[skip * columns..(skip + count) * columns]);
+        grid.wrapped[prefix_len..prefix_len + count]
+            .copy_from_slice(&self.wrapped[skip..skip + count]);
+        grid
+    }
+
     /// Replaces a cell through the bounded grid API, clearing any intersected wide pair.
     ///
     /// The supplied cell is normalized to single-cell occupancy so continuation

@@ -1,0 +1,7 @@
+   Compiling terminal-core v0.0.0 (/home/dellian/codes/terminal/crates/terminal-core)
+   Compiling terminal-renderer v0.0.0 (/home/dellian/codes/terminal/crates/renderer)
+    Finished `bench` profile [optimized] target(s) in 1.65s
+     Running benches/projection_baselines.rs (target/release/deps/projection_baselines-de02f9cf3190d509)
+visible_projection_80x30: operations=500 elapsed_ns=9501502 ns_per_operation=19003.0
+output_echo_plus_projection: operations=500 elapsed_ns=9017684 ns_per_operation=18035.4
+three_pane_layout_plus_projection: operations=500 elapsed_ns=11563198 ns_per_operation=23126.4

@@ -202,5 +202,6 @@ fn alternate_lf_respects_margin_edges_and_resize_restores_full_height_region() {
         ["ccc", "ddd", "eee", "   "]
     );
     assert_eq!((state.cursor().row(), state.cursor().column()), (3, 0));
-    assert_eq!(state.scrollback_len(), 0);
+    // Inactive Primary's height shrink moved its top two rows into history.
+    assert_eq!(state.scrollback_len(), 2);
 }

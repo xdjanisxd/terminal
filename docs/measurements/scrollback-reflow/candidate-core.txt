@@ -1,0 +1,17 @@
+   Compiling terminal-core v0.0.0 (/home/dellian/codes/terminal/crates/terminal-core)
+    Finished `bench` profile [optimized] target(s) in 0.85s
+     Running benches/state_baselines.rs (target/release/deps/state_baselines-1259ba64d13f2ce1)
+resize_one_column_unicode_pair: operations=20 elapsed_ns=11418300 ns_per_operation=570915.0
+resize_columns_pair_history_0: operations=100 elapsed_ns=5661516 ns_per_operation=56615.2
+resize_height_pair_history_0: operations=100 elapsed_ns=4464276 ns_per_operation=44642.8
+resize_unchanged_history_0: operations=10000 elapsed_ns=16027 ns_per_operation=1.6
+resize_columns_pair_history_2000: operations=100 elapsed_ns=97968560 ns_per_operation=979685.6
+resize_height_pair_history_2000: operations=100 elapsed_ns=3017065 ns_per_operation=30170.7
+resize_unchanged_history_2000: operations=10000 elapsed_ns=16040 ns_per_operation=1.6
+resize_columns_pair_history_10000: operations=100 elapsed_ns=700076845 ns_per_operation=7000768.5
+resize_height_pair_history_10000: operations=100 elapsed_ns=3249167 ns_per_operation=32491.7
+resize_unchanged_history_10000: operations=10000 elapsed_ns=16067 ns_per_operation=1.6
+parse_plain_state: operations=2000 elapsed_ns=16142027 ns_per_operation=8071.0
+parse_escape_state: operations=2000 elapsed_ns=7870724 ns_per_operation=3935.4
+scrollback_page_pair: operations=10000 elapsed_ns=45143 ns_per_operation=4.5
+selection_extend: operations=10000 elapsed_ns=45933 ns_per_operation=4.6
