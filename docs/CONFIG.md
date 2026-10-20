@@ -31,6 +31,25 @@ when the app starts; restart after editing those. Runtime font shortcuts change
 the current size without editing the file, and reset returns to the configured
 startup size. Existing running panes are not rebuilt when the file changes.
 
+## Cursor
+
+```toml
+[cursor]
+shape = "beam" # block, beam, or underline
+blinking = true
+```
+
+The section is optional. Defaults are `shape = "block"` and `blinking = false`,
+which preserve the existing steady block cursor. Valid changes apply to running
+panes; an application-requested style remains active until that application
+resets terminal modes or exits. DECSCUSR (`CSI Ps SP q`) supports `0`/`1` for
+blinking block, `2` for steady block, `3`/`4` for blinking/steady underline,
+and `5`/`6` for blinking/steady beam. An application request takes precedence
+over `[cursor]`; DECSTR (`CSI ! p`) and RIS (`ESC c`) restore configured defaults.
+Cursor visibility (`DECTCEM`) remains independent. Blink transitions request
+frames only for the focused, visible cursor, and the event loop sleeps between
+those deadlines.
+
 ## Window opacity and blur
 
 ```toml

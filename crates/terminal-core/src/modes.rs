@@ -8,6 +8,23 @@ pub enum CursorVisibility {
     Hidden,
 }
 
+/// The terminal cursor outline requested by configuration or an application.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum CursorShape {
+    /// A filled cell cursor. This preserves the historical renderer default.
+    #[default]
+    Block,
+    Beam,
+    Underline,
+}
+
+/// Cursor outline and whether it alternates between visible and hidden.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct CursorStyle {
+    pub shape: CursorShape,
+    pub blinking: bool,
+}
+
 /// Controls whether printing at the right margin may continue on the next row.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum AutoWrapMode {

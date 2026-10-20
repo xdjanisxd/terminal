@@ -1530,3 +1530,91 @@ fn incomplete_and_malformed_index_controls_do_not_mutate_unrelated_state() {
         assert_eq!((state.cursor().row(), state.cursor().column()), (0, 1));
     }
 }
+
+#[test]
+fn decscusr_sets_shape_and_blink_and_reset_restores_configured_default() {
+    use terminal_core::{CursorShape, CursorStyle};
+
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(8, 2).unwrap());
+    let configured = CursorStyle {
+        shape: CursorShape::Underline,
+        blinking: true,
+    };
+    state.set_cursor_style_default(configured);
+
+    for (sequence, expected) in [
+        (
+            b"\x1b[2 q".as_slice(),
+            CursorStyle {
+                shape: CursorShape::Block,
+                blinking: false,
+            },
+        ),
+        (
+            b"\x1b[3 q",
+            CursorStyle {
+                shape: CursorShape::Underline,
+                blinking: true,
+            },
+        ),
+        (
+            b"\x1b[4 q",
+            CursorStyle {
+                shape: CursorShape::Underline,
+                blinking: false,
+            },
+        ),
+        (
+            b"\x1b[5 q",
+            CursorStyle {
+                shape: CursorShape::Beam,
+                blinking: true,
+            },
+        ),
+        (
+            b"\x1b[6 q",
+            CursorStyle {
+                shape: CursorShape::Beam,
+                blinking: false,
+            },
+        ),
+    ] {
+        parser.advance(&mut state, sequence).unwrap();
+        assert_eq!(state.cursor_style(), expected);
+    }
+
+    parser.advance(&mut state, b"\x1b[!p").unwrap();
+    assert_eq!(state.cursor_style(), configured);
+    parser.advance(&mut state, b"\x1b[5 q\x1bc").unwrap();
+    assert_eq!(state.cursor_style(), configured);
+}
+
+#[test]
+fn decscusr_is_chunk_safe_and_ignores_unsupported_parameters() {
+    use terminal_core::{CursorShape, CursorStyle};
+    let input = b"\x1b[5 q";
+    for split in 0..=input.len() {
+        let mut parser = TerminalParser::new();
+        let mut state = TerminalState::new(TerminalDimensions::new(8, 2).unwrap());
+        parser.advance(&mut state, &input[..split]).unwrap();
+        parser.advance(&mut state, &input[split..]).unwrap();
+        assert_eq!(
+            state.cursor_style(),
+            CursorStyle {
+                shape: CursorShape::Beam,
+                blinking: true
+            }
+        );
+    }
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(8, 2).unwrap());
+    parser.advance(&mut state, b"\x1b[2 q\x1b[7 q").unwrap();
+    assert_eq!(
+        state.cursor_style(),
+        CursorStyle {
+            shape: CursorShape::Block,
+            blinking: false
+        }
+    );
+}

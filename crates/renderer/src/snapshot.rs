@@ -172,6 +172,8 @@ pub struct OverlayLine {
 pub struct CursorRenderData {
     pub row: usize,
     pub column: usize,
+    pub shape: terminal_core::CursorShape,
+    pub blinking: bool,
 }
 
 /// Renderer-facing scrollbar inputs; terminal-core retains the actual viewport.
@@ -293,6 +295,8 @@ impl TerminalRenderData {
                 CursorRenderData {
                     row: cursor.row(),
                     column: cursor.column(),
+                    shape: state.cursor_style().shape,
+                    blinking: state.cursor_style().blinking,
                 }
             });
         let scrollbar = (state.active_screen() == ScreenKind::Primary
@@ -852,6 +856,23 @@ mod tests {
     }
 
     #[test]
+    fn cursor_projection_carries_shape_blink_and_theme_color() {
+        let mut state = TerminalState::new(TerminalDimensions::new(4, 2).unwrap());
+        state.set_cursor_style_default(terminal_core::CursorStyle {
+            shape: terminal_core::CursorShape::Beam,
+            blinking: true,
+        });
+        let theme = RenderTheme {
+            cursor: Rgba([0.2, 0.3, 0.4, 0.45]),
+            ..RenderTheme::default()
+        };
+        let data = TerminalRenderData::from_terminal_with_theme(&state, &theme);
+        assert_eq!(data.cursor.unwrap().shape, terminal_core::CursorShape::Beam);
+        assert!(data.cursor.unwrap().blinking);
+        assert_eq!(data.cursor_color, theme.cursor);
+    }
+
+    #[test]
     fn ncurses_bold_projection_preserves_colors_and_resets_weight() {
         let mut state = TerminalState::new(TerminalDimensions::new(20, 2).unwrap());
         let mut parser = terminal_core::TerminalParser::new();
@@ -890,7 +911,15 @@ mod tests {
             data.cells[0].foreground,
             Rgba([1.0 / 255.0, 2.0 / 255.0, 3.0 / 255.0, 1.0])
         );
-        assert_eq!(data.cursor, Some(CursorRenderData { row: 0, column: 1 }));
+        assert_eq!(
+            data.cursor,
+            Some(CursorRenderData {
+                row: 0,
+                column: 1,
+                shape: terminal_core::CursorShape::Block,
+                blinking: false
+            })
+        );
     }
 
     #[test]
@@ -993,7 +1022,12 @@ mod tests {
         assert_eq!(projection.scrollbar, None);
         assert_eq!(
             projection.cursor,
-            Some(CursorRenderData { row: 1, column: 1 })
+            Some(CursorRenderData {
+                row: 1,
+                column: 1,
+                shape: terminal_core::CursorShape::Block,
+                blinking: false
+            })
         );
         assert_eq!(
             projection

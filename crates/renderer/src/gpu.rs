@@ -843,12 +843,24 @@ impl DrawResources {
         }
         let mut overlays = Vec::with_capacity(3);
         if let Some(cursor) = data.cursor {
+            let (x, y, width, height) = match cursor.shape {
+                terminal_core::CursorShape::Block => (0.0, 0.0, cell_width, cell_height),
+                terminal_core::CursorShape::Beam => {
+                    (0.0, 0.0, (cell_width * 0.08).max(1.0), cell_height)
+                }
+                terminal_core::CursorShape::Underline => (
+                    0.0,
+                    cell_height * 0.9,
+                    cell_width,
+                    (cell_height * 0.1).max(1.0),
+                ),
+            };
             overlays.push(RectInstance {
                 rect: to_clip_rect(
-                    pane[0] as f32 + cursor.column as f32 * cell_width,
-                    pane[1] as f32 + cursor.row as f32 * cell_height,
-                    cell_width,
-                    cell_height,
+                    pane[0] as f32 + cursor.column as f32 * cell_width + x,
+                    pane[1] as f32 + cursor.row as f32 * cell_height + y,
+                    width,
+                    height,
                     frame.surface_size,
                 ),
                 color: data.cursor_color.0,

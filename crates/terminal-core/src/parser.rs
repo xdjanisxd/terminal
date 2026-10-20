@@ -644,6 +644,41 @@ impl vte::Perform for SemanticPerformer<'_> {
             return;
         }
 
+        // DECSCUSR is CSI Ps SP q: the space is an intermediate byte.
+        if action == 'q' && intermediates == b" " && count <= 1 {
+            let style = match if count == 0 { 0 } else { values[0] } {
+                0 | 1 => Some(crate::CursorStyle {
+                    shape: crate::CursorShape::Block,
+                    blinking: true,
+                }),
+                2 => Some(crate::CursorStyle {
+                    shape: crate::CursorShape::Block,
+                    blinking: false,
+                }),
+                3 => Some(crate::CursorStyle {
+                    shape: crate::CursorShape::Underline,
+                    blinking: true,
+                }),
+                4 => Some(crate::CursorStyle {
+                    shape: crate::CursorShape::Underline,
+                    blinking: false,
+                }),
+                5 => Some(crate::CursorStyle {
+                    shape: crate::CursorShape::Beam,
+                    blinking: true,
+                }),
+                6 => Some(crate::CursorStyle {
+                    shape: crate::CursorShape::Beam,
+                    blinking: false,
+                }),
+                _ => None,
+            };
+            if let Some(style) = style {
+                self.terminal.set_cursor_style_from_application(style);
+            }
+            return;
+        }
+
         if action == 'u'
             && intermediates.len() == 1
             && matches!(intermediates[0], b'>' | b'=' | b'<')

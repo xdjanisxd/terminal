@@ -31,8 +31,8 @@ pub use input::{
     encode_paste,
 };
 pub use modes::{
-    AutoWrapMode, CharacterInsertionMode, CursorKeyMode, CursorVisibility, InputModes,
-    MouseEncoding, MouseTracking, TerminalModes,
+    AutoWrapMode, CharacterInsertionMode, CursorKeyMode, CursorShape, CursorStyle,
+    CursorVisibility, InputModes, MouseEncoding, MouseTracking, TerminalModes,
 };
 pub use parser::{MAX_OSC52_DECODED_BYTES, Osc52Policy, TerminalParser, TerminalParserError};
 pub use reply::{MAX_PENDING_REPLIES, TerminalReply, TerminalReplyBytes};

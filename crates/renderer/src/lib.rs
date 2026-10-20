@@ -165,9 +165,15 @@ pub struct Renderer {
     theme: RenderTheme,
     background_opacity: f32,
     transparency_supported: bool,
+    cursor_blink_visible: bool,
 }
 
 impl Renderer {
+    /// Sets the phase used for blinking terminal cursors. Does not schedule redraws.
+    pub fn set_cursor_blink_visible(&mut self, visible: bool) {
+        self.cursor_blink_visible = visible;
+    }
+
     /// Snapshot/reset opt-in aggregates at a workload boundary.
     pub fn throughput_stats(&self) -> Option<ThroughputRenderStats> {
         self.throughput
@@ -292,6 +298,7 @@ impl Renderer {
             theme: RenderTheme::default(),
             background_opacity,
             transparency_supported: false,
+            cursor_blink_visible: true,
         };
         renderer.reconfigure();
         emit_diagnostic(format_args!(
@@ -442,6 +449,13 @@ impl Renderer {
                 1.0
             },
         );
+        if !self.cursor_blink_visible {
+            for (pane, _, _) in &mut data {
+                if pane.cursor.is_some_and(|cursor| cursor.blinking) {
+                    pane.cursor = None;
+                }
+            }
+        }
         if self.palette.is_some() {
             for (pane, _, _) in &mut data {
                 palette::dim(pane, &self.theme);
