@@ -210,6 +210,50 @@ are not configurable.
 ## Theme
 
 All `[theme]` fields are optional. Colors are six-digit `#RRGGBB` strings.
+Set `preset` to a built-in theme identifier. Explicit color fields are applied
+on top of that preset, including individual entries in the 16-color ANSI
+palette. With no preset, the existing default colors are used. The Command
+Palette includes `Theme: ...` entries for switching the running theme; this
+choice lasts until the configuration is reloaded or the application restarts.
+Editing `preset` in the configuration file switches the theme on the next live
+reload.
+
+```toml
+[theme]
+preset = "solarized_light"
+selection_background = "#d6cdb5" # Optional override on top of the preset.
+```
+
+Available presets and palette sources:
+
+| Identifier | Name | Palette basis |
+| --- | --- | --- |
+| `midnight` | Midnight | Existing terminal defaults. |
+| `solarized_dark` | Solarized Dark | Existing built-in palette. |
+| `solarized_light` | Solarized Light | Existing built-in palette. |
+| `catppuccin_mocha` | Catppuccin Mocha | [Catppuccin Windows Terminal palette](https://github.com/catppuccin/windows-terminal/blob/main/mocha.json). |
+| `tokyo_night` | Tokyo Night | [Tokyo Night Kitty palette](https://github.com/folke/tokyonight.nvim/blob/main/extras/kitty/tokyonight_night.conf). |
+| `dracula` | Dracula | [Dracula ANSI specification](https://spec.draculatheme.com/). |
+| `gruvbox_dark` | Gruvbox Dark | [Gruvbox color definitions](https://github.com/morhetz/gruvbox/blob/master/colors/gruvbox.vim). |
+| `cyberpunk` | CyberPunk | Established [iTerm2 Color Schemes Cyberpunk palette](https://github.com/mbadolato/iTerm2-Color-Schemes/blob/master/wezterm/Cyberpunk.toml). |
+| `retro_terminal` | Retro Terminal | Project-defined classic CRT phosphor-green variant; no authoritative palette under this name was found. |
+| `neon_light` | Neon Light | Project-defined dark neon variant; no authoritative terminal palette under this name was found. |
+
+Retro Terminal is a project-defined CRT-inspired palette. It uses near-black
+background `#040e08`, phosphor-green foreground `#9be7a5`, cursor `#72f58a`,
+and selection `#164525` / `#c9ffd1`. Its ANSI colors (0–15) are `#08130b`,
+`#c75b4b`, `#4b9b55`, `#b3a340`, `#4c7990`, `#906080`, `#4f9b91`, `#9be7a5`,
+`#41634a`, `#f07260`, `#72f58a`, `#e1d064`, `#73b0c8`, `#ca85b1`, `#75d9c9`,
+`#c9ffd1`.
+
+Neon Light is a project-defined dark neon palette with background `#080612`,
+soft lavender foreground `#d6d0e8`, cyan cursor `#35e6e0`, and selection
+`#282047` / `#eee9ff`. Its ANSI colors (0–15) are `#100d1d`, `#e45484`,
+`#58c783`, `#c7a944`, `#4d8dff`, `#bd70f0`, `#35c9db`, `#c4bdd9`, `#625a78`,
+`#ff6da2`, `#78e59f`, `#ebd162`, `#73a7ff`, `#d58aff`, `#60e5ef`, `#eee9ff`.
+Its palette uses cyan accents, purple borders, dark violet selection and search
+surfaces, muted lavender text, and a purple scrollbar thumb for readable
+contrast.
 RGB values use encoded sRGB channels, matching terminal 24-bit RGB colors;
 GPU color-space conversion does not redefine palette entries or theme values.
 The terminal color fields are `foreground`, `background`, `cursor`,

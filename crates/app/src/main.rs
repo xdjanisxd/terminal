@@ -44,7 +44,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant};
-use terminal_config::{Command, Config, FontConfig, Rgb, ShellConfig};
+use terminal_config::{Command, Config, FontConfig, Rgb, ShellConfig, Theme};
 
 use terminal_core::{
     CellColor, CursorKey, EditingKey, InputModes, MAX_COLUMNS, MAX_GRID_CELLS, MAX_ROWS,
@@ -1593,6 +1593,13 @@ impl Application {
         match action {
             PaletteAction::Command(command) => self.dispatch_command(command),
             PaletteAction::SavedWorkspace(name) => self.open_saved_workspace(&name),
+            PaletteAction::Theme(preset) => {
+                self.config.theme = Theme::from_preset(preset);
+                if let Some(renderer) = self.renderer.as_mut() {
+                    renderer.set_theme(render_theme(&self.config.theme));
+                }
+                self.invalidate_frame();
+            }
             PaletteAction::ProjectTab(root) => self.create_pane_at_root(None, Some(root)),
             PaletteAction::ProjectSplit(root, axis) => {
                 self.create_pane_at_root(Some(axis), Some(root));
@@ -4410,7 +4417,8 @@ fn render_theme(theme: &terminal_config::Theme) -> RenderTheme {
 
 #[cfg(test)]
 mod theme_resolution_tests {
-    use super::{Config, Rgb, render_theme};
+    use super::{Application, Config, PaletteAction, Rgb, Theme, render_theme};
+    use terminal_config::ThemePreset;
 
     #[test]
     fn secondary_ui_colors_follow_light_and_dark_themes_and_explicit_overrides() {
@@ -4480,6 +4488,234 @@ mod theme_resolution_tests {
         assert_eq!(resolved.scrollbar_thumb_hover.0, rgb(Rgb(22, 23, 24)));
         assert_eq!(resolved.search_marker.0[0..3], resolved.accent.0[0..3]);
         assert!(resolved.search_marker.0[3] < resolved.search_active_marker.0[3]);
+    }
+
+    #[test]
+    fn built_in_themes_resolve_terminal_and_semantic_colors_together() {
+        let theme = Theme::from_preset(ThemePreset::SolarizedLight);
+        let resolved = render_theme(&theme);
+        let rgb = |color: Rgb| {
+            [
+                color.0 as f32 / 255.0,
+                color.1 as f32 / 255.0,
+                color.2 as f32 / 255.0,
+                1.0,
+            ]
+        };
+        assert_eq!(resolved.background.0, rgb(Rgb(253, 246, 227)));
+        assert_eq!(resolved.selection_background.0, rgb(Rgb(238, 232, 213)));
+        assert_eq!(resolved.ansi[1].0, rgb(Rgb(220, 50, 47)));
+        assert_eq!(resolved.ui.background, resolved.background);
+        assert_eq!(
+            resolved.ui.selected_background,
+            resolved.selection_background
+        );
+        assert_eq!(resolved.ui.scrollbar_thumb.0, rgb(Rgb(131, 148, 150)));
+        assert_eq!(resolved.ui.search_match_background, resolved.ui.accent);
+
+        let overridden = Config::parse(
+            "[theme]\npreset = 'solarized_light'\nsearch_match_background = '#010203'\nscrollbar_thumb = '#040506'",
+        )
+        .unwrap();
+        let resolved = render_theme(&overridden.theme);
+        assert_eq!(resolved.ui.search_match_background.0, rgb(Rgb(1, 2, 3)));
+        assert_eq!(resolved.ui.scrollbar_thumb.0, rgb(Rgb(4, 5, 6)));
+    }
+
+    #[test]
+    fn palette_theme_action_updates_the_running_configuration() {
+        let mut app = Application::default();
+        app.dispatch_palette_action(PaletteAction::Theme(ThemePreset::SolarizedDark));
+        assert_eq!(app.config.theme.preset, Some(ThemePreset::SolarizedDark));
+        assert_eq!(app.config.theme.background, Rgb(0, 43, 54));
+    }
+
+    fn contrast_ratio(first: Rgb, second: Rgb) -> f64 {
+        fn luminance(color: Rgb) -> f64 {
+            let channel = |value: u8| {
+                let value = f64::from(value) / 255.0;
+                if value <= 0.04045 {
+                    value / 12.92
+                } else {
+                    ((value + 0.055) / 1.055).powf(2.4)
+                }
+            };
+            0.2126 * channel(color.0) + 0.7152 * channel(color.1) + 0.0722 * channel(color.2)
+        }
+        let (lighter, darker) = {
+            let first = luminance(first);
+            let second = luminance(second);
+            (first.max(second), first.min(second))
+        };
+        (lighter + 0.05) / (darker + 0.05)
+    }
+
+    #[test]
+    fn added_presets_keep_terminal_and_ui_text_contrast_readable() {
+        for preset in [
+            ThemePreset::CatppuccinMocha,
+            ThemePreset::TokyoNight,
+            ThemePreset::Dracula,
+            ThemePreset::GruvboxDark,
+            ThemePreset::RetroTerminal,
+            ThemePreset::Cyberpunk,
+            ThemePreset::NeonLight,
+        ] {
+            let theme = Theme::from_preset(preset);
+            let ui_background = theme.ui_background.unwrap();
+            let ui_foreground = theme.ui_foreground.unwrap();
+            let ui_selection = theme.ui_selected_background.unwrap();
+            let ui_muted = theme.ui_muted.unwrap();
+            let ui_accent = theme.ui_accent.unwrap();
+            let search_background = theme.search_match_background.unwrap();
+            let scrollbar = theme.scrollbar_thumb.unwrap();
+            assert!(
+                contrast_ratio(theme.foreground, theme.background) >= 4.5,
+                "{} terminal",
+                preset.identifier()
+            );
+            assert!(
+                contrast_ratio(theme.cursor, theme.background) >= 3.0,
+                "{} cursor",
+                preset.identifier()
+            );
+            assert!(
+                contrast_ratio(theme.selection_foreground, theme.selection_background) >= 4.5,
+                "{} selection",
+                preset.identifier()
+            );
+            assert!(
+                contrast_ratio(ui_foreground, ui_background) >= 4.5,
+                "{} palette",
+                preset.identifier()
+            );
+            assert!(
+                contrast_ratio(ui_muted, ui_background) >= 4.5,
+                "{} muted UI text",
+                preset.identifier()
+            );
+            assert!(
+                contrast_ratio(ui_accent, ui_background) >= 3.0,
+                "{} UI accent",
+                preset.identifier()
+            );
+            assert!(
+                contrast_ratio(ui_foreground, ui_selection) >= 4.5,
+                "{} selected palette row",
+                preset.identifier()
+            );
+            assert!(
+                contrast_ratio(ui_foreground, search_background) >= 4.5,
+                "{} search match",
+                preset.identifier()
+            );
+            assert!(
+                contrast_ratio(ui_foreground, theme.search_active_background.unwrap()) >= 4.5,
+                "{} active search",
+                preset.identifier()
+            );
+            assert!(
+                contrast_ratio(scrollbar, ui_background) >= 3.0,
+                "{} scrollbar",
+                preset.identifier()
+            );
+        }
+    }
+
+    #[test]
+    fn added_presets_resolve_all_terminal_and_semantic_color_channels() {
+        let rgba = |color: Rgb| {
+            [
+                color.0 as f32 / 255.0,
+                color.1 as f32 / 255.0,
+                color.2 as f32 / 255.0,
+                1.0,
+            ]
+        };
+        for preset in [
+            ThemePreset::CatppuccinMocha,
+            ThemePreset::TokyoNight,
+            ThemePreset::Dracula,
+            ThemePreset::GruvboxDark,
+            ThemePreset::RetroTerminal,
+            ThemePreset::Cyberpunk,
+            ThemePreset::NeonLight,
+        ] {
+            let theme = Theme::from_preset(preset);
+            let resolved = render_theme(&theme);
+            assert_eq!(
+                resolved.foreground.0,
+                rgba(theme.foreground),
+                "{}",
+                preset.identifier()
+            );
+            assert_eq!(
+                resolved.background.0,
+                rgba(theme.background),
+                "{}",
+                preset.identifier()
+            );
+            assert_eq!(
+                resolved.selection_foreground.0,
+                rgba(theme.selection_foreground),
+                "{}",
+                preset.identifier()
+            );
+            assert_eq!(
+                resolved.selection_background.0,
+                rgba(theme.selection_background),
+                "{}",
+                preset.identifier()
+            );
+            assert_eq!(
+                resolved.ansi.map(|color| color.0),
+                theme.ansi.map(rgba),
+                "{}",
+                preset.identifier()
+            );
+            assert_eq!(
+                resolved.ui.background.0,
+                rgba(theme.ui_background.unwrap()),
+                "{}",
+                preset.identifier()
+            );
+            assert_eq!(
+                resolved.ui.foreground.0,
+                rgba(theme.ui_foreground.unwrap()),
+                "{}",
+                preset.identifier()
+            );
+            assert_eq!(
+                resolved.ui.selected_background.0,
+                rgba(theme.ui_selected_background.unwrap()),
+                "{}",
+                preset.identifier()
+            );
+            assert_eq!(
+                resolved.ui.search_match_background.0,
+                rgba(theme.search_match_background.unwrap()),
+                "{}",
+                preset.identifier()
+            );
+            assert_eq!(
+                resolved.ui.search_active_background.0,
+                rgba(theme.search_active_background.unwrap()),
+                "{}",
+                preset.identifier()
+            );
+            assert_eq!(
+                resolved.ui.scrollbar_thumb.0,
+                rgba(theme.scrollbar_thumb.unwrap()),
+                "{}",
+                preset.identifier()
+            );
+            assert_eq!(
+                resolved.ui.scrollbar_thumb_hover.0,
+                rgba(theme.scrollbar_thumb_hover.unwrap()),
+                "{}",
+                preset.identifier()
+            );
+        }
     }
 }
 
@@ -4874,7 +5110,7 @@ mod tests {
         terminal_dimensions_for_viewport, terminal_key_input, wheel_scroll_rows,
         windows_local_shell_spawn_config,
     };
-    use terminal_config::{Command, Config, Rgb, ShellConfig};
+    use terminal_config::{Command, Config, Rgb, ShellConfig, ThemePreset};
     use terminal_core::{CursorKey, TerminalDimensions, TerminalParser, TerminalState};
     use terminal_pty::{PtyOutput, PtySize, PtyWorkerEvent};
     use terminal_renderer::{
@@ -7752,11 +7988,12 @@ mod tests {
         };
         fs::write(
             &path,
-            "[font]\nbold_intensity = 0.75\n[window]\nopacity = 0.85\nblur = true\n[theme]\nbackground = '#123456'",
+            "[font]\nbold_intensity = 0.75\n[window]\nopacity = 0.85\nblur = true\n[theme]\npreset = 'solarized_dark'\nbackground = '#123456'",
         )
         .unwrap();
         app.reload_config();
         assert_eq!(app.config.theme.background, Rgb(0x12, 0x34, 0x56));
+        assert_eq!(app.config.theme.preset, Some(ThemePreset::SolarizedDark));
 
         assert_eq!(app.config.font.bold_intensity, 0.75);
         fs::write(&path, "[font]\nbold_intensity = nan").unwrap();
@@ -7786,6 +8023,10 @@ mod tests {
         app.reload_config();
         assert_eq!(app.config.window.opacity, 1.0);
         assert!(app.config.window.blur);
+        fs::write(&path, "[theme]\npreset = 'neon_light'").unwrap();
+        app.reload_config();
+        assert_eq!(app.config.theme.preset, Some(ThemePreset::NeonLight));
+        assert_eq!(app.config.theme.background, Rgb(8, 6, 18));
 
         fs::remove_file(path).unwrap();
         app.reload_config();

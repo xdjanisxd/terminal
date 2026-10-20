@@ -179,7 +179,9 @@ Bash login shells retain their original launch semantics and require user-provid
 
 ## Themes and customization
 
-There are no required built-in theme presets. Configure terminal foreground, background, cursor and selection colors, the 16-color ANSI palette, optional semantic app UI colors, and specific search or scrollbar overrides under `[theme]`. Choose an installed monospace family and base font size under `[font]`; the font shortcuts adjust size for the current run. [config.example.toml](config.example.toml) lists every field and its fallback.
+Built-in theme presets include Midnight, Solarized Dark, Solarized Light, Catppuccin Mocha, Tokyo Night, Dracula, Gruvbox Dark, Retro Terminal, CyberPunk, and Neon Light. Select one with `[theme].preset`, then override individual terminal, ANSI, selection, semantic UI, search, or scrollbar colors as needed. Choose an installed monospace family and base font size under `[font]`; the font shortcuts adjust size for the current run. [config.example.toml](config.example.toml) lists every field and its fallback.
+
+Installed fallback fonts can supply color emoji, including Noto Color Emoji on Linux. Color glyphs retain their own colors and fit within the terminal's existing cell widths. Primary-font coverage still takes precedence, so some symbols may remain monochrome. See [emoji rendering](docs/EMOJI_FONT_RENDERING.md) for supported formats, limits, and Linux acceptance checks.
 
 ## Project status and development
 
