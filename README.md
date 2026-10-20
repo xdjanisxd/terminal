@@ -117,6 +117,8 @@ Executable names use platform PATH lookup; absolute paths are supported. Without
 
 Adding any `[[bindings]]` entries replaces the entire built-in shortcut list. Keep every default binding you still want.
 
+Applications can opt into [Kitty keyboard protocol](docs/KEYBOARD_PROTOCOL.md) negotiation, distinct modified keys, and press/repeat/release reports. Ordinary shells retain legacy input encoding; platform limits and native acceptance steps are documented there.
+
 ## Default keyboard shortcuts
 
 These are the bindings in `terminal-config` on this branch. Commands without a default shortcut remain available in the command palette or through custom bindings.

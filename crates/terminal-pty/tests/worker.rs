@@ -417,3 +417,24 @@ fn dropping_the_controller_with_a_full_event_queue_joins_both_workers() {
         "session must be dropped after joining"
     );
 }
+
+#[test]
+fn inline_keyboard_writes_and_long_text_keep_fifo_bytes() {
+    let (mut worker, state) = scripted_worker(PtyLifecycle::Running, []);
+    let expected = [
+        b"\x1b[105;5u".to_vec(),
+        vec![b'x'; 64],
+        vec![b'y'; 65],
+        b"\x1b[97;1:3u".to_vec(),
+    ];
+    for bytes in &expected {
+        worker.write_input(bytes).unwrap();
+    }
+    let deadline = Instant::now() + DEADLINE;
+    while state.lock().unwrap().writes.len() != expected.len() {
+        assert!(Instant::now() < deadline);
+        std::thread::yield_now();
+    }
+    assert_eq!(state.lock().unwrap().writes, expected);
+    worker.shutdown_and_join().unwrap();
+}

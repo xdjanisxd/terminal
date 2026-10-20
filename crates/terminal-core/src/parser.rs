@@ -679,9 +679,16 @@ impl vte::Perform for SemanticPerformer<'_> {
             return;
         }
 
+        if action == 'u' && intermediates == b"?" && (count == 0 || (count == 1 && values[0] == 0))
+        {
+            self.terminal.request_keyboard_flags();
+            return;
+        }
+
         if action == 'u'
             && intermediates.len() == 1
             && matches!(intermediates[0], b'>' | b'=' | b'<')
+            && count <= if intermediates == b"=" { 2 } else { 1 }
         {
             self.terminal.keyboard_reporting_request(
                 intermediates[0],

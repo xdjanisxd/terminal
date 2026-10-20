@@ -19,7 +19,7 @@ Goal complete: automated validation and user-reported physical-key acceptance pa
 
 Overlays retain their existing handling. Configured commands are resolved before terminal key encoding; an explicit copy/paste or other non-selection command wins in application modes too. Configured selection commands still apply the ownership rule below. A custom bindings list replaces defaults.
 
-Default Shift+Left/Right selection commands stay app-owned only on the Primary screen with normal cursor-key mode, mouse tracking off, and no keyboard-reporting request. Ctrl+Shift+Left/Right uses the same rule for word selection. Alternate screen, application cursor mode (DECCKM), mouse tracking, or a nonzero Kitty-style keyboard-reporting / modifyOtherKeys request causes these selection commands to forward through the PTY. An unbound chord reaches the normal input encoder directly.
+Default Shift+Left/Right selection commands stay app-owned only on the Primary screen with normal cursor-key mode, mouse tracking off, and no keyboard-reporting request. Ctrl+Shift+Left/Right uses the same rule for word selection. Alternate screen, application cursor mode (DECCKM), mouse tracking, or a nonzero Kitty keyboard-protocol / modifyOtherKeys request causes these selection commands to forward through the PTY. An unbound chord reaches the active input encoder directly. Kitty protocol behavior and current manual acceptance status are documented in [KEYBOARD_PROTOCOL.md](KEYBOARD_PROTOCOL.md).
 
 | Key | Forwarded bytes |
 | --- | --- |
@@ -51,4 +51,4 @@ The verification checklist is retained below for future regression checks with `
 
 ## Compatibility limits
 
-A Primary-screen application that requests none of the ownership signals remains subject to default terminal selection. Raw input mode and process identity alone are not observable through this routing rule. Bracketed paste alone does not transfer ownership because ordinary shells use it too. Applications must recognize xterm modified cursor sequences. Keyboard-reporting requests affect ownership, but this branch does not implement or advertise full Kitty keyboard protocol support. The user's physical-key acceptance covers the tested environment; broader application/version compatibility is not established.
+A Primary-screen application that requests none of the ownership signals remains subject to default terminal selection. Raw input mode and process identity alone are not observable through this routing rule. Bracketed paste alone does not transfer ownership because ordinary shells use it too. Applications must recognize xterm modified cursor sequences when Kitty reporting is inactive. Kitty protocol requests transfer shortcut ownership; see [KEYBOARD_PROTOCOL.md](KEYBOARD_PROTOCOL.md) for feature details and pending native Linux/Windows acceptance.

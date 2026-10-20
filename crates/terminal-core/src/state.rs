@@ -143,7 +143,8 @@ pub struct TerminalState {
     cursor_style_default: crate::CursorStyle,
     cursor_style_overridden: bool,
     input_modes: InputModes,
-    keyboard_reporting_stacks: [Vec<u16>; 2],
+    keyboard_generation: u64,
+    keyboard_reporting_stacks: [crate::keyboard::KeyboardStack; 2],
     current_rendition: CellAttributes,
     horizontal_tab_stops: HorizontalTabStops,
     pending_replies: PendingReplies,
@@ -159,43 +160,31 @@ pub struct TerminalState {
 }
 
 impl TerminalState {
-    // Ownership detection only: this does not advertise complete Kitty support.
     pub(crate) fn keyboard_reporting_request(&mut self, action: u8, flags: u16, mode: u16) {
         let index = usize::from(self.active_screen() == ScreenKind::Alternate);
-        let stack = &mut self.keyboard_reporting_stacks[index];
-        match action {
-            b'>' => {
-                if stack.len() == 16 {
-                    stack.remove(0);
-                }
-                stack.push(flags);
-            }
-            b'=' => {
-                if stack.is_empty() {
-                    stack.push(0);
-                }
-                let current = stack.last_mut().unwrap();
-                match mode {
-                    1 => *current = flags,
-                    2 => *current |= flags,
-                    3 => *current &= !flags,
-                    _ => return,
-                }
-            }
-            b'<' => stack.truncate(stack.len().saturating_sub(usize::from(flags.max(1)))),
-            _ => return,
+        if self.keyboard_reporting_stacks[index].request(action, flags, mode) {
+            self.sync_keyboard_reporting();
         }
-        self.sync_keyboard_reporting();
+    }
+
+    pub(crate) fn request_keyboard_flags(&mut self) {
+        let _ = self
+            .pending_replies
+            .push(crate::TerminalReply::KeyboardFlags {
+                flags: self.input_modes.keyboard_flags(),
+            });
+    }
+
+    /// Invalidates held platform events after requests, resets, and screen changes.
+    pub const fn keyboard_generation(&self) -> u64 {
+        self.keyboard_generation
     }
 
     fn sync_keyboard_reporting(&mut self) {
+        self.keyboard_generation = self.keyboard_generation.wrapping_add(1);
         let index = usize::from(self.active_screen() == ScreenKind::Alternate);
-        self.input_modes.set_keyboard_reporting(
-            self.keyboard_reporting_stacks[index]
-                .last()
-                .copied()
-                .unwrap_or(0),
-        );
+        self.input_modes
+            .set_keyboard_reporting(self.keyboard_reporting_stacks[index].flags());
     }
     pub(crate) fn modify_other_keys_request(&mut self, level: u16) {
         self.input_modes.set_modify_other_keys(level);
@@ -297,7 +286,8 @@ impl TerminalState {
             cursor_style_default: crate::CursorStyle::default(),
             cursor_style_overridden: false,
             input_modes: InputModes::default(),
-            keyboard_reporting_stacks: [Vec::new(), Vec::new()],
+            keyboard_generation: 0,
+            keyboard_reporting_stacks: Default::default(),
             current_rendition: CellAttributes::default(),
             horizontal_tab_stops: HorizontalTabStops::new(dimensions.columns()),
             pending_replies: PendingReplies::default(),
@@ -1210,9 +1200,11 @@ impl TerminalState {
     /// already-generated pending replies are preserved. This is not an implementation
     /// of DECSTR or RIS.
     pub fn reset(&mut self) {
+        let keyboard_generation = self.keyboard_generation.wrapping_add(1);
         let cursor_style_default = self.cursor_style_default;
         let pending_replies = std::mem::take(&mut self.pending_replies);
         *self = Self::new(self.dimensions());
+        self.keyboard_generation = keyboard_generation;
         self.set_cursor_style_default(cursor_style_default);
         self.pending_replies = pending_replies;
     }
@@ -1225,6 +1217,8 @@ impl TerminalState {
         self.cursor_style = self.cursor_style_default;
         self.cursor_style_overridden = false;
         self.input_modes.set_cursor_keys(CursorKeyMode::Normal);
+        self.keyboard_reporting_stacks = Default::default();
+        self.sync_keyboard_reporting();
         self.current_rendition = CellAttributes::default();
         self.current_target = None;
         self.screen

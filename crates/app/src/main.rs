@@ -8,6 +8,7 @@
 mod branding;
 mod commands;
 mod cwd;
+mod keyboard;
 use cwd::local_cwd_from_osc7;
 #[cfg(test)]
 #[path = "tests/cwd_inheritance.rs"]
@@ -142,6 +143,7 @@ struct Application {
     url_hints: Option<url_hints::Session>,
     url_click: Option<(url_hints::Occurrence, PhysicalPosition<f64>)>,
     hint_keys_held: HashSet<PhysicalKey>,
+    keyboard: keyboard::KeyboardState,
     tab_rename: Option<String>,
 }
 
@@ -768,6 +770,7 @@ impl Default for Application {
             url_hints: None,
             url_click: None,
             hint_keys_held: HashSet::new(),
+            keyboard: keyboard::KeyboardState::default(),
             tab_rename: None,
         }
     }
@@ -976,6 +979,7 @@ impl Application {
                 self.inherited_cwd = None;
                 self.inactive_panes.clear();
                 let dimensions = self.terminal.dimensions();
+                self.keyboard.clear();
                 self.terminal = TerminalState::new(dimensions);
                 self.parser = TerminalParser::with_osc52_policy(Osc52Policy::Deny);
                 let active = workspace.active_pane();
@@ -1320,6 +1324,7 @@ impl Application {
             inherited_cwd: std::mem::replace(&mut self.inherited_cwd, next_runtime.inherited_cwd),
         };
         self.inactive_panes.insert(current, old);
+        self.keyboard.clear();
         self.active_runtime_pane = next;
         self.selection_dragging = false;
         self.scrollbar_drag = None;
@@ -1916,8 +1921,38 @@ impl Application {
 
     fn terminal_command(&self, physical: PhysicalKey) -> Option<Command> {
         configured_command(&self.config, physical, self.modifiers).filter(|command| {
+            if matches!(
+                command,
+                Command::SelectLeft
+                    | Command::SelectRight
+                    | Command::SelectWordLeft
+                    | Command::SelectWordRight
+            ) {
+                return terminal_owns_editing_shortcuts(
+                    self.terminal.active_screen(),
+                    *self.terminal.input_modes(),
+                );
+            }
             *command != Command::OpenUrlHints || url_hints::enabled(&self.terminal)
         })
+    }
+
+    fn send_kitty_key(&mut self, event: &winit::event::KeyEvent) -> bool {
+        let Some(input) = self.keyboard.encode(event, self.modifiers, &self.terminal) else {
+            return false;
+        };
+        if input.as_slice().is_empty() {
+            return true;
+        }
+        let queued = self.pty.as_ref().is_some_and(|pty| {
+            pty.write_input(input.as_slice())
+                .inspect_err(|error| eprintln!("could not write local shell input: {error}"))
+                .is_ok()
+        });
+        if queued && self.terminal.return_to_live_viewport() {
+            self.invalidate_frame();
+        }
+        true
     }
 
     fn route_url_hint_key(
@@ -3135,6 +3170,7 @@ impl ApplicationHandler<PtyWake> for Application {
                     self.url_hints = None;
                     self.url_click = None;
                     self.hint_keys_held.clear();
+                    self.keyboard.clear();
                     self.chrome = window_chrome::Interaction::default();
                     self.invalidate_frame();
                     self.pressed_mouse_button = None;
@@ -3455,14 +3491,33 @@ impl ApplicationHandler<PtyWake> for Application {
                     }
                 }
             }
-            WindowEvent::KeyboardInput { event, .. } if event.state == ElementState::Released => {
+            WindowEvent::KeyboardInput {
+                event,
+                is_synthetic,
+                ..
+            } if event.state == ElementState::Released => {
                 self.hint_keys_held.remove(&event.physical_key);
+                if !is_synthetic {
+                    self.send_kitty_key(&event);
+                }
             }
-            WindowEvent::KeyboardInput { event, .. } if event.state == ElementState::Pressed => {
+            WindowEvent::KeyboardInput {
+                event,
+                is_synthetic,
+                ..
+            } if event.state == ElementState::Pressed => {
+                if is_synthetic && self.terminal.input_modes().keyboard_flags() != 0 {
+                    return;
+                }
                 emit_diagnostic(format_args!(
                     "app event=keyboard logical={:?} physical={:?} text={:?}",
                     event.logical_key, event.physical_key, event.text
                 ));
+                if self.terminal.input_modes().keyboard_flags() != 0
+                    && self.keyboard.begin_press(event.physical_key, event.repeat)
+                {
+                    return;
+                }
                 if self.route_url_hint_key(
                     &event.logical_key,
                     event.physical_key,
@@ -3497,11 +3552,16 @@ impl ApplicationHandler<PtyWake> for Application {
                     self.dispatch_command(command);
                 } else if event.physical_key == PhysicalKey::Code(KeyCode::KeyF)
                     && self.modifiers == ModifiersState::CONTROL
-                    && self.terminal.active_screen() == terminal_core::ScreenKind::Primary
+                    && terminal_owns_editing_shortcuts(
+                        self.terminal.active_screen(),
+                        *self.terminal.input_modes(),
+                    )
                 {
                     self.url_hints = None;
                     self.search = Some(Search::default());
                     self.invalidate_frame();
+                } else if self.send_kitty_key(&event) {
+                    // Encoded or intentionally suppressed by the negotiated protocol.
                 } else if let Some(bytes) =
                     function_key_input(&event.logical_key, event.physical_key, self.modifiers)
                 {

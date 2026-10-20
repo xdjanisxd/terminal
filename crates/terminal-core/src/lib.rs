@@ -5,6 +5,11 @@ mod cursor;
 mod dimensions;
 mod grid;
 mod input;
+mod keyboard;
+pub use keyboard::{
+    KeyboardEvent, KeyboardEventKind, KeyboardInput, KeyboardKey, KeyboardModifiers,
+    encode_kitty_key,
+};
 mod modes;
 mod parser;
 mod reflow;
