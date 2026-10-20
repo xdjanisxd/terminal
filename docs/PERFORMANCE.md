@@ -14,6 +14,12 @@ Repeated Windows x86_64 release measurements for sustained PTY output, opt-in ag
 
 Correctness and architectural clarity take priority over performance complexity.
 
+The [renderer optimization measurements](RENDERER_OPTIMIZATION.md) retain a
+typed atlas face/weight key after nine paired native Intel Vulkan workload runs.
+Warm instance-generation CPU medians improved 16–47%; GPU execution and
+input-to-present latency were not measured. Raw samples, reproduction tools,
+validation boundaries and Linux/Windows acceptance checks accompany the report.
+
 ## Initial goals
 
 - Cold startup ideally below 100 ms where practical; below 150 ms is initially acceptable

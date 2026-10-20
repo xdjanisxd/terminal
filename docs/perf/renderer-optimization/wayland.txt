@@ -1,0 +1,145 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.14s
+     Running unittests src/main.rs (target/debug/deps/terminal-3d4d893d33568dd2)
+
+running 1 test
+terminal-diagnostic seq=1 app event=resumed
+terminal-diagnostic seq=2 app state-change trigger=resumed state=AppDiagnosticState { window_size: None, scale_factor: None, cell_metrics: None, terminal_grid: (80, 24), frame_dirty: false, redraw_queued: false, dpi_sync_pending: false, restore_pending: false, recovery_redraw: Idle, renderer: None }
+terminal-diagnostic seq=3 renderer event=window backend=Wayland
+terminal-diagnostic seq=4 renderer event=adapter backend=Vulkan name="Intel(R) Iris(R) Xe Graphics (ADL GT2)" driver="Intel open-source Mesa driver"
+terminal-diagnostic seq=5 renderer event=opacity requested=1 effective=1 alpha_mode=Auto
+terminal-diagnostic seq=6 renderer event=reconfigure result=configured present_mode=Mailbox format=Bgra8UnormSrgb draw_resources_reset=true configure_us=863 state=RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }
+terminal-diagnostic seq=7 renderer event=created scale_factor=1 bold_intensity=0.75 cell_metrics=CellMetrics { width: 10, height: 22, baseline: 17, pixels_per_em: 1098907648, ascent: 1099075421, descent: 1083808154, leading: 0 } state=RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }
+terminal-diagnostic seq=8 app event=terminal-grid-resized drawable=800x600 scale_factor=1 cell_metrics=CellMetrics { width: 10, height: 22, baseline: 17, pixels_per_em: 1098907648, ascent: 1099075421, descent: 1083808154, leading: 0 } grids=1 pty_resize_commands=0 terminal_us=1665 pty_us=0
+terminal-diagnostic seq=9 app state-change trigger=redraw-requested state=AppDiagnosticState { window_size: Some((800, 600)), scale_factor: Some(1.0), cell_metrics: Some(CellMetrics { width: 10, height: 22, baseline: 17, pixels_per_em: 1098907648, ascent: 1099075421, descent: 1083808154, leading: 0 }), terminal_grid: (80, 25), frame_dirty: true, redraw_queued: true, dpi_sync_pending: false, restore_pending: false, recovery_redraw: Idle, renderer: Some(RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }) }
+terminal-diagnostic seq=10 app event=redraw-requested
+terminal-diagnostic seq=11 renderer event=pane-projection panes=1 cells=46 elapsed_us=210
+terminal-diagnostic seq=12 renderer frame=1 event=frame-start state=RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }
+terminal-diagnostic seq=13 renderer frame=1 event=surface-acquire-complete elapsed_us=121
+terminal-diagnostic seq=14 renderer frame=1 event=surface-acquire result=ok suboptimal=false state=RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }
+terminal-diagnostic seq=15 renderer event=glyph-geometry row=0 cell_y=32 cell_height=22 ascent=16.320002 descent=4.8 baseline=17 placement_top=12 bitmap_height=12 quad_y_start=37 quad_y_end=49
+terminal-diagnostic seq=16 renderer event=glyph-geometry row=1 cell_y=54 cell_height=22 ascent=16.320002 descent=4.8 baseline=17 placement_top=12 bitmap_height=12 quad_y_start=59 quad_y_end=71
+font.bold_intensity: face 4294967486 has no adjustable weight; keeping existing bold fallback
+terminal-diagnostic seq=17 renderer frame=1 event=pane-rendered pane=0 cells=46 instances=RenderInstanceCounts { backgrounds: 0, glyphs: 46, decorations: 0, cursor: 0, scrollbar: 0 } draw_resources_created=true queue_submissions=1
+terminal-diagnostic seq=18 renderer frame=1 event=present-complete elapsed_us=154249
+terminal-diagnostic seq=19 renderer frame=1 event=frame-presented suboptimal=false outcome=presented
+terminal-diagnostic seq=20 app event=redraw-complete outcome=Presented
+terminal-diagnostic seq=21 app state-change trigger=redraw-handled state=AppDiagnosticState { window_size: Some((800, 600)), scale_factor: Some(1.0), cell_metrics: Some(CellMetrics { width: 10, height: 22, baseline: 17, pixels_per_em: 1098907648, ascent: 1099075421, descent: 1083808154, leading: 0 }), terminal_grid: (80, 25), frame_dirty: false, redraw_queued: false, dpi_sync_pending: false, restore_pending: false, recovery_redraw: Idle, renderer: Some(RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }) }
+terminal-diagnostic seq=22 app state-change trigger=redraw-requested state=AppDiagnosticState { window_size: Some((800, 600)), scale_factor: Some(1.0), cell_metrics: Some(CellMetrics { width: 10, height: 22, baseline: 17, pixels_per_em: 1098907648, ascent: 1099075421, descent: 1083808154, leading: 0 }), terminal_grid: (80, 25), frame_dirty: true, redraw_queued: true, dpi_sync_pending: false, restore_pending: false, recovery_redraw: Idle, renderer: Some(RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }) }
+terminal-diagnostic seq=23 app event=scale-factor-changed scale_factor=1
+terminal-diagnostic seq=24 app state-change trigger=redraw-coalesced state=AppDiagnosticState { window_size: Some((800, 600)), scale_factor: Some(1.0), cell_metrics: Some(CellMetrics { width: 10, height: 22, baseline: 17, pixels_per_em: 1098907648, ascent: 1099075421, descent: 1083808154, leading: 0 }), terminal_grid: (80, 25), frame_dirty: true, redraw_queued: true, dpi_sync_pending: true, restore_pending: false, recovery_redraw: Idle, renderer: Some(RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }) }
+terminal-diagnostic seq=25 app event=resized physical_size=800x600
+terminal-diagnostic seq=26 app state-change trigger=resize-start state=AppDiagnosticState { window_size: Some((800, 600)), scale_factor: Some(1.0), cell_metrics: Some(CellMetrics { width: 10, height: 22, baseline: 17, pixels_per_em: 1098907648, ascent: 1099075421, descent: 1083808154, leading: 0 }), terminal_grid: (80, 25), frame_dirty: true, redraw_queued: true, dpi_sync_pending: false, restore_pending: false, recovery_redraw: Idle, renderer: Some(RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }) }
+terminal-diagnostic seq=27 renderer event=resize-skipped requested=800x600 state=RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }
+terminal-diagnostic seq=28 app event=terminal-grid-resized drawable=800x600 scale_factor=1 cell_metrics=CellMetrics { width: 10, height: 22, baseline: 17, pixels_per_em: 1098907648, ascent: 1099075421, descent: 1083808154, leading: 0 } grids=0 pty_resize_commands=0 terminal_us=0 pty_us=0
+terminal-diagnostic seq=29 app event=resize-stages surface_us=14 grid_and_pty_us=43
+terminal-diagnostic seq=30 app event=resize-batch resized_events=2 latest_size=800x600 surface_configures=0 terminal_grid_resizes=0 pty_resize_commands=0 redraw_requests=0
+terminal-diagnostic seq=31 app event=redraw-requested
+terminal-diagnostic seq=32 renderer event=pane-projection panes=1 cells=46 elapsed_us=205
+terminal-diagnostic seq=33 renderer frame=2 event=frame-start state=RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }
+terminal-diagnostic seq=34 renderer frame=2 event=surface-acquire-complete elapsed_us=122
+terminal-diagnostic seq=35 renderer frame=2 event=surface-acquire result=ok suboptimal=false state=RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }
+terminal-diagnostic seq=36 renderer event=glyph-geometry row=0 cell_y=32 cell_height=22 ascent=16.320002 descent=4.8 baseline=17 placement_top=12 bitmap_height=12 quad_y_start=37 quad_y_end=49
+terminal-diagnostic seq=37 renderer event=glyph-geometry row=1 cell_y=54 cell_height=22 ascent=16.320002 descent=4.8 baseline=17 placement_top=12 bitmap_height=12 quad_y_start=59 quad_y_end=71
+terminal-diagnostic seq=38 renderer frame=2 event=pane-rendered pane=0 cells=46 instances=RenderInstanceCounts { backgrounds: 0, glyphs: 46, decorations: 0, cursor: 0, scrollbar: 0 } draw_resources_created=false queue_submissions=1
+terminal-diagnostic seq=39 renderer frame=2 event=present-complete elapsed_us=18668
+terminal-diagnostic seq=40 renderer frame=2 event=frame-presented suboptimal=false outcome=presented
+terminal-diagnostic seq=41 app event=redraw-complete outcome=Presented
+terminal-diagnostic seq=42 app state-change trigger=redraw-handled state=AppDiagnosticState { window_size: Some((800, 600)), scale_factor: Some(1.0), cell_metrics: Some(CellMetrics { width: 10, height: 22, baseline: 17, pixels_per_em: 1098907648, ascent: 1099075421, descent: 1083808154, leading: 0 }), terminal_grid: (80, 25), frame_dirty: false, redraw_queued: false, dpi_sync_pending: false, restore_pending: false, recovery_redraw: Idle, renderer: Some(RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }) }
+config reload rejected; keeping last valid config: /tmp/terminal-bold-intensity-764315.toml: font.bold_intensity: expected a finite number in 0.75..=1.25
+terminal-diagnostic seq=43 app event=terminal-grid-resized drawable=800x600 scale_factor=1 cell_metrics=CellMetrics { width: 11, height: 23, baseline: 18, pixels_per_em: 1099431936, ascent: 1099610194, descent: 1084437300, leading: 0 } grids=1 pty_resize_commands=0 terminal_us=1251 pty_us=0
+terminal-diagnostic seq=44 app state-change trigger=redraw-requested state=AppDiagnosticState { window_size: Some((800, 600)), scale_factor: Some(1.0), cell_metrics: Some(CellMetrics { width: 11, height: 23, baseline: 18, pixels_per_em: 1099431936, ascent: 1099610194, descent: 1084437300, leading: 0 }), terminal_grid: (72, 24), frame_dirty: true, redraw_queued: true, dpi_sync_pending: false, restore_pending: false, recovery_redraw: Idle, renderer: Some(RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }) }
+terminal-diagnostic seq=45 app event=redraw-requested
+terminal-diagnostic seq=46 renderer event=pane-projection panes=1 cells=46 elapsed_us=180
+terminal-diagnostic seq=47 renderer frame=3 event=frame-start state=RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }
+terminal-diagnostic seq=48 renderer frame=3 event=surface-acquire-complete elapsed_us=108
+terminal-diagnostic seq=49 renderer frame=3 event=surface-acquire result=ok suboptimal=false state=RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }
+terminal-diagnostic seq=50 renderer event=glyph-geometry row=0 cell_y=32 cell_height=23 ascent=17.34 descent=5.1000004 baseline=18 placement_top=13 bitmap_height=13 quad_y_start=37 quad_y_end=50
+terminal-diagnostic seq=51 renderer event=glyph-geometry row=1 cell_y=55 cell_height=23 ascent=17.34 descent=5.1000004 baseline=18 placement_top=13 bitmap_height=13 quad_y_start=60 quad_y_end=73
+terminal-diagnostic seq=52 renderer frame=3 event=pane-rendered pane=0 cells=46 instances=RenderInstanceCounts { backgrounds: 0, glyphs: 46, decorations: 0, cursor: 0, scrollbar: 0 } draw_resources_created=false queue_submissions=1
+terminal-diagnostic seq=53 renderer frame=3 event=present-complete elapsed_us=52636
+terminal-diagnostic seq=54 renderer frame=3 event=frame-presented suboptimal=false outcome=presented
+terminal-diagnostic seq=55 app event=redraw-complete outcome=Presented
+terminal-diagnostic seq=56 app state-change trigger=redraw-handled state=AppDiagnosticState { window_size: Some((800, 600)), scale_factor: Some(1.0), cell_metrics: Some(CellMetrics { width: 11, height: 23, baseline: 18, pixels_per_em: 1099431936, ascent: 1099610194, descent: 1084437300, leading: 0 }), terminal_grid: (72, 24), frame_dirty: false, redraw_queued: false, dpi_sync_pending: false, restore_pending: false, recovery_redraw: Idle, renderer: Some(RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }) }
+terminal-diagnostic seq=57 app event=terminal-grid-resized drawable=800x600 scale_factor=1 cell_metrics=CellMetrics { width: 10, height: 22, baseline: 17, pixels_per_em: 1098907648, ascent: 1099075421, descent: 1083808154, leading: 0 } grids=1 pty_resize_commands=0 terminal_us=1404 pty_us=0
+terminal-diagnostic seq=58 app state-change trigger=redraw-requested state=AppDiagnosticState { window_size: Some((800, 600)), scale_factor: Some(1.0), cell_metrics: Some(CellMetrics { width: 10, height: 22, baseline: 17, pixels_per_em: 1098907648, ascent: 1099075421, descent: 1083808154, leading: 0 }), terminal_grid: (80, 25), frame_dirty: true, redraw_queued: true, dpi_sync_pending: false, restore_pending: false, recovery_redraw: Idle, renderer: Some(RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }) }
+terminal-diagnostic seq=59 app event=redraw-requested
+terminal-diagnostic seq=60 renderer event=pane-projection panes=1 cells=46 elapsed_us=192
+terminal-diagnostic seq=61 renderer frame=4 event=frame-start state=RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }
+terminal-diagnostic seq=62 renderer frame=4 event=surface-acquire-complete elapsed_us=113
+terminal-diagnostic seq=63 renderer frame=4 event=surface-acquire result=ok suboptimal=false state=RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }
+terminal-diagnostic seq=64 renderer event=glyph-geometry row=0 cell_y=32 cell_height=22 ascent=16.320002 descent=4.8 baseline=17 placement_top=12 bitmap_height=12 quad_y_start=37 quad_y_end=49
+terminal-diagnostic seq=65 renderer event=glyph-geometry row=1 cell_y=54 cell_height=22 ascent=16.320002 descent=4.8 baseline=17 placement_top=12 bitmap_height=12 quad_y_start=59 quad_y_end=71
+terminal-diagnostic seq=66 renderer frame=4 event=pane-rendered pane=0 cells=46 instances=RenderInstanceCounts { backgrounds: 0, glyphs: 46, decorations: 0, cursor: 0, scrollbar: 0 } draw_resources_created=false queue_submissions=1
+terminal-diagnostic seq=67 renderer frame=4 event=present-complete elapsed_us=17283
+terminal-diagnostic seq=68 renderer frame=4 event=frame-presented suboptimal=false outcome=presented
+terminal-diagnostic seq=69 app event=redraw-complete outcome=Presented
+terminal-diagnostic seq=70 app state-change trigger=redraw-handled state=AppDiagnosticState { window_size: Some((800, 600)), scale_factor: Some(1.0), cell_metrics: Some(CellMetrics { width: 10, height: 22, baseline: 17, pixels_per_em: 1098907648, ascent: 1099075421, descent: 1083808154, leading: 0 }), terminal_grid: (80, 25), frame_dirty: false, redraw_queued: false, dpi_sync_pending: false, restore_pending: false, recovery_redraw: Idle, renderer: Some(RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }) }
+terminal-diagnostic seq=71 app event=suspended
+terminal-diagnostic seq=72 app state-change trigger=suspended-complete state=AppDiagnosticState { window_size: Some((800, 600)), scale_factor: Some(1.0), cell_metrics: None, terminal_grid: (80, 25), frame_dirty: false, redraw_queued: false, dpi_sync_pending: false, restore_pending: false, recovery_redraw: Idle, renderer: None }
+terminal-diagnostic seq=73 app event=resumed
+terminal-diagnostic seq=74 renderer event=window backend=Wayland
+terminal-diagnostic seq=75 renderer event=adapter backend=Vulkan name="Intel(R) Iris(R) Xe Graphics (ADL GT2)" driver="Intel open-source Mesa driver"
+terminal-diagnostic seq=76 renderer event=opacity requested=1 effective=1 alpha_mode=Auto
+terminal-diagnostic seq=77 renderer event=reconfigure result=configured present_mode=Mailbox format=Bgra8UnormSrgb draw_resources_reset=true configure_us=728 state=RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }
+terminal-diagnostic seq=78 renderer event=created scale_factor=1 bold_intensity=1.25 cell_metrics=CellMetrics { width: 10, height: 22, baseline: 17, pixels_per_em: 1098907648, ascent: 1099075421, descent: 1083808154, leading: 0 } state=RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }
+terminal-diagnostic seq=79 app event=terminal-grid-resized drawable=800x600 scale_factor=1 cell_metrics=CellMetrics { width: 10, height: 22, baseline: 17, pixels_per_em: 1098907648, ascent: 1099075421, descent: 1083808154, leading: 0 } grids=0 pty_resize_commands=0 terminal_us=0 pty_us=0
+terminal-diagnostic seq=80 app state-change trigger=redraw-requested state=AppDiagnosticState { window_size: Some((800, 600)), scale_factor: Some(1.0), cell_metrics: Some(CellMetrics { width: 10, height: 22, baseline: 17, pixels_per_em: 1098907648, ascent: 1099075421, descent: 1083808154, leading: 0 }), terminal_grid: (80, 25), frame_dirty: true, redraw_queued: true, dpi_sync_pending: false, restore_pending: false, recovery_redraw: AwaitingInitialPresent { reconfigure_redraw_issued: false }, renderer: Some(RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }) }
+terminal-diagnostic seq=81 app event=redraw-requested
+terminal-diagnostic seq=82 renderer event=pane-projection panes=1 cells=46 elapsed_us=180
+terminal-diagnostic seq=83 renderer frame=5 event=frame-start state=RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }
+terminal-diagnostic seq=84 renderer frame=5 event=surface-acquire-complete elapsed_us=66
+terminal-diagnostic seq=85 renderer frame=5 event=surface-acquire result=ok suboptimal=false state=RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }
+terminal-diagnostic seq=86 renderer event=glyph-geometry row=0 cell_y=32 cell_height=22 ascent=16.320002 descent=4.8 baseline=17 placement_top=12 bitmap_height=12 quad_y_start=37 quad_y_end=49
+terminal-diagnostic seq=87 renderer event=glyph-geometry row=1 cell_y=54 cell_height=22 ascent=16.320002 descent=4.8 baseline=17 placement_top=12 bitmap_height=12 quad_y_start=59 quad_y_end=71
+font.bold_intensity: face 4294967486 has no adjustable weight; keeping existing bold fallback
+terminal-diagnostic seq=88 renderer frame=5 event=pane-rendered pane=0 cells=46 instances=RenderInstanceCounts { backgrounds: 0, glyphs: 46, decorations: 0, cursor: 0, scrollbar: 0 } draw_resources_created=true queue_submissions=1
+terminal-diagnostic seq=89 renderer frame=5 event=present-complete elapsed_us=125202
+terminal-diagnostic seq=90 renderer frame=5 event=frame-presented suboptimal=false outcome=presented
+terminal-diagnostic seq=91 app event=redraw-complete outcome=Presented
+terminal-diagnostic seq=92 app state-change trigger=redraw-requested state=AppDiagnosticState { window_size: Some((800, 600)), scale_factor: Some(1.0), cell_metrics: Some(CellMetrics { width: 10, height: 22, baseline: 17, pixels_per_em: 1098907648, ascent: 1099075421, descent: 1083808154, leading: 0 }), terminal_grid: (80, 25), frame_dirty: true, redraw_queued: true, dpi_sync_pending: false, restore_pending: false, recovery_redraw: AwaitingFollowUpPresent, renderer: Some(RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }) }
+terminal-diagnostic seq=93 app event=redraw-requested
+terminal-diagnostic seq=94 renderer event=pane-projection panes=1 cells=46 elapsed_us=189
+terminal-diagnostic seq=95 renderer frame=6 event=frame-start state=RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }
+terminal-diagnostic seq=96 renderer frame=6 event=surface-acquire-complete elapsed_us=98
+terminal-diagnostic seq=97 renderer frame=6 event=surface-acquire result=ok suboptimal=false state=RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }
+terminal-diagnostic seq=98 renderer event=glyph-geometry row=0 cell_y=32 cell_height=22 ascent=16.320002 descent=4.8 baseline=17 placement_top=12 bitmap_height=12 quad_y_start=37 quad_y_end=49
+terminal-diagnostic seq=99 renderer event=glyph-geometry row=1 cell_y=54 cell_height=22 ascent=16.320002 descent=4.8 baseline=17 placement_top=12 bitmap_height=12 quad_y_start=59 quad_y_end=71
+terminal-diagnostic seq=100 renderer frame=6 event=pane-rendered pane=0 cells=46 instances=RenderInstanceCounts { backgrounds: 0, glyphs: 46, decorations: 0, cursor: 0, scrollbar: 0 } draw_resources_created=false queue_submissions=1
+terminal-diagnostic seq=101 renderer frame=6 event=present-complete elapsed_us=18036
+terminal-diagnostic seq=102 renderer frame=6 event=frame-presented suboptimal=false outcome=presented
+terminal-diagnostic seq=103 app event=redraw-complete outcome=Presented
+terminal-diagnostic seq=104 app state-change trigger=redraw-handled state=AppDiagnosticState { window_size: Some((800, 600)), scale_factor: Some(1.0), cell_metrics: Some(CellMetrics { width: 10, height: 22, baseline: 17, pixels_per_em: 1098907648, ascent: 1099075421, descent: 1083808154, leading: 0 }), terminal_grid: (80, 25), frame_dirty: false, redraw_queued: false, dpi_sync_pending: false, restore_pending: false, recovery_redraw: Idle, renderer: Some(RendererDiagnosticState { desired_size: Some(SurfaceSize { width: 800, height: 600 }), configured_size: Some(SurfaceSize { width: 800, height: 600 }) }) }
+test bold_intensity_native_tests::native_wayland_bold_intensity_reload_size_and_recreation ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 182 filtered out; finished in 6.18s
+
+     Running tests/ctrl_arrow_native_smoke.rs (target/debug/deps/ctrl_arrow_native_smoke-7979d4f9f64c1197)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ctrl_c_native_smoke.rs (target/debug/deps/ctrl_c_native_smoke-b67592c27c3dcb4b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/execute_native.rs (target/debug/deps/execute_native-6f13ad058c002fb6)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/powershell_osc7_native_smoke.rs (target/debug/deps/powershell_osc7_native_smoke-ee96c71d6c4a909d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/shell_exit_native.rs (target/debug/deps/shell_exit_native-631afe8d62fd6cb6)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+

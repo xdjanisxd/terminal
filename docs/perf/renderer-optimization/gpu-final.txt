@@ -1,0 +1,27 @@
+    Finished `release` profile [optimized] target(s) in 0.10s
+     Running unittests src/lib.rs (target/release/deps/terminal_renderer-464e7b13ead66692)
+
+running 7 tests
+test gpu::tests::native_gpu_atlas_separates_variable_weight_instances ... ok
+test gpu::tests::native_gpu_background_opacity_and_srgb_premultiplication ... ok
+test gpu::tests::native_gpu_color_emoji_dpi_and_warm_cache ... emoji GPU: AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics (ADL GT2)", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "Intel open-source Mesa driver", driver_info: "Mesa 25.0.7-2+deb13u1", backend: Vulkan }
+emoji warm 100 frames: 17.060621ms, Rgba8Unorm, scale=1, opacity=1
+emoji warm 100 frames: 7.488988ms, Rgba8Unorm, scale=1, opacity=0.5
+emoji warm 100 frames: 19.701357ms, Rgba8Unorm, scale=1.25, opacity=1
+emoji warm 100 frames: 6.665052ms, Rgba8Unorm, scale=1.25, opacity=0.5
+emoji warm 100 frames: 5.69965ms, Rgba8Unorm, scale=2, opacity=1
+emoji warm 100 frames: 14.168087ms, Rgba8Unorm, scale=2, opacity=0.5
+emoji warm 100 frames: 20.105769ms, Rgba8UnormSrgb, scale=1, opacity=1
+emoji warm 100 frames: 8.511614ms, Rgba8UnormSrgb, scale=1, opacity=0.5
+emoji warm 100 frames: 7.960264ms, Rgba8UnormSrgb, scale=1.25, opacity=1
+emoji warm 100 frames: 7.191153ms, Rgba8UnormSrgb, scale=1.25, opacity=0.5
+emoji warm 100 frames: 6.017825ms, Rgba8UnormSrgb, scale=2, opacity=1
+emoji warm 100 frames: 12.493245ms, Rgba8UnormSrgb, scale=2, opacity=0.5
+ok
+test gpu::tests::native_gpu_palette_preserves_surrounding_alpha ... ok
+test gpu::tests::native_gpu_renders_backgrounds_glyphs_underlines_and_cursor ... ok
+test gpu::tests::native_gpu_url_hints_preserve_surrounding_alpha ... ok
+test gpu::tests::native_gpu_validates_terminal_pipelines ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 93 filtered out; finished in 5.73s
+

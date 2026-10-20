@@ -1,0 +1,13 @@
+workspace-tests: (795, 0, 26) (passed, failed, ignored)
+doc-tests: (4, 0, 0) (passed, failed, ignored)
+gpu-final: (7, 0, 0) (passed, failed, ignored)
+wayland: (1, 0, 0) (passed, failed, ignored)
+cargo fmt --all -- --check: PASS
+cargo check --workspace --all-targets --offline: PASS
+cargo clippy --workspace --all-targets --offline -- -D warnings: PASS
+cargo build --release -p terminal-app --offline: PASS
+git diff --check: PASS
+Native GPU: Intel Iris Xe Vulkan. Fixture FONTCONFIG_FILE includes /etc/fonts/fonts.conf and crates/renderer/tests/fixtures.
+Wayland lifecycle: native app debug probe, Intel Vulkan/Bgra8UnormSrgb, scale 1; reload, font-size/reset, renderer recreation.
+No interactive manual acceptance, Windows execution, GPU timestamps, or input-latency distribution claimed.
+core-concurrent-excluded.txt: early core benchmark overlapped debug workspace tests; excluded from interpretation.

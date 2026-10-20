@@ -1,0 +1,5 @@
+    Checking terminal-core v0.0.0 (/home/dellian/codes/terminal/crates/terminal-core)
+    Checking terminal-config v0.0.0 (/home/dellian/codes/terminal/crates/config)
+    Checking terminal-renderer v0.0.0 (/home/dellian/codes/terminal/crates/renderer)
+    Checking terminal-app v0.0.0 (/home/dellian/codes/terminal/crates/app)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.33s

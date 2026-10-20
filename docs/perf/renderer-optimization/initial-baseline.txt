@@ -1,0 +1,17 @@
+    Finished `release` profile [optimized] target(s) in 0.06s
+     Running unittests src/lib.rs (target/release/deps/terminal_renderer-464e7b13ead66692)
+
+running 1 test
+adapter=AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics (ADL GT2)", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "Intel open-source Mesa driver", driver_info: "Mesa 25.0.7-2+deb13u1", backend: Vulkan }
+workload=sparse frames=100 cells=600 projection_ns=3286688 generation_ns=16174332 upload_ns=421823 submission_ns=8222426 wall_ns=127065763 bytes=0 rasters=0
+workload=dense frames=100 cells=7200 projection_ns=15105252 generation_ns=120145283 upload_ns=3818985 submission_ns=10016117 wall_ns=365429578 bytes=0 rasters=0
+workload=unicode frames=100 cells=180 projection_ns=2484461 generation_ns=4162025 upload_ns=102231 submission_ns=5544526 wall_ns=80684041 bytes=0 rasters=0
+workload=transparent frames=100 cells=330 projection_ns=2849774 generation_ns=10176794 upload_ns=267081 submission_ns=8245389 wall_ns=154131303 bytes=0 rasters=0
+workload=blink frames=100 cells=7200 projection_ns=18232924 generation_ns=152130243 upload_ns=4558959 submission_ns=12298368 wall_ns=330784977 bytes=0 rasters=0
+workload=theme frames=100 cells=390 projection_ns=2410955 generation_ns=11789436 upload_ns=1396826 submission_ns=5268328 wall_ns=75585687 bytes=1996800 rasters=0
+workload=three_panes frames=100 cells=1170 projection_ns=8384434 generation_ns=85426664 upload_ns=1478194 submission_ns=12630463 wall_ns=184613030 bytes=0 rasters=0
+face_identity operations=100000 elapsed_ns=5151388
+test gpu::benchmarks::renderer_workload_baselines ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 98 filtered out; finished in 1.55s
+

@@ -1,0 +1,1265 @@
+   Compiling terminal-core v0.0.0 (/home/dellian/codes/terminal/crates/terminal-core)
+   Compiling terminal-config v0.0.0 (/home/dellian/codes/terminal/crates/config)
+   Compiling terminal-renderer v0.0.0 (/home/dellian/codes/terminal/crates/renderer)
+   Compiling terminal-app v0.0.0 (/home/dellian/codes/terminal/crates/app)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.86s
+     Running unittests src/main.rs (target/debug/deps/terminal-3d4d893d33568dd2)
+
+running 183 tests
+test bold_intensity_native_tests::native_wayland_bold_intensity_reload_size_and_recreation ... ignored, requires KDE Wayland, GPU and JetBrainsMono Nerd Font Mono
+test linux_palette_tests::native_wayland_palette_theme_opacity_and_interaction ... ignored, requires KDE Wayland and a GPU; run this test alone
+test linux_palette_tests::native_wayland_tab_picker_theme_opacity_and_interaction ... ignored, requires KDE Wayland and a GPU; run this test alone
+test linux_window_effects_tests::native_wayland_blur_reload_recreation_and_shutdown ... ignored, requires a native Wayland compositor and GPU; run this test alone
+test commands::tests::directional_pane_commands_are_searchable_in_palette ... ok
+test commands::tests::saved_workspace_commands_are_searchable_in_palette ... ok
+test commands::tests::project_actions_are_searchable_and_typed ... ok
+test commands::tests::untrusted_targets_have_a_narrow_web_url_allowlist ... ok
+test commands::tests::palette_filters_navigates_and_selects_registry_commands ... ok
+test commands::tests::built_in_themes_are_searchable_palette_actions ... ok
+test search::tests::markers_merge_matches_on_one_row_and_keep_active_state ... ok
+test saved_workspaces::tests::failed_install_restores_previous_file_and_cleans_temporary ... ok
+test search::tests::no_match_and_alternate_do_not_move_viewport ... ok
+test search::tests::finds_case_insensitive_matches_and_wraps_navigation ... ok
+test shell::tests::interactive_powershell_preserves_options_and_adds_prompt_hook ... ok
+test shell::linux::tests::scripts_command_modes_login_bash_and_unknown_options_are_unchanged ... ok
+test search::tests::returns_every_visible_match_with_active_state_and_full_span ... ok
+test shell::tests::missing_workspace_directory_never_falls_back_to_home ... ok
+test shell::tests::explicit_powershell_command_modes_keep_exact_args ... ok
+test shell::tests::names_paths_and_exact_arguments_pass_through ... ok
+test shell::tests::powershell_detection_is_narrow ... ok
+test shell::linux::tests::rcfile_environment_cwd_and_private_file_lifetime_are_preserved ... ok
+test shell::tests::missing_configured_executable_reports_program_without_fallback ... ok
+test shell::tests::cmd_prompt_preserves_custom_text_environment_and_is_idempotent ... ok
+test shell::tests::configured_child_environment_survives_shell_integration ... ok
+test saved_workspaces::tests::missing_file_is_empty_and_interrupted_replace_recovers_backup ... ok
+test shell_lifecycle::shell_exit_final_pane_requests_application_shutdown_for_all_statuses ... ok
+test shell_lifecycle::shell_exit_background_pane_and_tab_preserve_focus ... ok
+test shell_lifecycle::shell_exit_active_tab_selects_surviving_tab ... ok
+test startup::tests::diagnostic_markers_are_bounded_and_survive_chunk_boundaries ... ok
+test startup::tests::presentation_requires_processed_output_and_is_recorded_once ... ok
+test shell_lifecycle::shell_exit_workspace_replacement_discards_stale_exit_identity ... ok
+test shell_lifecycle::shell_exit_collapses_zoomed_split_layout_without_losing_focus ... ok
+test startup::tests::control_only_output_does_not_count_as_shell_text ... ok
+test saved_workspaces::tests::concurrent_saves_own_separate_directories ... ok
+test tests::activity_animation_runs_only_while_picker_is_open ... ok
+test shell_lifecycle::shell_exit_removes_pane_and_restores_surviving_runtime ... ok
+test tests::arrow_keys_map_to_core_cursor_keys ... ok
+test shell_lifecycle::shell_exit_eof_alone_does_not_close_a_running_pane ... ok
+test tests::basic_backspace_policy_uses_del_for_windows_conpty_and_elsewhere ... ok
+test shell_lifecycle::shell_exit_of_explicitly_closed_pane_is_ignored ... ok
+test tests::basic_keyboard_text_and_line_editing_keys_encode_for_the_pty ... ok
+test shell_lifecycle::shell_exit_simultaneous_events_are_deduplicated ... ok
+test tests::cli_execution_preserves_non_utf8_program_and_arguments ... ok
+test tests::cli_execution_preserves_all_child_arguments ... ok
+test tests::click_count_tracks_same_cell_within_timeout ... ok
+test tests::app_only_command_keeps_scrollback_position ... ok
+test tests::coalesced_resize_preserves_latest_terminal_and_pty_dimensions ... ok
+test tests::background_output_marks_tab_and_focus_clears_activity ... ok
+test tests::binding_and_palette_share_the_page_command_dispatcher ... ok
+test shell_lifecycle::shell_exit_does_not_change_saved_workspace_or_explicit_last_pane_close ... ok
+test tests::config_font_family_maps_to_renderer_request ... ok
+test tests::configured_backspace_binding_precedes_unbound_terminal_input ... ok
+test tests::configured_bindings_replace_defaults_and_require_exact_modifiers ... ok
+test tests::configured_ctrl_shift_enter_binding_dispatches_pane_zoom ... ok
+test tests::compositor_redraw_clears_damage_even_without_an_app_queued_request ... ok
+test tests::cli_accepts_root_and_workspace_file_and_rejects_bad_input ... ok
+test tests::close_after_create_releases_panes_and_keeps_remaining_runtime ... ok
+test tests::cli_execution_uses_one_runtime_pane_without_changing_configured_workspace ... ok
+test tests::ctrl_c_encodes_etx_instead_of_committed_text ... ok
+test saved_workspaces::tests::creates_missing_parent_round_trips_and_replaces_existing_file ... ok
+test tests::cursor_blink_sleeps_between_visible_transitions_and_stops_cleanly ... ok
+test tests::configured_home_binding_precedes_terminal_input ... ok
+test tests::control_letters_encode_ascii_control_bytes_without_committed_text ... ok
+test tests::directional_resize_changes_pane_grid_dimensions_without_replacing_sessions ... ok
+test tests::dpi_metrics_recalculate_the_grid_and_zero_size_defers_it ... ok
+test tests::edge_direction_only_applies_at_viewport_borders ... ok
+test tests::copy_shortcut_and_configured_ctrl_c_keep_command_precedence ... ok
+test tests::control_left_and_right_encode_for_pty_after_command_dispatch ... ok
+test tests::invalidation_coalesces_requests_until_redraw_consumes_the_damage ... ok
+test tests::every_control_letter_maps_to_its_ascii_byte ... ok
+test tests::font_size_commands_increase_decrease_reset_and_clamp ... ok
+test tests::multiple_resize_events_coalesce_to_the_latest_authoritative_size ... ok
+test tests::named_backspace_takes_precedence_over_committed_control_text ... ok
+test tests::consecutive_pty_chunks_can_share_one_requested_frame ... ok
+test tests::local_shell_sessions_use_current_config_without_changing_saved_metadata ... ok
+test tests::configured_project_actions_create_independent_tab_and_split_sessions ... ok
+test tests::multiple_resize_events_during_recovery_coalesce_to_one_follow_up ... ok
+test tests::nested_panes_receive_distinct_grid_sizes_and_hidden_tabs_stay_sized ... ok
+test tests::one_resize_event_is_applied_without_coalescing_away_its_size ... ok
+test tests::ordinary_dirty_frame_does_not_request_a_recovery_follow_up ... ok
+test tests::ordinary_resize_changes_grid_not_logical_font_metrics ... ok
+test tests::editing_shortcuts_preserve_application_ownership_and_modifiers ... ok
+test tests::horizontal_split_creates_an_independent_pane ... ok
+test tests::palette_consumes_input_and_escape_closes_it ... ok
+test tests::editing_bindings_override_defaults_and_selection_uses_shared_state ... ok
+test tests::page_up_then_terminal_keys_return_to_live_bottom ... ok
+test tests::function_key_events_encode_and_explicit_bindings_take_precedence ... ok
+test tests::new_tab_keeps_its_own_terminal_session ... ok
+test tests::palette_creates_second_tab_after_a_pending_redraw ... ok
+test tests::plain_letters_and_nonletter_keys_keep_their_input ... ok
+test tests::palette_reload_preserves_query_selection_and_focus ... ok
+test tests::palette_renames_tabs_and_custom_titles_survive_tab_switches ... ok
+test tests::powershell_local_shell_injects_prompt_hook_without_disabling_profiles ... ok
+test tests::paste_bindings_respect_replacement_configuration_and_exact_modifiers ... ok
+test tests::pointer_position_maps_only_inside_terminal_cells ... ok
+test tests::pane_zoom_command_keeps_runtime_and_background_output ... ok
+test tests::page_navigation_is_app_local_and_not_basic_pty_input ... ok
+test tests::pty_drain_budget_always_allows_one_event_and_caps_event_count ... ok
+test tests::pty_drain_budget_caps_elapsed_time_after_an_event ... ok
+test tests::pty_output_flows_through_the_parser_into_terminal_state ... ok
+test tests::repeated_idle_iterations_do_not_queue_redraws ... ok
+test tests::restore_rearms_one_redraw_after_a_zero_sized_surface ... ok
+test tests::restore_recovery_survives_coalescing_to_a_later_nonzero_size ... ok
+test tests::reset_uses_the_startup_configured_font_size ... ok
+test tests::scale_factor_transitions_coalesce_one_physical_size_sync ... ok
+test tests::restore_waits_for_a_nonzero_size_when_an_expose_arrives_early ... ok
+test tests::pty_title_updates_window_title_with_normalization_and_rename_precedence ... ok
+test tests::scrollbar_hover_invalidates_only_on_change ... ok
+test tests::prompt_osc7_updates_pane_cwd_used_by_saved_workspace ... ok
+test tests::reload_keeps_last_valid_config_and_restores_defaults_when_removed ... ok
+test tests::pane_startup_prompt_sets_replaces_clears_and_persists_explicit_metadata ... ok
+test tests::scrollbar_thumb_drag_preserves_selection ... ok
+test tests::scrollbar_track_click_preserves_selection ... ok
+test tests::search_keys_edit_navigate_and_close_without_terminal_input ... ok
+test tests::scrollbar_track_click_pages_in_the_expected_direction ... ok
+test tests::skipped_recovery_frames_neither_consume_nor_multiply_the_follow_up ... ok
+test tests::shell_metadata_follows_panes_and_custom_tab_titles_take_precedence ... ok
+test tests::sequential_creations_keep_every_runtime_and_session_distinct ... ok
+test tests::saved_workspace_confirmations_delete_and_corrupt_state_are_safe ... ok
+test tests::smoke_terminal_does_not_fabricate_replies_for_modes_titles_or_text ... ok
+test tests::startup_command_builds_a_direct_pty_launch_in_its_project_root ... ok
+test tests::smoke_terminal_retains_reply_queue_failures ... ok
+test tests::saved_workspace_picker_filters_and_owns_its_input ... ok
+test tests::startup_command_waits_for_prompt_and_is_consumed_only_after_one_successful_write ... ok
+test tests::startup_rearms_damage_queued_before_window_creation ... ok
+test tests::saved_workspace_round_trips_layout_focus_titles_sessions_and_fresh_runtime ... ok
+test tests::startup_surface_failures_do_not_show_or_consume_the_first_present ... ok
+test tests::startup_window_is_hidden_until_an_empty_frame_is_presented ... ok
+test tests::smoke_terminal_replies_in_order_and_continues_to_marker ... ok
+test tests::surface_lost_or_outdated_recovery_rearms_once_then_a_pair_of_presents_completes_recovery ... ok
+test tests::suspension_preserves_damage_but_allows_resume_to_request_a_new_redraw ... ok
+test tests::target_hit_testing_uses_the_scrolled_viewport_and_cell_metrics ... ok
+test tests::terminal_grid_dimensions_preserve_their_row_column_order_for_the_pty ... ok
+test tests::terminal_replies_are_returned_to_the_pty_transport ... ok
+test tests::title_bar_path_keeps_only_two_decoded_segments ... ok
+test tests::unbound_enter_keeps_sending_carriage_return_to_the_terminal ... ok
+test tests::unbound_home_end_delete_are_pty_input_and_backspace_stays_distinct ... ok
+test tests::shift_arrow_defaults_select_characters_and_words_on_normal_screen ... ok
+test tests::wheel_deltas_accumulate_pixel_motion_and_preserve_direction ... ok
+test tests::wheel_scroll_preserves_selected_history_coordinates ... ok
+test tests::title_bar_shows_only_active_pane_cwd_with_fallback ... ok
+test tests::wheel_scrolls_primary_history_but_not_alternate_screen ... ok
+test tests::tab_picker_uses_resolved_titles_and_consumes_filter_navigation_and_cancel ... ok
+test tests::tab_picker_reload_preserves_state_and_cleans_up_modal_input ... ok
+test tests::vertical_split_creates_an_independent_pane ... ok
+test tests::window_title_normalizes_executable_names_and_paths ... ok
+test tests::windows_shell_selection_prefers_pwsh_then_windows_powershell_then_cmd ... ok
+test theme_resolution_tests::added_presets_keep_terminal_and_ui_text_contrast_readable ... ok
+test theme_resolution_tests::added_presets_resolve_all_terminal_and_semantic_color_channels ... ok
+test theme_resolution_tests::built_in_themes_resolve_terminal_and_semantic_colors_together ... ok
+test theme_resolution_tests::semantic_colors_fall_back_independently ... ok
+test tests::tab_picker_formats_cwd_application_and_fallback_without_changing_renames ... ok
+test theme_resolution_tests::secondary_ui_colors_follow_light_and_dark_themes_and_explicit_overrides ... ok
+test theme_resolution_tests::specific_colors_override_semantic_colors ... ok
+test throughput::tests::multiple_chunks_count_as_one_terminal_frame ... ok
+test theme_resolution_tests::palette_theme_action_updates_the_running_configuration ... ok
+test tests::workspace_commands_keep_pane_output_and_focus_separate ... ok
+test throughput::tests::acknowledgement_survives_every_chunk_boundary ... ok
+test url_hint_tests::native_url_hints_preserve_vim_and_neovim_input ... ignored, requires installed Vim and Neovim; real PTY compatibility acceptance
+test url_hint_tests::native_wayland_url_hints_theme_opacity_and_interaction ... ignored, requires KDE Wayland and GPU; run alone
+test url_hints::tests::clipped_and_alternate_content ... ok
+test url_hints::tests::filtering_backtracking_and_stable_assignment ... ok
+test url_hint_tests::unavailable_url_activation_preserves_tui_routing_and_explicit_replacements ... ok
+test url_hints::tests::safe_open_policy_and_failure ... ok
+test url_hints::tests::resized_history_does_not_open_a_truncated_url ... ok
+test window_chrome::tests::double_click_requires_time_and_proximity ... ok
+test window_chrome::tests::hit_regions_scale_and_fullscreen_hides_chrome ... ok
+test url_hints::tests::wrapped_unicode_punctuation_and_occurrences ... ok
+test tests::native_shell_launch_smoke ... ok
+test tests::startup_dispatch_is_shell_independent_and_handles_fragmented_prompt_markers ... ok
+test tests::shift_arrow_selection_commands_yield_to_application_modes ... ok
+test url_hints::tests::large_hint_sets_support_deep_prefix_free_codes ... ok
+test tests::smoke_terminal_yielded_chunks_match_uninterrupted_parser_state ... ok
+test url_hint_tests::modal_hint_keys_precedence_and_cancellation ... ok
+test shell_lifecycle::shell_exit_during_shutdown_cannot_restart_or_remove_survivors_twice ... ok
+test tests::paste_routes_to_active_pty_and_uses_that_panes_bracketed_mode ... ok
+test linux_workspace_tests::linux_panes_without_startup_commands_remain_idle_and_interactive ... ok
+test url_hint_tests::hint_input_never_writes_to_real_pty ... ok
+test shell_lifecycle::shell_exit_during_saved_workspace_restoration_closes_all_restored_workers ... ok
+test shell_lifecycle::shell_exit_real_shell_workers_close_foreground_and_background_sessions ... ok
+test url_hints::tests::hint_examples_and_prefix_freedom ... ok
+test linux_workspace_tests::linux_saved_workspace_native_cwd_and_startup_commands ... ok
+
+test result: ok. 177 passed; 0 failed; 6 ignored; 0 measured; 0 filtered out; finished in 2.12s
+
+     Running tests/ctrl_arrow_native_smoke.rs (target/debug/deps/ctrl_arrow_native_smoke-7979d4f9f64c1197)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ctrl_c_native_smoke.rs (target/debug/deps/ctrl_c_native_smoke-b67592c27c3dcb4b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/execute_native.rs (target/debug/deps/execute_native-6f13ad058c002fb6)
+
+running 3 tests
+test native_execute_editors_with_unicode_and_spaces ... ignored, requires native KDE Wayland, GPU, Vim and Neovim
+test native_execute_exact_arguments_and_exit_lifecycle ... ignored, requires native KDE Wayland and GPU; launches the actual application
+test native_execute_missing_program_exits_without_shell_fallback ... ignored, requires native Wayland and GPU
+
+test result: ok. 0 passed; 0 failed; 3 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/powershell_osc7_native_smoke.rs (target/debug/deps/powershell_osc7_native_smoke-ee96c71d6c4a909d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/shell_exit_native.rs (target/debug/deps/shell_exit_native-631afe8d62fd6cb6)
+
+running 1 test
+test native_linux_shell_exit_closes_application_process_and_reaps_sessions ... ignored, requires native Linux display and GPU; launches the actual application
+
+test result: ok. 0 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples/throughput-workload.rs (target/debug/examples/throughput_workload-9ad2f7b041f9a8ed)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/terminal_config-c3b22a5862c10cc9)
+
+running 30 tests
+test tests::corrected_retro_and_neon_presets_keep_their_complete_palettes ... ok
+test cursor_tests::cursor_rejects_unknown_shapes_fields_and_invalid_blink_types ... ok
+test tests::backspace_is_a_supported_physical_binding_key ... ok
+test tests::default_workspace_bindings_use_supported_physical_keys ... ok
+test tests::defaults_and_partial_theme ... ok
+test tests::bindings_replace_defaults_and_are_typed ... ok
+test cursor_tests::cursor_defaults_and_supported_values ... ok
+test tests::font_defaults_and_partial_settings ... ok
+test tests::directional_pane_commands_accept_configured_up_and_down_chords ... ok
+test tests::bold_intensity_defaults_boundaries_and_invalid_values ... ok
+test tests::function_key_bindings_accept_only_f1_through_f12_with_modifiers ... ok
+test tests::enter_is_a_supported_physical_binding_key_with_modifiers ... ok
+test tests::font_size_shortcuts_are_configurable_physical_chords ... ok
+test tests::old_theme_fields_and_partial_ui_override_parse_together ... ok
+test tests::invalid_ui_colors_name_the_field ... ok
+test tests::every_builtin_preset_has_a_stable_identifier_and_complete_palette ... ok
+test tests::malformed_shell_configuration_names_the_field ... ok
+test tests::invalid_font_settings_name_the_field ... ok
+test tests::loaded_roots_resolve_relative_to_definition_file ... ok
+test tests::presets_supply_defaults_and_keep_explicit_overrides ... ok
+test window_tests::blur_rejects_incorrect_types ... ok
+test tests::shell_child_environment_is_optional_and_validated ... ok
+test tests::workspace_startup_and_project_roots_parse ... ok
+test tests::optional_shell_parses_names_paths_and_separate_arguments ... ok
+test tests::workspace_definition_parses_and_validates_focus ... ok
+test window_tests::opacity_defaults_and_valid_boundaries ... ok
+test window_tests::blur_defaults_and_boolean_values ... ok
+test tests::validation_names_the_bad_field ... ok
+test tests::repository_example_loads_through_config_file_path ... ok
+test window_tests::opacity_rejects_invalid_values_and_unknown_fields ... ok
+
+test result: ok. 30 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/terminal_core-89b3089eaedeb65e)
+
+running 19 tests
+test grid::tests::delete_cells_shifts_complete_row_cells_left_and_clamps ... ok
+test grid::tests::region_scroll_clamps_counts_and_handles_one_row_regions ... ok
+test grid::tests::region_scroll_preserves_complete_cells_and_uses_default_exposed_rows ... ok
+test grid::tests::region_scroll_supports_ranges_touching_either_screen_edge ... ok
+test grid::tests::scrolls_middle_region_up_and_down_without_touching_outside_rows ... ok
+test screens::throughput_tests::aggregate_scroll_observation_preserves_screen_history_and_order ... ok
+test scrollback::tests::diagnostic_capacities_keep_exact_order_or_retain_no_rows ... ok
+test selection::tests::drag_autoscroll_extends_selection_from_live_rows_into_scrollback ... ok
+test selection::tests::line_selection_and_extension_keep_complete_rows ... ok
+test selection::tests::selection_extracts_viewport_text_and_clears_across_screen_switch ... ok
+test selection::tests::selection_reads_scrollback_projection_and_survives_navigation ... ok
+test selection::tests::viewport_movement_preserves_selection_spanning_history_and_live_rows ... ok
+test state::tests::clear_screen_clears_owned_screen_content ... ok
+test state::tests::reset_clears_existing_screen_content ... ok
+test state::tests::resize_preserves_overlap_and_blanks_new_cells_through_facade ... ok
+test selection::tests::word_selection_uses_terminal_identifier_and_path_boundaries ... ok
+test selection::tests::wide_and_combining_cells_are_selected_as_whole_characters ... ok
+test scrollback::tests::evicts_the_oldest_row_when_at_capacity ... ok
+test selection::tests::retained_selection_survives_scrollback_eviction ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/background_erase.rs (target/debug/deps/background_erase-df3e603ef7fa904a)
+
+running 5 tests
+test background_reset_and_full_rendition_reset_restore_default_erasure ... ok
+test scrolling_keeps_original_attributes_in_history_and_fills_only_the_exposed_row ... ok
+test wide_character_edits_fill_orphaned_halves_with_the_current_background ... ok
+test partial_wide_erasure_uses_background_and_removes_target_and_combining_marks ... ok
+test erased_and_exposed_cells_use_current_background_without_text_styles ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/clickable_targets.rs (target/debug/deps/clickable_targets-62b7ee0324485d4f)
+
+running 3 tests
+test osc8_chunking_wide_cells_and_overwrite_follow_visible_cells ... ok
+test primary_history_and_alternate_screen_keep_separate_targets ... ok
+test osc8_spans_are_cell_metadata_and_plain_text_is_not_inferred ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/combining_marks.rs (target/debug/deps/combining_marks-4b3378e3e9f6678f)
+
+running 10 tests
+test combining_capacity_is_bounded_without_mutating_the_base_or_cursor ... ok
+test combining_at_right_margin_attaches_before_delayed_wrap_resolves ... ok
+test editing_and_resize_move_or_clear_complete_combining_payloads ... ok
+test narrow_base_owns_ordered_marks_without_cursor_or_rendition_changes ... ok
+test no_base_or_erased_base_ignores_marks_without_mutation ... ok
+test vertical_moves_preserve_narrow_and_wide_combining_payloads ... ok
+test erase_overwrite_and_reset_clear_combining_payloads ... ok
+test wide_base_owns_marks_and_continuation_remains_metadata_only ... ok
+test parser_is_chunk_safe_for_base_and_combining_bytes ... ok
+test wide_combining_payloads_survive_shifts_and_clear_with_their_pair ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/compatibility_fixtures.rs (target/debug/deps/compatibility_fixtures-1721f48dc8435264)
+
+running 5 tests
+test multiplexer_fixture_preserves_region_output_modes_and_reply_fifo ... ok
+test fullscreen_editor_fixture_uses_alternate_screen_and_restores_the_prompt ... ok
+test tui_progress_fixture_updates_rows_without_damaging_neighbors ... ok
+test shell_prompt_redraw_fixture_preserves_supported_output_and_ignores_deferred_title ... ok
+test shell_edit_fixture_handles_carriage_return_backspace_and_erase ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/compatibility_polish.rs (target/debug/deps/compatibility_polish-3de9053eedb2535f)
+
+running 11 tests
+test decom_homes_addresses_clamps_and_reports_relative_rows ... ok
+test decom_wrap_and_index_scroll_only_inside_margins ... ok
+test decom_save_restore_and_1049_preserve_primary_and_scrollback ... ok
+test decstr_preserves_buffers_history_selection_tabs_cursor_and_pending_replies ... ok
+test decstr_preserves_scrolled_primary_viewport_and_selection ... ok
+test deferred_underline_colors_consume_payload_without_changing_text_styles ... ok
+test invalid_colon_groups_are_atomic_and_do_not_consume_following_attributes ... ok
+test malformed_mode_reset_and_save_forms_do_not_change_state ... ok
+test ris_clears_both_buffers_history_selection_saved_state_and_input_modes ... ok
+test colon_colors_and_attributes_are_ordered_and_chunk_safe ... ok
+test reset_and_origin_sequences_work_at_every_byte_boundary ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cpr.rs (target/debug/deps/cpr-79540d4a8ca730d7)
+
+running 5 tests
+test cpr_generation_preserves_terminal_state_and_delayed_wrap ... ok
+test cpr_is_absolute_with_custom_margins_and_after_region_aware_scrolling ... ok
+test cursor_position_report_uses_one_based_coordinates_including_multi_digit_values ... ok
+test parser_cpr_preserves_absolute_position_and_does_not_reply_to_other_dsr_forms ... ok
+test mixed_replies_are_fifo_bounded_and_captured_before_reset_or_resize ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cpr_parser.rs (target/debug/deps/cpr_parser-cd5cc0b5ddd84962)
+
+running 3 tests
+test multiple_and_interleaved_da1_and_cpr_queries_keep_exact_fifo_order ... ok
+test incomplete_or_malformed_dsr_does_not_reply_before_a_complete_valid_query ... ok
+test cpr_is_chunk_safe_at_every_input_boundary_and_across_calls ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/da1.rs (target/debug/deps/da1-69739537a008ebfa)
+
+running 4 tests
+test pending_replies_are_fifo_bounded_and_never_overwritten ... ok
+test da1_generation_and_consumption_preserve_terminal_state_and_delayed_wrap ... ok
+test primary_device_attributes_queues_exact_conservative_reply ... ok
+test reset_and_resize_preserve_already_generated_replies ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/da1_parser.rs (target/debug/deps/da1_parser-5db5b5db43320224)
+
+running 6 tests
+test parser_da1_at_capacity_is_bounded_and_does_not_overwrite_pending_replies ... ok
+test parser_csi_c_and_csi_zero_c_produce_exact_da1_reply ... ok
+test printable_text_neighbors_da1_without_becoming_reply_input ... ok
+test da1_queries_are_chunk_safe_at_every_input_boundary ... ok
+test multiple_queries_in_one_stream_and_separate_calls_are_preserved ... ok
+test incomplete_malformed_private_and_non_primary_da_forms_do_not_reply ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/da2.rs (target/debug/deps/da2-7ce4d718f4c29191)
+
+running 4 tests
+test secondary_device_attributes_has_a_fixed_bounded_conservative_encoding ... ok
+test secondary_device_attributes_changes_only_pending_replies ... ok
+test secondary_device_attributes_preserves_fifo_order_and_capacity ... ok
+test parser_recognizes_only_omitted_or_zero_da2_requests ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/dec_alt_screen_1047.rs (target/debug/deps/dec_alt_screen_1047-0b5759280c43440a)
+
+running 6 tests
+test dec_private_mode_1047_is_distinct_from_47_and_rejects_malformed_mode_forms ... ok
+test dec_private_mode_1047_clears_the_resized_alternate_and_terminal_reset_is_unchanged ... ok
+test dec_private_mode_1047_preserves_terminal_global_state ... ok
+test dec_private_mode_1047_clears_wide_combining_alternate_cells_but_not_primary_cells ... ok
+test dec_private_mode_1047_entry_resets_the_alternate_screen_locally ... ok
+test dec_private_mode_1047_repeated_entry_clears_again_and_exit_is_idempotent ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/dec_alt_screen_1049.rs (target/debug/deps/dec_alt_screen_1049-66f3c0fc5467fc39)
+
+running 6 tests
+test dec_private_mode_1049_resets_stale_alternate_wide_combining_content ... ok
+test dec_private_mode_1049_preserves_global_state_and_primary_wide_combining_cells ... ok
+test dec_private_mode_1049_is_chunk_safe_and_isolated_from_other_private_mode_forms ... ok
+test dec_private_mode_1049_saves_primary_resets_alternate_and_restores_primary ... ok
+test dec_private_mode_1049_restore_clamps_after_resize_and_reset_clears_saved_state ... ok
+test repeated_1049_entry_while_alternate_is_active_is_idempotent_and_preserves_primary_save ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/dec_alt_screen_47.rs (target/debug/deps/dec_alt_screen_47-fe64d9d59ebd15db)
+
+running 5 tests
+test dec_private_mode_47_is_idempotent_and_preserves_shared_state ... ok
+test dec_private_mode_47_handles_mixed_parameters_and_isolates_neighboring_modes ... ok
+test dec_private_mode_47_preserves_wide_combining_cells_across_resize_and_reset ... ok
+test dec_private_mode_47_selects_independent_screens_without_clearing ... ok
+test dec_private_mode_47_is_chunk_invariant_and_keeps_printable_text_on_active_screen ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/decckm_parser.rs (target/debug/deps/decckm_parser-9692259d37fc266c)
+
+running 5 tests
+test decckm_isolated_from_standard_and_unrelated_private_modes ... ok
+test decckm_handles_private_parameters_independently_in_parser_order ... ok
+test decckm_changes_only_cursor_key_mode_and_preserves_terminal_state ... ok
+test decckm_private_mode_one_transitions_application_and_normal_cursor_keys ... ok
+test decckm_private_mode_one_is_chunk_invariant_and_incomplete_sequences_are_safe ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/decstbm.rs (target/debug/deps/decstbm-0e79324a9edf7898)
+
+running 7 tests
+test invalid_decstbm_preserves_delayed_wrap ... ok
+test decstbm_defaults_remain_valid_on_a_single_row_screen ... ok
+test decstbm_accepts_full_explicit_and_partial_default_forms ... ok
+test incomplete_decstbm_has_no_effect_until_terminated ... ok
+test valid_decstbm_homes_cursor_cancels_wrap_and_preserves_unrelated_state ... ok
+test invalid_decstbm_is_an_atomic_no_op_and_does_not_home_cursor ... ok
+test decstbm_is_chunk_safe_at_every_byte_boundary ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/delete_characters.rs (target/debug/deps/delete_characters-da825dd3c5f9b89d)
+
+running 5 tests
+test delete_characters_cancels_delayed_wrap_like_ich_and_erase ... ok
+test delete_characters_moves_complete_cells_and_fills_with_background_blanks ... ok
+test delete_characters_is_independent_of_typing_insert_mode_and_preserves_state ... ok
+test insert_and_delete_characters_compose_as_bounded_current_row_edits ... ok
+test delete_characters_shifts_only_the_current_row_and_clamps_counts ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/delete_characters_parser.rs (target/debug/deps/delete_characters_parser-da312625a2b20775)
+
+running 3 tests
+test parser_dch_clamps_at_the_right_edge_and_preserves_printable_neighbors ... ok
+test parser_dispatches_dch_with_omitted_zero_one_and_multiple_counts ... ok
+test parser_dch_is_chunk_invariant_and_incomplete_or_unsupported_shapes_are_safe ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/deterministic_inputs.rs (target/debug/deps/deterministic_inputs-5e309be6ce2a9777)
+
+running 2 tests
+test state_navigation_selection_and_resize_handle_deterministic_actions ... ok
+test parser_handles_deterministic_byte_streams_at_multiple_chunk_boundaries ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running tests/dsr_status.rs (target/debug/deps/dsr_status-ce57b45526e72174)
+
+running 3 tests
+test status_queries_are_fifo_bounded_and_interleave_with_existing_replies ... ok
+test status_query_preserves_terminal_state_and_delayed_wrap ... ok
+test terminal_status_encodes_exactly_and_is_bounded ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/dsr_status_parser.rs (target/debug/deps/dsr_status_parser-c6962a65187bad6f)
+
+running 3 tests
+test status_preserves_order_with_cpr_and_da1 ... ok
+test unsupported_dsr_forms_remain_noops ... ok
+test parser_dispatches_status_at_every_chunk_boundary ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/erase_characters.rs (target/debug/deps/erase_characters-176a26aac480c34a)
+
+running 5 tests
+test erase_characters_cancels_delayed_wrap_and_ignores_scrolling_margins ... ok
+test erase_characters_does_not_shift_cells_like_delete_characters ... ok
+test erase_characters_is_independent_of_typing_insert_mode_and_preserves_state ... ok
+test erase_characters_clears_only_the_bounded_current_row_range ... ok
+test erase_characters_uses_background_blanks_without_changing_untouched_cells ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/erase_characters_parser.rs (target/debug/deps/erase_characters_parser-e1bd1b022b4199c3)
+
+running 3 tests
+test parser_ech_clamps_at_the_right_edge_and_preserves_printable_neighbors ... ok
+test parser_dispatches_ech_with_omitted_zero_one_and_multiple_counts ... ok
+test parser_ech_is_chunk_invariant_and_incomplete_or_unsupported_shapes_are_safe ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/input_encoding.rs (target/debug/deps/input_encoding-36ee126a7bd9fa80)
+
+running 6 tests
+test control_left_and_right_use_modified_csi_in_both_cursor_key_modes ... ok
+test delete_home_and_end_use_conventional_sequences_in_both_cursor_modes ... ok
+test output_modes_drive_cursor_focus_and_paste_bytes ... ok
+test mouse_tracking_and_encodings_follow_private_modes ... ok
+test function_keys_use_xterm_sequences_for_all_modifiers_and_screen_modes ... ok
+test shifted_horizontal_arrows_keep_modifiers_in_both_screens_and_cursor_modes ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/insert_characters.rs (target/debug/deps/insert_characters-9f2186be33a002b0)
+
+running 5 tests
+test insert_characters_cancels_delayed_wrap_like_other_current_row_editing_operations ... ok
+test insert_characters_does_not_depend_on_scrolling_margins ... ok
+test insert_characters_is_independent_of_typing_insert_mode_and_preserves_state ... ok
+test inserted_character_cells_are_background_blanks_and_moved_cells_keep_attributes ... ok
+test insert_characters_shifts_only_the_current_row_and_clamps_counts ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/insert_characters_parser.rs (target/debug/deps/insert_characters_parser-b781105609c8d031)
+
+running 3 tests
+test parser_ich_clamps_at_the_right_edge_and_preserves_printable_neighbors ... ok
+test parser_dispatches_ich_with_omitted_zero_one_and_multiple_counts ... ok
+test parser_ich_is_chunk_invariant_and_incomplete_or_unsupported_shapes_are_safe ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/insert_delete_lines.rs (target/debug/deps/insert_delete_lines-8794e2f646e320ea)
+
+running 7 tests
+test insert_lines_is_cursor_relative_within_the_active_region ... ok
+test delete_lines_is_cursor_relative_within_the_active_region ... ok
+test line_operations_preserve_complete_cells_background_blanks_and_unrelated_state ... ok
+test line_operations_leave_margins_intact ... ok
+test line_operations_preserve_delayed_wrap ... ok
+test line_operations_are_no_ops_outside_margins_and_use_full_screen_defaults ... ok
+test line_operations_clamp_to_the_cursor_to_bottom_subregion ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/insert_delete_lines_parser.rs (target/debug/deps/insert_delete_lines_parser-cca3b70b253d2c40)
+
+running 5 tests
+test parser_il_dl_preserve_cursor_and_existing_cell_model ... ok
+test parser_il_dl_clamp_counts_and_preserve_printable_neighbors ... ok
+test parser_il_dl_respect_cursor_relative_decstbm_subregions ... ok
+test parser_dispatches_il_and_dl_with_omitted_zero_one_and_multiple_counts ... ok
+test parser_il_dl_are_chunk_invariant_and_incomplete_or_malformed_input_is_safe ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/keyboard_selection.rs (target/debug/deps/keyboard_selection-2f5c762292448a81)
+
+running 10 tests
+test cursor_inside_wide_cell_anchors_at_whole_character ... ok
+test character_selection_contracts_reverses_and_does_not_move_terminal_cursor ... ok
+test mouse_and_keyboard_share_one_selection_and_alternate_is_rejected ... ok
+test forward_words_and_wide_pre_wrap_padding_copy_exactly ... ok
+test pending_wrap_and_wide_combining_cells_are_atomic ... ok
+test hard_rows_and_soft_wraps_have_distinct_copy_text ... ok
+test reporting_requests_release_shortcut_ownership_and_restore_nested_flags ... ok
+test reporting_ownership_is_screen_local ... ok
+test word_selection_crosses_soft_wrap_and_scrollback_keeps_absolute_endpoints ... ok
+test words_reuse_mouse_classes_for_punctuation_and_paths ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/models.rs (target/debug/deps/models-8d66f5e96a5657b8)
+
+running 19 tests
+test accesses_and_mutates_cells_by_row_and_column ... ok
+test accepts_dimensions_at_each_resource_boundary ... ok
+test clearing_blanks_every_cell_without_moving_the_cursor ... ok
+test constructs_valid_dimensions_and_default_cell ... ok
+test constructs_cell_with_explicit_attributes ... ok
+test cursor_rejects_out_of_bounds_positions_without_moving ... ok
+test cursor_starts_at_origin_and_accepts_in_bounds_positions ... ok
+test extreme_relative_cursor_movement_remains_bounded ... ok
+test growing_resize_preserves_top_left_cells_and_blanks_new_cells ... ok
+test indexes_cells_in_zero_based_row_major_order ... ok
+test mixed_axis_resize_preserves_only_the_top_left_intersection ... ok
+test rejects_columns_above_resource_limit ... ok
+test rejects_rows_above_resource_limit ... ok
+test rejects_total_cell_count_above_resource_limit ... ok
+test rejects_zero_columns ... ok
+test rejects_zero_rows ... ok
+test relative_cursor_movement_clamps_to_screen_bounds ... ok
+test returns_none_for_out_of_bounds_cells ... ok
+test shrinking_resize_keeps_top_left_intersection_and_clamps_cursor ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/modes.rs (target/debug/deps/modes-105e153e8d2a371f)
+
+running 10 tests
+test auto_wrap_transitions_are_explicit_and_idempotent ... ok
+test changing_cursor_visibility_does_not_change_unrelated_modes ... ok
+test changing_character_insertion_does_not_change_unrelated_modes ... ok
+test changing_one_terminal_mode_does_not_change_unrelated_modes ... ok
+test character_insertion_transitions_are_explicit_and_idempotent ... ok
+test cursor_key_transitions_are_explicit_and_idempotent ... ok
+test input_modes_are_independent_from_terminal_modes ... ok
+test input_modes_default_to_normal_cursor_keys ... ok
+test cursor_visibility_transitions_are_explicit_and_idempotent ... ok
+test terminal_modes_use_standard_foundational_defaults ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ncurses_rendition.rs (target/debug/deps/ncurses_rendition-4a3acb281ce7af8d)
+
+running 2 tests
+test ncurses_color_pair_and_bold_reset_remain_independent ... ok
+test ncurses_bold_default_foreground_is_chunk_safe_and_does_not_select_a_color ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/osc52.rs (target/debug/deps/osc52-d9b9bc714b1ce559)
+
+running 2 tests
+test osc52_is_denied_by_default_and_never_answers_queries ... ok
+test osc52_allow_write_accepts_only_bounded_valid_clipboard_text ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/parser.rs (target/debug/deps/parser-f44e095f1344a041)
+
+running 71 tests
+test decscusr_is_chunk_safe_and_ignores_unsupported_parameters ... ok
+test byte_at_a_time_matches_one_shot_input ... ok
+test decscusr_sets_shape_and_blink_and_reset_restores_configured_default ... ok
+test empty_and_colon_extended_color_parameters_are_handled_deterministically ... ok
+test incomplete_and_malformed_index_controls_do_not_mutate_unrelated_state ... ok
+test malformed_indexed_color_groups_do_not_leak_payload_parameters ... ok
+test cnl_and_cpl_are_chunk_safe_and_preserve_printable_input ... ok
+test malformed_or_unsupported_cnl_and_cpl_forms_are_safe_no_ops ... ok
+test ind_ri_nel_are_chunk_safe_at_every_byte_boundary ... ok
+test malformed_or_extra_su_sd_parameters_are_safe_no_ops ... ok
+test malformed_partial_utf8_does_not_execute_reprocessed_control_after_error ... ok
+test malformed_or_incomplete_escape_input_does_not_panic_or_mutate_state ... ok
+test malformed_private_and_subparameter_mode_forms_do_not_panic_or_change_modes ... ok
+test malformed_partial_utf8_surfaces_error_before_reprocessing_current_byte ... ok
+test omitted_unsupported_and_wrong_private_modes_are_safe_no_ops ... ok
+test multiple_successive_csi_sequences_mix_with_printable_output ... ok
+test parser_controlled_auto_wrap_clears_and_does_not_create_pending_wrap ... ok
+test parser_controlled_insert_mode_changes_printable_output_semantics ... ok
+test mode_sequences_handle_multiple_and_mixed_supported_parameters ... ok
+test parser_dispatches_index_reverse_index_and_next_line ... ok
+test oversized_unsupported_osc_is_bounded_and_does_not_corrupt_state ... ok
+test parser_sets_and_clears_horizontal_tab_stops ... ok
+test parser_horizontal_tab_resolves_delayed_wrap ... ok
+test parser_state_persists_across_csi_chunk_boundaries ... ok
+test parser_sd_uses_one_for_omitted_and_zero_counts ... ok
+test parses_horizontal_tab_with_mixed_printable_input_in_one_chunk ... ok
+test parses_simple_printable_ascii_stream ... ok
+test parser_su_and_sd_clamp_explicit_and_oversized_counts ... ok
+test parses_mixed_printable_and_supported_control_input ... ok
+test printed_cells_snapshot_indexed_colors_without_retroactive_changes ... ok
+test printable_text_neighbors_ind_ri_and_nel_controls ... ok
+test private_mode_sequences_control_auto_wrap_and_cursor_visibility ... ok
+test every_split_point_matches_one_shot_input ... ok
+test indexed_color_and_malformed_groups_are_chunk_safe_at_every_boundary ... ok
+test parser_tab_sequences_are_chunk_safe_at_every_byte_boundary ... ok
+test parser_mode_dispatch_is_chunk_safe_at_every_byte_boundary ... ok
+test many_chunk_sizes_match_one_shot_input ... ok
+test parser_printing_snapshots_rendition_without_changing_existing_cells ... ok
+test parser_su_uses_one_for_omitted_and_zero_counts ... ok
+test routes_backspace_to_terminal_state_without_erasing ... ok
+test routes_carriage_return_to_terminal_state ... ok
+test routes_line_feed_to_terminal_state_without_implying_carriage_return ... ok
+test routes_supported_cursor_csi_with_defaults_zeroes_and_large_parameters ... ok
+test routes_cnl_and_cpl_with_normalized_counts_and_column_reset ... ok
+test sgr_default_color_codes_restore_only_the_selected_channel ... ok
+test sgr_faint_preserves_non_rendition_state_and_incomplete_input ... ok
+test sgr_indexed_color_groups_preserve_parameter_order ... ok
+test sgr_indexed_colors_preserve_styles_across_channel_defaults_and_reset_fully ... ok
+test routes_supported_erase_csi_and_preserves_cursor ... ok
+test sgr_indexed_foreground_and_background_accept_full_u8_range ... ok
+test sgr_maps_all_standard_and_bright_background_colors ... ok
+test sgr_maps_all_standard_and_bright_foreground_colors ... ok
+test sgr_parameters_apply_in_order_including_empty_parameters ... ok
+test sgr_style_set_and_clear_pairs_are_independent ... ok
+test sgr_zero_bare_and_empty_parameters_reset_the_complete_rendition ... ok
+test standard_mode_sequences_control_insert_and_replace_modes ... ok
+test successive_mode_sequences_preserve_unrelated_state ... ok
+test truncated_indexed_color_sequence_has_no_effect_until_completed ... ok
+test supports_multiple_successive_chunks ... ok
+test unsupported_controls_are_ignored_without_approximation ... ok
+test unsupported_csi_is_ignored_without_corrupting_state ... ok
+test unsupported_extended_color_selectors_consume_the_remaining_sequence ... ok
+test unsupported_malformed_and_incomplete_tab_forms_are_safe_no_ops ... ok
+test unsupported_osc_and_dcs_are_ignored_without_corrupting_state ... ok
+test unsupported_sgr_parameters_and_subparameters_are_individual_no_ops ... ok
+test zero_width_unicode_attaches_when_a_split_codepoint_completes ... ok
+test zero_width_unicode_attaches_without_interrupting_parser_input ... ok
+test representative_sgr_stream_is_chunk_safe_at_every_byte_boundary ... ok
+test sgr_faint_has_ordered_reset_and_snapshot_semantics ... ok
+test su_sd_sequences_are_chunk_safe_at_every_byte_boundary ... ok
+test supported_csi_is_chunk_safe_at_every_byte_boundary ... ok
+
+test result: ok. 71 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/reflow.rs (target/debug/deps/reflow-561bf310514930a3)
+
+running 16 tests
+test cursor_insertion_and_delayed_wrap_follow_the_text ... ok
+test height_only_resize_moves_rows_between_history_and_grid ... ok
+test emoji_widths_and_text_survive_scrollback_reflow ... ok
+test one_column_printing_and_repeated_narrowing_keep_wide_payloads ... ok
+test reflow_does_not_enable_delayed_wrap_when_auto_wrap_is_disabled ... ok
+test saved_cursor_and_inactive_primary_reflow_independently_of_alternate ... ok
+test mouse_selection_retains_spaces_that_land_on_new_soft_boundaries ... ok
+test unchanged_resize_preserves_pending_wrap_selection_and_alternate_contents ... ok
+test viewport_stays_on_its_text_and_live_view_stays_live ... ok
+test mouse_keyboard_and_backward_selection_keep_logical_endpoints ... ok
+test keyboard_selection_keeps_hard_breaks_and_explicit_spaces_without_erased_padding ... ok
+test hard_breaks_soft_wraps_attributes_links_spaces_and_combining_survive_round_trips ... ok
+test deterministic_resize_sequences_preserve_hard_lines_and_wide_wrap_gaps ... ok
+test selection_partly_evicted_before_reflow_keeps_its_retained_suffix ... ok
+test history_eviction_is_bounded_and_discarded_selection_is_cleared ... ok
+test shrinking_with_content_below_cursor_keeps_the_cursor_on_its_text ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.30s
+
+     Running tests/region_ind_ri.rs (target/debug/deps/region_ind_ri-ed462ce1d6df90f7)
+
+running 8 tests
+test crossing_into_region_by_index_or_reverse_index_does_not_scroll ... ok
+test index_and_reverse_index_cancel_delayed_wrap_for_move_scroll_and_outside_cases ... ok
+test index_and_reverse_index_move_outside_region_without_scrolling_or_clamping ... ok
+test reverse_index_moves_inside_region_and_scrolls_only_at_top_margin ... ok
+test full_screen_margins_preserve_previous_index_and_reverse_index_behavior ... ok
+test region_boundary_scrolling_preserves_styled_cells_and_unrelated_state ... ok
+test index_and_reverse_index_clear_only_a_single_row_region ... ok
+test index_moves_inside_region_and_scrolls_only_at_bottom_margin ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/region_ind_ri_parser.rs (target/debug/deps/region_ind_ri_parser-d923fa294a8c3ace)
+
+running 4 tests
+test active_rendition_survives_parser_driven_region_scroll ... ok
+test parser_region_scrolls_preserve_printable_neighbors ... ok
+test parser_routes_decstbm_followed_by_index_and_reverse_index ... ok
+test parser_index_and_reverse_index_with_margins_are_chunk_safe ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/region_nel.rs (target/debug/deps/region_nel-3b328b7f6ac42acc)
+
+running 5 tests
+test full_screen_nel_keeps_established_bottom_scroll_behavior ... ok
+test nel_inside_custom_region_moves_down_without_scrolling_and_cancels_delayed_wrap ... ok
+test nel_at_bottom_margin_scrolls_only_region_and_preserves_cells_and_state ... ok
+test nel_on_single_row_region_clears_only_that_row ... ok
+test nel_outside_region_moves_bounded_without_scrolling_or_margin_clamping ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/region_nel_parser.rs (target/debug/deps/region_nel_parser-b5865e7f69612b1c)
+
+running 6 tests
+test alternate_lf_respects_margin_edges_and_resize_restores_full_height_region ... ok
+test parser_routes_decstbm_followed_by_nel_through_active_region ... ok
+test printable_text_before_and_after_nel_uses_region_semantics ... ok
+test incomplete_and_malformed_nel_escapes_keep_safe_existing_behavior ... ok
+test vim_alternate_screen_cr_lf_scrolls_only_the_edit_region_across_chunks ... ok
+test parser_region_nel_is_chunk_safe_at_every_input_boundary ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/region_su_sd.rs (target/debug/deps/region_su_sd-556daa764aac24dd)
+
+running 7 tests
+test region_scroll_preserves_existing_delayed_wrap_behavior ... ok
+test su_scrolls_only_custom_region_for_one_and_multiple_rows ... ok
+test full_screen_margins_keep_established_su_sd_behavior ... ok
+test region_scroll_zero_is_no_op_and_large_counts_clear_only_active_region ... ok
+test region_scroll_preserves_complete_cells_and_unrelated_terminal_state ... ok
+test sd_scrolls_only_custom_region_for_one_and_multiple_rows ... ok
+test region_scroll_handles_one_row_and_regions_at_screen_edges ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/region_su_sd_parser.rs (target/debug/deps/region_su_sd_parser-b7faf156058cf9a0)
+
+running 6 tests
+test parser_su_sd_preserve_active_sgr_and_moved_cell_attributes ... ok
+test malformed_extra_and_subparameter_shapes_remain_safe_no_ops_with_margins ... ok
+test decstbm_followed_by_su_or_sd_uses_active_region_and_default_count ... ok
+test printable_text_neighbors_region_scroll_without_parser_side_mutation ... ok
+test parser_region_su_sd_counts_are_bounded_to_region_height ... ok
+test parser_region_su_sd_are_safe_across_every_input_split ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/rendition.rs (target/debug/deps/rendition-05d82ddc18228643)
+
+running 10 tests
+test current_rendition_uses_documented_defaults ... ok
+test cursor_modes_tabs_erase_and_delayed_wrap_preserve_current_rendition ... ok
+test inverse_video_can_be_set_and_cleared_independently ... ok
+test faint_intensity_is_typed_idempotent_and_preserved_by_resize ... ok
+test foreground_and_background_channels_change_independently ... ok
+test italic_can_be_set_and_cleared_independently ... ok
+test terminal_reset_restores_rendition_defaults ... ok
+test printed_cells_snapshot_the_current_rendition_without_retroactive_changes ... ok
+test text_intensity_can_be_set_and_cleared_independently ... ok
+test underline_can_be_set_and_cleared_independently ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/saved_cursor.rs (target/debug/deps/saved_cursor-80b6cf8ed7d035ec)
+
+running 9 tests
+test latest_save_wins_and_repeated_restore_is_stable ... ok
+test dec_private_mode_47_round_trip_does_not_overwrite_either_saved_cursor_slot ... ok
+test dec_private_mode_1047_entry_resets_alternate_saved_cursor_and_exit_does_not_restore_primary ... ok
+test reset_returns_both_saved_cursor_slots_to_the_uninitialized_no_op_state ... ok
+test restore_before_save_is_a_safe_no_op ... ok
+test save_and_restore_capture_rendition_but_not_delayed_wrap_or_other_state ... ok
+test restore_clamps_saved_coordinates_after_shrink_and_keeps_them_valid_after_grow ... ok
+test save_move_restore_restores_the_active_cursor_coordinates_without_touching_cells ... ok
+test saves_are_screen_local_and_switching_preserves_both_slots ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/screen_resize_scrollback_audit.rs (target/debug/deps/screen_resize_scrollback_audit-9736285e5b2dd808)
+
+running 4 tests
+test resize_during_1049_maps_saved_cursor_and_primary_history ... ok
+test primary_history_reflows_chronologically_across_resizes ... ok
+test resize_preserves_primary_history_through_47_and_1047_round_trips ... ok
+test resize_preserves_historical_wide_and_combining_payloads_and_reset_clears_history ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/screen_switching.rs (target/debug/deps/screen_switching-f84d3d657f43a55f)
+
+running 5 tests
+test margins_and_pending_wrap_are_screen_local ... ok
+test starts_primary_and_switches_between_independent_contents_and_cursors ... ok
+test switching_is_idempotent_and_reset_blanks_both_screens_on_primary ... ok
+test wide_combining_primary_payload_survives_round_trip_and_resize_updates_both_screens ... ok
+test modes_rendition_tabs_and_replies_are_shared_across_switching ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/scrollback.rs (target/debug/deps/scrollback-af205ecf895c8d6e)
+
+running 17 tests
+test alternate_input_leaves_primary_scrollback_position_unchanged ... ok
+test alternate_screen_cannot_navigate_primary_history ... ok
+test alternate_scrolling_does_not_append_primary_history_and_switches_preserve_it ... ok
+test captured_cells_preserve_combining_wide_occupancy_and_rendition ... ok
+test output_preserves_a_scrolled_back_viewport_and_offset_is_bounded ... ok
+test full_screen_su_captures_each_displaced_row_and_restricted_su_does_not ... ok
+test full_screen_nel_and_wrapped_print_capture_in_chronological_order ... ok
+test page_navigation_projects_history_and_returns_to_following_bottom ... ok
+test primary_full_screen_index_captures_the_displaced_top_row ... ok
+test primary_scrollback_starts_empty_and_alternate_has_no_independent_history ... ok
+test reset_clears_primary_history_and_resize_reflows_historical_widths ... ok
+test row_scrolling_is_bounded_and_resumes_following_at_bottom ... ok
+test resize_clamps_the_offset_and_reset_returns_the_viewport_to_bottom ... ok
+test subregion_and_editing_or_downward_operations_do_not_capture_history ... ok
+test terminal_input_returns_scrolled_primary_to_live_bottom ... ok
+test viewport_wrap_metadata_follows_history_and_clipped_top ... ok
+test scrollback_evicts_the_oldest_row_at_its_fixed_capacity ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/scrolling_margins.rs (target/debug/deps/scrolling_margins-1d06f181bc8e7399)
+
+running 8 tests
+test rejected_margin_updates_preserve_the_previous_region_and_cursor ... ok
+test scrolling_margins_are_typed_zero_based_and_default_to_the_full_screen ... ok
+test custom_margins_bound_su_sd_and_nel ... ok
+test reset_and_resize_restore_full_screen_margins ... ok
+test setting_margins_cancels_delayed_wrap ... ok
+test typed_scrolling_margins_enforce_order_and_screen_bounds ... ok
+test setting_margins_does_not_change_existing_cells ... ok
+test setting_valid_margins_is_atomic_homes_cursor_and_preserves_unrelated_state ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/shell_metadata.rs (target/debug/deps/shell_metadata-0203fe5e0dbd3eba)
+
+running 5 tests
+test osc_0_and_2_update_and_clear_the_shell_title ... ok
+test fragmented_reports_and_sessions_remain_independent ... ok
+test osc_133_prompt_ready_signal_is_incremental_and_pane_local ... ok
+test invalid_or_unsupported_osc_does_not_replace_reported_metadata ... ok
+test osc_7_preserves_the_latest_valid_file_uri ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/state.rs (target/debug/deps/state-58bea3463ca79973)
+
+running 62 tests
+test accepts_modeled_wide_unicode_and_attaches_zero_width_unicode ... ok
+test backspace_at_the_margin_is_a_no_op_even_when_wrap_is_pending ... ok
+test accepts_ascii_boundaries_and_rejects_delete ... ok
+test backspace_cancels_pending_wrap_before_the_next_print ... ok
+test bottom_line_feed_preserves_pending_wrap_for_a_later_print ... ok
+test backspace_moves_left_without_erasing_and_stops_at_the_margin ... ok
+test bottom_next_line_scrolls_up_and_preserves_rendition_and_modes ... ok
+test bottom_index_scrolls_styled_cells_and_preserves_terminal_state ... ok
+test carriage_return_cancels_a_pending_wrap ... ok
+test carriage_return_moves_to_the_first_column_without_changing_row ... ok
+test changes_supported_terminal_modes_through_the_facade ... ok
+test clear_screen_cancels_pending_wrap_without_moving_the_cursor ... ok
+test clears_the_active_screen_without_moving_the_cursor ... ok
+test coordinates_absolute_and_relative_cursor_operations ... ok
+test cursor_key_mode_transitions_through_the_facade_are_idempotent ... ok
+test cursor_next_and_previous_line_cancel_delayed_wrap ... ok
+test cursor_next_and_previous_line_are_bounded_column_reset_movements ... ok
+test constructs_state_from_validated_dimensions_with_documented_defaults ... ok
+test default_horizontal_tab_stops_are_every_eight_columns ... ok
+test cursor_next_and_previous_line_preserve_cells_state_and_screen_bounds ... ok
+test cursor_next_and_previous_line_do_not_use_scrolling_control_semantics ... ok
+test disabled_auto_wrap_replaces_the_final_column_without_wrapping ... ok
+test custom_horizontal_tab_stops_can_be_set_and_cleared ... ok
+test erase_cancels_delayed_wrap_without_moving_the_cursor ... ok
+test erase_in_display_supports_all_directions_without_moving_the_cursor ... ok
+test erase_in_line_supports_all_directions_without_moving_the_cursor ... ok
+test final_column_enters_delayed_wrap_until_the_next_print ... ok
+test every_typed_cursor_operation_cancels_delayed_wrap ... ok
+test full_screen_scrolling_preserves_delayed_wrap ... ok
+test growing_preserves_existing_tab_stops_and_defaults_new_columns ... ok
+test horizontal_tab_resolves_delayed_wrap_without_modifying_cells_or_modes ... ok
+test full_screen_scroll_moves_complete_cells_and_preserves_rendition_and_modes ... ok
+test disabling_auto_wrap_cancels_an_existing_pending_wrap ... ok
+test horizontal_tab_uses_the_final_column_when_no_later_stop_exists ... ok
+test index_moves_down_preserves_column_and_cancels_delayed_wrap ... ok
+test full_screen_scroll_up_normalizes_count_to_screen_height ... ok
+test insert_mode_at_the_final_column_replaces_then_delays_wrap ... ok
+test insert_mode_shifts_the_current_row_right_and_drops_the_last_cell ... ok
+test reset_discards_pending_wrap_and_restores_the_origin ... ok
+test reset_is_idempotent ... ok
+test reset_restores_default_horizontal_tab_stops_at_current_dimensions ... ok
+test line_feed_moves_down_without_changing_column ... ok
+test line_feed_preserves_pending_wrap_until_the_next_print ... ok
+test full_screen_scroll_down_normalizes_count_to_screen_height ... ok
+test line_feed_at_the_bottom_scrolls_the_screen_and_keeps_the_column ... ok
+test prints_a_character_at_the_cursor_and_advances_one_column ... ok
+test resize_maps_pending_wrap_to_the_new_insertion_position ... ok
+test resize_preserves_cursor_key_mode ... ok
+test resize_then_reset_keeps_resized_dimensions_and_restores_invariants ... ok
+test prints_sequential_characters_in_replace_mode ... ok
+test horizontal_tab_moves_to_the_next_stop_from_multiple_columns ... ok
+test wrapping_from_the_final_row_scrolls_only_the_active_screen ... ok
+test next_line_moves_down_resets_column_and_cancels_delayed_wrap ... ok
+test rejects_control_characters_without_mutating_state ... ok
+test reverse_index_moves_up_preserves_column_and_cancels_delayed_wrap ... ok
+test resizes_the_active_screen_and_keeps_cursor_bounded ... ok
+test reset_restores_initial_supported_state_at_current_dimensions ... ok
+test scroll_down_moves_attributes_and_clears_new_top_rows_with_background_blanks ... ok
+test top_reverse_index_scrolls_styled_cells_and_clears_top_row_with_background ... ok
+test shrinking_discards_out_of_bounds_stops_and_regrowth_uses_defaults ... ok
+test typed_cursor_movements_clamp_zero_and_extreme_amounts_to_screen_bounds ... ok
+test typed_cursor_movements_cover_relative_and_absolute_semantics ... ok
+
+test result: ok. 62 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/truecolor.rs (target/debug/deps/truecolor-63465a55d0edaa78)
+
+running 5 tests
+test truecolor_cells_snapshot_and_move_with_complete_attributes ... ok
+test truecolor_foreground_and_background_are_exact_and_preserve_styles ... ok
+test malformed_truecolor_groups_are_atomic ... ok
+test truecolor_minimum_maximum_replacement_and_resets_work_per_channel ... ok
+test truecolor_is_chunk_safe_and_preserves_unrelated_terminal_state_and_replies ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/wide_cells.rs (target/debug/deps/wide_cells-db7082e9baa46cbd)
+
+running 8 tests
+test insert_mode_wide_writes_do_not_leave_orphans_at_the_right_edge ... ok
+test final_full_width_write_uses_delayed_wrap_and_partial_erase_repairs_the_pair ... ok
+test printing_after_a_wide_cell_does_not_overwrite_its_continuation ... ok
+test erase_editing_resize_reset_and_vertical_moves_preserve_wide_cell_structure ... ok
+test wide_character_at_final_column_wraps_only_when_auto_wrap_is_enabled ... ok
+test wide_printable_uses_a_lead_and_continuation_with_rendition_snapshot ... ok
+test row_movement_primitives_preserve_valid_wide_pairs ... ok
+test wide_write_repairs_overwritten_halves_and_delayed_wrap_before_writing ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/xterm_256color.rs (target/debug/deps/xterm_256color-e3625c6afb1ec364)
+
+running 1 test
+test xterm_256color_clear_colors_and_screen_round_trip ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running benches/state_baselines.rs (target/debug/deps/state_baselines-a7017dffcb625e79)
+resize_one_column_unicode_pair: operations=20 elapsed_ns=68094470 ns_per_operation=3404723.5
+resize_columns_pair_history_0: operations=100 elapsed_ns=357924561 ns_per_operation=3579245.6
+resize_height_pair_history_0: operations=100 elapsed_ns=352884290 ns_per_operation=3528842.9
+resize_unchanged_history_0: operations=10000 elapsed_ns=298463 ns_per_operation=29.8
+resize_columns_pair_history_2000: operations=100 elapsed_ns=787170554 ns_per_operation=7871705.5
+resize_height_pair_history_2000: operations=100 elapsed_ns=328888507 ns_per_operation=3288885.1
+resize_unchanged_history_2000: operations=10000 elapsed_ns=413080 ns_per_operation=41.3
+resize_columns_pair_history_10000: operations=100 elapsed_ns=2815932735 ns_per_operation=28159327.4
+resize_height_pair_history_10000: operations=100 elapsed_ns=334269124 ns_per_operation=3342691.2
+resize_unchanged_history_10000: operations=10000 elapsed_ns=332111 ns_per_operation=33.2
+parse_plain_state: operations=2000 elapsed_ns=4469327544 ns_per_operation=2234663.8
+parse_escape_state: operations=2000 elapsed_ns=1520528779 ns_per_operation=760264.4
+scrollback_page_pair: operations=10000 elapsed_ns=368862 ns_per_operation=36.9
+selection_extend: operations=10000 elapsed_ns=1055561 ns_per_operation=105.6
+     Running unittests src/lib.rs (target/debug/deps/terminal_platform-ab2014c48acdc07b)
+
+running 2 tests
+test clipboard_tests::native_clipboard_ownership_and_external_round_trip ... ignored, requires a native desktop clipboard; temporarily replaces its text
+test clipboard_tests::clipboard_limit_counts_utf16_units_and_terminator ... ok
+
+test result: ok. 1 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/terminal_pty-da3d86bc67073976)
+
+running 4 tests
+test throughput::tests::received_and_cancelled_sends_balance_pending_output ... ok
+test throughput::tests::shutdown_discards_pending_but_preserves_lifetime_totals ... ok
+test term_tests::explicit_spawn_term_wins_over_defaults_including_empty_and_dumb ... ok
+test term_tests::term_default_repairs_missing_empty_and_dumb_but_preserves_other_values ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/pty_test_helper.rs (target/debug/deps/pty_test_helper-b0e8be7a0030fadb)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/contract.rs (target/debug/deps/contract-433366c5e7a5ea08)
+
+running 7 tests
+test lifecycle_keeps_exit_and_termination_distinct ... ok
+test size_rejects_zero_dimensions ... ok
+test output_preserves_arbitrary_bytes_and_distinguishes_eof_from_exit ... ok
+test spawn_config_owns_platform_arguments_environment_and_working_directory ... ok
+test portable_backend_is_project_owned_and_constructible ... ok
+test observed_spawn_failure_does_not_report_child_or_wait_for_output ... ok
+test portable_backend_streams_helper_output_without_assuming_read_boundaries ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/lifecycle.rs (target/debug/deps/lifecycle-92c483f7ca5137c5)
+
+running 4 tests
+test output_reader_drains_helper_stream_to_eof ... ok
+test naturally_exiting_child_preserves_numeric_exit_status ... ok
+test terminate_rejects_later_operations_and_reader_reaches_eof ... ok
+test resize_and_raw_write_succeed_while_running ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/term.rs (target/debug/deps/term-2b40b1ae63ae6a46)
+
+running 3 tests
+test native_clear_succeeds_with_xterm_256color_and_emits_supported_erase_sequences ... ok
+test native_bash_receives_default_or_preserved_term_without_parent_changes ... ok
+test native_bash_respects_explicit_term_and_later_shell_overrides ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/worker.rs (target/debug/deps/worker-682deeccb739ed6e)
+
+running 8 tests
+test full_command_queue_rejects_the_newest_command_without_dropping_queued_commands ... ok
+test dropping_the_controller_terminates_and_joins_the_session ... ok
+test dropping_the_controller_with_a_full_event_queue_joins_both_workers ... ok
+test bounded_event_queue_backpressures_without_dropping_terminal_events ... ok
+test worker_notifies_the_controller_after_queueing_each_event ... ok
+test explicit_termination_emits_each_terminal_event_once_and_join_rejects_later_commands ... ok
+test worker_forwards_raw_helper_output_and_independent_terminal_events ... ok
+test exited_child_output_is_drained_across_reads_before_eof ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running unittests examples/spawn_probe.rs (target/debug/examples/spawn_probe-295c0bbe06436157)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/terminal_renderer-b253e7c858324b15)
+
+running 100 tests
+test alpha_tests::only_explicit_premultiplication_is_supported ... ok
+test font::tests::default_request_selects_the_configured_monospace_family ... ok
+test font::tests::cell_metrics_change_with_dpi_but_not_window_size ... ok
+test font::tests::cell_height_includes_the_positive_descent_below_the_baseline ... ok
+test font::tests::discovered_monospace_fallback_requires_a_loadable_monospace_face ... ok
+test font::tests::atlas_face_identity_distinguishes_faces_and_effective_weights ... ok
+test font::tests::default_request_reports_when_no_system_monospace_face_is_available ... ok
+test font::tests::bold_resolution_rejects_invalid_data_and_mismatched_style ... ok
+test font::tests::chooses_the_primary_face_when_it_supports_text ... ok
+test font::tests::native_color_emoji_rasterization ... ignored, requires installed Noto Color Emoji
+test font::tests::native_jetbrains_bold_uses_distinct_outlines_and_preserves_grid ... ignored, requires installed JetBrainsMono Nerd Font Mono regular and Bold faces
+test font::tests::native_monospace_control_fonts_report_complete_line_metrics ... ignored, requires selected native control fonts
+test font::tests::native_regular_only_family_uses_synthesis_without_family_substitution ... ignored, requires installed regular-only Noto Mono
+test font::tests::native_static_intensity_selects_real_weight_faces ... ignored, requires installed JetBrainsMono Nerd Font Mono weight faces
+test font::tests::native_system_font_shapes_and_rasterizes_the_visual_smoke_wide_character ... ignored, requires the native system font database
+test font::tests::native_variable_unicode_fallback_rasterization ... ignored, requires native fonts and the variable fixture through FONTCONFIG_FILE
+test font::tests::named_request_reports_a_missing_family ... ok
+test font::tests::cache_keys_distinguish_font_size ... ok
+test font::tests::discovered_monospace_fallback_skips_unusable_faces_and_ignores_generic_alias ... ok
+test font::tests::empty_text_and_invalid_pixel_sizes_are_deterministic ... ok
+test font::tests::intensity_face_without_character_keeps_original_native_bold_coverage ... ok
+test font::tests::named_request_requires_a_matching_monospace_face ... ok
+test font::tests::shapes_basic_text_in_source_order_with_positioned_advances ... ok
+test font::tests::fontconfig_match_loads_the_resolved_file_and_rejects_proportional_spacing ... ok
+test font::tests::shape_cache_reuses_text_and_invalidates_on_font_scale_change ... ok
+test font::tests::glyph_cache_reuses_entries_and_evicts_the_least_recently_used ... ok
+test font::tests::rasterizes_a_shaped_glyph_to_an_alpha_bitmap ... ok
+test font::tests::uses_a_stable_fallback_when_the_primary_face_cannot_map_a_character ... ok
+test gpu::benchmarks::renderer_workload_baselines ... ignored, requires a GPU and system monospace/emoji fonts; release measurements only
+test gpu::tests::adjacent_row_glyph_quads_remain_in_their_respective_cell_bounds ... ok
+test gpu::tests::clips_cell_rectangles_to_surface_coordinates ... ok
+test gpu::tests::glyph_origin_uses_the_font_baseline_instead_of_the_cell_bottom ... ok
+test gpu::tests::glyph_origins_keep_terminal_rows_one_cell_height_apart ... ok
+test gpu::tests::glyph_rectangles_are_clipped_to_their_own_cell_bounds ... ok
+test gpu::tests::native_gpu_atlas_separates_variable_weight_instances ... ignored, requires a GPU and JetBrains Mono variable font, or FONTCONFIG_FILE pointing to fixtures
+test gpu::tests::native_gpu_background_opacity_and_srgb_premultiplication ... ignored, requires a native GPU adapter
+test gpu::tests::native_gpu_color_emoji_dpi_and_warm_cache ... ignored, requires a GPU, system monospace font, and Noto Color Emoji
+test gpu::tests::native_gpu_palette_preserves_surrounding_alpha ... ignored, requires a native GPU adapter and system monospace font
+test gpu::tests::native_gpu_renders_backgrounds_glyphs_underlines_and_cursor ... ignored, requires a native GPU adapter and system monospace font
+test gpu::tests::native_gpu_url_hints_preserve_surrounding_alpha ... ignored, requires a native GPU adapter and system monospace font
+test gpu::tests::native_gpu_validates_terminal_pipelines ... ignored, requires a native GPU adapter
+test gpu::tests::reusable_instance_buffers_grow_geometrically_instead_of_per_frame ... ok
+test gpu::tests::instance_upload_ranges_cover_only_changed_spans_and_new_tail ... ok
+test gpu::tests::scrollbar_geometry_tracks_history_position_growth_and_resize ... ok
+test hints::tests::labels_follow_pane_scale_theme_and_local_alpha ... ok
+test hints::tests::small_terminal_fonts_do_not_clip_hint_glyphs ... ok
+test font::tests::bold_rasterization_preserves_advance_and_separates_cached_weights ... ok
+test palette::tests::palette_dimming_preserves_surface_and_cell_alpha ... ok
+test scrollbar::tests::hit_drag_and_markers_stay_in_bounds ... ok
+test snapshot::opacity_tests::opacity_changes_backgrounds_after_inverse_resolution ... ok
+test snapshot::opacity_tests::painted_and_erased_rgb_backgrounds_project_identically_at_every_opacity ... ok
+test snapshot::opacity_tests::selected_background_and_overlay_are_not_faded ... ok
+test snapshot::tests::alternate_region_scroll_projects_current_cells_despite_primary_scrollback ... ok
+test palette::tests::palette_uses_live_semantic_colors_without_fading_text ... ok
+test font::tests::color_glyphs_preserve_rgba_and_cache_identity_without_changing_masks ... ok
+test scrollbar::tests::full_track_thumb_keeps_its_offset ... ok
+test palette::tests::palette_selection_stays_visible_and_bounds_follow_surface_and_scale ... ok
+test font::tests::missing_native_bold_keeps_unicode_coverage_and_uses_restrained_synthesis ... ok
+test snapshot::tests::blank_grid_projects_no_instances_but_colored_blank_remains ... ok
+test snapshot::tests::carries_core_attached_width_zero_marks_as_one_renderer_text_run ... ok
+test snapshot::tests::converts_resolved_cells_and_cursor_without_semantic_mutation ... ok
+test snapshot::tests::custom_theme_changes_projection_without_mutating_core ... ok
+test snapshot::tests::cursor_projection_carries_shape_blink_and_theme_color ... ok
+test snapshot::tests::emoji_projection_and_selection_keep_terminal_cell_spans ... ok
+test font::tests::native_bold_is_shaped_with_its_face_and_never_emboldened ... ok
+test snapshot::tests::ncurses_bold_projection_preserves_colors_and_resets_weight ... ok
+test snapshot::tests::italic_dim_conceal_and_strike_preserve_colors_opacity_selection_and_text ... ok
+test snapshot::tests::omits_wide_continuations_and_hides_cursor_when_core_requests_it ... ok
+test snapshot::tests::preserves_resolved_inverse_colors_and_underline_without_reinterpreting_them ... ok
+test snapshot::tests::projects_core_viewport_rows_and_hides_the_live_cursor_while_scrolled_back ... ok
+test snapshot::tests::scalar_text_is_inline_for_ascii_and_unicode ... ok
+test snapshot::tests::reflowed_compact_history_projects_selection_over_default_padding ... ok
+test snapshot::tests::search_overlay_highlights_full_spans_with_distinct_active_style ... ok
+test snapshot::tests::scrollbar_follows_primary_history_and_disappears_on_alternate_and_reset ... ok
+test snapshot::tests::reflow_projection_uses_mapped_selection_wide_cells_and_cursor ... ok
+test snapshot::tests::overlay_uses_resolved_ui_colors_for_matches_selection_and_activity ... ok
+test snapshot::tests::search_overlay_highlights_match_and_uses_opposite_edge ... ok
+test snapshot::tests::selected_blank_remains_visible_in_sparse_projection ... ok
+test snapshot::tests::selection_highlights_snapshot_without_changing_terminal_cells ... ok
+test snapshot::tests::strikethrough_spaces_are_projected_and_styles_survive_scrollback ... ok
+test startup::tests::disabled_scope_has_no_clock_or_output ... ok
+test snapshot::tests::text_overlay_covers_terminal_rows_without_mutating_core ... ok
+test startup::tests::scopes_stop_when_measurement_window_closes ... ok
+test tests::default_backend_prefers_dx12_on_windows_with_fallback ... ok
+test tests::explicit_backend_override_is_respected ... ok
+test tests::pane_projection_keeps_both_outputs_and_only_the_focused_cursor ... ok
+test tests::resizing_with_the_same_surface_format_keeps_draw_resources ... ok
+test tests::surface_size_rejects_minimized_dimensions ... ok
+test tests::surface_size_retains_nonzero_dimensions ... ok
+test tests::unconfigured_nonzero_surface_is_reconfigured_even_at_the_same_size ... ok
+test title_bar::tests::centered_path_uses_theme_and_avoids_controls ... ok
+test title_bar::tests::truncation_respects_wide_characters_and_combining_marks ... ok
+test font::tests::static_intensity_uses_compatible_faces_and_preserves_default_on_ties ... ok
+test palette::tests::picker_shares_layout_and_clips_unicode_with_activity_accents ... ok
+test font::tests::variable_weight_api_changes_native_outlines_without_changing_advance ... ok
+test font::tests::intensity_preserves_default_and_unsupported_font_bitmaps ... ok
+test font::tests::italic_rasterization_preserves_advances_and_separates_style_size_and_weight ... ok
+test font::tests::shape_cache_evicts_least_recently_used_text ... ok
+test font::tests::variable_regular_bitmaps_after_bold_match_fresh_rasterization ... ok
+test font::tests::variable_intensity_clamps_separates_caches_and_preserves_grid ... ok
+
+test result: ok. 85 passed; 0 failed; 15 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running benches/projection_baselines.rs (target/debug/deps/projection_baselines-a9afb8fccb29d034)
+visible_projection_80x30: operations=500 elapsed_ns=115765489 ns_per_operation=231531.0
+output_echo_plus_projection: operations=500 elapsed_ns=431319028 ns_per_operation=862638.1
+three_pane_layout_plus_projection: operations=500 elapsed_ns=144251254 ns_per_operation=288502.5
+     Running unittests src/lib.rs (target/debug/deps/terminal_workspace-ea39e4d5d3136524)
+
+running 22 tests
+test tests::custom_titles_stay_with_their_tab_and_preserve_configured_titles ... ok
+test tests::closing_collapses_a_split_and_preserves_last_pane ... ok
+test tests::definition_recreates_layout_and_focus ... ok
+test tests::directional_focus_prefers_greatest_overlap_and_breaks_ties_by_position ... ok
+test tests::directional_focus_has_no_wrap_and_ignores_zero_sized_panes ... ok
+test tests::directional_focus_follows_edges_in_both_axes_without_changing_layout ... ok
+test tests::directional_focus_prefers_nearest_center_before_topmost ... ok
+test tests::directional_focus_uses_layout_during_zoom_and_retains_per_tab_focus ... ok
+test tests::empty_startup_program_is_rejected ... ok
+test tests::horizontal_resize_moves_divider_both_directions_for_each_side ... ok
+test tests::nested_resize_uses_nearest_matching_split_and_subtree_minimum ... ok
+test tests::nested_split_rectangles_tile_the_viewport_with_odd_pixels ... ok
+test tests::explicit_startup_commands_follow_panes_through_layout_and_tab_changes ... ok
+test tests::resize_repeats_and_stops_at_each_minimum_boundary ... ok
+test tests::resize_without_matching_axis_and_during_zoom_is_noop ... ok
+test tests::tabs_own_panes_and_retain_focus ... ok
+test tests::roots_and_startup_commands_follow_pane_tab_workspace_precedence ... ok
+test tests::uneven_mixed_axis_layout_resizes_only_selected_split ... ok
+test tests::single_terminal_is_default ... ok
+test tests::zoom_is_per_tab_and_survives_split_and_close ... ok
+test tests::zoom_preserves_split_layout_focus_and_sessions ... ok
+test tests::vertical_resize_moves_divider_both_directions_for_each_side ... ok
+
+test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

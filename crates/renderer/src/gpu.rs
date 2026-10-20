@@ -14,6 +14,10 @@ const ATLAS_SLOT_SIZE: u32 = 64;
 const ATLAS_COLUMNS: u32 = ATLAS_WIDTH / ATLAS_SLOT_SIZE;
 const ATLAS_CAPACITY: usize = (ATLAS_COLUMNS * (ATLAS_HEIGHT / ATLAS_SLOT_SIZE)) as usize;
 
+#[cfg(test)]
+#[path = "gpu_bench.rs"]
+mod benchmarks;
+
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
 struct RectInstance {
@@ -33,7 +37,7 @@ struct GlyphInstance {
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct GpuGlyphKey {
-    face: String,
+    face: crate::font::FaceCacheIdentity,
     glyph_id: u16,
     pixels_per_em: u32,
     bold: bool,
