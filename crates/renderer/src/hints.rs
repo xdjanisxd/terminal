@@ -78,6 +78,9 @@ pub(crate) fn drawings(
                     background,
                     underline: false,
                     bold: false,
+                    italic: false,
+                    concealed: false,
+                    strikethrough: false,
                 })
                 .collect(),
             cursor: None,

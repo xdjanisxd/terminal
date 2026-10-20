@@ -1,8 +1,8 @@
 //! Renderer-owned conversion of already-resolved terminal state into draw data.
 
 use terminal_core::{
-    CellColor, CellOccupancy, CursorVisibility, InverseVideo, ScreenKind, TerminalState,
-    TextIntensity, UnderlineStyle,
+    CellColor, CellOccupancy, CursorVisibility, InverseVideo, ItalicStyle, ScreenKind,
+    TerminalState, TextIntensity, UnderlineStyle,
 };
 
 /// Straight-alpha encoded sRGB channels; alpha is linear coverage.
@@ -106,6 +106,9 @@ pub struct RenderCell {
     pub background: Rgba,
     pub underline: bool,
     pub bold: bool,
+    pub italic: bool,
+    pub concealed: bool,
+    pub strikethrough: bool,
 }
 
 /// Most terminal cells contain one scalar. Keep its UTF-8 bytes in the cell
@@ -219,6 +222,21 @@ impl TerminalRenderData {
                     continue;
                 }
                 let attributes = cell.attributes();
+                let selected = state.is_selected(row, column)
+                    || (cell.occupancy() == CellOccupancy::WideLead
+                        && state.is_selected(row, column + 1));
+                // Default-background blanks emit no draw data. Skip before
+                // resolving colors/styles while retaining selection/decorations.
+                if matches!(cell.character(), ' ' | '\0')
+                    && cell.combining_marks().is_empty()
+                    && attributes.background() == CellColor::Default
+                    && attributes.inverse() == InverseVideo::Disabled
+                    && attributes.underline() == UnderlineStyle::Disabled
+                    && !attributes.strikethrough()
+                    && !selected
+                {
+                    continue;
+                }
                 let (mut foreground, mut background) = (
                     color(attributes.foreground(), theme.foreground, theme),
                     color(attributes.background(), theme.background, theme),
@@ -226,11 +244,13 @@ impl TerminalRenderData {
                 if attributes.inverse() == InverseVideo::Enabled {
                     std::mem::swap(&mut foreground, &mut background);
                 }
+                if attributes.intensity() == TextIntensity::Faint {
+                    for channel in &mut foreground.0[..3] {
+                        *channel *= 0.66;
+                    }
+                }
                 background.0[3] = opacity;
-                if state.is_selected(row, column)
-                    || (cell.occupancy() == CellOccupancy::WideLead
-                        && state.is_selected(row, column + 1))
-                {
+                if selected {
                     foreground = theme.selection_foreground;
                     background = theme.selection_background;
                 }
@@ -239,6 +259,7 @@ impl TerminalRenderData {
                     && cell.combining_marks().is_empty()
                     && background == surface_background
                     && !underline
+                    && !attributes.strikethrough()
                 {
                     continue;
                 }
@@ -260,6 +281,9 @@ impl TerminalRenderData {
                     background,
                     underline,
                     bold: attributes.intensity() == TextIntensity::Bold,
+                    italic: attributes.italic() == ItalicStyle::Italic,
+                    concealed: attributes.concealed(),
+                    strikethrough: attributes.strikethrough(),
                 });
             }
         }
@@ -346,6 +370,9 @@ impl TerminalRenderData {
                     background,
                     underline: false,
                     bold: false,
+                    italic: false,
+                    concealed: false,
+                    strikethrough: false,
                 });
             }
         }
@@ -424,6 +451,62 @@ mod tests {
         CellColor, CursorVisibility, InverseVideo, TerminalDimensions, TerminalParser,
         TerminalState, UnderlineStyle,
     };
+
+    #[test]
+    fn italic_dim_conceal_and_strike_preserve_colors_opacity_selection_and_text() {
+        let mut state = TerminalState::new(TerminalDimensions::new(8, 2).unwrap());
+        TerminalParser::new().advance(&mut state,
+            "\x1b[38:2::120:150:180;48:2:30:60:90mA\x1b[2;3;4;9m界\u{301}\x1b[7mI\x1b[8mH\x1b[0mR".as_bytes()).unwrap();
+        let theme = RenderTheme::default();
+        let data = TerminalRenderData::from_terminal_with_opacity(&state, &theme, 0.4);
+        let plain = &data.cells[0];
+        let dim = &data.cells[1];
+        assert_eq!(dim.width, 2);
+        assert_eq!(dim.text.as_str(), "界\u{301}");
+        assert!(dim.italic && dim.underline && dim.strikethrough);
+        assert!(!dim.bold);
+        for index in 0..3 {
+            assert!((dim.foreground.0[index] - plain.foreground.0[index] * 0.66).abs() < 0.0001);
+        }
+        assert_eq!(dim.foreground.0[3], plain.foreground.0[3]);
+        assert_eq!(dim.background, plain.background);
+        let inverse = &data.cells[2];
+        assert_eq!(
+            inverse.background.0,
+            [120.0 / 255.0, 150.0 / 255.0, 180.0 / 255.0, 0.4]
+        );
+        assert!((inverse.foreground.0[0] - 30.0 / 255.0 * 0.66).abs() < 0.0001);
+        assert!(data.cells[3].concealed);
+        assert_eq!(data.cells[3].text.as_str(), "H");
+        let reset = &data.cells[4];
+        assert!(!reset.italic && !reset.concealed && !reset.strikethrough && !reset.underline);
+        assert_eq!(reset.foreground, theme.foreground);
+        state.begin_selection(0, 1);
+        state.extend_selection(0, 4);
+        assert_eq!(state.selected_text().as_deref(), Some("界\u{301}IH"));
+        let selected = TerminalRenderData::from_terminal_with_opacity(&state, &theme, 0.4);
+        assert_eq!(selected.cells[1].foreground, theme.selection_foreground);
+        assert_eq!(selected.cells[1].background, theme.selection_background);
+        assert!(selected.cells[3].concealed);
+    }
+
+    #[test]
+    fn strikethrough_spaces_are_projected_and_styles_survive_scrollback() {
+        let mut state = TerminalState::new(TerminalDimensions::new(3, 1).unwrap());
+        TerminalParser::new()
+            .advance(&mut state, b"\x1b[2;3;9mA \r\n")
+            .unwrap();
+        assert_eq!(state.scrollback_len(), 1);
+        state.page_up();
+        let data = TerminalRenderData::from_terminal(&state);
+        assert_eq!(data.cells.len(), 2);
+        assert!(
+            data.cells
+                .iter()
+                .all(|cell| cell.italic && cell.strikethrough)
+        );
+        assert_eq!(data.cells[1].character, ' ');
+    }
 
     #[test]
     fn blank_grid_projects_no_instances_but_colored_blank_remains() {

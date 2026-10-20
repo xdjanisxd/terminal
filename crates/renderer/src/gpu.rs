@@ -35,6 +35,7 @@ struct GpuGlyphKey {
     glyph_id: u16,
     pixels_per_em: u32,
     bold: bool,
+    italic: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -668,6 +669,21 @@ impl DrawResources {
                 });
                 background_count += 1;
             }
+            if cell.concealed {
+                continue;
+            }
+            if cell.strikethrough {
+                self.rectangles.push(RectInstance {
+                    rect: to_clip_rect(
+                        x,
+                        y + (frame.cell_metrics.baseline() as f32 * 0.6).round(),
+                        width,
+                        1.0,
+                        frame.surface_size,
+                    ),
+                    color: cell.foreground.0,
+                });
+            }
             if cell.underline {
                 self.rectangles.push(RectInstance {
                     rect: to_clip_rect(x, y + cell_height - 1.0, width, 1.0, frame.surface_size),
@@ -693,6 +709,7 @@ impl DrawResources {
                     glyph_id: shaped_glyph.glyph_id(),
                     pixels_per_em: pixels_per_em.to_bits(),
                     bold: cell.bold,
+                    italic: cell.italic,
                 };
                 atlas_lookups += 1;
                 let entry = if let Some(entry) = self.glyph_atlas.get(&key) {
@@ -700,7 +717,12 @@ impl DrawResources {
                 } else {
                     raster_calls += 1;
                     font_system
-                        .rasterize_glyph_with_bold(shaped_glyph, pixels_per_em, cell.bold)
+                        .rasterize_glyph_with_style(
+                            shaped_glyph,
+                            pixels_per_em,
+                            cell.bold,
+                            cell.italic,
+                        )
                         .ok()
                         .and_then(|bitmap| self.glyph_atlas.get_or_insert(queue, key, &bitmap))
                 };
@@ -1340,6 +1362,7 @@ mod tests {
             glyph_id: glyph.glyph_id(),
             pixels_per_em: 20.0f32.to_bits(),
             bold: true,
+            italic: false,
         };
         let light_key = key(&light.glyphs()[0]);
         let heavy_key = key(&heavy.glyphs()[0]);
@@ -1355,6 +1378,23 @@ mod tests {
         assert_ne!(a.slot, b.slot);
         assert_eq!(resources.glyph_atlas.get(&light_key).unwrap().slot, a.slot);
         assert_eq!(resources.glyph_atlas.get(&heavy_key).unwrap().slot, b.slot);
+        let glyph = &light.glyphs()[0];
+        let mut italic_key = light_key.clone();
+        italic_key.italic = true;
+        let italic_bitmap = fonts
+            .rasterize_glyph_with_style(glyph, 20.0, true, true)
+            .unwrap();
+        let italic = resources
+            .glyph_atlas
+            .get_or_insert(&queue, italic_key.clone(), &italic_bitmap)
+            .unwrap();
+        assert_ne!(italic.slot, a.slot);
+        assert_ne!(italic.slot, b.slot);
+        assert_eq!(resources.glyph_atlas.get(&light_key).unwrap().slot, a.slot);
+        assert_eq!(
+            resources.glyph_atlas.get(&italic_key).unwrap().slot,
+            italic.slot
+        );
     }
 
     #[test]
@@ -1491,6 +1531,18 @@ mod tests {
         terminal.print_character('A').unwrap();
         terminal.set_text_intensity(terminal_core::TextIntensity::Normal);
         terminal.print_character('A').unwrap();
+
+        // Normal / italic / normal exercises atlas identity after a reset.
+        // Further columns cover dim, conceal, and strike-through in the GPU path.
+        terminal.set_cursor_position(3, 0).unwrap();
+        terminal.reset_rendition();
+        terminal_core::TerminalParser::new()
+            .advance(
+                &mut terminal,
+                b"A\x1b[3mA\x1b[23mA\x1b[2mA\x1b[22;8mA\x1b[28;9mA",
+            )
+            .unwrap();
+        terminal.reset_rendition();
         assert_eq!(terminal.screen().cell(0, 2).unwrap().character(), '界');
         let swatches = [(32, 32, 32), (57, 57, 57), (68, 68, 68), (120, 169, 255)];
         for (row, &(red, green, blue)) in swatches.iter().enumerate() {
@@ -1536,6 +1588,7 @@ mod tests {
                         glyph_id: wide_bitmap.glyph_id(),
                         pixels_per_em: pixels_per_em.to_bits(),
                         bold: false,
+                        italic: false,
                     },
                     &wide_bitmap,
                 )
@@ -1758,6 +1811,37 @@ mod tests {
                     .map(|p| u64::from(p[0]) + u64::from(p[1]))
                     .sum::<u64>()
             };
+
+            let cell_pixels = |column: usize| {
+                (75..100)
+                    .flat_map(|row| {
+                        (column * 96..(column + 1) * 96)
+                            .map(move |x| pixels[row * WIDTH as usize + x])
+                    })
+                    .collect::<Vec<_>>()
+            };
+            let normal = cell_pixels(0);
+            assert_ne!(normal, cell_pixels(1), "italic must change drawn pixels");
+            assert_eq!(
+                normal,
+                cell_pixels(2),
+                "italic reset must reuse upright pixels"
+            );
+            let brightness = |cell: Vec<[u8; 4]>| cell.iter().map(|p| u64::from(p[0])).sum::<u64>();
+            assert!(
+                brightness(cell_pixels(3)) < brightness(normal.clone()),
+                "faint must reduce brightness"
+            );
+            assert!(
+                cell_pixels(4)
+                    .iter()
+                    .all(|p| *p == pixels[75 * WIDTH as usize + 4 * 96]),
+                "conceal must suppress glyphs"
+            );
+            assert!(
+                brightness(cell_pixels(5)) > brightness(normal),
+                "strike-through must add pixels"
+            );
             assert!(coverage(1) > coverage(0));
             assert_eq!(coverage(0), coverage(2));
             assert!(pixels.iter().any(|pixel| pixel[2] > 80));

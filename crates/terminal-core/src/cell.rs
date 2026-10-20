@@ -53,6 +53,8 @@ pub struct CellAttributes {
     italic: ItalicStyle,
     underline: UnderlineStyle,
     inverse: InverseVideo,
+    concealed: bool,
+    strikethrough: bool,
 }
 
 impl CellAttributes {
@@ -65,6 +67,8 @@ impl CellAttributes {
             italic: ItalicStyle::Upright,
             underline: UnderlineStyle::Disabled,
             inverse: InverseVideo::Disabled,
+            concealed: false,
+            strikethrough: false,
         }
     }
 
@@ -90,6 +94,22 @@ impl CellAttributes {
 
     pub const fn inverse(self) -> InverseVideo {
         self.inverse
+    }
+
+    pub const fn concealed(self) -> bool {
+        self.concealed
+    }
+
+    pub const fn strikethrough(self) -> bool {
+        self.strikethrough
+    }
+
+    pub(crate) fn set_concealed(&mut self, concealed: bool) {
+        self.concealed = concealed;
+    }
+
+    pub(crate) fn set_strikethrough(&mut self, strikethrough: bool) {
+        self.strikethrough = strikethrough;
     }
 
     pub(crate) fn set_foreground(&mut self, foreground: CellColor) {

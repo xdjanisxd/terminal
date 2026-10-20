@@ -20,6 +20,7 @@ pub enum ScreenKind {
 struct SavedCursor {
     cursor: Cursor,
     rendition: CellAttributes,
+    origin: bool,
 }
 
 #[derive(Debug)]
@@ -48,23 +49,31 @@ impl ScreenState {
         }
     }
 
-    fn save_cursor(&mut self, rendition: CellAttributes) {
+    fn save_cursor(&mut self, rendition: CellAttributes, origin: bool) {
         self.saved_cursor = Some(SavedCursor {
             cursor: self.grid.cursor(),
             rendition,
+            origin,
         });
     }
 
-    fn restore_cursor(&mut self) -> Option<CellAttributes> {
+    fn restore_cursor(&mut self) -> Option<(CellAttributes, bool)> {
         let saved = self.saved_cursor?;
         let dimensions = self.grid.dimensions();
         self.grid
             .set_cursor_position(
-                saved.cursor.row().min(dimensions.rows() - 1),
+                if saved.origin {
+                    saved.cursor.row().clamp(
+                        self.vertical_scrolling_margins.top(),
+                        self.vertical_scrolling_margins.bottom(),
+                    )
+                } else {
+                    saved.cursor.row().min(dimensions.rows() - 1)
+                },
                 saved.cursor.column().min(dimensions.columns() - 1),
             )
             .expect("clamped saved cursor is always in bounds");
-        Some(saved.rendition)
+        Some((saved.rendition, saved.origin))
     }
 
     fn reset(&mut self) {
@@ -286,12 +295,20 @@ impl ScreenSet {
         self.active_state_mut().wrap_pending = pending;
     }
 
-    pub(crate) fn save_cursor(&mut self, rendition: CellAttributes) {
-        self.active_state_mut().save_cursor(rendition);
+    pub(crate) fn save_cursor(&mut self, rendition: CellAttributes, origin: bool) {
+        self.active_state_mut().save_cursor(rendition, origin);
     }
 
-    pub(crate) fn restore_cursor(&mut self) -> Option<CellAttributes> {
+    pub(crate) fn restore_cursor(&mut self) -> Option<(CellAttributes, bool)> {
         self.active_state_mut().restore_cursor()
+    }
+
+    pub(crate) fn reset_saved_cursor(&mut self) {
+        self.active_state_mut().saved_cursor = Some(SavedCursor {
+            cursor: Cursor::default(),
+            rendition: CellAttributes::default(),
+            origin: false,
+        });
     }
 
     pub(crate) fn resize_all(&mut self, dimensions: TerminalDimensions) {

@@ -181,7 +181,7 @@ fn truecolor_is_chunk_safe_and_preserves_unrelated_terminal_state_and_replies() 
 }
 
 #[test]
-fn malformed_truecolor_groups_are_atomic_and_colon_forms_stay_unsupported() {
+fn malformed_truecolor_groups_are_atomic() {
     for input in [
         b"\x1b[38;2m".as_slice(),
         b"\x1b[38;2;255m",
@@ -190,8 +190,6 @@ fn malformed_truecolor_groups_are_atomic_and_colon_forms_stay_unsupported() {
         b"\x1b[48;2;1;2m",
         b"\x1b[38;2;256;0;1m",
         b"\x1b[48;2;1;256;3m",
-        b"\x1b[38:2:1:2:3m",
-        b"\x1b[48:2:1:2:3m",
     ] {
         let mut parser = TerminalParser::new();
         let mut terminal = state();

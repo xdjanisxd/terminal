@@ -8,7 +8,7 @@ These are reproducible workloads and coverage boundaries for later compatibility
 
 `crates/terminal-core/tests/deterministic_inputs.rs` runs fixed pseudo-random byte streams at three parser chunk sizes and fixed state-operation streams covering scrollback, selection, and resize. It checks cursor bounds, scrollback and reply limits, viewport bounds, and visible-cell addressability. These tests run on stable Rust in CI.
 
-Known protocol gaps include remaining CSI/SGR styles and modes, colon-form colors, most OSC/DCS semantics, secondary/tertiary DA replies, origin mode, and further alternate-screen behavior. Clipboard support outside Windows and broader real-application integration remain deferred. See [CURRENT_STATE.md](CURRENT_STATE.md) for the implemented slice.
+Known protocol gaps include remaining CSI/SGR styles and modes, most OSC/DCS semantics, tertiary DA replies, and further alternate-screen behavior. Clipboard support outside Windows and broader real-application integration remain deferred. See [CURRENT_STATE.md](CURRENT_STATE.md) for the implemented slice and [TERMINAL_COMPATIBILITY.md](TERMINAL_COMPATIBILITY.md) for the compatibility polish validation.
 
 ## Fuzzing
 

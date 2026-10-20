@@ -1,0 +1,303 @@
+{
+  "samples": {
+    "parse_plain_state": {
+      "after": [
+        10819.6,
+        10937.3,
+        10921.9,
+        11294.4,
+        10851.9,
+        11895.8,
+        10503.9,
+        16977.6,
+        10445.7,
+        11537.8,
+        11101.5
+      ],
+      "before": [
+        10942.1,
+        10849.1,
+        10993.0,
+        11017.5,
+        11016.4,
+        10983.9,
+        11650.9,
+        11358.7,
+        11346.3,
+        13234.7,
+        11053.2
+      ]
+    },
+    "parse_escape_state": {
+      "after": [
+        5249.9,
+        5174.6,
+        5177.9,
+        5356.4,
+        5172.7,
+        5208.4,
+        5158.5,
+        5172.8,
+        5196.4,
+        5370.4,
+        5263.2
+      ],
+      "before": [
+        5198.9,
+        5164.5,
+        5146.6,
+        5177.2,
+        5152.6,
+        5189.3,
+        5164.8,
+        5186.6,
+        5211.2,
+        5192.3,
+        5270.5
+      ]
+    },
+    "scrollback_page_pair": {
+      "after": [
+        3.9,
+        4.3,
+        3.9,
+        3.9,
+        3.9,
+        3.9,
+        3.9,
+        3.9,
+        3.9,
+        3.9,
+        3.9
+      ],
+      "before": [
+        3.9,
+        3.9,
+        3.9,
+        3.9,
+        3.9,
+        3.9,
+        3.9,
+        3.9,
+        3.9,
+        3.9,
+        3.9
+      ]
+    },
+    "selection_extend": {
+      "after": [
+        4.0,
+        4.0,
+        4.0,
+        4.0,
+        4.6,
+        4.0,
+        4.0,
+        4.0,
+        4.6,
+        4.0,
+        4.0
+      ],
+      "before": [
+        4.6,
+        4.0,
+        4.0,
+        4.0,
+        4.0,
+        4.0,
+        4.0,
+        4.0,
+        4.0,
+        4.0,
+        4.0
+      ]
+    },
+    "visible_projection_80x30": {
+      "after": [
+        18533.2,
+        26723.4,
+        16857.3,
+        14852.4,
+        23872.0,
+        16639.1,
+        17351.3,
+        22934.8,
+        18458.2,
+        17643.7,
+        15641.5
+      ],
+      "before": [
+        20308.3,
+        19365.0,
+        18740.3,
+        19813.3,
+        17975.2,
+        18790.4,
+        18585.5,
+        19345.9,
+        21008.6,
+        29881.6,
+        18444.4
+      ]
+    },
+    "output_echo_plus_projection": {
+      "after": [
+        18124.0,
+        16062.6,
+        15351.7,
+        15545.4,
+        16185.8,
+        15703.8,
+        15615.1,
+        17812.6,
+        17512.4,
+        17780.0,
+        15525.3
+      ],
+      "before": [
+        19834.2,
+        20402.7,
+        18285.9,
+        18216.3,
+        18640.8,
+        18525.5,
+        18755.6,
+        18171.1,
+        20114.0,
+        19210.3,
+        18309.1
+      ]
+    },
+    "three_pane_layout_plus_projection": {
+      "after": [
+        22080.4,
+        20264.4,
+        20311.0,
+        20264.4,
+        20594.1,
+        20248.6,
+        20312.1,
+        22067.7,
+        22124.4,
+        22122.7,
+        20299.9
+      ],
+      "before": [
+        22246.1,
+        22901.5,
+        20727.4,
+        20692.5,
+        20948.4,
+        21175.2,
+        21274.7,
+        21201.0,
+        22344.7,
+        20883.4,
+        20901.0
+      ]
+    }
+  },
+  "summary": {
+    "parse_plain_state": {
+      "before_ns": 11017.5,
+      "after_ns": 10937.3,
+      "change_percent": -0.7,
+      "before_range": [
+        10849.1,
+        13234.7
+      ],
+      "after_range": [
+        10445.7,
+        16977.6
+      ]
+    },
+    "parse_escape_state": {
+      "before_ns": 5186.6,
+      "after_ns": 5196.4,
+      "change_percent": 0.2,
+      "before_range": [
+        5146.6,
+        5270.5
+      ],
+      "after_range": [
+        5158.5,
+        5370.4
+      ]
+    },
+    "scrollback_page_pair": {
+      "before_ns": 3.9,
+      "after_ns": 3.9,
+      "change_percent": 0.0,
+      "before_range": [
+        3.9,
+        3.9
+      ],
+      "after_range": [
+        3.9,
+        4.3
+      ]
+    },
+    "selection_extend": {
+      "before_ns": 4.0,
+      "after_ns": 4.0,
+      "change_percent": 0.0,
+      "before_range": [
+        4.0,
+        4.6
+      ],
+      "after_range": [
+        4.0,
+        4.6
+      ]
+    },
+    "visible_projection_80x30": {
+      "before_ns": 19345.9,
+      "after_ns": 17643.7,
+      "change_percent": -8.8,
+      "before_range": [
+        17975.2,
+        29881.6
+      ],
+      "after_range": [
+        14852.4,
+        26723.4
+      ]
+    },
+    "output_echo_plus_projection": {
+      "before_ns": 18640.8,
+      "after_ns": 16062.6,
+      "change_percent": -13.8,
+      "before_range": [
+        18171.1,
+        20402.7
+      ],
+      "after_range": [
+        15351.7,
+        18124.0
+      ]
+    },
+    "three_pane_layout_plus_projection": {
+      "before_ns": 21175.2,
+      "after_ns": 20312.1,
+      "change_percent": -4.1,
+      "before_range": [
+        20692.5,
+        22901.5
+      ],
+      "after_range": [
+        20248.6,
+        22124.4
+      ]
+    }
+  },
+  "metadata": {
+    "date": "2026-10-20",
+    "base_revision": "f003bbca13159870c0397f18d6f3c20a33ab2659",
+    "candidate": "uncommitted feat/terminal-compatibility-polish working tree",
+    "host": "Linux x86_64, Intel Core i5-1250P",
+    "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+    "method": "Release benchmark executables retained before edits; 11 alternating before/after samples per stage after one warmup per executable. No concurrent task builds during retained comparison. No timing assertions.",
+    "units": "nanoseconds per operation",
+    "limits": "CPU microbenchmarks only; excludes PTY scheduling, shaping, GPU upload and presentation. Ranges show host noise. Navigation nanosecond results are too small for strong performance conclusions."
+  }
+}
