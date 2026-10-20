@@ -1,7 +1,7 @@
 //! App command definitions and palette selection state. Execution stays in Application.
 
 use std::path::PathBuf;
-use terminal_config::{Command, ProjectRoot};
+use terminal_config::{Command, ProjectRoot, ThemePreset};
 use terminal_workspace::SplitAxis;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -11,6 +11,7 @@ pub enum PaletteAction {
     ProjectSplit(PathBuf, SplitAxis),
     SwitchTab(usize),
     SavedWorkspace(String),
+    Theme(ThemePreset),
 }
 
 #[derive(Clone, Debug)]
@@ -274,6 +275,12 @@ impl Palette {
                 entries.push(PaletteEntry { action, name });
             }
         }
+        for preset in ThemePreset::ALL {
+            entries.push(PaletteEntry {
+                action: PaletteAction::Theme(preset),
+                name: format!("Theme: {}", preset.name()),
+            });
+        }
         Self {
             query: String::new(),
             selected: 0,
@@ -355,6 +362,20 @@ mod tests {
         assert_eq!(palette.selected(), 0);
         palette.push_text("zzzz");
         assert_eq!(palette.chosen(), None);
+    }
+
+    #[test]
+    fn built_in_themes_are_searchable_palette_actions() {
+        for preset in ThemePreset::ALL {
+            let mut palette = Palette::default();
+            palette.push_text(&format!("theme: {}", preset.name().to_ascii_lowercase()));
+            assert_eq!(
+                palette.chosen(),
+                Some(PaletteAction::Theme(preset)),
+                "{}",
+                preset.identifier()
+            );
+        }
     }
 
     #[test]

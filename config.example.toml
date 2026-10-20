@@ -32,6 +32,10 @@ size = 16 # Logical pixels, 1..=256. Restart after editing [font].
 
 [theme]
 # Every color is #RRGGBB. Omitted fields use their built-in defaults.
+# Choose a complete built-in palette; explicit color fields below override it.
+# preset = "midnight" # Built-ins: solarized_dark, solarized_light,
+# catppuccin_mocha, tokyo_night, dracula, gruvbox_dark, retro_terminal,
+# cyberpunk, neon_light.
 foreground = "#e6e6e6"
 background = "#000000"
 cursor = "#e6e6e6"

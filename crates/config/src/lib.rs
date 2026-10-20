@@ -7,8 +7,84 @@ use terminal_workspace::{LayoutDefinition, Workspace, WorkspaceDefinition};
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Rgb(pub u8, pub u8, pub u8);
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ThemePreset {
+    Midnight,
+    SolarizedDark,
+    SolarizedLight,
+    CatppuccinMocha,
+    TokyoNight,
+    Dracula,
+    GruvboxDark,
+    RetroTerminal,
+    Cyberpunk,
+    NeonLight,
+}
+
+impl ThemePreset {
+    pub const ALL: [Self; 10] = [
+        Self::Midnight,
+        Self::SolarizedDark,
+        Self::SolarizedLight,
+        Self::CatppuccinMocha,
+        Self::TokyoNight,
+        Self::Dracula,
+        Self::GruvboxDark,
+        Self::RetroTerminal,
+        Self::Cyberpunk,
+        Self::NeonLight,
+    ];
+
+    pub const fn identifier(self) -> &'static str {
+        match self {
+            Self::Midnight => "midnight",
+            Self::SolarizedDark => "solarized_dark",
+            Self::SolarizedLight => "solarized_light",
+            Self::CatppuccinMocha => "catppuccin_mocha",
+            Self::TokyoNight => "tokyo_night",
+            Self::Dracula => "dracula",
+            Self::GruvboxDark => "gruvbox_dark",
+            Self::RetroTerminal => "retro_terminal",
+            Self::Cyberpunk => "cyberpunk",
+            Self::NeonLight => "neon_light",
+        }
+    }
+
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::Midnight => "Midnight",
+            Self::SolarizedDark => "Solarized Dark",
+            Self::SolarizedLight => "Solarized Light",
+            Self::CatppuccinMocha => "Catppuccin Mocha",
+            Self::TokyoNight => "Tokyo Night",
+            Self::Dracula => "Dracula",
+            Self::GruvboxDark => "Gruvbox Dark",
+            Self::RetroTerminal => "Retro Terminal",
+            Self::Cyberpunk => "CyberPunk",
+            Self::NeonLight => "Neon Light",
+        }
+    }
+
+    pub fn parse(value: &str) -> Result<Self, String> {
+        match value {
+            "midnight" => Ok(Self::Midnight),
+            "solarized_dark" => Ok(Self::SolarizedDark),
+            "solarized_light" => Ok(Self::SolarizedLight),
+            "catppuccin_mocha" => Ok(Self::CatppuccinMocha),
+            "tokyo_night" => Ok(Self::TokyoNight),
+            "dracula" => Ok(Self::Dracula),
+            "gruvbox_dark" => Ok(Self::GruvboxDark),
+            "retro_terminal" => Ok(Self::RetroTerminal),
+            "cyberpunk" => Ok(Self::Cyberpunk),
+            "neon_light" => Ok(Self::NeonLight),
+            _ => Err(format!("unknown theme preset {value:?}")),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Theme {
+    pub preset: Option<ThemePreset>,
     pub foreground: Rgb,
     pub background: Rgb,
     pub cursor: Rgb,
@@ -30,6 +106,7 @@ pub struct Theme {
 impl Default for Theme {
     fn default() -> Self {
         Self {
+            preset: None,
             foreground: Rgb(230, 230, 230),
             background: Rgb(0, 0, 0),
             cursor: Rgb(230, 230, 230),
@@ -65,6 +142,326 @@ impl Default for Theme {
             ],
         }
     }
+}
+
+impl Theme {
+    pub fn from_preset(preset: ThemePreset) -> Self {
+        let mut theme = Self {
+            preset: Some(preset),
+            ..Self::default()
+        };
+        match preset {
+            ThemePreset::Midnight => {}
+            ThemePreset::SolarizedDark => {
+                theme.foreground = Rgb(131, 148, 150);
+                theme.background = Rgb(0, 43, 54);
+                theme.cursor = Rgb(147, 161, 161);
+                theme.selection_foreground = Rgb(253, 246, 227);
+                theme.selection_background = Rgb(88, 110, 117);
+                theme.ui_muted = Some(Rgb(101, 123, 131));
+                theme.ui_accent = Some(Rgb(38, 139, 210));
+                theme.ui_border = Some(Rgb(88, 110, 117));
+                theme.ansi = [
+                    Rgb(7, 54, 66),
+                    Rgb(220, 50, 47),
+                    Rgb(133, 153, 0),
+                    Rgb(181, 137, 0),
+                    Rgb(38, 139, 210),
+                    Rgb(211, 54, 130),
+                    Rgb(42, 161, 152),
+                    Rgb(238, 232, 213),
+                    Rgb(0, 43, 54),
+                    Rgb(203, 75, 22),
+                    Rgb(88, 110, 117),
+                    Rgb(101, 123, 131),
+                    Rgb(131, 148, 150),
+                    Rgb(108, 113, 196),
+                    Rgb(147, 161, 161),
+                    Rgb(253, 246, 227),
+                ];
+            }
+            ThemePreset::SolarizedLight => {
+                theme.foreground = Rgb(101, 123, 131);
+                theme.background = Rgb(253, 246, 227);
+                theme.cursor = Rgb(88, 110, 117);
+                theme.selection_foreground = Rgb(0, 43, 54);
+                theme.selection_background = Rgb(238, 232, 213);
+                theme.ui_muted = Some(Rgb(131, 148, 150));
+                theme.ui_accent = Some(Rgb(38, 139, 210));
+                theme.ui_border = Some(Rgb(147, 161, 161));
+                theme.ansi = [
+                    Rgb(7, 54, 66),
+                    Rgb(220, 50, 47),
+                    Rgb(133, 153, 0),
+                    Rgb(181, 137, 0),
+                    Rgb(38, 139, 210),
+                    Rgb(211, 54, 130),
+                    Rgb(42, 161, 152),
+                    Rgb(238, 232, 213),
+                    Rgb(0, 43, 54),
+                    Rgb(203, 75, 22),
+                    Rgb(88, 110, 117),
+                    Rgb(101, 123, 131),
+                    Rgb(131, 148, 150),
+                    Rgb(108, 113, 196),
+                    Rgb(147, 161, 161),
+                    Rgb(253, 246, 227),
+                ];
+            }
+            ThemePreset::CatppuccinMocha => {
+                theme.foreground = Rgb(205, 214, 244);
+                theme.background = Rgb(30, 30, 46);
+                theme.cursor = Rgb(245, 224, 220);
+                theme.selection_foreground = Rgb(245, 224, 220);
+                theme.selection_background = Rgb(88, 91, 112);
+                theme.ansi = [
+                    Rgb(69, 71, 90),
+                    Rgb(243, 139, 168),
+                    Rgb(166, 227, 161),
+                    Rgb(249, 226, 175),
+                    Rgb(137, 180, 250),
+                    Rgb(245, 194, 231),
+                    Rgb(148, 226, 213),
+                    Rgb(186, 194, 222),
+                    Rgb(88, 91, 112),
+                    Rgb(243, 139, 168),
+                    Rgb(166, 227, 161),
+                    Rgb(249, 226, 175),
+                    Rgb(137, 180, 250),
+                    Rgb(245, 194, 231),
+                    Rgb(148, 226, 213),
+                    Rgb(166, 173, 200),
+                ];
+            }
+            ThemePreset::TokyoNight => {
+                theme.foreground = Rgb(192, 202, 245);
+                theme.background = Rgb(26, 27, 38);
+                theme.cursor = Rgb(192, 202, 245);
+                theme.selection_foreground = Rgb(192, 202, 245);
+                theme.selection_background = Rgb(40, 52, 87);
+                theme.ansi = [
+                    Rgb(21, 22, 30),
+                    Rgb(247, 118, 142),
+                    Rgb(158, 206, 106),
+                    Rgb(224, 175, 104),
+                    Rgb(122, 162, 247),
+                    Rgb(187, 154, 247),
+                    Rgb(125, 207, 255),
+                    Rgb(169, 177, 214),
+                    Rgb(65, 72, 104),
+                    Rgb(255, 137, 157),
+                    Rgb(159, 224, 68),
+                    Rgb(250, 186, 74),
+                    Rgb(141, 176, 255),
+                    Rgb(199, 169, 255),
+                    Rgb(164, 218, 255),
+                    Rgb(192, 202, 245),
+                ];
+            }
+            ThemePreset::Dracula => {
+                theme.foreground = Rgb(248, 248, 242);
+                theme.background = Rgb(40, 42, 54);
+                theme.cursor = Rgb(248, 248, 242);
+                theme.selection_foreground = Rgb(248, 248, 242);
+                theme.selection_background = Rgb(68, 71, 90);
+                theme.ansi = [
+                    Rgb(33, 34, 44),
+                    Rgb(255, 85, 85),
+                    Rgb(80, 250, 123),
+                    Rgb(241, 250, 140),
+                    Rgb(189, 147, 249),
+                    Rgb(255, 121, 198),
+                    Rgb(139, 233, 253),
+                    Rgb(248, 248, 242),
+                    Rgb(98, 114, 164),
+                    Rgb(255, 110, 110),
+                    Rgb(105, 255, 148),
+                    Rgb(255, 255, 165),
+                    Rgb(214, 172, 255),
+                    Rgb(255, 146, 223),
+                    Rgb(164, 255, 255),
+                    Rgb(255, 255, 255),
+                ];
+            }
+            ThemePreset::GruvboxDark => {
+                theme.foreground = Rgb(235, 219, 178);
+                theme.background = Rgb(40, 40, 40);
+                theme.cursor = Rgb(254, 128, 25);
+                theme.selection_foreground = Rgb(251, 241, 199);
+                theme.selection_background = Rgb(80, 73, 69);
+                theme.ansi = [
+                    Rgb(40, 40, 40),
+                    Rgb(204, 36, 29),
+                    Rgb(152, 151, 26),
+                    Rgb(215, 153, 33),
+                    Rgb(69, 133, 136),
+                    Rgb(177, 98, 134),
+                    Rgb(104, 157, 106),
+                    Rgb(168, 153, 132),
+                    Rgb(146, 131, 116),
+                    Rgb(251, 73, 52),
+                    Rgb(184, 187, 38),
+                    Rgb(250, 189, 47),
+                    Rgb(131, 165, 152),
+                    Rgb(211, 134, 155),
+                    Rgb(142, 192, 124),
+                    Rgb(235, 219, 178),
+                ];
+            }
+            ThemePreset::RetroTerminal => {
+                theme.foreground = Rgb(155, 231, 165);
+                theme.background = Rgb(4, 14, 8);
+                theme.cursor = Rgb(114, 245, 138);
+                theme.selection_foreground = Rgb(201, 255, 209);
+                theme.selection_background = Rgb(22, 69, 37);
+                theme.ansi = [
+                    Rgb(8, 19, 11),
+                    Rgb(199, 91, 75),
+                    Rgb(75, 155, 85),
+                    Rgb(179, 163, 64),
+                    Rgb(76, 121, 144),
+                    Rgb(144, 96, 128),
+                    Rgb(79, 155, 145),
+                    Rgb(155, 231, 165),
+                    Rgb(65, 99, 74),
+                    Rgb(240, 114, 96),
+                    Rgb(114, 245, 138),
+                    Rgb(225, 208, 100),
+                    Rgb(115, 176, 200),
+                    Rgb(202, 133, 177),
+                    Rgb(117, 217, 201),
+                    Rgb(201, 255, 209),
+                ];
+            }
+            ThemePreset::Cyberpunk => {
+                theme.foreground = Rgb(229, 229, 229);
+                theme.background = Rgb(51, 42, 87);
+                theme.cursor = Rgb(33, 246, 188);
+                theme.selection_foreground = Rgb(0, 0, 0);
+                theme.selection_background = Rgb(193, 222, 255);
+                theme.ansi = [
+                    Rgb(0, 0, 0),
+                    Rgb(255, 112, 146),
+                    Rgb(0, 251, 172),
+                    Rgb(255, 250, 106),
+                    Rgb(0, 191, 255),
+                    Rgb(223, 149, 255),
+                    Rgb(134, 203, 254),
+                    Rgb(255, 255, 255),
+                    Rgb(89, 89, 89),
+                    Rgb(255, 138, 164),
+                    Rgb(33, 246, 188),
+                    Rgb(255, 247, 135),
+                    Rgb(27, 204, 253),
+                    Rgb(230, 174, 254),
+                    Rgb(153, 214, 252),
+                    Rgb(255, 255, 255),
+                ];
+            }
+            ThemePreset::NeonLight => {
+                theme.foreground = Rgb(214, 208, 232);
+                theme.background = Rgb(8, 6, 18);
+                theme.cursor = Rgb(53, 230, 224);
+                theme.selection_foreground = Rgb(238, 233, 255);
+                theme.selection_background = Rgb(40, 32, 71);
+                theme.ansi = [
+                    Rgb(16, 13, 29),
+                    Rgb(228, 84, 132),
+                    Rgb(88, 199, 131),
+                    Rgb(199, 169, 68),
+                    Rgb(77, 141, 255),
+                    Rgb(189, 112, 240),
+                    Rgb(53, 201, 219),
+                    Rgb(196, 189, 217),
+                    Rgb(98, 90, 120),
+                    Rgb(255, 109, 162),
+                    Rgb(120, 229, 159),
+                    Rgb(235, 209, 98),
+                    Rgb(115, 167, 255),
+                    Rgb(213, 138, 255),
+                    Rgb(96, 229, 239),
+                    Rgb(238, 233, 255),
+                ];
+            }
+        }
+        if let Some((selected, muted, accent, border, search, thumb)) = semantic_colors(preset) {
+            theme.ui_background = Some(theme.background);
+            theme.ui_foreground = Some(theme.foreground);
+            theme.ui_selected_background = Some(selected);
+            theme.ui_muted = Some(muted);
+            theme.ui_accent = Some(accent);
+            theme.ui_border = Some(border);
+            theme.search_match_background = Some(search);
+            theme.search_active_background = Some(selected);
+            theme.scrollbar_thumb = Some(thumb);
+            theme.scrollbar_thumb_hover = Some(theme.foreground);
+        }
+        theme
+    }
+}
+
+fn semantic_colors(preset: ThemePreset) -> Option<(Rgb, Rgb, Rgb, Rgb, Rgb, Rgb)> {
+    Some(match preset {
+        ThemePreset::CatppuccinMocha => (
+            Rgb(88, 91, 112),
+            Rgb(166, 173, 200),
+            Rgb(137, 180, 250),
+            Rgb(69, 71, 90),
+            Rgb(69, 71, 90),
+            Rgb(127, 132, 156),
+        ),
+        ThemePreset::TokyoNight => (
+            Rgb(40, 52, 87),
+            Rgb(169, 177, 214),
+            Rgb(122, 162, 247),
+            Rgb(65, 72, 104),
+            Rgb(65, 72, 104),
+            Rgb(169, 177, 214),
+        ),
+        ThemePreset::Dracula => (
+            Rgb(68, 71, 90),
+            Rgb(189, 147, 249),
+            Rgb(139, 233, 253),
+            Rgb(98, 114, 164),
+            Rgb(68, 71, 90),
+            Rgb(98, 114, 164),
+        ),
+        ThemePreset::GruvboxDark => (
+            Rgb(80, 73, 69),
+            Rgb(189, 174, 147),
+            Rgb(250, 189, 47),
+            Rgb(102, 92, 84),
+            Rgb(102, 92, 84),
+            Rgb(168, 153, 132),
+        ),
+        ThemePreset::RetroTerminal => (
+            Rgb(22, 69, 37),
+            Rgb(119, 183, 129),
+            Rgb(114, 245, 138),
+            Rgb(43, 97, 56),
+            Rgb(27, 62, 36),
+            Rgb(75, 155, 85),
+        ),
+        ThemePreset::Cyberpunk => (
+            Rgb(97, 84, 126),
+            Rgb(192, 178, 220),
+            Rgb(33, 246, 188),
+            Rgb(89, 89, 89),
+            Rgb(89, 89, 89),
+            Rgb(180, 167, 207),
+        ),
+        ThemePreset::NeonLight => (
+            Rgb(40, 32, 71),
+            Rgb(166, 154, 191),
+            Rgb(53, 230, 224),
+            Rgb(73, 54, 107),
+            Rgb(48, 35, 78),
+            Rgb(120, 96, 163),
+        ),
+        ThemePreset::Midnight | ThemePreset::SolarizedDark | ThemePreset::SolarizedLight => {
+            return None;
+        }
+    })
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
@@ -336,6 +733,11 @@ impl Config {
             config.projects = projects;
         }
         if let Some(theme) = raw.theme {
+            if let Some(preset) = theme.preset {
+                let preset = ThemePreset::parse(&preset)
+                    .map_err(|reason| ConfigError(format!("theme.preset: {reason}")))?;
+                config.theme = Theme::from_preset(preset);
+            }
             for (name, value, slot) in [
                 (
                     "theme.foreground",
@@ -534,6 +936,7 @@ struct RawFont {
 #[derive(Deserialize, Default)]
 #[serde(default, deny_unknown_fields)]
 struct RawTheme {
+    preset: Option<String>,
     foreground: Option<String>,
     background: Option<String>,
     cursor: Option<String>,
@@ -789,6 +1192,145 @@ args = ["-NoLogo", "two words", "", "'literal'"]
         assert_eq!(config.theme.background, Theme::default().background);
         assert_eq!(config.theme.ui_accent, None);
         assert_eq!(config.bindings, Config::default().bindings);
+    }
+
+    #[test]
+    fn presets_supply_defaults_and_keep_explicit_overrides() {
+        let light = Config::parse("[theme]\npreset = 'solarized_light'").unwrap();
+        assert_eq!(light.theme.preset, Some(ThemePreset::SolarizedLight));
+        assert_eq!(light.theme.background, Rgb(253, 246, 227));
+        assert_eq!(light.theme.foreground, Rgb(101, 123, 131));
+        let overridden = Config::parse(
+            "[theme]\npreset = 'solarized_dark'\nforeground = '#123456'\nansi = ['#010203', '#cd322f', '#859900', '#b58900', '#268bd2', '#d33682', '#2aa198', '#eee8d5', '#002b36', '#cb4b16', '#586e75', '#657b83', '#839496', '#6c71c4', '#93a1a1', '#fdf6e3']\nui_accent = '#abcdef'",
+        )
+        .unwrap();
+        assert_eq!(overridden.theme.background, Rgb(0, 43, 54));
+        assert_eq!(overridden.theme.foreground, Rgb(0x12, 0x34, 0x56));
+        assert_eq!(overridden.theme.ansi[0], Rgb(1, 2, 3));
+        assert_eq!(overridden.theme.ui_accent, Some(Rgb(0xab, 0xcd, 0xef)));
+        assert_eq!(Config::parse("").unwrap().theme.preset, None);
+        assert!(
+            Config::parse("[theme]\npreset = 'unknown'")
+                .unwrap_err()
+                .to_string()
+                .contains("theme.preset")
+        );
+    }
+
+    #[test]
+    fn every_builtin_preset_has_a_stable_identifier_and_complete_palette() {
+        for preset in ThemePreset::ALL {
+            assert_eq!(ThemePreset::parse(preset.identifier()).unwrap(), preset);
+            let config =
+                Config::parse(&format!("[theme]\npreset = '{}'", preset.identifier())).unwrap();
+            assert_eq!(config.theme.preset, Some(preset));
+            assert_eq!(config.theme.ansi.len(), 16);
+        }
+
+        for preset in [
+            ThemePreset::CatppuccinMocha,
+            ThemePreset::TokyoNight,
+            ThemePreset::Dracula,
+            ThemePreset::GruvboxDark,
+            ThemePreset::RetroTerminal,
+            ThemePreset::Cyberpunk,
+            ThemePreset::NeonLight,
+        ] {
+            let theme = Theme::from_preset(preset);
+            assert!(theme.ui_background.is_some(), "{}", preset.identifier());
+            assert!(theme.ui_foreground.is_some(), "{}", preset.identifier());
+            assert!(
+                theme.ui_selected_background.is_some(),
+                "{}",
+                preset.identifier()
+            );
+            assert!(theme.ui_muted.is_some(), "{}", preset.identifier());
+            assert!(theme.ui_accent.is_some(), "{}", preset.identifier());
+            assert!(theme.ui_border.is_some(), "{}", preset.identifier());
+            assert!(
+                theme.search_match_background.is_some(),
+                "{}",
+                preset.identifier()
+            );
+            assert!(
+                theme.search_active_background.is_some(),
+                "{}",
+                preset.identifier()
+            );
+            assert!(theme.scrollbar_thumb.is_some(), "{}", preset.identifier());
+            assert!(
+                theme.scrollbar_thumb_hover.is_some(),
+                "{}",
+                preset.identifier()
+            );
+        }
+    }
+
+    #[test]
+    fn corrected_retro_and_neon_presets_keep_their_complete_palettes() {
+        let expected = [
+            (
+                ThemePreset::RetroTerminal,
+                Rgb(155, 231, 165),
+                Rgb(4, 14, 8),
+                [
+                    Rgb(8, 19, 11),
+                    Rgb(199, 91, 75),
+                    Rgb(75, 155, 85),
+                    Rgb(179, 163, 64),
+                    Rgb(76, 121, 144),
+                    Rgb(144, 96, 128),
+                    Rgb(79, 155, 145),
+                    Rgb(155, 231, 165),
+                    Rgb(65, 99, 74),
+                    Rgb(240, 114, 96),
+                    Rgb(114, 245, 138),
+                    Rgb(225, 208, 100),
+                    Rgb(115, 176, 200),
+                    Rgb(202, 133, 177),
+                    Rgb(117, 217, 201),
+                    Rgb(201, 255, 209),
+                ],
+            ),
+            (
+                ThemePreset::NeonLight,
+                Rgb(214, 208, 232),
+                Rgb(8, 6, 18),
+                [
+                    Rgb(16, 13, 29),
+                    Rgb(228, 84, 132),
+                    Rgb(88, 199, 131),
+                    Rgb(199, 169, 68),
+                    Rgb(77, 141, 255),
+                    Rgb(189, 112, 240),
+                    Rgb(53, 201, 219),
+                    Rgb(196, 189, 217),
+                    Rgb(98, 90, 120),
+                    Rgb(255, 109, 162),
+                    Rgb(120, 229, 159),
+                    Rgb(235, 209, 98),
+                    Rgb(115, 167, 255),
+                    Rgb(213, 138, 255),
+                    Rgb(96, 229, 239),
+                    Rgb(238, 233, 255),
+                ],
+            ),
+        ];
+
+        assert_eq!(ThemePreset::RetroTerminal.identifier(), "retro_terminal");
+        assert_eq!(ThemePreset::RetroTerminal.name(), "Retro Terminal");
+        assert_eq!(ThemePreset::NeonLight.identifier(), "neon_light");
+        assert_eq!(ThemePreset::NeonLight.name(), "Neon Light");
+        for (preset, foreground, background, ansi) in expected {
+            let theme = Theme::from_preset(preset);
+            assert_eq!(theme.foreground, foreground, "{}", preset.identifier());
+            assert_eq!(theme.background, background, "{}", preset.identifier());
+            assert_eq!(theme.ansi, ansi, "{}", preset.identifier());
+            assert!(theme.ui_selected_background.is_some());
+            assert!(theme.ui_accent.is_some());
+            assert!(theme.search_match_background.is_some());
+            assert!(theme.scrollbar_thumb.is_some());
+        }
     }
     #[test]
     fn old_theme_fields_and_partial_ui_override_parse_together() {
