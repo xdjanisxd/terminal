@@ -28,6 +28,8 @@ mod bold_intensity_native_tests;
 mod linux_workspace_tests;
 mod saved_workspaces;
 mod search;
+mod selection_scroll;
+use selection_scroll::SelectionEdge;
 mod shell;
 #[cfg(test)]
 #[path = "tests/shell_lifecycle.rs"]
@@ -116,7 +118,7 @@ struct Application {
     scrollbar_click_held: bool,
     scrollbar_hover: Option<ScrollbarHit>,
     selection_click: Option<(Instant, usize, usize, u8)>,
-    selection_edge: Option<(i32, usize, usize, Instant)>,
+    selection_edge: Option<SelectionEdge>,
     target_click_held: bool,
     pending_target: Option<String>,
     modifiers: ModifiersState,
@@ -203,16 +205,6 @@ fn scrollbar_page_delta(hit: ScrollbarHit, visible_rows: usize) -> i32 {
         ScrollbarHit::TrackAbove => page,
         ScrollbarHit::TrackBelow => -page,
         ScrollbarHit::Thumb => 0,
-    }
-}
-
-fn selection_edge_direction(row: usize, rows: usize) -> Option<i32> {
-    if row == 0 {
-        Some(1)
-    } else if row + 1 == rows {
-        Some(-1)
-    } else {
-        None
     }
 }
 
@@ -3035,25 +3027,12 @@ impl ApplicationHandler<PtyWake> for Application {
             self.queue_window_size();
         }
         self.apply_pending_resize();
-        if let Some((direction, row, column, deadline)) = self.selection_edge
-            && self.selection_dragging
-            && Instant::now() >= deadline
-        {
-            if self
-                .terminal
-                .scroll_selection_viewport_rows(direction, row, column)
-            {
-                self.invalidate_frame();
-                self.selection_edge = Some((
-                    direction,
-                    row,
-                    column,
-                    Instant::now() + Duration::from_millis(60),
-                ));
-            } else {
-                self.selection_edge = None;
-            }
+        let now = Instant::now();
+        if self.selection_edge.is_some() {
+            // Pane geometry and terminal modes may change without pointer motion.
+            self.refresh_selection_drag(now);
         }
+        self.tick_selection_edge(now);
         let now = Instant::now();
         let activity_deadline = self.tick_tab_activity(now);
         let cursor_blinks = self.window_focused
@@ -3069,7 +3048,7 @@ impl ApplicationHandler<PtyWake> for Application {
         }
         let deadline = self
             .selection_edge
-            .map(|(_, _, _, deadline)| deadline)
+            .map(|edge| edge.deadline)
             .into_iter()
             .chain(activity_deadline)
             .chain(self.cursor_blink.deadline)
@@ -3277,32 +3256,7 @@ impl ApplicationHandler<PtyWake> for Application {
                     return;
                 }
                 if self.selection_dragging {
-                    if let Some((column, row)) = self.renderer.as_ref().and_then(|renderer| {
-                        terminal_cell_at(
-                            self.local_pointer_position(position)?,
-                            renderer.cell_metrics(),
-                            self.terminal.dimensions(),
-                        )
-                    }) {
-                        if self.terminal.extend_selection(row, column) {
-                            self.selection_click = None;
-                            self.invalidate_frame();
-                        }
-                        let direction =
-                            selection_edge_direction(row, self.terminal.dimensions().rows());
-                        self.selection_edge = direction.map(|direction| {
-                            let deadline = self
-                                .selection_edge
-                                .filter(|(previous, _, _, _)| *previous == direction)
-                                .map_or(
-                                    Instant::now() + Duration::from_millis(60),
-                                    |(_, _, _, deadline)| deadline,
-                                );
-                            (direction, row, column, deadline)
-                        });
-                    } else {
-                        self.selection_edge = None;
-                    }
+                    self.refresh_selection_drag(Instant::now());
                 } else {
                     self.send_mouse_event(MouseEvent::Move(self.pressed_mouse_button));
                 }
@@ -3315,6 +3269,14 @@ impl ApplicationHandler<PtyWake> for Application {
                     && self.url_at_pointer().as_ref() == Some(&candidate)
                 {
                     self.open_hint_url(&candidate.url);
+                }
+                if button == MouseButton::Left
+                    && state == ElementState::Released
+                    && self.selection_dragging
+                {
+                    self.stop_selection_drag();
+                    emit_diagnostic(format_args!("app event=selection-end"));
+                    return;
                 }
                 if self.handle_chrome_mouse(event_loop, state, button) {
                     return;
@@ -3431,13 +3393,13 @@ impl ApplicationHandler<PtyWake> for Application {
                                     }
                                 };
                             emit_diagnostic(format_args!("app event=selection-start"));
+                            self.refresh_selection_drag(now);
                             if previous_selection || count > 1 {
                                 self.invalidate_frame();
                             }
                         }
                     } else {
-                        self.selection_dragging = false;
-                        self.selection_edge = None;
+                        self.stop_selection_drag();
                         emit_diagnostic(format_args!("app event=selection-end"));
                     }
                     return;
@@ -5099,7 +5061,7 @@ mod tests {
 
     use super::PtyDrainBudget;
     use super::{Search, StartupPresentation};
-    use super::{scrollbar_page_delta, selection_click_count, selection_edge_direction};
+    use super::{scrollbar_page_delta, selection_click_count};
     use terminal_renderer::{RedrawOutcome, ScrollbarHit};
 
     #[test]
@@ -5261,12 +5223,6 @@ mod tests {
         );
     }
 
-    #[test]
-    fn edge_direction_only_applies_at_viewport_borders() {
-        assert_eq!(selection_edge_direction(0, 5), Some(1));
-        assert_eq!(selection_edge_direction(4, 5), Some(-1));
-        assert_eq!(selection_edge_direction(2, 5), None);
-    }
     use super::saved_workspaces;
     use super::{
         Application, BasicKey, CliOptions, FrameState, PaletteAction, PendingResize,
@@ -8010,7 +7966,7 @@ mod tests {
         app.dispatch_command(Command::NewTab);
         let active = app.workspace.active_pane();
         app.selection_dragging = true;
-        app.selection_edge = Some((1, 0, 0, Instant::now()));
+        app.selection_edge = Some(super::SelectionEdge::new(1, 0, 0, 12.0, Instant::now()));
         app.scrollbar_drag = Some(1.0);
         app.scrollbar_click_held = true;
         app.target_click_held = true;

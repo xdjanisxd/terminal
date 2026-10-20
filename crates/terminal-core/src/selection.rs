@@ -622,6 +622,33 @@ mod tests {
     }
 
     #[test]
+    fn drag_autoscroll_copy_preserves_soft_wraps_and_reflow() {
+        let mut state = TerminalState::new(TerminalDimensions::new(4, 2).unwrap());
+        print(&mut state, "abcdefghij");
+        assert!(state.begin_selection(1, 1));
+        assert!(state.scroll_selection_viewport_rows(1, 0, 3));
+        assert_eq!(state.selected_text().as_deref(), Some("defghij"));
+        state.resize(TerminalDimensions::new(3, 2).unwrap());
+        assert_eq!(state.selected_text().as_deref(), Some("defghij"));
+        assert!(state.scroll_selection_viewport_rows(-1, 1, 0));
+        assert_eq!(state.selected_text().as_deref(), Some("ghij"));
+    }
+
+    #[test]
+    fn drag_autoscroll_requires_selection_and_primary_history() {
+        let mut state = TerminalState::new(TerminalDimensions::new(3, 2).unwrap());
+        print(&mut state, "abcdefghi");
+        assert!(state.scrollback_len() > 0);
+        assert!(!state.scroll_selection_viewport_rows(1, 0, 0));
+        assert_eq!(state.viewport_offset(), 0);
+        assert!(state.begin_selection(1, 0));
+        state.switch_to_alternate_screen();
+        assert!(state.begin_selection(1, 0));
+        assert!(!state.scroll_selection_viewport_rows(1, 0, 0));
+        assert_eq!(state.viewport_offset(), 0);
+    }
+
+    #[test]
     fn wide_and_combining_cells_are_selected_as_whole_characters() {
         let mut state = TerminalState::new(TerminalDimensions::new(8, 2).unwrap());
         print(&mut state, "界e\u{301}/z !");
