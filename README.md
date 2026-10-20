@@ -11,6 +11,9 @@ Terminal is a keyboard-focused, GPU-rendered terminal emulator with tabs, split 
 - Shell-reported titles and PowerShell current-directory tracking.
 - Saved Workspaces that recreate layouts, working directories, and explicit per-pane shell startup commands.
 
+Mouse text selection [automatically scrolls near pane edges](docs/SELECTION_AUTOSCROLL.md)
+while the left button is held, including with a stationary pointer.
+
 ## Installation
 
 Download a release asset from [GitHub Releases](https://github.com/xdjanisxd/terminal/releases) for your operating system and CPU. Windows offers MSI installation or a portable ZIP; Linux and macOS offer portable archives. Each archive contains the `terminal` executable, this README, `config.example.toml`, and the MIT license. Extract it to a directory you keep; you can run the executable there or put it on PATH. You do not need to copy `config.example.toml`: Terminal uses built-in defaults when no user config exists.
