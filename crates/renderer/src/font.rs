@@ -96,9 +96,20 @@ pub struct ShapedGlyph {
     cluster_end: u32,
 }
 
+/// Font-database identity plus the effective variable-font weight. Keep both
+/// components in atlas keys so distinct faces and weight instances never alias.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub(crate) struct FaceCacheIdentity {
+    face_id: ID,
+    weight: Option<u32>,
+}
+
 impl ShapedGlyph {
-    pub(crate) fn face_cache_identity(&self) -> String {
-        format!("{}:{:?}", self.face_id, self.weight)
+    pub(crate) fn face_cache_identity(&self) -> FaceCacheIdentity {
+        FaceCacheIdentity {
+            face_id: self.face_id,
+            weight: self.weight,
+        }
     }
 
     pub fn glyph_id(&self) -> u16 {
@@ -1000,6 +1011,28 @@ mod tests {
     };
 
     const TEST_FONT: &[u8] = include_bytes!("../tests/fixtures/Tuffy.ttf");
+
+    #[test]
+    fn atlas_face_identity_distinguishes_faces_and_effective_weights() {
+        let mut database = database_with_face("First", true);
+        let first = database.faces().next().unwrap().id;
+        let mut face = database.faces().next().unwrap().clone();
+        face.id = fontdb::ID::dummy();
+        let second = database.push_face_info(face);
+        let mut system = fixture_system();
+        let shaped = system.shape_text("A", 16.0).unwrap();
+        let mut glyph = shaped.glyphs()[0].clone();
+        let mut identities = std::collections::HashSet::new();
+        for face_id in [first, second] {
+            for weight in [None, Some(400.0_f32.to_bits()), Some(700.0_f32.to_bits())] {
+                glyph.face_id = face_id;
+                glyph.weight = weight;
+                assert!(identities.insert(glyph.face_cache_identity()));
+                assert!(identities.contains(&glyph.clone().face_cache_identity()));
+            }
+        }
+        assert_eq!(identities.len(), 6);
+    }
 
     // Add one COLRv0 layer to the existing licensed outline fixture. This
     // exercises color rasterization on CI without relying on installed fonts.

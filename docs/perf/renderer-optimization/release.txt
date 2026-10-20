@@ -1,0 +1,5 @@
+   Compiling terminal-core v0.0.0 (/home/dellian/codes/terminal/crates/terminal-core)
+   Compiling terminal-config v0.0.0 (/home/dellian/codes/terminal/crates/config)
+   Compiling terminal-renderer v0.0.0 (/home/dellian/codes/terminal/crates/renderer)
+   Compiling terminal-app v0.0.0 (/home/dellian/codes/terminal/crates/app)
+    Finished `release` profile [optimized] target(s) in 6.18s

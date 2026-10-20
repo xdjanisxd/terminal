@@ -1,0 +1,16 @@
+    Finished `bench` profile [optimized] target(s) in 0.04s
+     Running benches/state_baselines.rs (target/release/deps/state_baselines-1259ba64d13f2ce1)
+resize_one_column_unicode_pair: operations=20 elapsed_ns=14274985 ns_per_operation=713749.2
+resize_columns_pair_history_0: operations=100 elapsed_ns=6006101 ns_per_operation=60061.0
+resize_height_pair_history_0: operations=100 elapsed_ns=4637179 ns_per_operation=46371.8
+resize_unchanged_history_0: operations=10000 elapsed_ns=11528 ns_per_operation=1.2
+resize_columns_pair_history_2000: operations=100 elapsed_ns=113500532 ns_per_operation=1135005.3
+resize_height_pair_history_2000: operations=100 elapsed_ns=3206985 ns_per_operation=32069.8
+resize_unchanged_history_2000: operations=10000 elapsed_ns=11464 ns_per_operation=1.1
+resize_columns_pair_history_10000: operations=100 elapsed_ns=812359148 ns_per_operation=8123591.5
+resize_height_pair_history_10000: operations=100 elapsed_ns=3152913 ns_per_operation=31529.1
+resize_unchanged_history_10000: operations=10000 elapsed_ns=11512 ns_per_operation=1.2
+parse_plain_state: operations=2000 elapsed_ns=16789851 ns_per_operation=8394.9
+parse_escape_state: operations=2000 elapsed_ns=8830330 ns_per_operation=4415.2
+scrollback_page_pair: operations=10000 elapsed_ns=42715 ns_per_operation=4.3
+selection_extend: operations=10000 elapsed_ns=46479 ns_per_operation=4.6
