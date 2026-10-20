@@ -70,6 +70,8 @@ impl TerminalReplyBytes {
 pub enum TerminalReply {
     /// Primary Device Attributes: VT100-class identity with no optional capabilities.
     PrimaryDeviceAttributes,
+    /// Captured active-screen Kitty progressive enhancement flags.
+    KeyboardFlags { flags: u16 },
     /// Secondary Device Attributes: stable VT100-class identity, version 0, no options.
     SecondaryDeviceAttributes,
     /// ANSI Device Status Report: terminal status is normal/OK.
@@ -82,6 +84,13 @@ impl TerminalReply {
     /// Returns a complete bounded wire encoding of this reply.
     pub fn as_bytes(&self) -> TerminalReplyBytes {
         match self {
+            Self::KeyboardFlags { flags } => {
+                let mut bytes = TerminalReplyBytes::from_static(b"\x1b[?");
+                bytes.push_decimal(*flags);
+                bytes.push(b'u');
+                bytes
+            }
+
             Self::PrimaryDeviceAttributes => {
                 TerminalReplyBytes::from_static(PRIMARY_DEVICE_ATTRIBUTES_BYTES)
             }

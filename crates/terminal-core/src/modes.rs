@@ -139,9 +139,13 @@ pub struct InputModes {
 
 impl InputModes {
     /// Reporting requests give shortcut ownership to the foreground app.
-    /// This does not advertise full Kitty or modifyOtherKeys protocol support.
+    /// Kitty flags and modifyOtherKeys both signal application ownership.
     pub const fn keyboard_reporting_requested(self) -> bool {
         self.keyboard_reporting != 0 || self.modify_other_keys != 0
+    }
+    /// Active screen's negotiated Kitty progressive enhancement flags.
+    pub const fn keyboard_flags(self) -> u16 {
+        self.keyboard_reporting
     }
     pub(crate) fn set_keyboard_reporting(&mut self, flags: u16) {
         self.keyboard_reporting = flags;

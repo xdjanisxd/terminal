@@ -67,4 +67,4 @@ for n in range(1, 12) | for mod in ['', 'S-', 'A-', 'C-', 'S-A-', 'S-C-', 'A-C-'
 
 Manual results: cmd + Clink **pending**; PowerShell **pending**; Vim/Neovim **pending**. Installed applications were located; no physical-key acceptance run is claimed. Computer Use guidance prohibits automating terminal applications, so human checks are required. The goal is blocked pending human manual-verification results; implementation and automated validation are complete.
 
-F13+ and extended keyboard protocol negotiation are outside this change. OS shortcuts, Fn/media layers and application mappings can affect recognition. Byte encoding alone does not prove application compatibility.
+The original legacy slice covers F1–F12; negotiated Kitty input also maps F13–F35 when exposed by the platform. Kitty keyboard protocol negotiation and its modifier/event encoding are documented in [KEYBOARD_PROTOCOL.md](KEYBOARD_PROTOCOL.md); native Linux/Windows application acceptance remains pending. OS shortcuts, Fn/media layers and application mappings can affect recognition. Byte encoding alone does not prove application compatibility.

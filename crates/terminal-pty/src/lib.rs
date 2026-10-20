@@ -494,6 +494,11 @@ const LIFECYCLE_POLL_INTERVAL: Duration = Duration::from_millis(20);
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PtyCommand {
     Write(Vec<u8>),
+    /// Short keyboard input stays inline through the bounded queue.
+    WriteInline {
+        bytes: [u8; 64],
+        len: u8,
+    },
     Resize(PtySize),
     Terminate,
 }
@@ -606,6 +611,19 @@ impl PtyWorker {
 
     pub fn write(&self, bytes: Vec<u8>) -> Result<(), PtyWorkerError> {
         self.send(PtyCommand::Write(bytes))
+    }
+
+    /// Queue input without a heap allocation for ordinary keyboard events.
+    pub fn write_input(&self, input: &[u8]) -> Result<(), PtyWorkerError> {
+        if input.len() > 64 {
+            return self.write(input.to_vec());
+        }
+        let mut bytes = [0; 64];
+        bytes[..input.len()].copy_from_slice(input);
+        self.send(PtyCommand::WriteInline {
+            bytes,
+            len: input.len() as u8,
+        })
     }
 
     pub fn resize(&self, size: PtySize) -> Result<(), PtyWorkerError> {
@@ -821,6 +839,14 @@ fn handle_command<S>(
         match command {
             PtyCommand::Write(bytes) => {
                 let result = session.write(&bytes);
+                if result.is_ok() && std::env::var_os("TERMINAL_RENDERER_DIAGNOSTICS").is_some() {
+                    eprintln!("terminal-pty event=write-submitted bytes={bytes:?}");
+                }
+                result
+            }
+            PtyCommand::WriteInline { bytes, len } => {
+                let bytes = &bytes[..usize::from(len).min(bytes.len())];
+                let result = session.write(bytes);
                 if result.is_ok() && std::env::var_os("TERMINAL_RENDERER_DIAGNOSTICS").is_some() {
                     eprintln!("terminal-pty event=write-submitted bytes={bytes:?}");
                 }
