@@ -27,6 +27,8 @@ struct GlyphInstance {
     rect: [f32; 4],
     uv: [f32; 4],
     color: [f32; 4],
+    // 0: foreground mask, 1: encoded color, 2: linearize color for sRGB target.
+    content: u32,
 }
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -45,6 +47,7 @@ struct AtlasEntry {
     height: u32,
     bearing_x: i32,
     bearing_y: i32,
+    is_color: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -88,7 +91,9 @@ impl GlyphAtlas {
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,
-            format: wgpu::TextureFormat::R8Unorm,
+            // Keep encoded color here; the fragment shader decodes when the
+            // render target blends in linear light. Masks retain byte coverage.
+            format: wgpu::TextureFormat::Rgba8Unorm,
             usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
             view_formats: &[],
         });
@@ -144,6 +149,17 @@ impl GlyphAtlas {
         let slot = self.allocate_slot();
         let x = (slot as u32 % ATLAS_COLUMNS) * ATLAS_SLOT_SIZE;
         let y = (slot as u32 / ATLAS_COLUMNS) * ATLAS_SLOT_SIZE;
+        let mask_rgba;
+        let pixels = if bitmap.is_color() {
+            bitmap.pixels()
+        } else {
+            mask_rgba = bitmap
+                .pixels()
+                .iter()
+                .flat_map(|&a| [a; 4])
+                .collect::<Vec<_>>();
+            &mask_rgba
+        };
         queue.write_texture(
             wgpu::TexelCopyTextureInfo {
                 texture: &self.texture,
@@ -151,10 +167,10 @@ impl GlyphAtlas {
                 origin: wgpu::Origin3d { x, y, z: 0 },
                 aspect: wgpu::TextureAspect::All,
             },
-            bitmap.pixels(),
+            pixels,
             wgpu::TexelCopyBufferLayout {
                 offset: 0,
-                bytes_per_row: Some(bitmap.width()),
+                bytes_per_row: Some(bitmap.width() * 4),
                 rows_per_image: Some(bitmap.height()),
             },
             wgpu::Extent3d {
@@ -169,6 +185,7 @@ impl GlyphAtlas {
             height: bitmap.height(),
             bearing_x: bitmap.bearing_x(),
             bearing_y: bitmap.bearing_y(),
+            is_color: bitmap.is_color(),
         };
         self.entries.insert(key.clone(), entry);
         self.slots[slot] = Some(key.clone());
@@ -731,7 +748,7 @@ impl DrawResources {
                 };
                 let slot_x = (entry.slot as u32 % ATLAS_COLUMNS) * ATLAS_SLOT_SIZE;
                 let slot_y = (entry.slot as u32 / ATLAS_COLUMNS) * ATLAS_SLOT_SIZE;
-                let [glyph_x, glyph_y] = glyph_origin(
+                let [mut glyph_x, mut glyph_y] = glyph_origin(
                     x,
                     y,
                     frame.cell_metrics.baseline() as f32,
@@ -740,8 +757,26 @@ impl DrawResources {
                     shaped_glyph.offset_x(),
                     shaped_glyph.offset_y(),
                 );
+                // Color fonts can have bitmap-strike metrics much larger than
+                // the primary face. Fit ink to the terminal-owned cell span.
+                let scale = if entry.is_color {
+                    (width / entry.width as f32)
+                        .min(cell_height / entry.height as f32)
+                        .min(1.0)
+                } else {
+                    1.0
+                };
+                if entry.is_color {
+                    glyph_x = x + (width - entry.width as f32 * scale) * 0.5;
+                    glyph_y = y + (cell_height - entry.height as f32 * scale) * 0.5;
+                }
                 let Some((clipped_x, clipped_y, clipped_width, clipped_height)) = clip_rect_to_cell(
-                    [glyph_x, glyph_y, entry.width as f32, entry.height as f32],
+                    [
+                        glyph_x,
+                        glyph_y,
+                        entry.width as f32 * scale,
+                        entry.height as f32 * scale,
+                    ],
                     [x, y, width, cell_height],
                 ) else {
                     continue;
@@ -755,13 +790,19 @@ impl DrawResources {
                         frame.surface_size,
                     ),
                     uv: [
-                        (slot_x as f32 + clipped_x - glyph_x) / ATLAS_WIDTH as f32,
-                        (slot_y as f32 + clipped_y - glyph_y) / ATLAS_HEIGHT as f32,
-                        (slot_x as f32 + clipped_x - glyph_x + clipped_width) / ATLAS_WIDTH as f32,
-                        (slot_y as f32 + clipped_y - glyph_y + clipped_height)
+                        (slot_x as f32 + (clipped_x - glyph_x) / scale) / ATLAS_WIDTH as f32,
+                        (slot_y as f32 + (clipped_y - glyph_y) / scale) / ATLAS_HEIGHT as f32,
+                        (slot_x as f32 + (clipped_x - glyph_x + clipped_width) / scale)
+                            / ATLAS_WIDTH as f32,
+                        (slot_y as f32 + (clipped_y - glyph_y + clipped_height) / scale)
                             / ATLAS_HEIGHT as f32,
                     ],
                     color: cell.foreground.0,
+                    content: if entry.is_color {
+                        1 + u32::from(self.format.is_srgb())
+                    } else {
+                        0
+                    },
                 });
                 if diagnostics_enabled() && !geometry_pair_logged {
                     let sample = GlyphGeometrySample {
@@ -1089,8 +1130,8 @@ fn rect_layout() -> wgpu::VertexBufferLayout<'static> {
 }
 
 fn glyph_vertex_layout() -> wgpu::VertexBufferLayout<'static> {
-    const ATTRIBUTES: [wgpu::VertexAttribute; 3] =
-        wgpu::vertex_attr_array![0 => Float32x4, 1 => Float32x4, 2 => Float32x4];
+    const ATTRIBUTES: [wgpu::VertexAttribute; 4] =
+        wgpu::vertex_attr_array![0 => Float32x4, 1 => Float32x4, 2 => Float32x4, 3 => Uint32];
     wgpu::VertexBufferLayout {
         array_stride: std::mem::size_of::<GlyphInstance>() as u64,
         step_mode: wgpu::VertexStepMode::Instance,
@@ -1299,6 +1340,178 @@ mod tests {
             vec![5..6]
         );
         assert!(changed_instance_ranges(&previous, &[1, 2, 3]).is_empty());
+    }
+
+    #[test]
+    #[ignore = "requires a GPU, system monospace font, and Noto Color Emoji"]
+    fn native_gpu_color_emoji_dpi_and_warm_cache() {
+        const WIDTH: u32 = 256;
+        const HEIGHT: u32 = 128;
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
+        let adapter = pollster::block_on(instance.request_adapter(&Default::default())).unwrap();
+        eprintln!("emoji GPU: {:?}", adapter.get_info());
+        let (device, queue) =
+            pollster::block_on(adapter.request_device(&crate::renderer_device_descriptor()))
+                .unwrap();
+        for format in [
+            wgpu::TextureFormat::Rgba8Unorm,
+            wgpu::TextureFormat::Rgba8UnormSrgb,
+        ] {
+            for scale in [1.0, 1.25, 2.0] {
+                for opacity in [1.0, 0.5] {
+                    let texture = device.create_texture(&wgpu::TextureDescriptor {
+                        label: Some("emoji regression target"),
+                        size: wgpu::Extent3d {
+                            width: WIDTH,
+                            height: HEIGHT,
+                            depth_or_array_layers: 1,
+                        },
+                        mip_level_count: 1,
+                        sample_count: 1,
+                        dimension: wgpu::TextureDimension::D2,
+                        format,
+                        usage: wgpu::TextureUsages::RENDER_ATTACHMENT
+                            | wgpu::TextureUsages::COPY_SRC,
+                        view_formats: &[],
+                    });
+                    let view = texture.create_view(&Default::default());
+                    let mut resources = DrawResources::new(&device, format);
+                    let mut fonts = FontSystem::load_system(FontRequest::default()).unwrap();
+                    let metrics = fonts.cell_metrics(scale, 16.0).unwrap();
+                    let mut state = TerminalState::new(TerminalDimensions::new(8, 2).unwrap());
+                    terminal_core::TerminalParser::new()
+                        .advance(&mut state, "A🚀B".as_bytes())
+                        .unwrap();
+                    let mut data = TerminalRenderData::from_terminal_with_opacity(
+                        &state,
+                        &Default::default(),
+                        opacity,
+                    );
+                    data.cursor = None;
+                    let target = if opacity < 1.0 {
+                        resources
+                            .composition_target(&device, SurfaceSize::new(WIDTH, HEIGHT).unwrap())
+                    } else {
+                        view.clone()
+                    };
+                    let ui = crate::UiRenderTheme::default();
+                    let frame = || FrameContext {
+                        target: &target,
+                        surface_size: SurfaceSize::new(WIDTH, HEIGHT).unwrap(),
+                        cell_metrics: metrics,
+                        ui: &ui,
+                    };
+                    let cold = resources.draw(&device, &queue, frame(), &data, &mut fonts);
+                    assert_eq!(cold.raster_calls, 3);
+                    let color = resources
+                        .glyphs
+                        .iter()
+                        .find(|g| g.content != 0)
+                        .expect("visible color emoji quad");
+                    let x = (color.rect[0] + 1.0) * WIDTH as f32 * 0.5;
+                    let right = x + color.rect[2] * WIDTH as f32 * 0.5;
+                    assert!(x >= metrics.width() as f32 - 0.01);
+                    assert!(right <= 3.0 * metrics.width() as f32 + 0.01);
+                    let start = std::time::Instant::now();
+                    for _ in 0..100 {
+                        let warm = resources.draw(&device, &queue, frame(), &data, &mut fonts);
+                        assert_eq!(warm.raster_calls, 0);
+                        assert_eq!(warm.shape_misses, 0);
+                        assert_eq!(warm.buffer_allocations, 0);
+                        assert_eq!(warm.buffer_writes, 0);
+                    }
+                    eprintln!(
+                        "emoji warm 100 frames: {:?}, {format:?}, scale={scale}, opacity={opacity}",
+                        start.elapsed()
+                    );
+                    if opacity < 1.0 {
+                        resources.compose(&device, &queue, &view);
+                    }
+                    let pixels = read_rgba(&device, &queue, &texture);
+                    let mut colored = 0;
+                    for y in 0..metrics.height() {
+                        for x in metrics.width()..3 * metrics.width() {
+                            let p = &pixels[((y * WIDTH + x) * 4) as usize..][..4];
+                            if p[0].abs_diff(p[1]) > 30 || p[1].abs_diff(p[2]) > 30 {
+                                colored += 1;
+                            }
+                        }
+                    }
+                    assert!(
+                        colored > 10,
+                        "color pixels={colored}, scale={scale}, format={format:?}"
+                    );
+                    // Foreground changes must not tint cached intrinsic color.
+                    for cell in &mut data.cells {
+                        cell.foreground = crate::Rgba([1.0, 0.0, 0.0, 1.0]);
+                    }
+                    let tinted = resources.draw(&device, &queue, frame(), &data, &mut fonts);
+                    assert_eq!(tinted.raster_calls, 0);
+                    if opacity < 1.0 {
+                        resources.compose(&device, &queue, &view);
+                    }
+                    let tinted = read_rgba(&device, &queue, &texture);
+                    for y in 0..metrics.height() {
+                        let start = ((y * WIDTH + metrics.width()) * 4) as usize;
+                        let end = start + (metrics.width() * 2 * 4) as usize;
+                        assert_eq!(&pixels[start..end], &tinted[start..end]);
+                    }
+                    // Selection still owns the full two-column cell span.
+                    state.begin_selection(0, 1);
+                    state.extend_selection(0, 3);
+                    assert_eq!(state.selected_text().as_deref(), Some("🚀B"));
+                    let mut selected = TerminalRenderData::from_terminal_with_opacity(
+                        &state,
+                        &Default::default(),
+                        opacity,
+                    );
+                    selected.cursor = None;
+                    resources.draw(&device, &queue, frame(), &selected, &mut fonts);
+                    assert!(resources.glyphs.iter().any(|g| g.content != 0));
+                }
+            }
+        }
+    }
+
+    fn read_rgba(device: &wgpu::Device, queue: &wgpu::Queue, texture: &wgpu::Texture) -> Vec<u8> {
+        // Callers use 256-wide RGBA targets, satisfying copy-row alignment.
+        let width = texture.width();
+        let buffer = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("emoji readback"),
+            size: u64::from(width * texture.height() * 4),
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+        let mut encoder = device.create_command_encoder(&Default::default());
+        encoder.copy_texture_to_buffer(
+            wgpu::TexelCopyTextureInfo {
+                texture,
+                mip_level: 0,
+                origin: wgpu::Origin3d::ZERO,
+                aspect: wgpu::TextureAspect::All,
+            },
+            wgpu::TexelCopyBufferInfo {
+                buffer: &buffer,
+                layout: wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(width * 4),
+                    rows_per_image: Some(texture.height()),
+                },
+            },
+            texture.size(),
+        );
+        queue.submit(Some(encoder.finish()));
+        let (sender, receiver) = std::sync::mpsc::channel();
+        buffer
+            .slice(..)
+            .map_async(wgpu::MapMode::Read, move |result| {
+                sender.send(result).unwrap()
+            });
+        device.poll(wgpu::PollType::wait()).unwrap();
+        receiver.recv().unwrap().unwrap();
+        let pixels = buffer.slice(..).get_mapped_range().to_vec();
+        buffer.unmap();
+        pixels
     }
 
     #[test]
