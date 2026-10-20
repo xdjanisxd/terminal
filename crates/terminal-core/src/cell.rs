@@ -164,6 +164,9 @@ pub struct Cell {
     attributes: CellAttributes,
     occupancy: CellOccupancy,
     has_printable_base: bool,
+    // A two-column glyph temporarily occupying a one-column terminal. Keeping
+    // this bit makes a later reflow lossless without orphaned wide pairs.
+    narrow_wide: bool,
     combining_marks: [char; MAX_COMBINING_MARKS],
     combining_mark_count: u8,
 }
@@ -177,6 +180,7 @@ impl Cell {
             attributes,
             occupancy: CellOccupancy::Single,
             has_printable_base: true,
+            narrow_wide: false,
             combining_marks: ['\0'; MAX_COMBINING_MARKS],
             combining_mark_count: 0,
         }
@@ -223,6 +227,34 @@ impl Cell {
         self.occupancy == CellOccupancy::WideContinuation
     }
 
+    pub(crate) fn reflow_width(self) -> usize {
+        if self.is_wide_lead() || self.narrow_wide {
+            2
+        } else {
+            1
+        }
+    }
+
+    pub(crate) fn with_reflow_width(mut self, columns: usize) -> Self {
+        if self.reflow_width() == 2 {
+            self.narrow_wide = columns == 1;
+            self.occupancy = if self.narrow_wide {
+                CellOccupancy::Single
+            } else {
+                CellOccupancy::WideLead
+            };
+        }
+        self
+    }
+
+    pub(crate) fn mark_narrow_wide(&mut self) {
+        self.narrow_wide = true;
+    }
+
+    pub(crate) fn is_narrow_wide(self) -> bool {
+        self.narrow_wide
+    }
+
     pub(crate) const fn wide_lead(character: char, attributes: CellAttributes) -> Self {
         Self {
             character,
@@ -230,6 +262,7 @@ impl Cell {
             attributes,
             occupancy: CellOccupancy::WideLead,
             has_printable_base: true,
+            narrow_wide: false,
             combining_marks: ['\0'; MAX_COMBINING_MARKS],
             combining_mark_count: 0,
         }
@@ -242,6 +275,7 @@ impl Cell {
             attributes: CellAttributes::default(),
             occupancy: CellOccupancy::WideContinuation,
             has_printable_base: false,
+            narrow_wide: false,
             combining_marks: ['\0'; MAX_COMBINING_MARKS],
             combining_mark_count: 0,
         }
@@ -269,6 +303,7 @@ impl Default for Cell {
             attributes: CellAttributes::default(),
             occupancy: CellOccupancy::Single,
             has_printable_base: false,
+            narrow_wide: false,
             combining_marks: ['\0'; MAX_COMBINING_MARKS],
             combining_mark_count: 0,
         }

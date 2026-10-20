@@ -405,8 +405,8 @@ impl TerminalState {
         self.screen.selection_row_wrap_columns(absolute)
     }
 
-    /// Capture-time width of the projected row. Historical rows can be wider
-    /// than the current viewport after a resize; this does not expose hidden text.
+    /// Stored width of the projected row. Reflowed historical rows may omit
+    /// default blank padding; live rows always have the current grid width.
     pub fn viewport_row_columns(&self, row: usize) -> usize {
         if row >= self.dimensions().rows() {
             return 0;
@@ -435,8 +435,8 @@ impl TerminalState {
 
     /// Returns a cell from the current viewport projection.
     ///
-    /// Historical rows retain their capture-time widths. A column outside a historical
-    /// row's captured width is represented as a default blank by returning `None`.
+    /// A column outside a historical row's stored width is a default blank,
+    /// represented by `None`.
     pub fn viewport_cell(&self, row: usize, column: usize) -> Option<&Cell> {
         self.screen.viewport_cell(row, column)
     }
@@ -478,8 +478,8 @@ impl TerminalState {
     /// Restores the active screen's saved cursor, rendition, and origin mode when initialized.
     ///
     /// Restore before any save is a safe no-op. Saved coordinates are clamped to the
-    /// active screen's current dimensions; the stored coordinates remain unchanged so
-    /// a later growth can restore their original value. Delayed wrap is not saved and
+    /// active screen's current dimensions. Primary's saved position follows text
+    /// during reflow; Alternate retains its rectangular saved coordinates. Delayed wrap is not saved and
     /// is cancelled on successful restore, matching other explicit cursor movement.
     pub fn restore_cursor(&mut self) {
         if let Some((rendition, origin)) = self.screen.restore_cursor() {
@@ -716,7 +716,11 @@ impl TerminalState {
         if let Some(stats) = self.screen.throughput_mut() {
             stats.prints += 1;
         }
-        let width = PrintableWidth::classify(character)?;
+        let mut width = PrintableWidth::classify(character)?;
+        let narrow_wide = width == PrintableWidth::Two && self.dimensions().columns() == 1;
+        if narrow_wide {
+            width = PrintableWidth::One;
+        }
         if width == PrintableWidth::Zero {
             return self.attach_combining_mark(character);
         }
@@ -767,6 +771,9 @@ impl TerminalState {
             .cell_mut_for_target(cursor.row(), cursor.column())
         {
             cell.set_target_id(self.current_target);
+            if narrow_wide {
+                cell.mark_narrow_wide();
+            }
         }
 
         let final_column = columns - 1;
@@ -1048,11 +1055,19 @@ impl TerminalState {
     ///
     /// Existing stops in surviving columns are preserved. Stops beyond a
     /// shrunken width are discarded, while newly exposed columns receive the
-    /// conventional default stops. Each screen retains current grid resize
-    /// semantics and resets its own margins and delayed-wrap state.
+    /// conventional default stops. Primary reflows complete logical lines and
+    /// maps cursor, selection, viewport and saved position; Alternate preserves
+    /// the rectangular intersection. Changed sizes reset both screens' margins.
+    /// An unchanged size is a no-op, including delayed wrap and selection.
     pub fn resize(&mut self, dimensions: TerminalDimensions) {
-        self.clear_selection();
-        self.screen.resize_all(dimensions);
+        if self.dimensions() == dimensions {
+            return;
+        }
+        self.screen.resize_all(
+            dimensions,
+            &mut self.selection,
+            self.terminal_modes.auto_wrap() == AutoWrapMode::Enabled,
+        );
         self.horizontal_tab_stops.resize(dimensions.columns());
     }
 

@@ -19,7 +19,7 @@ fn row_text(row: &[Cell]) -> String {
 }
 
 #[test]
-fn primary_history_retains_chronological_mixed_width_rows_across_resizes() {
+fn primary_history_reflows_chronologically_across_resizes() {
     let mut state = state(6, 2);
     write_row(&mut state, 0, "first!");
     write_row(&mut state, 1, "second");
@@ -33,11 +33,12 @@ fn primary_history_retains_chronological_mixed_width_rows_across_resizes() {
 
     state.resize(TerminalDimensions::new(2, 1).unwrap());
 
-    assert_eq!(state.scrollback_len(), 2);
-    assert_eq!(state.scrollback_row(0).unwrap().len(), 6);
-    assert_eq!(row_text(state.scrollback_row(0).unwrap()), "first!");
-    assert_eq!(state.scrollback_row(1).unwrap().len(), 4);
-    assert_eq!(row_text(state.scrollback_row(1).unwrap()), "next");
+    assert_eq!(state.scrollback_len(), 7);
+    assert_eq!(row_text(state.scrollback_row(0).unwrap()), "fi");
+    assert_eq!(row_text(state.scrollback_row(1).unwrap()), "rs");
+    assert_eq!(row_text(state.scrollback_row(2).unwrap()), "t!");
+    assert_eq!(row_text(state.scrollback_row(3).unwrap()), "ne");
+    assert_eq!(row_text(state.scrollback_row(4).unwrap()), "xt");
     assert_eq!(state.dimensions(), TerminalDimensions::new(2, 1).unwrap());
 }
 
@@ -57,8 +58,9 @@ fn resize_preserves_primary_history_through_47_and_1047_round_trips() {
     state.resize(TerminalDimensions::new(3, 2).unwrap());
     parser.advance(&mut state, b"\x1b[?47l").unwrap();
     assert_eq!(state.active_screen(), ScreenKind::Primary);
-    assert_eq!(state.scrollback_len(), 1);
-    assert_eq!(row_text(state.scrollback_row(0).unwrap()), "hist");
+    assert_eq!(state.scrollback_len(), 2);
+    assert_eq!(row_text(state.scrollback_row(0).unwrap()), "his");
+    assert_eq!(row_text(state.scrollback_row(1).unwrap()), "t");
     assert_eq!(state.cursor().row(), 1);
     assert_eq!(state.cursor().column(), 2);
     assert_eq!(
@@ -75,8 +77,9 @@ fn resize_preserves_primary_history_through_47_and_1047_round_trips() {
     parser.advance(&mut state, b"\x1b[?1047l").unwrap();
 
     assert_eq!(state.active_screen(), ScreenKind::Primary);
-    assert_eq!(state.scrollback_len(), 1);
-    assert_eq!(row_text(state.scrollback_row(0).unwrap()), "hist");
+    assert_eq!(state.scrollback_len(), 2);
+    assert_eq!(row_text(state.scrollback_row(0).unwrap()), "hi");
+    assert_eq!(row_text(state.scrollback_row(1).unwrap()), "st");
     assert_eq!(state.dimensions(), TerminalDimensions::new(2, 3).unwrap());
     assert_eq!(
         state.vertical_scrolling_margins(),
@@ -85,7 +88,7 @@ fn resize_preserves_primary_history_through_47_and_1047_round_trips() {
 }
 
 #[test]
-fn resize_during_1049_clamps_saved_cursor_without_mutating_primary_history() {
+fn resize_during_1049_maps_saved_cursor_and_primary_history() {
     let mut parser = TerminalParser::new();
     let mut state = state(5, 3);
     write_row(&mut state, 0, "hist!");
@@ -102,18 +105,18 @@ fn resize_during_1049_clamps_saved_cursor_without_mutating_primary_history() {
     parser.advance(&mut state, b"\x1b[?1049l").unwrap();
 
     assert_eq!(state.active_screen(), ScreenKind::Primary);
-    assert_eq!((state.cursor().row(), state.cursor().column()), (1, 2));
+    assert_eq!((state.cursor().row(), state.cursor().column()), (1, 1));
     assert_eq!(
         state.current_rendition().foreground(),
         CellColor::Indexed(196)
     );
-    assert_eq!(state.scrollback_len(), 1);
-    assert_eq!(state.scrollback_row(0).unwrap().len(), 5);
-    assert_eq!(row_text(state.scrollback_row(0).unwrap()), "hist!");
+    assert_eq!(state.scrollback_len(), 4);
+    assert_eq!(row_text(state.scrollback_row(0).unwrap()), "his");
+    assert_eq!(row_text(state.scrollback_row(1).unwrap()), "t!");
 }
 
 #[test]
-fn resize_never_mutates_historical_wide_or_combining_cells_and_reset_clears_history() {
+fn resize_preserves_historical_wide_and_combining_payloads_and_reset_clears_history() {
     let mut state = state(5, 2);
     state.print_character('界').unwrap();
     state.print_character('\u{301}').unwrap();
@@ -125,7 +128,7 @@ fn resize_never_mutates_historical_wide_or_combining_cells_and_reset_clears_hist
     state.resize(TerminalDimensions::new(2, 1).unwrap());
 
     let row = state.scrollback_row(0).unwrap();
-    assert_eq!(row.len(), 5);
+    assert_eq!(row.len(), 2);
     assert_eq!(row[0].occupancy(), CellOccupancy::WideLead);
     assert_eq!(row[0].character(), '界');
     assert_eq!(row[0].combining_marks(), ['\u{301}']);

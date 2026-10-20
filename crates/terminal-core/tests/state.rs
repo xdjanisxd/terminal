@@ -669,7 +669,7 @@ fn reset_discards_pending_wrap_and_restores_the_origin() {
 }
 
 #[test]
-fn resize_cancels_pending_wrap() {
+fn resize_maps_pending_wrap_to_the_new_insertion_position() {
     let mut state = TerminalState::new(TerminalDimensions::new(2, 2).unwrap());
     state.print_character('a').unwrap();
     state.print_character('b').unwrap();
@@ -677,7 +677,7 @@ fn resize_cancels_pending_wrap() {
     state.resize(TerminalDimensions::new(3, 2).unwrap());
     state.print_character('c').unwrap();
 
-    assert_eq!(row_text(&state, 0), "ac ");
+    assert_eq!(row_text(&state, 0), "abc");
     assert_eq!(row_text(&state, 1), "   ");
     assert_eq!((state.cursor().row(), state.cursor().column()), (0, 2));
 }

@@ -25,6 +25,62 @@ pub(crate) struct Selection {
     active: bool,
 }
 
+impl Selection {
+    pub(crate) fn reflow_points(self) -> [crate::reflow::ReflowPoint; 4] {
+        [
+            self.anchor_start,
+            self.anchor_end,
+            self.focus_start,
+            self.focus_end,
+        ]
+        .map(|point| {
+            crate::reflow::ReflowPoint::new(
+                point.row,
+                point.column,
+                self.unit != SelectionUnit::Caret,
+            )
+        })
+    }
+
+    pub(crate) fn apply_reflow(
+        &mut self,
+        points: &[crate::reflow::ReflowPoint],
+        origin: usize,
+        last: usize,
+        columns: usize,
+    ) -> bool {
+        if points.iter().all(|p| p.mapped.0 < origin) || points.iter().all(|p| p.mapped.0 > last) {
+            return false;
+        }
+        let limit = if self.unit == SelectionUnit::Caret {
+            columns
+        } else {
+            columns - 1
+        };
+        for (endpoint, point) in [
+            &mut self.anchor_start,
+            &mut self.anchor_end,
+            &mut self.focus_start,
+            &mut self.focus_end,
+        ]
+        .into_iter()
+        .zip(points)
+        {
+            *endpoint = SelectionPoint {
+                row: point.mapped.0.clamp(origin, last),
+                column: if point.mapped.0 < origin {
+                    0
+                } else if point.mapped.0 > last {
+                    limit
+                } else {
+                    point.mapped.1.min(limit)
+                },
+            };
+        }
+        true
+    }
+}
+
 impl TerminalState {
     /// Moves a caret endpoint through the same absolute rows used by mouse selection.
     /// The anchor stays fixed; endpoints are exclusive character boundaries.
@@ -290,9 +346,7 @@ impl TerminalState {
         }
         let mut result = String::new();
         for row in start.row..=end.row {
-            if row != start.row
-                && (selection.unit != SelectionUnit::Caret || !self.selection_row_wrapped(row - 1))
-            {
+            if row != start.row && !self.selection_row_wrapped(row - 1) {
                 result.push('\n');
             }
             let left = if row == start.row { start.column } else { 0 };
@@ -307,8 +361,20 @@ impl TerminalState {
             };
             let mut line = String::new();
             let wrapped = self.selection_row_wrap_columns(row);
-            let right = if selection.unit == SelectionUnit::Caret && wrapped != 0 {
+            let right = if wrapped != 0 {
                 right.min(wrapped)
+            } else {
+                right
+            };
+            // Erased padding before a hard break is not logical text. Explicit
+            // spaces remain printable cells and must survive copy and reflow.
+            let right = if selection.unit == SelectionUnit::Caret && wrapped == 0 && row < end.row {
+                (left..right)
+                    .rfind(|&column| {
+                        self.selection_cell(row, column)
+                            .is_some_and(|cell| *cell != crate::Cell::default())
+                    })
+                    .map_or(left, |column| column + 1)
             } else {
                 right
             };
@@ -322,7 +388,7 @@ impl TerminalState {
                 line.push(cell.character());
                 line.extend(cell.combining_marks().iter().copied());
             }
-            if selection.unit == SelectionUnit::Caret {
+            if selection.unit == SelectionUnit::Caret || (wrapped != 0 && row < end.row) {
                 result.push_str(&line);
             } else {
                 result.push_str(line.trim_end_matches(' '));

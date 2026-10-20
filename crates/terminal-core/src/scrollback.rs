@@ -42,7 +42,13 @@ impl Scrollback {
     }
 
     pub(crate) fn push_wrapped(&mut self, row: &[Cell], wrapped: usize) {
-        debug_assert!(row_is_valid(row));
+        if self.capacity != 0 {
+            self.push_owned(row.to_vec(), wrapped);
+        }
+    }
+
+    pub(crate) fn push_owned(&mut self, row: Vec<Cell>, wrapped: usize) {
+        debug_assert!(row_is_valid(&row));
         if self.capacity == 0 {
             return;
         }
@@ -50,9 +56,24 @@ impl Scrollback {
             self.rows.pop_front();
             self.wrapped.pop_front();
         }
-        self.rows.push_back(row.to_vec());
+        self.rows.push_back(row);
         self.wrapped.push_back(wrapped);
-        debug_assert!(self.rows.iter().all(|row| row_is_valid(row)));
+    }
+
+    pub(crate) fn pop(&mut self) -> Option<(Vec<Cell>, usize)> {
+        Some((self.rows.pop_back()?, self.wrapped.pop_back().unwrap()))
+    }
+
+    pub(crate) fn replace_rows(&mut self, rows: impl Iterator<Item = (Vec<Cell>, usize)>) {
+        self.rows.clear();
+        self.wrapped.clear();
+        for (row, wrapped) in rows {
+            self.push_owned(row, wrapped);
+        }
+    }
+
+    pub(crate) fn drain_rows(&mut self) -> impl Iterator<Item = (Vec<Cell>, usize)> + '_ {
+        self.rows.drain(..).zip(self.wrapped.drain(..))
     }
 
     pub(crate) fn capacity(&self) -> usize {

@@ -429,7 +429,7 @@ mod tests {
         let mut t = terminal("https://example.test/hidden-path\r\nblank\r\nmore", 40, 2);
         t.resize(TerminalDimensions::new(14, 2).unwrap());
         t.page_up();
-        assert_eq!(t.viewport_row_columns(0), 40);
+        assert_eq!(t.viewport_row_columns(0), 14);
         assert!(detect(&t).is_empty());
     }
 

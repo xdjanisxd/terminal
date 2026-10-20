@@ -213,11 +213,10 @@ impl TerminalRenderData {
         surface_background.0[3] = opacity;
         let dimensions = state.dimensions();
         let mut cells = Vec::with_capacity(dimensions.cell_count() / 4);
+        let default_cell = terminal_core::Cell::default();
         for row in 0..dimensions.rows() {
             for column in 0..dimensions.columns() {
-                let Some(cell) = state.viewport_cell(row, column) else {
-                    continue;
-                };
+                let cell = state.viewport_cell(row, column).unwrap_or(&default_cell);
                 if cell.occupancy() == CellOccupancy::WideContinuation {
                     continue;
                 }
@@ -750,6 +749,65 @@ mod tests {
     }
 
     #[test]
+    fn reflow_projection_uses_mapped_selection_wide_cells_and_cursor() {
+        let mut state = TerminalState::new(TerminalDimensions::new(6, 4).unwrap());
+        TerminalParser::new()
+            .advance(&mut state, "ab界e\u{301}fg".as_bytes())
+            .unwrap();
+        state.begin_selection(0, 2);
+        state.extend_selection(1, 0);
+        let selected = state.selected_text();
+        for columns in [1, 3, 8] {
+            state.resize(TerminalDimensions::new(columns, 8).unwrap());
+            let data = TerminalRenderData::from_terminal(&state);
+            assert_eq!(data.columns, columns);
+            assert_eq!(data.rows, 8);
+            let wide = data
+                .cells
+                .iter()
+                .find(|cell| cell.character == '界')
+                .unwrap();
+            assert_eq!(wide.background, RenderTheme::default().selection_background);
+            assert_eq!(state.selected_text(), selected);
+            let cursor = data.cursor.unwrap();
+            assert_eq!(
+                (cursor.row, cursor.column),
+                (state.cursor().row(), state.cursor().column())
+            );
+            assert!(
+                data.cells
+                    .iter()
+                    .any(|cell| cell.text.as_str() == "e\u{301}")
+            );
+        }
+    }
+
+    #[test]
+    fn reflowed_compact_history_projects_selection_over_default_padding() {
+        let mut state = TerminalState::new(TerminalDimensions::new(4, 3).unwrap());
+        TerminalParser::new()
+            .advance(&mut state, b"a\r\nb\r\nc\r\nd\r\ne")
+            .unwrap();
+        state.scroll_viewport_rows(i32::MAX);
+        state.begin_selection(0, 0);
+        state.extend_selection(1, 0);
+        state.resize(TerminalDimensions::new(8, 3).unwrap());
+        assert_eq!(state.viewport_row_columns(0), 1);
+        assert!(state.is_selected(0, 7));
+        let data = TerminalRenderData::from_terminal(&state);
+        let padding = data
+            .cells
+            .iter()
+            .find(|cell| cell.row == 0 && cell.column == 7)
+            .unwrap();
+        assert_eq!(
+            padding.background,
+            RenderTheme::default().selection_background
+        );
+        assert_eq!(state.selected_text().as_deref(), Some("a\nb"));
+    }
+
+    #[test]
     fn custom_theme_changes_projection_without_mutating_core() {
         let mut state = TerminalState::new(TerminalDimensions::new(2, 1).unwrap());
         state.set_foreground_color(CellColor::Indexed(1));
@@ -857,7 +915,9 @@ mod tests {
         let mut state = TerminalState::new(TerminalDimensions::new(2, 2).unwrap());
         assert_eq!(TerminalRenderData::from_terminal(&state).scrollbar, None);
         state.set_cursor_position(1, 0).unwrap();
-        state.index();
+        for _ in 0..3 {
+            state.index();
+        }
         assert_eq!(
             TerminalRenderData::from_terminal(&state)
                 .scrollbar
@@ -865,12 +925,12 @@ mod tests {
                 .viewport_offset,
             0
         );
-        assert!(state.scroll_viewport_rows(1));
+        assert!(state.scroll_viewport_rows(2));
         state.resize(TerminalDimensions::new(2, 3).unwrap());
         assert_eq!(
             TerminalRenderData::from_terminal(&state).scrollbar,
             Some(ScrollbarRenderData {
-                history_rows: 1,
+                history_rows: 2,
                 visible_rows: 3,
                 viewport_offset: 1
             })

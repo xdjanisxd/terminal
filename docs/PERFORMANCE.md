@@ -113,3 +113,43 @@ The user then supplied a second native shrink/grow trace, `resize-dx12.log`, wit
 From the repository root in PowerShell, run `cargo build --release -p terminal-app`; remove any override with `Remove-Item Env:\WGPU_BACKEND -ErrorAction SilentlyContinue`, then run `cargo run --release -p terminal-app` with diagnostics unset. Continuously drag a window edge through several sizes, including shrink and grow, and watch whether shell text remains sharp and the content reaches the pointer without a visible pause. Type `abcdef`, Backspace repeatedly, select across the prompt, enter `1..150` and navigate with PageUp/PageDown; verify those already-acceptable interactions remain responsive. Split horizontally and vertically, produce output in an unfocused pane, resize again, switch panes, and verify focus/cursor behavior. Repeat the same resize gesture with Alacritty on the same display and scale as a qualitative pacing reference.
 
 For a measured trace, create `target/perf` and run the release executable with `TERMINAL_RENDERER_DIAGNOSTICS=1`, redirecting stderr to an ignored file as described above. Record display scale, window size, gesture, and hardware. Compare `app event=resize-batch`, `app event=pty-wake`, `renderer event=pane-projection`, and `renderer frame=` records: size events versus applied resizes, PTY chunks versus presents, emitted cells, instance counts/generation time, and acquire-to-present time. Disable diagnostics before judging subjective pacing. Comparable before/after native gesture traces are unavailable, so do not claim a native frame-latency improvement from the microbenchmarks alone.
+
+
+## Scrollback reflow (Linux, 2026-10-20)
+
+The `state_baselines` benchmark now includes repeated 80↔60 column, 30↔29
+row, unchanged-size and Unicode 80↔1 column resizes. On an Intel Core i5-1250P
+x86_64 Linux host with rustc 1.99.0, one optimized benchmark invocation gave:
+
+| Operation | Baseline | Reflow candidate |
+| --- | ---: | ---: |
+| Column resize pair, empty history | 79.9 µs | 56.6 µs |
+| Column resize pair, approximately 2,000 history rows | 29.4 µs | 979.7 µs |
+| Column resize pair, approximately 10,000 history rows | 28.5 µs | 7.001 ms |
+| Height resize pair, approximately 10,000 history rows | 33.1 µs | 32.5 µs |
+| Unchanged dimensions, approximately 10,000 history rows | 4.3 ns | 1.6 ns |
+| Unicode 80↔1 column pair, 40 logical lines | Not measured | 570.9 µs |
+
+A pair performs two resizes. Full-history column reflow therefore averaged
+approximately **3.5 ms per width change** in this fixture. The baseline only
+copied/clipped the visible rectangle and retained old-width history: it did not
+perform equivalent text-preserving work. Width changes now cost O(retained
+cells), height changes cost O(live grid cells), and identical sizes are O(1)
+without allocation. History eviction reuses output row buffers during large
+expansions, and old history drains incrementally rather than creating a flat
+transcript copy. Default historical padding stays compact. `Cell` remains
+72 bytes on this host despite the private one-column wide-glyph flag.
+
+Candidate renderer benchmarks measured 19.0 µs for visible 80×30 projection,
+18.0 µs for output echo plus projection, and 23.1 µs for three-pane layout plus
+projection. These are CPU microbenchmarks, not native resize/input-to-present
+latency measurements. Small baseline/candidate differences are subject to
+scheduling and cache noise; the samples do not establish renderer or typing
+speedups. Large/wide histories can cost more than this 80-column fixture.
+
+[Raw measurements and environment](measurements/scrollback-reflow/environment.txt)
+are stored beside `baseline-core.txt`, `candidate-core.txt` and
+`candidate-projection.txt`. Fixtures populate history outside the timed loop.
+The nominal 10,000-row prefill starts just below the 10,000-row cap because
+some rows remain live. No native Linux/Windows visual or compositor acceptance
+is claimed; use the [reflow acceptance procedure](SCROLLBACK_REFLOW.md).

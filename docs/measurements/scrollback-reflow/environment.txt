@@ -1,0 +1,13 @@
+Date: 2026-10-20
+Base: master 4277bed
+Candidate: uncommitted feat/scrollback-reflow
+Host: Linux-6.12.113+deb13-amd64-x86_64-with-glibc2.41
+CPU: Intel Core i5-1250P
+rustc 1.99.0 (b940084d7 2026-09-28)
+Cell layout on this x86_64 host: baseline 72 bytes; candidate 72 bytes
+Workspace tests: 781 passed, 0 failed, 23 ignored
+Formatting, all-target workspace check, Clippy with warnings denied, release build: passed
+Native Linux/Windows visual acceptance: pending
+Single-host microbenchmarks; no controlled compositor/frame-latency measurement.
+Baseline excludes the newly added one-column fixture.
+History labels denote target prefill; the 10000 fixture starts near capacity.

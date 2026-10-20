@@ -1,6 +1,8 @@
 use std::collections::HashSet;
 use std::ops::{Deref, DerefMut};
 
+use crate::reflow::{Reflow, ReflowPoint};
+use crate::selection::Selection;
 use crate::{
     Cell, CellAttributes, Cursor, ScreenGrid, TerminalDimensions, VerticalScrollingMargins,
     scrollback::Scrollback,
@@ -86,6 +88,243 @@ impl ScreenState {
         self.vertical_scrolling_margins = VerticalScrollingMargins::full_screen(dimensions.rows());
         self.wrap_pending = false;
         self.viewport_offset = self.viewport_offset.min(self.scrollback_len());
+    }
+
+    fn resize_primary(
+        &mut self,
+        dimensions: TerminalDimensions,
+        selection: &mut Option<Selection>,
+        auto_wrap: bool,
+    ) {
+        let old = self.grid.dimensions();
+        if old == dimensions {
+            return;
+        }
+        self.wrap_pending &= auto_wrap;
+        if old.columns() == dimensions.columns() {
+            self.resize_height(dimensions);
+            if let Some(selected) = selection {
+                let points = selected.reflow_points();
+                if !selected.apply_reflow(
+                    &points,
+                    self.history_origin,
+                    self.history_origin + self.scrollback_len() + dimensions.rows() - 1,
+                    dimensions.columns(),
+                ) {
+                    *selection = None;
+                }
+            }
+            return;
+        }
+        let history = self.scrollback_len();
+        let origin = self.history_origin;
+        let cursor = self.grid.cursor();
+        let mut points = Vec::with_capacity(8);
+        points.push(ReflowPoint::new(
+            origin + history + cursor.row(),
+            if self.wrap_pending {
+                old.columns()
+            } else {
+                cursor.column()
+            },
+            false,
+        ));
+        let saved_index = self.saved_cursor.map(|saved| {
+            points.push(ReflowPoint::new(
+                origin + history + saved.cursor.row().min(old.rows() - 1),
+                saved.cursor.column().min(old.columns() - 1),
+                false,
+            ));
+            points.len() - 1
+        });
+        let viewport_index = points.len();
+        points.push(ReflowPoint::new(
+            origin + history - self.viewport_offset,
+            0,
+            false,
+        ));
+        let selection_index = points.len();
+        if selection
+            .as_ref()
+            .is_some_and(|selected| selected.reflow_points().iter().all(|p| p.row < origin))
+        {
+            *selection = None;
+        }
+        if let Some(selection) = selection.as_ref() {
+            points.extend(selection.reflow_points());
+        }
+        let selection_end = points.len();
+        let grid_index = points.len();
+        points.push(ReflowPoint::new(origin + history, 0, false));
+        for point in &mut points {
+            if point.row < origin {
+                point.row = origin;
+                point.column = 0;
+            }
+            point.mapped = (usize::MAX, point.column);
+        }
+        let capacity = self.scrollback.as_ref().unwrap().capacity();
+        let mut reflow = Reflow::new(
+            dimensions.columns(),
+            capacity + dimensions.rows() + old.rows().max(old.columns()),
+        );
+        for (row, (cells, wrapped)) in self.scrollback.as_mut().unwrap().drain_rows().enumerate() {
+            reflow.push(origin + row, &cells, wrapped, &mut points);
+        }
+        // Empty rows below the cursor can absorb expansion before scrolling.
+        let last = (cursor.row()..old.rows())
+            .rfind(|&row| {
+                row == cursor.row()
+                    || self.grid.row_wrap_columns(row) != 0
+                    || self
+                        .grid
+                        .row(row)
+                        .unwrap()
+                        .iter()
+                        .any(|cell| *cell != Cell::default())
+            })
+            .unwrap();
+        let mut processed = 0;
+        for row in 0..old.rows() {
+            reflow.push(
+                origin + history + row,
+                self.grid.row(row).unwrap(),
+                self.grid.row_wrap_columns(row),
+                &mut points,
+            );
+            processed += 1;
+            if row >= cursor.row()
+                && reflow.generated > points[0].mapped.0.saturating_add(dimensions.rows())
+            {
+                break;
+            }
+        }
+        reflow.finish();
+        let padding = if processed == old.rows() {
+            (old.rows() - 1 - last).min(
+                (reflow.generated - points[grid_index].mapped.0).saturating_sub(dimensions.rows()),
+            )
+        } else {
+            0
+        };
+        for _ in 0..padding {
+            reflow.rows.pop_back();
+            reflow.generated -= 1;
+        }
+        let mut dropped = reflow.generated - reflow.rows.len();
+        // Keep the insertion point visible. As with rectangular TUI resizing,
+        // rows below the cursor which cannot fit are clipped from the bottom.
+        let live_start = reflow
+            .generated
+            .saturating_sub(dimensions.rows())
+            .min(points[0].mapped.0)
+            .max(dropped);
+        while live_start - dropped > capacity {
+            reflow.rows.pop_front();
+            dropped += 1;
+        }
+        reflow
+            .rows
+            .truncate(live_start - dropped + dimensions.rows());
+        let live = reflow.rows.split_off(live_start - dropped);
+        self.scrollback
+            .as_mut()
+            .unwrap()
+            .replace_rows(reflow.rows.into_iter());
+        self.grid = ScreenGrid::from_rows(dimensions, live);
+        self.history_origin = origin + dropped;
+        self.viewport_offset = if self.viewport_offset == 0 {
+            0
+        } else {
+            live_start
+                .saturating_sub(points[viewport_index].mapped.0)
+                .min(self.scrollback_len())
+        };
+        let (row, column) = points[0].mapped;
+        self.grid
+            .set_cursor_position(
+                row.saturating_sub(live_start).min(dimensions.rows() - 1),
+                column.min(dimensions.columns() - 1),
+            )
+            .unwrap();
+        self.wrap_pending = auto_wrap && column == dimensions.columns();
+        if let Some(index) = saved_index {
+            let (row, column) = points[index].mapped;
+            self.saved_cursor
+                .as_mut()
+                .unwrap()
+                .cursor
+                .set_position(
+                    row.saturating_sub(live_start).min(dimensions.rows() - 1),
+                    column.min(dimensions.columns() - 1),
+                    dimensions,
+                )
+                .unwrap();
+        }
+        if let Some(selected) = selection {
+            for point in &mut points[selection_index..selection_end] {
+                point.mapped.0 = point.mapped.0.saturating_add(origin);
+            }
+            if !selected.apply_reflow(
+                &points[selection_index..selection_end],
+                self.history_origin,
+                self.history_origin + self.scrollback_len() + dimensions.rows() - 1,
+                dimensions.columns(),
+            ) {
+                *selection = None;
+            }
+        }
+        self.vertical_scrolling_margins = VerticalScrollingMargins::full_screen(dimensions.rows());
+    }
+
+    fn resize_height(&mut self, dimensions: TerminalDimensions) {
+        let old = self.grid.dimensions();
+        let cursor = self.grid.cursor();
+        let mut prefix = std::collections::VecDeque::new();
+        let history = self.scrollback.as_mut().unwrap();
+        let mut cursor_row = cursor.row();
+        let mut skip = 0;
+        if dimensions.rows() < old.rows() {
+            let shift = (cursor.row() + 1).saturating_sub(dimensions.rows());
+            for row in 0..shift {
+                if history.len() == history.capacity() {
+                    self.history_origin += 1;
+                }
+                history.push_wrapped(self.grid.row(row).unwrap(), self.grid.row_wrap_columns(row));
+            }
+            if self.viewport_offset != 0 {
+                self.viewport_offset = (self.viewport_offset + shift).min(history.len());
+            }
+            cursor_row -= shift;
+            skip = shift;
+        } else {
+            let pull = (dimensions.rows() - old.rows()).min(history.len());
+            for _ in 0..pull {
+                prefix.push_front(history.pop().unwrap());
+            }
+            cursor_row += pull;
+            self.viewport_offset = self.viewport_offset.saturating_sub(pull);
+        }
+        let shift = cursor_row as isize - cursor.row() as isize;
+        if let Some(saved) = &mut self.saved_cursor {
+            saved
+                .cursor
+                .set_position(
+                    saved
+                        .cursor
+                        .row()
+                        .saturating_add_signed(shift)
+                        .min(dimensions.rows() - 1),
+                    saved.cursor.column().min(dimensions.columns() - 1),
+                    dimensions,
+                )
+                .unwrap();
+        }
+        self.grid = self.grid.with_row_transfer(dimensions, skip, prefix);
+        self.grid
+            .set_cursor_position(cursor_row, cursor.column())
+            .unwrap();
+        self.vertical_scrolling_margins = VerticalScrollingMargins::full_screen(dimensions.rows());
     }
 
     fn scroll_region_up(&mut self, margins: VerticalScrollingMargins, rows: usize, blank: Cell) {
@@ -311,8 +550,25 @@ impl ScreenSet {
         });
     }
 
-    pub(crate) fn resize_all(&mut self, dimensions: TerminalDimensions) {
-        self.primary.resize(dimensions);
+    pub(crate) fn resize_all(
+        &mut self,
+        dimensions: TerminalDimensions,
+        selection: &mut Option<Selection>,
+        auto_wrap: bool,
+    ) {
+        if self.active == ScreenKind::Primary {
+            self.primary
+                .resize_primary(dimensions, selection, auto_wrap);
+        } else {
+            self.primary
+                .resize_primary(dimensions, &mut None, auto_wrap);
+            if let Some(selected) = selection {
+                let points = selected.reflow_points();
+                if !selected.apply_reflow(&points, 0, dimensions.rows() - 1, dimensions.columns()) {
+                    *selection = None;
+                }
+            }
+        }
         self.alternate.resize(dimensions);
     }
 

@@ -109,7 +109,7 @@ fn word_selection_crosses_soft_wrap_and_scrollback_keeps_absolute_endpoints() {
     assert_eq!(terminal.selected_text().as_deref(), Some("abcdefg"));
     terminal.begin_selection(0, 0);
     terminal.extend_selection(1, 0);
-    assert_eq!(terminal.selected_text().as_deref(), Some("def\ng"));
+    assert_eq!(terminal.selected_text().as_deref(), Some("defg"));
 }
 
 #[test]
