@@ -159,6 +159,9 @@ later performance/polish work.
   - Track OSC 0/2 titles per pane and show the active pane's title unless the tab has an explicit user rename.
   - Track each pane's latest validated OSC 7 `file://` URI independently, including background panes.
   - Local PowerShell prompts report the current filesystem directory through OSC 7 without profile edits or polling; Saved Workspace snapshots use the reported pane CWD.
+- [x] Inherit the active pane's local CWD for new tabs and splits.
+  - Reuse OSC 7 state and validate only when creating sessions; preserve explicit root precedence and startup behavior.
+  - Reject remote authorities, UNC/device paths, and invalid or missing inherited directories. See [implementation and acceptance checks](CWD_INHERITANCE.md) for platform limits and verification status.
 - [x] Improve scrollback search.
   - Literal search is case-insensitive by default, with wrap-around next/previous navigation and an active/total match count.
   - Highlight full matched spans and all visible matches, with the active match styled distinctly.
