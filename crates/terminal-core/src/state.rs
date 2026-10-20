@@ -139,6 +139,9 @@ pub enum EraseDirection {
 pub struct TerminalState {
     screen: ScreenSet,
     terminal_modes: TerminalModes,
+    cursor_style: crate::CursorStyle,
+    cursor_style_default: crate::CursorStyle,
+    cursor_style_overridden: bool,
     input_modes: InputModes,
     keyboard_reporting_stacks: [Vec<u16>; 2],
     current_rendition: CellAttributes,
@@ -290,6 +293,9 @@ impl TerminalState {
         Self {
             screen: ScreenSet::new(dimensions),
             terminal_modes: TerminalModes::default(),
+            cursor_style: crate::CursorStyle::default(),
+            cursor_style_default: crate::CursorStyle::default(),
+            cursor_style_overridden: false,
             input_modes: InputModes::default(),
             keyboard_reporting_stacks: [Vec::new(), Vec::new()],
             current_rendition: CellAttributes::default(),
@@ -1131,6 +1137,25 @@ impl TerminalState {
         self.terminal_modes.set_cursor_visibility(visibility);
     }
 
+    /// Returns the effective cursor outline and blink preference.
+    pub const fn cursor_style(&self) -> crate::CursorStyle {
+        self.cursor_style
+    }
+
+    /// Sets configuration defaults, preserving an active application override.
+    pub fn set_cursor_style_default(&mut self, style: crate::CursorStyle) {
+        self.cursor_style_default = style;
+        if !self.cursor_style_overridden {
+            self.cursor_style = style;
+        }
+    }
+
+    /// Applies a DECSCUSR request until a terminal reset restores configuration defaults.
+    pub fn set_cursor_style_from_application(&mut self, style: crate::CursorStyle) {
+        self.cursor_style = style;
+        self.cursor_style_overridden = true;
+    }
+
     /// Sets the right-margin wrapping behavior.
     pub fn set_auto_wrap(&mut self, auto_wrap: AutoWrapMode) {
         self.terminal_modes.set_auto_wrap(auto_wrap);
@@ -1185,8 +1210,10 @@ impl TerminalState {
     /// already-generated pending replies are preserved. This is not an implementation
     /// of DECSTR or RIS.
     pub fn reset(&mut self) {
+        let cursor_style_default = self.cursor_style_default;
         let pending_replies = std::mem::take(&mut self.pending_replies);
         *self = Self::new(self.dimensions());
+        self.set_cursor_style_default(cursor_style_default);
         self.pending_replies = pending_replies;
     }
 
@@ -1195,6 +1222,8 @@ impl TerminalState {
     /// Auto-wrap returns to the emulator's enabled startup default.
     pub fn soft_reset(&mut self) {
         self.terminal_modes = TerminalModes::default();
+        self.cursor_style = self.cursor_style_default;
+        self.cursor_style_overridden = false;
         self.input_modes.set_cursor_keys(CursorKeyMode::Normal);
         self.current_rendition = CellAttributes::default();
         self.current_target = None;
@@ -1213,7 +1242,9 @@ impl TerminalState {
         let directory = self.working_directory_uri.take();
         let title_version = self.shell_title_version;
         let prompt_version = self.shell_prompt_version;
+        let cursor_style_default = self.cursor_style_default;
         self.reset();
+        self.set_cursor_style_default(cursor_style_default);
         self.shell_title = title;
         self.working_directory_uri = directory;
         self.shell_title_version = title_version;

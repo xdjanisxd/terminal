@@ -130,6 +130,8 @@ struct Application {
     unseen_tab_activity: HashSet<TabId>,
     activity_frame: usize,
     activity_deadline: Option<Instant>,
+    cursor_blink: CursorBlink,
+    window_focused: bool,
     search: Option<Search>,
     url_hints: Option<url_hints::Session>,
     url_click: Option<(url_hints::Occurrence, PhysicalPosition<f64>)>,
@@ -358,6 +360,45 @@ struct FrameState {
     redraw_requested: bool,
     #[cfg(test)]
     requests_armed: usize,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct CursorBlink {
+    visible: bool,
+    deadline: Option<Instant>,
+}
+
+impl Default for CursorBlink {
+    fn default() -> Self {
+        Self {
+            visible: true,
+            deadline: None,
+        }
+    }
+}
+
+impl CursorBlink {
+    fn update(&mut self, enabled: bool, now: Instant) -> bool {
+        if enabled {
+            if let Some(deadline) = self.deadline {
+                if now >= deadline {
+                    self.visible = !self.visible;
+                    self.deadline = Some(now + Duration::from_millis(500));
+                    return true;
+                }
+            } else {
+                self.visible = true;
+                self.deadline = Some(now + Duration::from_millis(500));
+            }
+        } else {
+            self.deadline = None;
+            if !self.visible {
+                self.visible = true;
+                return true;
+            }
+        }
+        false
+    }
 }
 
 impl FrameState {
@@ -712,6 +753,8 @@ impl Default for Application {
             unseen_tab_activity: HashSet::new(),
             activity_frame: 0,
             activity_deadline: None,
+            cursor_blink: CursorBlink::default(),
+            window_focused: true,
             search: None,
             url_hints: None,
             url_click: None,
@@ -760,6 +803,17 @@ fn populate_visual_smoke_state(terminal: &mut TerminalState) {
         blue: 80,
     });
     print_smoke_text(terminal, "wide: 界   combining: e\u{301}");
+}
+
+fn configured_cursor_style(config: &Config) -> terminal_core::CursorStyle {
+    terminal_core::CursorStyle {
+        shape: match config.cursor.shape {
+            terminal_config::CursorShape::Block => terminal_core::CursorShape::Block,
+            terminal_config::CursorShape::Beam => terminal_core::CursorShape::Beam,
+            terminal_config::CursorShape::Underline => terminal_core::CursorShape::Underline,
+        },
+        blinking: config.cursor.blinking,
+    }
 }
 
 fn print_smoke_text(terminal: &mut TerminalState, text: &str) {
@@ -1026,6 +1080,18 @@ impl Application {
                     }
                     self.invalidate_frame();
                 }
+                if config.cursor != self.config.cursor {
+                    let cursor_style = configured_cursor_style(&config);
+                    self.terminal.set_cursor_style_default(cursor_style);
+                    for pane in self.inactive_panes.values_mut() {
+                        pane.terminal.set_cursor_style_default(cursor_style);
+                    }
+                    self.cursor_blink = CursorBlink::default();
+                    if let Some(renderer) = self.renderer.as_mut() {
+                        renderer.set_cursor_blink_visible(true);
+                    }
+                    self.invalidate_frame();
+                }
                 if self.renderer.is_none() {
                     self.base_font_size = config.font.size;
                     self.font_size = config.font.size;
@@ -1049,6 +1115,11 @@ impl Application {
             .filter(|pane| pane.id != active)
             .map(|pane| (pane.id, PaneRuntime::new(dimensions)))
             .collect();
+        let cursor_style = configured_cursor_style(&self.config);
+        for pane in self.inactive_panes.values_mut() {
+            pane.terminal.set_cursor_style_default(cursor_style);
+        }
+        self.terminal.set_cursor_style_default(cursor_style);
         self.workspace = workspace;
         self.active_runtime_pane = active;
         self.update_workspace_title();
@@ -2206,6 +2277,7 @@ impl Application {
             })
             .collect();
         drop(ui_stage);
+        renderer.set_cursor_blink_visible(self.cursor_blink.visible);
         let outcome = renderer.redraw_panes(&panes, overlay.as_ref());
         if matches!(
             outcome,
@@ -2912,12 +2984,25 @@ impl ApplicationHandler<PtyWake> for Application {
                 self.selection_edge = None;
             }
         }
-        let activity_deadline = self.tick_tab_activity(Instant::now());
+        let now = Instant::now();
+        let activity_deadline = self.tick_tab_activity(now);
+        let cursor_blinks = self.window_focused
+            && self.terminal.cursor_style().blinking
+            && self.terminal.terminal_modes().cursor_visibility()
+                == terminal_core::CursorVisibility::Visible
+            && self.terminal.viewport_offset() == 0;
+        if self.cursor_blink.update(cursor_blinks, now) {
+            if let Some(renderer) = self.renderer.as_mut() {
+                renderer.set_cursor_blink_visible(self.cursor_blink.visible);
+            }
+            self.invalidate_frame();
+        }
         let deadline = self
             .selection_edge
             .map(|(_, _, _, deadline)| deadline)
             .into_iter()
             .chain(activity_deadline)
+            .chain(self.cursor_blink.deadline)
             .chain(
                 self.throughput
                     .as_ref()
@@ -3002,6 +3087,12 @@ impl ApplicationHandler<PtyWake> for Application {
                 self.diagnose("occluded-true-handled");
             }
             WindowEvent::Focused(focused) => {
+                self.window_focused = focused;
+                self.cursor_blink = CursorBlink::default();
+                if let Some(renderer) = self.renderer.as_mut() {
+                    renderer.set_cursor_blink_visible(true);
+                }
+                self.invalidate_frame();
                 if let Some(bytes) = encode_focus(*self.terminal.input_modes(), focused) {
                     self.write_to_pty(bytes.to_vec());
                 }
@@ -4830,6 +4921,25 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn cursor_blink_sleeps_between_visible_transitions_and_stops_cleanly() {
+        use super::CursorBlink;
+        use std::time::{Duration, Instant};
+
+        let start = Instant::now();
+        let mut blink = CursorBlink::default();
+        assert!(!blink.update(true, start));
+        assert!(blink.visible);
+        assert_eq!(blink.deadline, Some(start + Duration::from_millis(500)));
+        assert!(!blink.update(true, start + Duration::from_millis(499)));
+        assert!(blink.update(true, start + Duration::from_millis(500)));
+        assert!(!blink.visible);
+        assert!(blink.update(false, start + Duration::from_millis(600)));
+        assert!(blink.visible);
+        assert_eq!(blink.deadline, None);
+        assert!(!blink.update(false, start + Duration::from_secs(2)));
+    }
+
     #[test]
     fn editing_shortcuts_preserve_application_ownership_and_modifiers() {
         use super::{

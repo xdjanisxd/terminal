@@ -527,10 +527,36 @@ pub struct Config {
     pub window: WindowConfig,
     pub shell: Option<ShellConfig>,
     pub font: FontConfig,
+    pub cursor: CursorConfig,
     pub theme: Theme,
     pub bindings: Vec<Binding>,
     pub workspace: WorkspaceDefinition,
     pub projects: Vec<ProjectRoot>,
+}
+
+/// Cursor shape and blink defaults used when no application override is active.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct CursorConfig {
+    pub shape: CursorShape,
+    pub blinking: bool,
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum CursorShape {
+    #[default]
+    Block,
+    Beam,
+    Underline,
+}
+
+impl Default for CursorConfig {
+    fn default() -> Self {
+        Self {
+            shape: CursorShape::Block,
+            blinking: false,
+        }
+    }
 }
 
 /// Native window settings; opacity is validated before entering runtime state.
@@ -592,6 +618,7 @@ impl Default for Config {
             window: WindowConfig::default(),
             shell: None,
             font: FontConfig::default(),
+            cursor: CursorConfig::default(),
             theme: Theme::default(),
             workspace: WorkspaceDefinition::default(),
             projects: Vec::new(),
@@ -714,6 +741,10 @@ impl Config {
                 }
                 config.font.size = size as u16;
             }
+        }
+        if let Some(cursor) = raw.cursor {
+            config.cursor.shape = cursor.shape.unwrap_or_default();
+            config.cursor.blinking = cursor.blinking.unwrap_or(false);
         }
         if let Some(workspace) = raw.workspace {
             Workspace::from_definition(&workspace)
@@ -912,10 +943,18 @@ struct RawConfig {
     window: Option<RawWindow>,
     shell: Option<ShellConfig>,
     font: Option<RawFont>,
+    cursor: Option<RawCursor>,
     theme: Option<RawTheme>,
     bindings: Option<Vec<RawBinding>>,
     workspace: Option<WorkspaceDefinition>,
     projects: Option<Vec<ProjectRoot>>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default, deny_unknown_fields)]
+struct RawCursor {
+    shape: Option<CursorShape>,
+    blinking: Option<bool>,
 }
 
 #[derive(Deserialize, Default)]
@@ -1671,5 +1710,38 @@ mod window_tests {
             assert!(error.to_string().contains("opacity"), "{error}");
         }
         assert!(Config::parse("[window]\nopactiy = 0.85").is_err());
+    }
+}
+
+#[cfg(test)]
+mod cursor_tests {
+    use super::{Config, CursorShape};
+
+    #[test]
+    fn cursor_defaults_and_supported_values() {
+        let defaults = Config::parse("").unwrap();
+        assert_eq!(defaults.cursor.shape, CursorShape::Block);
+        assert!(!defaults.cursor.blinking);
+        for (shape, expected) in [
+            ("block", CursorShape::Block),
+            ("beam", CursorShape::Beam),
+            ("underline", CursorShape::Underline),
+        ] {
+            let config =
+                Config::parse(&format!("[cursor]\nshape = '{shape}'\nblinking = true")).unwrap();
+            assert_eq!(config.cursor.shape, expected);
+            assert!(config.cursor.blinking);
+        }
+    }
+
+    #[test]
+    fn cursor_rejects_unknown_shapes_fields_and_invalid_blink_types() {
+        for source in [
+            "[cursor]\nshape = 'bar'",
+            "[cursor]\nshpae = 'beam'",
+            "[cursor]\nblinking = 'true'",
+        ] {
+            assert!(Config::parse(source).is_err(), "accepted {source}");
+        }
     }
 }

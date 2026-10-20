@@ -30,6 +30,12 @@ size = 16 # Logical pixels, 1..=256. Restart after editing [font].
 # Uses a variable wght axis or nearest compatible Semibold/heavier face.
 # Fonts without adjustable weight keep existing Bold. See docs/CONFIG.md.
 
+[cursor]
+# Shape: block (default), beam, or underline. Applications may override this
+# with DECSCUSR; DECSTR (CSI ! p) and RIS (ESC c) restore these defaults.
+shape = "block"
+# blinking = false # Default preserves the existing steady cursor.
+
 [theme]
 # Every color is #RRGGBB. Omitted fields use their built-in defaults.
 # Choose a complete built-in palette; explicit color fields below override it.
