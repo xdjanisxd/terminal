@@ -7,6 +7,11 @@
 
 mod branding;
 mod commands;
+mod cwd;
+use cwd::local_cwd_from_osc7;
+#[cfg(test)]
+#[path = "tests/cwd_inheritance.rs"]
+mod cwd_inheritance_tests;
 #[cfg(all(test, target_os = "linux"))]
 #[path = "tests/linux_palette.rs"]
 mod linux_palette_tests;
@@ -84,6 +89,7 @@ struct Application {
     terminal: TerminalState,
     pty: Option<PtyWorker>,
     pending_startup_command: Option<String>,
+    inherited_cwd: Option<PathBuf>,
     workspace: Workspace,
     active_runtime_pane: PaneId,
     inactive_panes: HashMap<PaneId, PaneRuntime>,
@@ -290,6 +296,7 @@ struct PaneRuntime {
     terminal: TerminalState,
     pty: Option<PtyWorker>,
     pending_startup_command: Option<String>,
+    inherited_cwd: Option<PathBuf>,
 }
 
 impl PaneRuntime {
@@ -299,6 +306,7 @@ impl PaneRuntime {
             terminal: TerminalState::new(dimensions),
             pty: None,
             pending_startup_command: None,
+            inherited_cwd: None,
         }
     }
 }
@@ -707,6 +715,7 @@ impl Default for Application {
             terminal,
             pty: None,
             pending_startup_command: None,
+            inherited_cwd: None,
             workspace,
             active_runtime_pane,
             inactive_panes: HashMap::new(),
@@ -894,6 +903,13 @@ impl Application {
                             .get(&pane.id)
                             .map(|runtime| &runtime.terminal)
                     };
+                    let inherited = if pane.id == self.active_runtime_pane {
+                        self.inherited_cwd.as_ref()
+                    } else {
+                        self.inactive_panes
+                            .get(&pane.id)
+                            .and_then(|runtime| runtime.inherited_cwd.as_ref())
+                    };
                     terminal
                         .and_then(TerminalState::working_directory_uri)
                         .and_then(local_cwd_from_osc7)
@@ -902,6 +918,7 @@ impl Application {
                                 .pane_launch(pane.id)
                                 .and_then(|(root, _)| root)
                         })
+                        .or_else(|| inherited.cloned())
                 })
                 .collect();
             apply_pane_roots(&mut saved_tab.layout, &mut roots.into_iter());
@@ -956,6 +973,7 @@ impl Application {
                 self.exited_panes.clear();
                 self.pty.take();
                 self.pending_startup_command = None;
+                self.inherited_cwd = None;
                 self.inactive_panes.clear();
                 let dimensions = self.terminal.dimensions();
                 self.terminal = TerminalState::new(dimensions);
@@ -1107,6 +1125,7 @@ impl Application {
         let workspace = Workspace::from_definition(definition).expect("validated workspace config");
         self.exited_panes.clear();
         self.pending_startup_command = None;
+        self.inherited_cwd = None;
         let active = workspace.active_pane();
         let dimensions = self.terminal.dimensions();
         self.inactive_panes = workspace
@@ -1298,6 +1317,7 @@ impl Application {
                 &mut self.pending_startup_command,
                 next_runtime.pending_startup_command,
             ),
+            inherited_cwd: std::mem::replace(&mut self.inherited_cwd, next_runtime.inherited_cwd),
         };
         self.inactive_panes.insert(current, old);
         self.active_runtime_pane = next;
@@ -1335,8 +1355,20 @@ impl Application {
         emit_diagnostic(format_args!(
             "app event=pane-workspace-created pane={new_pane:?}"
         ));
-        self.inactive_panes
-            .insert(new_pane, PaneRuntime::new(self.terminal.dimensions()));
+        let mut runtime = PaneRuntime::new(self.terminal.dimensions());
+        if self
+            .workspace
+            .pane_launch(new_pane)
+            .is_some_and(|(root, _)| root.is_none())
+        {
+            // The active runtime still belongs to the source pane until activate_pane.
+            runtime.inherited_cwd = self
+                .terminal
+                .working_directory_uri()
+                .and_then(local_cwd_from_osc7)
+                .filter(|path| path.is_dir());
+        }
+        self.inactive_panes.insert(new_pane, runtime);
         emit_diagnostic(format_args!(
             "app event=pane-runtime-created pane={new_pane:?}"
         ));
@@ -1407,6 +1439,7 @@ impl Application {
             if self.workspace.panes().len() == 1 {
                 self.session_exit_requested = true;
                 self.pending_startup_command = None;
+                self.inherited_cwd = None;
                 self.pty.take();
                 emit_diagnostic(format_args!("app event=last-shell-exited"));
             } else {
@@ -2484,6 +2517,7 @@ impl Application {
         if self.pty.is_none()
             && let Some((root, startup)) = self.workspace.pane_launch(self.active_runtime_pane)
         {
+            let root = cwd::launch_root(root, self.inherited_cwd.as_ref());
             let execute = self.execute.take();
             self.pending_startup_command = self
                 .workspace
@@ -2523,6 +2557,7 @@ impl Application {
             if runtime.pty.is_none()
                 && let Some((root, startup)) = self.workspace.pane_launch(*pane_id)
             {
+                let root = cwd::launch_root(root, runtime.inherited_cwd.as_ref());
                 runtime.pending_startup_command = self
                     .workspace
                     .pane_startup_command(*pane_id)
@@ -3577,6 +3612,7 @@ impl Application {
         self.session_exit_requested = true;
         self.exited_panes.clear();
         self.pending_startup_command = None;
+        self.inherited_cwd = None;
         self.pty.take();
         self.inactive_panes.clear();
     }
@@ -4375,43 +4411,6 @@ impl Application {
             search_markers: Vec::new(),
         })
     }
-}
-
-fn local_cwd_from_osc7(uri: &str) -> Option<PathBuf> {
-    let rest = uri.strip_prefix("file://")?;
-    let (host, path) = if rest.starts_with('/') {
-        ("", rest)
-    } else {
-        let (host, _) = rest.split_once('/')?;
-        (host, &rest[host.len()..])
-    };
-    if !host.is_empty()
-        && !host.eq_ignore_ascii_case("localhost")
-        && !std::env::var("COMPUTERNAME").is_ok_and(|local| host.eq_ignore_ascii_case(&local))
-        && !std::env::var("HOSTNAME").is_ok_and(|local| host.eq_ignore_ascii_case(&local))
-    {
-        return None;
-    }
-    let mut decoded = Vec::with_capacity(path.len());
-    let mut bytes = path.bytes();
-    while let Some(byte) = bytes.next() {
-        if byte == b'%' {
-            let high = (bytes.next()? as char).to_digit(16)?;
-            let low = (bytes.next()? as char).to_digit(16)?;
-            decoded.push((high * 16 + low) as u8);
-        } else {
-            decoded.push(byte);
-        }
-    }
-    let path = String::from_utf8(decoded).ok()?;
-    #[cfg(windows)]
-    let path = if path.as_bytes().get(2) == Some(&b':') {
-        &path[1..]
-    } else {
-        &path
-    };
-    let path = PathBuf::from(path);
-    path.is_absolute().then_some(path)
 }
 
 fn config_fingerprint(path: &std::path::Path) -> Option<u64> {
@@ -5277,8 +5276,13 @@ mod tests {
             *project_root = Some("older project root".into());
         }
         app.load_workspace(&definition);
+        let reported_uri = if cfg!(windows) {
+            "file:///C:/reported%20cwd"
+        } else {
+            "file:///reported%20cwd"
+        };
         app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
-            b"\x1b]7;file:///C:/reported%20cwd\x07\x1b]2;manually launched child\x07".to_vec(),
+            format!("\x1b]7;{reported_uri}\x07\x1b]2;manually launched child\x07").into_bytes(),
         )));
         app.dispatch_command(Command::NewTab);
         app.workspace
@@ -5305,7 +5309,7 @@ mod tests {
                 session: terminal_workspace::SessionDefinition::LocalShell,
                 project_root: Some(root),
                 ..
-            } if root == &super::local_cwd_from_osc7("file:///C:/reported%20cwd").unwrap()));
+            } if root == &super::local_cwd_from_osc7(reported_uri).unwrap()));
         } else {
             panic!("split missing");
         }
@@ -5352,24 +5356,23 @@ mod tests {
         }
         app.load_workspace(&definition);
 
+        let reported_uri = if cfg!(windows) {
+            "file:///C:/new%20directory"
+        } else {
+            "file:///new%20directory"
+        };
         app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
-            b"\x1b]7;file:///C:/new%20directory\x07PS> ".to_vec(),
+            format!("\x1b]7;{reported_uri}\x07PS> ").into_bytes(),
         )));
-        let reported = super::local_cwd_from_osc7("file:///C:/new%20directory").unwrap();
-        assert_eq!(
-            app.terminal.working_directory_uri(),
-            Some("file:///C:/new%20directory")
-        );
+        let reported = super::local_cwd_from_osc7(reported_uri).unwrap();
+        assert_eq!(app.terminal.working_directory_uri(), Some(reported_uri));
         assert!(matches!(&app.snapshot_workspace().tabs[0].layout,
             LayoutDefinition::Pane { project_root: Some(root), .. } if root == &reported));
 
         app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
             b"\x1b]7;file:///C:/invalid%GGpath\x07".to_vec(),
         )));
-        assert_eq!(
-            app.terminal.working_directory_uri(),
-            Some("file:///C:/new%20directory")
-        );
+        assert_eq!(app.terminal.working_directory_uri(), Some(reported_uri));
         app.save_workspace("After cd".into());
         let mut reopened = Application {
             saved_workspaces_path: path.clone(),

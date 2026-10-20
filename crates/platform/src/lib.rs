@@ -3,6 +3,53 @@
 use raw_window_handle::HasWindowHandle;
 use std::io;
 
+/// Exact names supplied by the local OS, without DNS lookup or trusting the
+/// shell's HOSTNAME/COMPUTERNAME environment. Failure rejects named authorities.
+pub fn local_hostnames() -> Vec<String> {
+    #[cfg(any(target_os = "linux", target_os = "macos"))]
+    {
+        let mut bytes = [0u8; 256];
+        // SAFETY: the writable buffer is valid for the supplied length.
+        if unsafe { libc::gethostname(bytes.as_mut_ptr().cast(), bytes.len()) } != 0 {
+            return Vec::new();
+        }
+        let Some(end) = bytes.iter().position(|byte| *byte == 0) else {
+            return Vec::new();
+        };
+        String::from_utf8(bytes[..end].to_vec())
+            .ok()
+            .filter(|name| !name.is_empty())
+            .into_iter()
+            .collect()
+    }
+    #[cfg(windows)]
+    {
+        use windows_sys::Win32::System::SystemInformation::{
+            ComputerNameDnsFullyQualified, ComputerNameDnsHostname, ComputerNameNetBIOS,
+            GetComputerNameExW,
+        };
+        [
+            ComputerNameDnsFullyQualified,
+            ComputerNameDnsHostname,
+            ComputerNameNetBIOS,
+        ]
+        .into_iter()
+        .filter_map(|format| {
+            let mut buffer = [0u16; 256];
+            let mut length = buffer.len() as u32;
+            // SAFETY: buffer and length point to valid writable storage.
+            let ok = unsafe { GetComputerNameExW(format, buffer.as_mut_ptr(), &mut length) };
+            (ok != 0)
+                .then(|| String::from_utf16(&buffer[..length as usize]).ok())
+                .flatten()
+        })
+        .filter(|name| !name.is_empty())
+        .collect()
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
+    Vec::new()
+}
+
 pub fn write_clipboard(text: &str, owner: Option<&impl HasWindowHandle>) -> io::Result<()> {
     #[cfg(windows)]
     {
