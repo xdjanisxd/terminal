@@ -82,10 +82,16 @@ fn interactive_options(config: &PtySpawnConfig) -> Option<Options> {
 }
 
 pub(super) fn startup_command_allowed(config: &PtySpawnConfig) -> bool {
-    !matches!(
-        config.program().file_name().and_then(|s| s.to_str()),
-        Some("bash" | "zsh")
-    ) || interactive_options(config).is_some()
+    let Some(name) = config.program().file_name().and_then(|s| s.to_str()) else {
+        return true;
+    };
+    if !matches!(name, "bash" | "zsh") {
+        return true;
+    }
+    let Some(options) = interactive_options(config) else {
+        return false;
+    };
+    name != "bash" || !options.login
 }
 
 pub(super) fn prepare(
@@ -125,7 +131,20 @@ pub(super) fn prepare(
         return Ok((config.with_environment(env), None));
     }
     let files = IntegrationFiles::new()?;
-    env.retain(|(key, _)| !key.to_string_lossy().starts_with("__TERMINAL_"));
+    env.retain(|(key, _)| {
+        !matches!(
+            key.to_str(),
+            Some(
+                "__TERMINAL_ROOT"
+                    | "__TERMINAL_NO_RC"
+                    | "__TERMINAL_RCFILE"
+                    | "__TERMINAL_PRIOR_PROMPT_COMMAND"
+                    | "__TERMINAL_BASHRC"
+                    | "__TERMINAL_ZDOTDIR"
+                    | "__TERMINAL_INTEGRATION_DIR"
+            )
+        )
+    });
     if let Some(root) = config.working_directory() {
         env.push(("__TERMINAL_ROOT".into(), root.as_os_str().to_owned()));
     }
@@ -248,7 +267,9 @@ mod tests {
             let (prepared, files) = prepare(config.clone()).unwrap();
             assert!(files.is_none());
             assert_eq!(prepared.arguments(), config.arguments());
+            assert!(!startup_command_allowed(&prepared));
         }
+        assert!(startup_command_allowed(&request("zsh", &["-l"])));
         // A direct command request has no local-shell marker.
         let raw = PtySpawnConfig::new("bash".into(), PtySize::new(24, 80).unwrap());
         assert_eq!(prepare(raw.clone()).unwrap().0, raw);
@@ -289,5 +310,29 @@ mod tests {
                 .environment()
                 .contains(&("__TERMINAL_RCFILE".into(), "/tmp/user rc".into()))
         );
+    }
+
+    #[test]
+    fn unrelated_terminal_prefixed_environment_is_preserved() {
+        for program in ["bash", "zsh"] {
+            let config = request(program, &[]).with_environment([
+                ("KEEP".into(), "two words".into()),
+                ("TERMINAL_SHELL_INTEGRATION".into(), "1".into()),
+                ("__TERMINAL_USER_SETTING".into(), "keep me".into()),
+                ("__TERMINAL_ROOT".into(), "/spoofed".into()),
+            ]);
+            let (prepared, files) = prepare(config).unwrap();
+            assert!(files.is_some());
+            assert!(
+                prepared
+                    .environment()
+                    .contains(&("__TERMINAL_USER_SETTING".into(), "keep me".into()))
+            );
+            assert!(
+                !prepared
+                    .environment()
+                    .contains(&("__TERMINAL_ROOT".into(), "/spoofed".into()))
+            );
+        }
     }
 }
