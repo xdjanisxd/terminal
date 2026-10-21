@@ -8,8 +8,11 @@ use crate::{
 
 // Compile vte without its std feature so OSC buffering uses its fixed-capacity
 // ArrayVec instead of an unbounded Vec. Unsupported OSC data beyond this limit
-// is discarded by vte and never reaches terminal semantics.
+// is discarded by vte. Reject saturated dispatches below rather than applying
+// a prefix which may have been truncated by either of vte's OSC limits.
 const MAX_OSC_BYTES: usize = 1024;
+// vte 0.15's fixed parameter capacity (not exposed by its public API).
+const MAX_OSC_PARAMS: usize = 16;
 pub const MAX_OSC52_DECODED_BYTES: usize = 512;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -90,6 +93,7 @@ impl TerminalParser {
         let mut performer = SemanticPerformer::new(terminal, self.osc52_policy);
 
         for (index, byte) in bytes.iter().enumerate() {
+            performer.dispatch_byte = *byte;
             let consumed = self
                 .parser
                 .advance_until_terminated(&mut performer, std::slice::from_ref(byte));
@@ -153,6 +157,7 @@ struct SemanticPerformer<'a> {
     terminal: &'a mut TerminalState,
     semantic_error: Option<PrintError>,
     osc52_policy: Osc52Policy,
+    dispatch_byte: u8,
 }
 
 impl<'a> SemanticPerformer<'a> {
@@ -161,6 +166,7 @@ impl<'a> SemanticPerformer<'a> {
             terminal,
             semantic_error: None,
             osc52_policy,
+            dispatch_byte: 0,
         }
     }
 
@@ -492,7 +498,15 @@ fn valid_working_directory_uri(uri: &str) -> bool {
 
 impl vte::Perform for SemanticPerformer<'_> {
     fn osc_dispatch(&mut self, params: &[&[u8]], _bell_terminated: bool) {
-        if self.semantic_error.is_some() {
+        // vte dispatches OSC on CAN/SUB as well as BEL/ESC. Cancellation must
+        // not commit metadata, hyperlinks, prompt markers, or clipboard writes.
+        // Its callback also lacks an overflow flag: saturation is ambiguous,
+        // so reject it conservatively. These checks run only on OSC dispatch.
+        if self.semantic_error.is_some()
+            || matches!(self.dispatch_byte, 0x18 | 0x1a)
+            || params.len() >= MAX_OSC_PARAMS
+            || params.iter().map(|param| param.len()).sum::<usize>() >= MAX_OSC_BYTES
+        {
             return;
         }
         if params.len() >= 2 && (params[0] == b"0" || params[0] == b"2") {

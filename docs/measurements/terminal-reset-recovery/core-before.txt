@@ -1,0 +1,33 @@
+   Compiling terminal-core v0.0.0 (/home/dellian/codes/terminal/crates/terminal-core)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.34s
+     Running tests/reset_recovery.rs (target/debug/deps/reset_recovery-b3e1bd9f20821d66)
+
+running 2 tests
+test canceled_osc_never_applies_payload_and_valid_input_recovers_at_every_split ... FAILED
+test saturated_osc_payloads_are_rejected_instead_of_applying_truncated_values ... FAILED
+
+failures:
+
+---- canceled_osc_never_applies_payload_and_valid_input_recovers_at_every_split stdout ----
+
+thread 'canceled_osc_never_applies_payload_and_valid_input_recovers_at_every_split' (250) panicked at crates/terminal-core/tests/reset_recovery.rs:26:17:
+assertion `left == right` failed: [50, 59, 99, 97, 110, 99, 101, 108, 101, 100]/24/0
+  left: Some("canceled")
+ right: None
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- saturated_osc_payloads_are_rejected_instead_of_applying_truncated_values stdout ----
+
+thread 'saturated_osc_payloads_are_rejected_instead_of_applying_truncated_values' (251) panicked at crates/terminal-core/tests/reset_recovery.rs:52:13:
+assertion `left == right` failed
+  left: Some("file:///xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
+ right: None
+
+
+failures:
+    canceled_osc_never_applies_payload_and_valid_input_recovers_at_every_split
+    saturated_osc_payloads_are_rejected_instead_of_applying_truncated_values
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p terminal-core --test reset_recovery`

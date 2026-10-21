@@ -1,0 +1,82 @@
+{
+  "samples": {
+    "before": [
+      {
+        "parse_plain_state": 8146.5,
+        "parse_escape_state": 4062.2
+      },
+      {
+        "parse_plain_state": 8965.2,
+        "parse_escape_state": 4047.9
+      },
+      {
+        "parse_plain_state": 8548.5,
+        "parse_escape_state": 4067.4
+      },
+      {
+        "parse_plain_state": 7970.6,
+        "parse_escape_state": 4016.8
+      },
+      {
+        "parse_plain_state": 8248.7,
+        "parse_escape_state": 4099.4
+      },
+      {
+        "parse_plain_state": 8167.7,
+        "parse_escape_state": 3849.2
+      },
+      {
+        "parse_plain_state": 8249.1,
+        "parse_escape_state": 4031.5
+      },
+      {
+        "parse_plain_state": 8099.6,
+        "parse_escape_state": 4051.6
+      }
+    ],
+    "after": [
+      {
+        "parse_plain_state": 8852.8,
+        "parse_escape_state": 4546.7
+      },
+      {
+        "parse_plain_state": 8821.1,
+        "parse_escape_state": 4380.3
+      },
+      {
+        "parse_plain_state": 8423.6,
+        "parse_escape_state": 3966.1
+      },
+      {
+        "parse_plain_state": 7784.4,
+        "parse_escape_state": 3995.6
+      },
+      {
+        "parse_plain_state": 7986.2,
+        "parse_escape_state": 3966.4
+      },
+      {
+        "parse_plain_state": 7930.1,
+        "parse_escape_state": 4020.8
+      },
+      {
+        "parse_plain_state": 7935.2,
+        "parse_escape_state": 3932.8
+      },
+      {
+        "parse_plain_state": 7874.3,
+        "parse_escape_state": 3988.1
+      }
+    ]
+  },
+  "median_ns_per_operation": {
+    "before": {
+      "parse_plain_state": 8248.7,
+      "parse_escape_state": 4047.9
+    },
+    "after": {
+      "parse_plain_state": 7935.2,
+      "parse_escape_state": 3988.1
+    }
+  }
+}

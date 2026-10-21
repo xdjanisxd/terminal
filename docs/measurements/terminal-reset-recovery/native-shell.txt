@@ -1,0 +1,21 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.16s
+     Running tests/shell_exit_native.rs (target/debug/deps/shell_exit_native-7a8b23635ffc7fc2)
+
+running 1 test
+passed bash single-zero: app PID 2006926, shell PIDs [2006950]
+passed bash single-nonzero: app PID 2006954, shell PIDs [2006974]
+passed bash split: app PID 2006978, shell PIDs [2006998, 2007001]
+passed bash tabs: app PID 2007007, shell PIDs [2007027, 2007030]
+passed bash mixed: app PID 2007036, shell PIDs [2007056, 2007058, 2007063]
+passed bash startup: app PID 2007069, shell PIDs []
+passed zsh single-zero: app PID 2007092, shell PIDs [2007112]
+passed zsh single-nonzero: app PID 2007115, shell PIDs [2007135]
+passed zsh split: app PID 2007138, shell PIDs [2007158, 2007161]
+passed zsh tabs: app PID 2007165, shell PIDs [2007220, 2007223]
+passed zsh mixed: app PID 2007227, shell PIDs [2007247, 2007250, 2007253]
+passed zsh startup: app PID 2007257, shell PIDs []
+native lifecycle evidence: /tmp/terminal-native-shell-exit-2006924-1792567654946497084
+test native_linux_shell_exit_closes_application_process_and_reaps_sessions ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.41s
+

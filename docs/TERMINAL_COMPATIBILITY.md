@@ -28,6 +28,8 @@ Protocol references: [xterm control sequences](https://invisible-island.net/xter
 
 ## Validation
 
+The later [reset/recovery audit](TERMINAL_RESET_RECOVERY.md) preserves these reset policies and adds malformed split UTF-8 recovery, rejection of canceled/saturated OSC callbacks, cursor-default/Kitty reset regressions, and further Linux lifecycle/editor evidence. Both reset types restore configured cursor defaults and clear both Kitty reporting stacks, invalidating held events.
+
 - Focused `terminal-core` and `terminal-renderer` suites pass, including 14 additional regression tests. Existing tests asserting colon colors were unsupported were updated for the newly implemented forms.
 - Regression coverage includes every byte split in representative sequences; malformed/private reset and origin forms; origin homing, addressing, CPR, save/restore, resize, one-row screens, region scrolling, and alternate-screen round trips; reset preservation/clearing boundaries; dim/inverse/opacity/selection colors; wide/combining text and history; italic/bold/size/cache isolation.
 - `cargo fmt --all --check`, `cargo check --workspace --all-targets`, `cargo test --workspace --all-targets`, `cargo clippy --workspace --all-targets -- -D warnings`, and `cargo build --release -p terminal-app` pass. The all-target test run passed 760 tests with 23 environment-dependent tests ignored. Four compile-fail ownership doctests also pass through `cargo test --workspace`.
