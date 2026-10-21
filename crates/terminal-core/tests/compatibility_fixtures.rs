@@ -18,9 +18,8 @@ fn assert_row(state: &TerminalState, row: usize, expected: &str) {
 }
 
 #[test]
-fn shell_prompt_redraw_fixture_preserves_supported_output_and_ignores_deferred_title() {
-    // Representative prompt redraw: OSC title setting is intentionally unsupported, while
-    // SGR, CR, EL, LF, and cursor visibility are all part of the current compatibility slice.
+fn shell_prompt_redraw_fixture_preserves_output_and_title() {
+    // Representative prompt redraw with OSC title, SGR, CR, EL, LF, and cursor visibility.
     let fixture = b"\x1b]0;dev@box\x07\x1b[?25l\x1b[1;32mdev@box\x1b[0m:\x1b[34m~\x1b[0m$ echo hi\r\x1b[2K\x1b[1;32mdev@box\x1b[0m:\x1b[34m~\x1b[0m$ echo hi\r\nhi\r\n\x1b[1;32mdev@box\x1b[0m:\x1b[34m~\x1b[0m$ \x1b[?25h";
     let mut parser = TerminalParser::new();
     let mut state = TerminalState::new(TerminalDimensions::new(24, 5).unwrap());
@@ -30,6 +29,7 @@ fn shell_prompt_redraw_fixture_preserves_supported_output_and_ignores_deferred_t
     }
 
     assert_row(&state, 0, "dev@box:~$ echo hi");
+    assert_eq!(state.shell_title(), Some("dev@box"));
     assert_row(&state, 1, "hi");
     assert_row(&state, 2, "dev@box:~$ ");
     assert_eq!(

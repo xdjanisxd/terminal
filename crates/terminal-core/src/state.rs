@@ -99,6 +99,26 @@ pub enum EraseDirection {
     EntireRegion,
 }
 
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub(crate) struct CharacterSets {
+    graphics: [bool; 2],
+    g1_active: bool,
+}
+
+impl CharacterSets {
+    fn translate(self, character: char) -> char {
+        if self.graphics[usize::from(self.g1_active)] && ('_'..='~').contains(&character) {
+            const GRAPHICS: [char; 32] = [
+                ' ', '◆', '▒', '␉', '␌', '␍', '␊', '°', '±', '␤', '␋', '┘', '┐', '┌', '└', '┼',
+                '⎺', '⎻', '─', '⎼', '⎽', '├', '┤', '┴', '┬', '│', '≤', '≥', 'π', '≠', '£', '·',
+            ];
+            GRAPHICS[character as usize - '_' as usize]
+        } else {
+            character
+        }
+    }
+}
+
 /// Parser-independent owner of the active terminal semantic state.
 ///
 /// The facade exposes its screen and modes read-only. Mutations that affect the
@@ -149,6 +169,7 @@ pub struct TerminalState {
     keyboard_generation: u64,
     keyboard_reporting_stacks: [crate::keyboard::KeyboardStack; 2],
     current_rendition: CellAttributes,
+    character_sets: CharacterSets,
     horizontal_tab_stops: HorizontalTabStops,
     pending_replies: PendingReplies,
     pub(crate) selection: Option<crate::selection::Selection>,
@@ -163,6 +184,31 @@ pub struct TerminalState {
 }
 
 impl TerminalState {
+    pub(crate) fn designate_character_set(&mut self, g1: bool, graphics: bool) {
+        self.character_sets.graphics[usize::from(g1)] = graphics;
+    }
+
+    pub(crate) fn invoke_character_set(&mut self, g1: bool) {
+        self.character_sets.g1_active = g1;
+    }
+
+    /// Erases saved Primary rows without changing the live screen or cursor state.
+    pub(crate) fn erase_scrollback(&mut self) {
+        if self.active_screen() != ScreenKind::Primary {
+            return;
+        }
+        let live_origin = self.selection_history_origin() + self.scrollback_len();
+        if self.selection.is_some_and(|selection| {
+            selection
+                .reflow_points()
+                .iter()
+                .any(|point| point.row < live_origin)
+        }) {
+            self.clear_selection();
+        }
+        self.screen.erase_scrollback();
+    }
+
     pub(crate) fn keyboard_reporting_request(&mut self, action: u8, flags: u16, mode: u16) {
         let index = usize::from(self.active_screen() == ScreenKind::Alternate);
         if self.keyboard_reporting_stacks[index].request(action, flags, mode) {
@@ -295,6 +341,7 @@ impl TerminalState {
             keyboard_generation: 0,
             keyboard_reporting_stacks: Default::default(),
             current_rendition: CellAttributes::default(),
+            character_sets: CharacterSets::default(),
             horizontal_tab_stops: HorizontalTabStops::new(dimensions.columns()),
             pending_replies: PendingReplies::default(),
             selection: None,
@@ -469,17 +516,19 @@ impl TerminalState {
         self.sync_keyboard_reporting();
     }
 
-    /// Saves the active screen's cursor, rendition, and origin mode in its local slot.
+    /// Saves cursor, rendition, origin, and character sets in the active screen's slot.
     ///
     /// This does not move the cursor, modify cells, change modes, or enqueue replies.
-    /// The slot is intentionally separate for each screen so future alternate-screen
-    /// semantics can save Primary before switching without sharing mutable state.
+    /// The slot is separate for each screen, including 1049 save/restore.
     pub fn save_cursor(&mut self) {
-        self.screen
-            .save_cursor(self.current_rendition, self.terminal_modes.origin());
+        self.screen.save_cursor(
+            self.current_rendition,
+            self.terminal_modes.origin(),
+            self.character_sets,
+        );
     }
 
-    /// Restores the active screen's saved cursor, rendition, and origin mode when initialized.
+    /// Restores the active screen's saved cursor, rendition, origin, and character sets.
     ///
     /// Restore before any save is a safe no-op. Saved coordinates are clamped to the
     /// active screen's current dimensions. Primary's saved position follows text
@@ -487,9 +536,10 @@ impl TerminalState {
     /// is cancelled on successful restore, matching other explicit cursor movement.
     pub fn restore_cursor(&mut self) {
         self.grapheme_anchor = None;
-        if let Some((rendition, origin)) = self.screen.restore_cursor() {
+        if let Some((rendition, origin, character_sets)) = self.screen.restore_cursor() {
             self.terminal_modes.set_origin(origin);
             self.current_rendition = rendition;
+            self.character_sets = character_sets;
             self.screen.set_wrap_pending(false);
         }
     }
@@ -725,6 +775,7 @@ impl TerminalState {
     /// margin wraps before writing only when auto-wrap is enabled; otherwise it
     /// is ignored without changing the grid or cursor.
     pub fn print_character(&mut self, character: char) -> Result<(), PrintError> {
+        let character = self.character_sets.translate(character);
         if let Some(stats) = self.screen.throughput_mut() {
             stats.prints += 1;
         }
@@ -1271,6 +1322,7 @@ impl TerminalState {
         self.keyboard_reporting_stacks = Default::default();
         self.sync_keyboard_reporting();
         self.current_rendition = CellAttributes::default();
+        self.character_sets = CharacterSets::default();
         self.current_target = None;
         self.screen
             .set_vertical_scrolling_margins(VerticalScrollingMargins::full_screen(

@@ -588,14 +588,25 @@ impl vte::Perform for SemanticPerformer<'_> {
         match byte {
             0x08 => self.terminal.backspace(),
             0x09 => self.terminal.horizontal_tab(),
-            0x0A => self.terminal.line_feed(),
+            0x0A..=0x0C => self.terminal.line_feed(),
             0x0D => self.terminal.carriage_return(),
+            0x0E => self.terminal.invoke_character_set(true),
+            0x0F => self.terminal.invoke_character_set(false),
             _ => {}
         }
     }
 
     fn esc_dispatch(&mut self, intermediates: &[u8], has_ignored_intermediates: bool, byte: u8) {
-        if self.semantic_error.is_some() || has_ignored_intermediates || !intermediates.is_empty() {
+        if self.semantic_error.is_some() || has_ignored_intermediates {
+            return;
+        }
+
+        if matches!(intermediates, [b'('] | [b')']) && matches!(byte, b'0' | b'B') {
+            self.terminal
+                .designate_character_set(intermediates == b")", byte == b'0');
+            return;
+        }
+        if !intermediates.is_empty() {
             return;
         }
 
@@ -748,6 +759,11 @@ impl vte::Perform for SemanticPerformer<'_> {
 
         if action == 'r' {
             self.dispatch_decstbm(values, count);
+            return;
+        }
+
+        if action == 'J' && count == 1 && values[0] == 3 {
+            self.terminal.erase_scrollback();
             return;
         }
 
