@@ -100,7 +100,7 @@ pub struct RenderCell {
     pub column: usize,
     pub width: usize,
     pub character: char,
-    /// Base scalar plus width-zero marks already attached by `terminal-core`.
+    /// Complete bounded grapheme already assembled by `terminal-core`.
     pub text: RenderText,
     pub foreground: Rgba,
     pub background: Rgba,
@@ -112,7 +112,7 @@ pub struct RenderCell {
 }
 
 /// Most terminal cells contain one scalar. Keep its UTF-8 bytes in the cell
-/// and allocate only when combining marks extend the grapheme.
+/// and allocate only for a grapheme containing multiple scalars.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum RenderText {
     Scalar { bytes: [u8; 4], len: u8 },
@@ -229,7 +229,7 @@ impl TerminalRenderData {
                 // Default-background blanks emit no draw data. Skip before
                 // resolving colors/styles while retaining selection/decorations.
                 if matches!(cell.character(), ' ' | '\0')
-                    && cell.combining_marks().is_empty()
+                    && cell.grapheme_tail().is_empty()
                     && attributes.background() == CellColor::Default
                     && attributes.inverse() == InverseVideo::Disabled
                     && attributes.underline() == UnderlineStyle::Disabled
@@ -257,7 +257,7 @@ impl TerminalRenderData {
                 }
                 let underline = attributes.underline() == UnderlineStyle::Enabled;
                 if matches!(cell.character(), ' ' | '\0')
-                    && cell.combining_marks().is_empty()
+                    && cell.grapheme_tail().is_empty()
                     && background == surface_background
                     && !underline
                     && !attributes.strikethrough()
@@ -269,12 +269,12 @@ impl TerminalRenderData {
                     column,
                     width: usize::from(cell.occupancy() == CellOccupancy::WideLead) + 1,
                     character: cell.character(),
-                    text: if cell.combining_marks().is_empty() {
+                    text: if cell.grapheme_tail().is_empty() {
                         RenderText::scalar(cell.character())
                     } else {
                         RenderText::Combined(
                             std::iter::once(cell.character())
-                                .chain(cell.combining_marks().iter().copied())
+                                .chain(cell.grapheme_tail().iter().copied())
                                 .collect(),
                         )
                     },
@@ -566,6 +566,30 @@ mod tests {
     fn scalar_text_is_inline_for_ascii_and_unicode() {
         assert_eq!(RenderText::scalar('A').as_str(), "A");
         assert_eq!(RenderText::scalar('界').as_str(), "界");
+    }
+
+    #[test]
+    fn grapheme_projection_uses_core_text_width_selection_and_reflow() {
+        let mut state = TerminalState::new(TerminalDimensions::new(16, 3).unwrap());
+        TerminalParser::new()
+            .advance(&mut state, "A👩‍💻🇺🇸👍🏽1️⃣B".as_bytes())
+            .unwrap();
+        state.begin_selection(0, 2);
+        state.extend_selection(0, 8);
+        assert_eq!(state.selected_text().as_deref(), Some("👩‍💻🇺🇸👍🏽1️⃣"));
+        for columns in [16, 5, 16] {
+            state.resize(TerminalDimensions::new(columns, 3).unwrap());
+            let data = TerminalRenderData::from_terminal(&state);
+            for expected in ["👩‍💻", "🇺🇸", "👍🏽", "1️⃣"] {
+                let cell = data
+                    .cells
+                    .iter()
+                    .find(|cell| cell.text.as_str() == expected)
+                    .unwrap();
+                assert_eq!(cell.width, 2);
+                assert_eq!(cell.background, RenderTheme::default().selection_background);
+            }
+        }
     }
 
     #[test]

@@ -66,3 +66,17 @@ fn ordinary_reports_and_negotiation_do_not_allocate() {
     let allocations = COUNT.with(|c| c.replace(None).unwrap());
     assert_eq!(allocations, 0);
 }
+
+#[test]
+fn ascii_and_grapheme_printing_do_not_allocate_per_cell() {
+    let mut terminal = TerminalState::new(TerminalDimensions::new(80, 24).unwrap());
+    let mut parser = TerminalParser::new();
+    COUNT.with(|c| c.set(Some(0)));
+    for _ in 0..100 {
+        parser
+            .advance(&mut terminal, "\rASCII e\u{301} 👩‍💻 🇺🇸 👍🏽 1️⃣ 👨‍👩‍👧‍👦".as_bytes())
+            .unwrap();
+    }
+    let allocations = COUNT.with(|c| c.replace(None).unwrap());
+    assert_eq!(allocations, 0);
+}

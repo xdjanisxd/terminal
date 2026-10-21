@@ -117,8 +117,10 @@ cold emoji decoding and GPU bandwidth under atlas churn.
   to a color face.
 - This enables the color formats understood by the current Swash version,
   including Noto CBDT/CBLC and COLRv0. It does not add SVG or COLRv1 support.
-- Terminal grapheme/ZWJ, variation-selector, flag, and skin-tone sequence
-  handling is unchanged. This is not a complete emoji-sequence implementation.
+- [Bounded Unicode grapheme support](UNICODE_GRAPHEME_SUPPORT.md) now joins
+  variation-selector, flag, modifier and ZWJ sequences in core and chooses font
+  fallback for whole clusters. Its limits and verification supersede the original
+  single-scalar scope described by this historical report.
 - The existing atlas rejects bitmaps larger than 64x64 physical pixels. Very
   large font sizes or DPI combinations can still exceed that limit for color
   and monochrome glyphs. The tested 1x/1.25x/2x sizes fit.

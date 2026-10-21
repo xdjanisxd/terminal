@@ -124,7 +124,10 @@ impl Search {
                 if let Some(cell) = cell
                     && !cell.is_wide_continuation()
                 {
-                    for folded in cell.character().to_lowercase() {
+                    for folded in std::iter::once(cell.character())
+                        .chain(cell.grapheme_tail().iter().copied())
+                        .flat_map(char::to_lowercase)
+                    {
                         line.push(folded);
                         columns.push(column);
                         ends.push(column + usize::from(cell.is_wide_lead()) + 1);
@@ -232,6 +235,22 @@ mod tests {
         assert_eq!(search.position(), Some(1));
         search.navigate(&mut terminal, 1);
         assert_eq!(search.position(), Some(2));
+    }
+
+    #[test]
+    fn searches_complete_graphemes_and_highlights_whole_cell_spans() {
+        for query in ["👩‍💻", "🇺🇸", "e\u{301}"] {
+            let mut terminal = TerminalState::new(TerminalDimensions::new(12, 2).unwrap());
+            terminal_core::TerminalParser::new()
+                .advance(&mut terminal, format!("A{query}B").as_bytes())
+                .unwrap();
+            let mut search = Search::default();
+            search.push_text(query, &mut terminal);
+            assert_eq!(search.count(), 1);
+            let found = search.selected_match().unwrap();
+            assert_eq!(found.start_column, 1);
+            assert_eq!(found.end_column, if query.starts_with('e') { 2 } else { 3 });
+        }
     }
 
     #[test]

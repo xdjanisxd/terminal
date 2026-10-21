@@ -188,7 +188,7 @@ Bash login shells retain their original launch semantics and require user-provid
 
 Built-in theme presets include Midnight, Solarized Dark, Solarized Light, Catppuccin Mocha, Tokyo Night, Dracula, Gruvbox Dark, Retro Terminal, CyberPunk, and Neon Light. Select one with `[theme].preset`, then override individual terminal, ANSI, selection, semantic UI, search, or scrollbar colors as needed. Choose an installed monospace family and base font size under `[font]`; the font shortcuts adjust size for the current run. [config.example.toml](config.example.toml) lists every field and its fallback.
 
-Installed fallback fonts can supply color emoji, including Noto Color Emoji on Linux. Color glyphs retain their own colors and fit within the terminal's existing cell widths. Primary-font coverage still takes precedence, so some symbols may remain monochrome. See [emoji rendering](docs/EMOJI_FONT_RENDERING.md) for supported formats, limits, and Linux acceptance checks.
+Installed fallback fonts can supply color emoji, including Noto Color Emoji on Linux. Color glyphs retain their own colors and fit within terminal-owned cell widths. Bounded extended grapheme support keeps combining marks, presentation selectors, modifiers, flags and ZWJ emoji together, with up to nine scalars per cluster. Whole-cluster fallback honors explicit emoji presentation when a suitable color face is installed. See [Unicode grapheme support](docs/UNICODE_GRAPHEME_SUPPORT.md) and [emoji rendering](docs/EMOJI_FONT_RENDERING.md) for limits and acceptance checks.
 
 ## Project status and development
 

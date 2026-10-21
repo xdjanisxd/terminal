@@ -711,7 +711,7 @@ impl DrawResources {
                     color: cell.foreground.0,
                 });
             }
-            if cell.character == ' ' || cell.character == '\0' {
+            if (cell.character == ' ' && cell.text.as_str().len() == 1) || cell.character == '\0' {
                 continue;
             }
             let pixels_per_em = frame.cell_metrics.pixels_per_em();
@@ -724,7 +724,11 @@ impl DrawResources {
                 continue;
             };
             shape_misses += usize::from(!cache_hit);
+            let advance: f32 = shaped.glyphs().iter().map(|glyph| glyph.advance()).sum();
+            let mut pen = 0.0;
             for shaped_glyph in shaped.glyphs() {
+                let glyph_pen = pen;
+                pen += shaped_glyph.advance();
                 let key = GpuGlyphKey {
                     face: shaped_glyph.face_cache_identity(),
                     glyph_id: shaped_glyph.glyph_id(),
@@ -753,7 +757,7 @@ impl DrawResources {
                 let slot_x = (entry.slot as u32 % ATLAS_COLUMNS) * ATLAS_SLOT_SIZE;
                 let slot_y = (entry.slot as u32 / ATLAS_COLUMNS) * ATLAS_SLOT_SIZE;
                 let [mut glyph_x, mut glyph_y] = glyph_origin(
-                    x,
+                    x + glyph_pen,
                     y,
                     frame.cell_metrics.baseline() as f32,
                     entry.bearing_x,
@@ -763,15 +767,25 @@ impl DrawResources {
                 );
                 // Color fonts can have bitmap-strike metrics much larger than
                 // the primary face. Fit ink to the terminal-owned cell span.
+                let color_span = if advance > 0.0 {
+                    width * shaped_glyph.advance() / advance
+                } else {
+                    width
+                };
                 let scale = if entry.is_color {
-                    (width / entry.width as f32)
+                    (color_span / entry.width as f32)
                         .min(cell_height / entry.height as f32)
                         .min(1.0)
                 } else {
                     1.0
                 };
                 if entry.is_color {
-                    glyph_x = x + (width - entry.width as f32 * scale) * 0.5;
+                    let color_pen = if advance > 0.0 {
+                        width * glyph_pen / advance
+                    } else {
+                        0.0
+                    };
+                    glyph_x = x + color_pen + (color_span - entry.width as f32 * scale) * 0.5;
                     glyph_y = y + (cell_height - entry.height as f32 * scale) * 0.5;
                 }
                 let Some((clipped_x, clipped_y, clipped_width, clipped_height)) = clip_rect_to_cell(
@@ -1375,6 +1389,14 @@ mod tests {
         ] {
             for scale in [1.0, 1.25, 2.0] {
                 for opacity in [1.0, 0.5] {
+                    let emoji = match (scale, opacity) {
+                        (1.0, 1.0) => "🚀",
+                        (1.0, _) => "👩‍💻",
+                        (1.25, 1.0) => "🇺🇸",
+                        (1.25, _) => "👍🏽",
+                        (2.0, 1.0) => "1️⃣",
+                        _ => "👨‍👩‍👧‍👦",
+                    };
                     let texture = device.create_texture(&wgpu::TextureDescriptor {
                         label: Some("emoji regression target"),
                         size: wgpu::Extent3d {
@@ -1396,7 +1418,7 @@ mod tests {
                     let metrics = fonts.cell_metrics(scale, 16.0).unwrap();
                     let mut state = TerminalState::new(TerminalDimensions::new(8, 2).unwrap());
                     terminal_core::TerminalParser::new()
-                        .advance(&mut state, "A🚀B".as_bytes())
+                        .advance(&mut state, format!("A{emoji}B").as_bytes())
                         .unwrap();
                     let mut data = TerminalRenderData::from_terminal_with_opacity(
                         &state,
@@ -1445,17 +1467,23 @@ mod tests {
                     }
                     let pixels = read_rgba(&device, &queue, &texture);
                     let mut colored = 0;
+                    let mut ink = 0;
                     for y in 0..metrics.height() {
                         for x in metrics.width()..3 * metrics.width() {
                             let p = &pixels[((y * WIDTH + x) * 4) as usize..][..4];
                             if p[0].abs_diff(p[1]) > 30 || p[1].abs_diff(p[2]) > 30 {
                                 colored += 1;
                             }
+                            ink += usize::from(p[..3].iter().any(|c| *c > 100));
                         }
                     }
+                    assert!(ink > 10, "visible emoji ink: {emoji}");
+                    // Recent Noto releases intentionally draw family artwork
+                    // in grayscale. Its RGBA content and tint invariance are
+                    // still checked; chroma applies to the colorful fixtures.
                     assert!(
-                        colored > 10,
-                        "color pixels={colored}, scale={scale}, format={format:?}"
+                        colored > 10 || emoji == "👨‍👩‍👧‍👦",
+                        "color pixels={colored}, emoji={emoji}, scale={scale}, format={format:?}"
                     );
                     // Foreground changes must not tint cached intrinsic color.
                     for cell in &mut data.cells {
@@ -1475,7 +1503,10 @@ mod tests {
                     // Selection still owns the full two-column cell span.
                     state.begin_selection(0, 1);
                     state.extend_selection(0, 3);
-                    assert_eq!(state.selected_text().as_deref(), Some("🚀B"));
+                    assert_eq!(
+                        state.selected_text().as_deref(),
+                        Some(format!("{emoji}B").as_str())
+                    );
                     let mut selected = TerminalRenderData::from_terminal_with_opacity(
                         &state,
                         &Default::default(),

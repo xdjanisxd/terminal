@@ -1970,6 +1970,7 @@ name = "terminal-core"
 version = "0.0.0"
 dependencies = [
  "base64",
+ "unicode-segmentation",
  "unicode-width",
  "vte",
 ]
@@ -2002,6 +2003,7 @@ dependencies = [
  "swash",
  "terminal-core",
  "terminal-workspace",
+ "unicode-segmentation",
  "unicode-width",
  "wgpu",
  "winit",
