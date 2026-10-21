@@ -1047,11 +1047,7 @@ impl Application {
 
     fn reload_config(&mut self) {
         let config_stage = startup_stage("config-read-parse");
-        let next = if self.config_path.exists() {
-            Config::load(&self.config_path)
-        } else {
-            Ok(Config::default())
-        };
+        let next = Config::load_or_default(&self.config_path);
         drop(config_stage);
         match next {
             Ok(mut config) => {
@@ -8191,30 +8187,40 @@ mod tests {
         };
         fs::write(
             &path,
-            "[font]\nbold_intensity = 0.75\n[window]\nopacity = 0.85\nblur = true\n[theme]\npreset = 'solarized_dark'\nbackground = '#123456'",
+            "[font]\nbold_intensity = 0.75\n[window]\nopacity = 0.85\nblur = true\n[theme]\npreset = 'solarized_dark'\nbackground = '#123456'\n[cursor]\nshape = 'underline'\nblinking = true\n[[bindings]]\nkey = 'Ctrl+Alt+X'\ncommand = 'copy'",
         )
         .unwrap();
         app.reload_config();
+        let valid_config = app.config.clone();
         assert_eq!(app.config.theme.background, Rgb(0x12, 0x34, 0x56));
         assert_eq!(app.config.theme.preset, Some(ThemePreset::SolarizedDark));
-
         assert_eq!(app.config.font.bold_intensity, 0.75);
+        assert_eq!(
+            app.config.cursor.shape,
+            terminal_config::CursorShape::Underline
+        );
+        assert!(app.config.cursor.blinking);
+        assert_eq!(app.config.bindings.len(), 1);
         fs::write(&path, "[font]\nbold_intensity = nan").unwrap();
         app.reload_config();
+        assert_eq!(app.config, valid_config);
         assert_eq!(app.config.font.bold_intensity, 0.75);
 
         assert_eq!(app.config.window.opacity, 0.85);
         assert!(app.config.window.blur);
         fs::write(&path, "[window]\nopacity = nan").unwrap();
         app.reload_config();
+        assert_eq!(app.config, valid_config);
         assert_eq!(app.config.window.opacity, 0.85);
         assert!(app.config.window.blur);
         fs::write(&path, "[window]\nopacity = 0.0\nblur = 'true'").unwrap();
         app.reload_config();
+        assert_eq!(app.config, valid_config);
         assert_eq!(app.config.window.opacity, 0.85);
         assert!(app.config.window.blur);
         fs::write(&path, "[theme]\nbackground = 'invalid'").unwrap();
         app.reload_config();
+        assert_eq!(app.config, valid_config);
         assert_eq!(app.config.theme.background, Rgb(0x12, 0x34, 0x56));
 
         fs::write(&path, "[window]\nopacity = 0.5\nblur = false").unwrap();

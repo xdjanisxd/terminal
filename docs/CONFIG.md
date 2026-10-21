@@ -23,7 +23,8 @@ colors, unsupported or duplicate key chords, unknown commands, invalid font
 values, and invalid workspace definitions reject the whole file. Errors name
 the file and relevant source location or field. On a reload error the app
 reports the error to stderr and retains the last valid configuration. A
-missing file restores defaults for live-reloaded settings.
+file that is absent restores defaults for live-reloaded settings; other read
+errors, including permission or I/O failures, retain the last valid configuration.
 
 The app reloads valid changes to Linux window opacity, theme, bindings, project palette entries, and shell selection
 while running. Font settings and startup workspace definitions are applied
