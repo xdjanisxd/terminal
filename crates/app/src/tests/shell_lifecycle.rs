@@ -172,6 +172,15 @@ fn attach_shell_workers(app: &mut Application, program: &str) {
         env: Default::default(),
     };
     for pane in app.workspace.panes() {
+        // Churn tests keep surviving workers running while attaching new panes.
+        let running = if pane.id == app.active_runtime_pane {
+            app.pty.is_some()
+        } else {
+            app.inactive_panes[&pane.id].pty.is_some()
+        };
+        if running {
+            continue;
+        }
         let (root, session) = app.workspace.pane_launch(pane.id).unwrap();
         let config =
             spawn_config_for_session(PtySize::new(24, 80).unwrap(), root, session, Some(&shell));
@@ -308,4 +317,50 @@ fn shell_exit_collapses_zoomed_split_layout_without_losing_focus() {
         vec![(second, viewport)]
     );
     assert!(!app.session_exit_requested);
+}
+
+#[test]
+fn rapid_tab_and_split_closure_keeps_survivor_and_joins_real_workers() {
+    use std::time::{Duration, Instant};
+    #[cfg(windows)]
+    let program = "cmd.exe";
+    #[cfg(not(windows))]
+    let program = "sh";
+    let mut app = Application::default();
+    let survivor = app.active_runtime_pane;
+    attach_shell_workers(&mut app, program);
+    for _ in 0..12 {
+        app.dispatch_command(Command::NewTab);
+        attach_shell_workers(&mut app, program);
+        let background = app.active_runtime_pane;
+        app.dispatch_command(Command::SplitVertical);
+        attach_shell_workers(&mut app, program);
+        // A natural exit may race explicit close of its sibling split.
+        app.inactive_panes[&background]
+            .pty
+            .as_ref()
+            .unwrap()
+            .write_input(b"exit 23\r")
+            .unwrap();
+        app.close_pane();
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while app.workspace.pane_launch(background).is_some() {
+            app.drain_pty_events(false);
+            assert!(Instant::now() < deadline, "background shell did not exit");
+            std::thread::sleep(Duration::from_millis(1));
+        }
+        assert_eq!(app.active_runtime_pane, survivor);
+        assert_eq!(app.workspace.panes().len(), 1);
+        assert!(app.inactive_panes.is_empty());
+        assert!(!app.session_exit_requested);
+        assert!(app.pty.is_some());
+    }
+    // Closing the last pane remains a no-op; application shutdown joins it.
+    app.close_pane();
+    assert!(app.pty.is_some());
+    app.shutdown_sessions();
+    app.shutdown_sessions();
+    assert!(app.session_exit_requested);
+    assert!(app.pty.is_none());
+    assert!(app.inactive_panes.is_empty());
 }
