@@ -18,8 +18,17 @@ use swash::{
     FontRef,
     scale::{Render, ScaleContext, Source, StrikeWith, image::Content},
     shape::ShapeContext,
+    text::{
+        Codepoint, Script,
+        cluster::{CharCluster, Parser as ClusterParser, Token},
+    },
     zeno::{Format, Transform},
 };
+use unicode_segmentation::UnicodeSegmentation;
+
+fn is_variation_selector(c: char) -> bool {
+    matches!(c, '\u{fe00}'..='\u{fe0f}' | '\u{e0100}'..='\u{e01ef}')
+}
 
 pub const DEFAULT_LOGICAL_FONT_SIZE: f32 = 16.0;
 
@@ -330,6 +339,7 @@ pub(super) struct FontSystem {
     scale_context: ScaleContext,
     fallback_candidates: Vec<ID>,
     fallback_by_character: HashMap<char, Option<ID>>,
+    fallback_by_grapheme: HashMap<String, ID>,
     glyph_cache: GlyphCache,
     bold_companions: HashMap<ID, Option<ID>>,
     bold_intensity: f32,
@@ -427,6 +437,7 @@ impl FontSystem {
             scale_context: ScaleContext::new(),
             fallback_candidates,
             fallback_by_character: HashMap::new(),
+            fallback_by_grapheme: HashMap::new(),
             glyph_cache: GlyphCache::new(cache_capacity),
             bold_companions: HashMap::new(),
             bold_intensity: 1.0,
@@ -503,16 +514,16 @@ impl FontSystem {
         let mut glyphs = Vec::new();
         let mut run_start = 0;
         let mut run_face: Option<(ID, Option<u32>)> = None;
-        for (offset, character) in text.char_indices() {
-            let regular = self.face_for_character(character);
+        for (offset, grapheme) in text.grapheme_indices(true) {
+            let regular = self.face_for_grapheme(grapheme);
             let instance = if bold {
                 let instance = self.bold_instance(regular);
-                if self.face_supports(instance.0, character) {
+                if self.face_supports_grapheme(instance.0, grapheme) {
                     instance
                 } else {
                     (
                         self.bold_companion(regular)
-                            .filter(|face| self.face_supports(*face, character))
+                            .filter(|face| self.face_supports_grapheme(*face, grapheme))
                             .unwrap_or(regular),
                         None,
                     )
@@ -789,8 +800,90 @@ impl FontSystem {
             .iter()
             .copied()
             .find(|face| self.face_supports(*face, character));
+        if self.fallback_by_character.len() == SHAPED_TEXT_CACHE_CAPACITY {
+            self.fallback_by_character.clear();
+        }
         self.fallback_by_character.insert(character, fallback);
         fallback.unwrap_or(self.primary_face)
+    }
+
+    fn face_for_grapheme(&mut self, grapheme: &str) -> ID {
+        let first = grapheme.chars().next().expect("nonempty grapheme");
+        if grapheme.len() > first.len_utf8()
+            && let Some(face) = self.fallback_by_grapheme.get(grapheme)
+        {
+            return *face;
+        }
+        let regular = self.face_for_character(first);
+        if grapheme.len() == first.len_utf8() {
+            return regular;
+        }
+        let face = self.find_grapheme_face(grapheme, regular, first);
+        // Terminal clusters are bounded by core; do not retain arbitrarily long
+        // UI strings in this auxiliary cache. Evict as a bounded generation.
+        if grapheme.len() <= terminal_core::MAX_GRAPHEME_SCALARS * 4 {
+            if self.fallback_by_grapheme.len() == SHAPED_TEXT_CACHE_CAPACITY {
+                self.fallback_by_grapheme.clear();
+            }
+            self.fallback_by_grapheme.insert(grapheme.to_owned(), face);
+        }
+        face
+    }
+
+    fn find_grapheme_face(&self, grapheme: &str, regular: ID, first: char) -> ID {
+        // Explicit emoji presentation and emoji ligatures should reach a color
+        // face together even when the primary font also contains the base.
+        let color = (first.is_emoji() || grapheme.contains('\u{20e3}'))
+            && grapheme.chars().any(|c| matches!(c,
+                '\u{fe0f}' | '\u{200d}' | '\u{20e3}' | '\u{1f3fb}'..='\u{1f3ff}' | '\u{1f1e6}'..='\u{1f1ff}'))
+            && !grapheme.contains('\u{fe0e}');
+        if color && self.face_supports_grapheme(regular, grapheme) && self.face_has_color(regular) {
+            return regular;
+        }
+        if color
+            && let Some(face) = std::iter::once(self.primary_face)
+                .chain(self.fallback_candidates.iter().copied())
+                .find(|face| {
+                    self.face_supports_grapheme(*face, grapheme) && self.face_has_color(*face)
+                })
+        {
+            return face;
+        }
+        if self.face_supports_grapheme(regular, grapheme) {
+            return regular;
+        }
+        // A partial fallback still shapes the intact cluster on its base face;
+        // never divide a grapheme into unrelated font runs.
+        self.fallback_candidates
+            .iter()
+            .copied()
+            .find(|face| self.face_supports_grapheme(*face, grapheme))
+            .unwrap_or(regular)
+    }
+
+    fn face_has_color(&self, face_id: ID) -> bool {
+        self.database
+            .with_face_data(face_id, |data, index| {
+                FontRef::from_index(data, index as usize).is_some_and(|font| {
+                    font.color_palettes().next().is_some() || font.color_strikes().next().is_some()
+                })
+            })
+            .unwrap_or(false)
+    }
+
+    fn face_supports_grapheme(&self, face_id: ID, grapheme: &str) -> bool {
+        self.database
+            .with_face_data(face_id, |data, index| {
+                FontRef::from_index(data, index as usize).is_some_and(|font| {
+                    let charmap = font.charmap();
+                    grapheme.chars().all(|c| {
+                        matches!(c,
+                    '\u{200c}' | '\u{200d}' | '\u{fe00}'..='\u{fe0f}' | '\u{e0000}'..='\u{e01ef}')
+                            || charmap.map(c) != 0
+                    })
+                })
+            })
+            .unwrap_or(false)
     }
 
     fn face_supports(&self, face_id: ID, character: char) -> bool {
@@ -819,16 +912,55 @@ impl FontSystem {
             .with_face_data(face_id, |data, index| {
                 let font = FontRef::from_index(data, index as usize)
                     .ok_or(FontProcessingError::InvalidFaceData)?;
+                let script = text
+                    .chars()
+                    .map(|c| c.properties().script())
+                    .find(|script| {
+                        !matches!(script, Script::Common | Script::Inherited | Script::Unknown)
+                    })
+                    .unwrap_or(Script::Latin);
                 let mut shaper =
                     shape_context
                         .builder(font)
+                        .script(script)
                         .size(pixels_per_em)
                         .normalized_coords(font.variations().normalized_coords(
                             weight.map(|weight| ("wght", f32::from_bits(weight))),
                         ))
                         .build();
-                shaper.add_str(text);
+                if text.chars().any(is_variation_selector) {
+                    // Swash's nominal charmap has no cmap format 14 lookup.
+                    // Presentation is resolved by whole-grapheme face selection;
+                    // do not let a selector become .notdef between GSUB inputs
+                    // (notably digit + VS16 + enclosing keycap). Original byte
+                    // offsets and trailing selector ranges are retained below.
+                    let mut parser = ClusterParser::new(
+                        script,
+                        text.char_indices()
+                            .filter(|(_, c)| !is_variation_selector(*c))
+                            .map(|(offset, ch)| Token {
+                                ch,
+                                offset: offset as u32,
+                                len: ch.len_utf8() as u8,
+                                info: ch.into(),
+                                data: 0,
+                            }),
+                    );
+                    let mut cluster = CharCluster::new();
+                    let charmap = font.charmap();
+                    while parser.next(&mut cluster) {
+                        cluster.map(|ch| charmap.map(ch));
+                        shaper.add_cluster(&cluster);
+                    }
+                } else {
+                    shaper.add_str(text);
+                }
                 shaper.shape_with(|cluster| {
+                    let trailing = text[cluster.source.end as usize..]
+                        .chars()
+                        .take_while(|c| is_variation_selector(*c))
+                        .map(char::len_utf8)
+                        .sum::<usize>() as u32;
                     glyphs.extend(cluster.glyphs.iter().map(|glyph| ShapedGlyph {
                         face_id,
                         weight,
@@ -840,7 +972,7 @@ impl FontSystem {
                         offset_x: glyph.x,
                         offset_y: glyph.y,
                         cluster_start: source_offset + cluster.source.start,
-                        cluster_end: source_offset + cluster.source.end,
+                        cluster_end: source_offset + cluster.source.end + trailing,
                     }));
                 });
                 Ok(())
@@ -1709,6 +1841,104 @@ mod tests {
     }
 
     #[test]
+    fn grapheme_fallback_keeps_base_and_mark_on_one_face() {
+        let mut system = fixture_system();
+        system.database.load_font_data(
+            include_bytes!("../tests/fixtures/JetBrainsMono-variable.ttf").to_vec(),
+        );
+        let fallback = system
+            .database
+            .faces()
+            .find(|face| face.id != system.primary_face)
+            .unwrap()
+            .id;
+        system.fallback_candidates.push(fallback);
+        let mark = ('\u{300}'..='\u{36f}')
+            .find(|c| {
+                !system.face_supports(system.primary_face, *c) && system.face_supports(fallback, *c)
+            })
+            .expect("fixture fonts have different combining coverage");
+        assert!(system.face_supports(system.primary_face, 'e'));
+        let text = format!("e{mark}");
+        for bold in [false, true] {
+            let shaped = system
+                .shape_text_cached_with_bold(&text, 20.0, bold)
+                .unwrap()
+                .0;
+            assert!(!shaped.glyphs().is_empty());
+            assert!(
+                shaped
+                    .glyphs()
+                    .iter()
+                    .all(|g| g.face_id == fallback && g.glyph_id != 0)
+            );
+        }
+    }
+
+    #[test]
+    #[ignore = "requires installed Noto Color Emoji"]
+    fn native_grapheme_emoji_shape_as_single_color_glyphs() {
+        let mut system = FontSystem::load_system(FontRequest::default()).unwrap();
+        for text in ["👩‍💻", "👍🏽", "🇺🇸", "1️⃣", "✈️", "👨‍👩‍👧‍👦"]
+        {
+            for bold in [false, true] {
+                let (shaped, hit) = system
+                    .shape_text_cached_with_bold(text, 20.0, bold)
+                    .unwrap();
+                assert!(!hit);
+                assert_eq!(shaped.glyphs().len(), 1, "{text:?}");
+                let glyph = &shaped.glyphs()[0];
+                assert_ne!(glyph.glyph_id(), 0, "{text:?}");
+                assert_eq!(glyph.cluster_range(), 0..text.len() as u32);
+                assert!(
+                    system.rasterize_glyph(glyph, 20.0).unwrap().is_color(),
+                    "{text:?}"
+                );
+                assert!(
+                    system
+                        .shape_text_cached_with_bold(text, 20.0, bold)
+                        .unwrap()
+                        .1
+                );
+            }
+        }
+    }
+
+    #[test]
+    #[ignore = "release benchmark requiring installed system fonts"]
+    fn grapheme_shaping_baselines() {
+        use std::{hint::black_box, time::Instant};
+        let mut system = FontSystem::load_system(FontRequest::default()).unwrap();
+        for (name, text) in [
+            ("ascii", "A"),
+            ("combining", "e\u{301}"),
+            ("zwj", "👩‍💻"),
+            ("flag", "🇺🇸"),
+            ("keycap", "1️⃣"),
+        ] {
+            for cached in [false, true] {
+                for _ in 0..100 {
+                    black_box(system.shape_text_uncached(text, 20.0, false).unwrap());
+                }
+                for sample in 0..5 {
+                    let started = Instant::now();
+                    for _ in 0..2000 {
+                        if cached {
+                            black_box(system.shape_text(text, 20.0).unwrap());
+                        } else {
+                            black_box(system.shape_text_uncached(text, 20.0, false).unwrap());
+                        }
+                    }
+                    eprintln!(
+                        "shape_{name} cached={cached} sample={sample} operations=2000 ns_per_operation={:.1}",
+                        started.elapsed().as_nanos() as f64 / 2000.0
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
     fn shape_cache_reuses_text_and_invalidates_on_font_scale_change() {
         let mut system = fixture_system();
         assert!(!system.shape_text_cached("ABC", 16.0).unwrap().1);
@@ -1728,6 +1958,29 @@ mod tests {
         assert_eq!(system.shaped_cache.len(), SHAPED_TEXT_CACHE_CAPACITY);
         assert!(system.shape_text_cached("0", 16.0).unwrap().1);
         assert!(!system.shape_text_cached("1", 16.0).unwrap().1);
+    }
+
+    #[test]
+    fn grapheme_fallback_cache_stays_bounded_under_unique_clusters() {
+        let mut system = fixture_system();
+        for index in 0..=SHAPED_TEXT_CACHE_CAPACITY {
+            let text = format!(
+                "e\u{301}{}",
+                char::from_u32(0xe0100 + index as u32 % 240).unwrap()
+            );
+            // More than 512 distinct combinations, all within the core byte cap.
+            let text = if index >= 240 {
+                format!(
+                    "{text}\u{302}{}",
+                    char::from_u32(0xfe00 + (index / 240) as u32).unwrap()
+                )
+            } else {
+                text
+            };
+            system.face_for_grapheme(&text);
+            assert!(system.fallback_by_grapheme.len() <= SHAPED_TEXT_CACHE_CAPACITY);
+        }
+        assert_eq!(system.fallback_by_grapheme.len(), 1);
     }
 
     #[test]

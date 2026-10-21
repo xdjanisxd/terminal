@@ -1,0 +1,1450 @@
+{
+  "base_commit": "e042ac631523e65c54b11432f335a9d00594d5ca",
+  "host": "Linux x86_64, Intel Core i5-1250P, rustc 1.99.0",
+  "gpu": "Mesa llvmpipe LLVM 19.1.7, Vulkan, Mesa 25.0.7",
+  "cell_bytes": {
+    "before": 72,
+    "after": 72
+  },
+  "terminal_state_bytes": {
+    "before": 1256,
+    "after": 1280
+  },
+  "benchmarks": {
+    "parse/parse_ascii": {
+      "samples_ns": {
+        "before": [
+          2273.7,
+          2203.1,
+          2197.2,
+          2194.4,
+          2208.6
+        ],
+        "after": [
+          2180.3,
+          2186.5,
+          2178.1,
+          2200.8,
+          2188.1
+        ]
+      },
+      "median_ns": {
+        "before": 2203.1,
+        "after": 2186.5
+      },
+      "change_percent": -0.7534837274749129
+    },
+    "parse/parse_combining": {
+      "samples_ns": {
+        "before": [
+          93.5,
+          92.4,
+          93.2,
+          94.4,
+          93.4
+        ],
+        "after": [
+          132.2,
+          131.3,
+          136.2,
+          131.7,
+          133.3
+        ]
+      },
+      "median_ns": {
+        "before": 93.4,
+        "after": 132.2
+      },
+      "change_percent": 41.54175588865095
+    },
+    "parse/parse_zwj": {
+      "samples_ns": {
+        "before": [
+          225.7,
+          223.8,
+          224.6,
+          222.1,
+          223.6
+        ],
+        "after": [
+          309.6,
+          312.0,
+          316.3,
+          315.7,
+          315.3
+        ]
+      },
+      "median_ns": {
+        "before": 223.8,
+        "after": 315.3
+      },
+      "change_percent": 40.88471849865951
+    },
+    "parse/parse_flag": {
+      "samples_ns": {
+        "before": [
+          188.6,
+          189.8,
+          189.0,
+          189.2,
+          186.5
+        ],
+        "after": [
+          194.4,
+          194.2,
+          195.6,
+          195.8,
+          196.5
+        ]
+      },
+      "median_ns": {
+        "before": 189.0,
+        "after": 195.6
+      },
+      "change_percent": 3.4920634920634797
+    },
+    "parse/parse_keycap": {
+      "samples_ns": {
+        "before": [
+          130.8,
+          132.4,
+          131.6,
+          131.9,
+          131.6
+        ],
+        "after": [
+          245.2,
+          244.4,
+          247.8,
+          246.4,
+          249.2
+        ]
+      },
+      "median_ns": {
+        "before": 131.6,
+        "after": 246.4
+      },
+      "change_percent": 87.2340425531915
+    },
+    "shaping/shape_ascii cached=false": {
+      "samples_ns": {
+        "before": [
+          14182.3,
+          14737.7,
+          14055.1,
+          14120.0,
+          14680.4
+        ],
+        "after": [
+          13972.4,
+          14112.7,
+          14387.5,
+          14018.0,
+          14139.2
+        ]
+      },
+      "median_ns": {
+        "before": 14182.3,
+        "after": 14112.7
+      },
+      "change_percent": -0.4907525577656502
+    },
+    "shaping/shape_ascii cached=true": {
+      "samples_ns": {
+        "before": [
+          47.9,
+          40.1,
+          42.2,
+          39.7,
+          41.3
+        ],
+        "after": [
+          52.4,
+          39.3,
+          41.7,
+          39.6,
+          40.9
+        ]
+      },
+      "median_ns": {
+        "before": 41.3,
+        "after": 40.9
+      },
+      "change_percent": -0.9685230024213065
+    },
+    "shaping/shape_combining cached=false": {
+      "samples_ns": {
+        "before": [
+          19731.7,
+          19774.6,
+          20316.3,
+          19451.8,
+          20060.2
+        ],
+        "after": [
+          8828.9,
+          8985.4,
+          8884.0,
+          8859.3,
+          8691.3
+        ]
+      },
+      "median_ns": {
+        "before": 19774.6,
+        "after": 8859.3
+      },
+      "change_percent": -55.19858808774893
+    },
+    "shaping/shape_combining cached=true": {
+      "samples_ns": {
+        "before": [
+          59.6,
+          46.7,
+          50.0,
+          46.3,
+          48.4
+        ],
+        "after": [
+          55.2,
+          49.0,
+          50.2,
+          49.4,
+          46.3
+        ]
+      },
+      "median_ns": {
+        "before": 48.4,
+        "after": 49.4
+      },
+      "change_percent": 2.066115702479343
+    },
+    "shaping/shape_zwj cached=false": {
+      "samples_ns": {
+        "before": [
+          66395.9,
+          66164.6,
+          66356.7,
+          68152.2,
+          67674.4
+        ],
+        "after": [
+          12541.5,
+          12396.5,
+          12719.5,
+          12357.7,
+          12560.7
+        ]
+      },
+      "median_ns": {
+        "before": 66395.9,
+        "after": 12541.5
+      },
+      "change_percent": -81.1110324583295
+    },
+    "shaping/shape_zwj cached=true": {
+      "samples_ns": {
+        "before": [
+          79.4,
+          96.3,
+          60.8,
+          47.7,
+          47.7
+        ],
+        "after": [
+          55.1,
+          54.1,
+          51.4,
+          54.3,
+          54.3
+        ]
+      },
+      "median_ns": {
+        "before": 60.8,
+        "after": 54.3
+      },
+      "change_percent": -10.690789473684214
+    },
+    "shaping/shape_flag cached=false": {
+      "samples_ns": {
+        "before": [
+          22936.8,
+          23280.4,
+          23818.9,
+          22951.4,
+          23895.1
+        ],
+        "after": [
+          11860.3,
+          12184.2,
+          11905.5,
+          11457.0,
+          11549.0
+        ]
+      },
+      "median_ns": {
+        "before": 23280.4,
+        "after": 11860.3
+      },
+      "change_percent": -49.05456950911496
+    },
+    "shaping/shape_flag cached=true": {
+      "samples_ns": {
+        "before": [
+          60.4,
+          44.9,
+          44.7,
+          42.2,
+          38.9
+        ],
+        "after": [
+          45.3,
+          38.8,
+          39.0,
+          39.0,
+          39.1
+        ]
+      },
+      "median_ns": {
+        "before": 44.7,
+        "after": 39.0
+      },
+      "change_percent": -12.751677852348998
+    },
+    "shaping/shape_keycap cached=false": {
+      "samples_ns": {
+        "before": [
+          52908.7,
+          50665.5,
+          51404.7,
+          49854.6,
+          50025.7
+        ],
+        "after": [
+          11587.2,
+          11981.6,
+          12020.6,
+          11929.5,
+          12039.3
+        ]
+      },
+      "median_ns": {
+        "before": 50665.5,
+        "after": 11981.6
+      },
+      "change_percent": -76.35156072672726
+    },
+    "shaping/shape_keycap cached=true": {
+      "samples_ns": {
+        "before": [
+          68.4,
+          48.1,
+          43.4,
+          43.5,
+          43.4
+        ],
+        "after": [
+          47.7,
+          41.6,
+          40.4,
+          40.2,
+          40.2
+        ]
+      },
+      "median_ns": {
+        "before": 43.5,
+        "after": 40.4
+      },
+      "change_percent": -7.126436781609202
+    },
+    "core-repeated/resize_one_column_unicode_pair": {
+      "samples_ns": {
+        "before": [
+          435984.5,
+          429929.4,
+          429597.8
+        ],
+        "after": [
+          414786.4,
+          427652.3,
+          473354.1
+        ]
+      },
+      "median_ns": {
+        "before": 429929.4,
+        "after": 427652.3
+      },
+      "change_percent": -0.529645099869891
+    },
+    "core-repeated/resize_columns_pair_history_0": {
+      "samples_ns": {
+        "before": [
+          57317.1,
+          58188.0,
+          59358.7
+        ],
+        "after": [
+          57547.6,
+          57622.6,
+          56416.3
+        ]
+      },
+      "median_ns": {
+        "before": 58188.0,
+        "after": 57547.6
+      },
+      "change_percent": -1.1005705643775343
+    },
+    "core-repeated/resize_height_pair_history_0": {
+      "samples_ns": {
+        "before": [
+          43742.2,
+          44069.4,
+          43633.6
+        ],
+        "after": [
+          44190.1,
+          42629.1,
+          41497.7
+        ]
+      },
+      "median_ns": {
+        "before": 43742.2,
+        "after": 42629.1
+      },
+      "change_percent": -2.544682251921482
+    },
+    "core-repeated/resize_unchanged_history_0": {
+      "samples_ns": {
+        "before": [
+          1.2,
+          1.3,
+          1.2
+        ],
+        "after": [
+          1.2,
+          1.2,
+          1.2
+        ]
+      },
+      "median_ns": {
+        "before": 1.2,
+        "after": 1.2
+      },
+      "change_percent": 0.0
+    },
+    "core-repeated/resize_columns_pair_history_2000": {
+      "samples_ns": {
+        "before": [
+          1004984.7,
+          987154.0,
+          988783.6
+        ],
+        "after": [
+          1010288.2,
+          967900.1,
+          1018359.5
+        ]
+      },
+      "median_ns": {
+        "before": 988783.6,
+        "after": 1010288.2
+      },
+      "change_percent": 2.174854032773199
+    },
+    "core-repeated/resize_height_pair_history_2000": {
+      "samples_ns": {
+        "before": [
+          35861.4,
+          30044.5,
+          31793.2
+        ],
+        "after": [
+          30550.2,
+          30029.4,
+          31522.8
+        ]
+      },
+      "median_ns": {
+        "before": 31793.2,
+        "after": 30550.2
+      },
+      "change_percent": -3.909641055320001
+    },
+    "core-repeated/resize_unchanged_history_2000": {
+      "samples_ns": {
+        "before": [
+          1.5,
+          1.2,
+          1.2
+        ],
+        "after": [
+          1.1,
+          1.2,
+          1.2
+        ]
+      },
+      "median_ns": {
+        "before": 1.2,
+        "after": 1.2
+      },
+      "change_percent": 0.0
+    },
+    "core-repeated/resize_columns_pair_history_10000": {
+      "samples_ns": {
+        "before": [
+          6794186.7,
+          6685022.8,
+          6876633.0
+        ],
+        "after": [
+          6817921.4,
+          6793467.5,
+          7224018.0
+        ]
+      },
+      "median_ns": {
+        "before": 6794186.7,
+        "after": 6817921.4
+      },
+      "change_percent": 0.3493383542139128
+    },
+    "core-repeated/resize_height_pair_history_10000": {
+      "samples_ns": {
+        "before": [
+          30977.6,
+          30811.4,
+          30584.3
+        ],
+        "after": [
+          31184.9,
+          30230.5,
+          31897.1
+        ]
+      },
+      "median_ns": {
+        "before": 30811.4,
+        "after": 31184.9
+      },
+      "change_percent": 1.2122136611773637
+    },
+    "core-repeated/resize_unchanged_history_10000": {
+      "samples_ns": {
+        "before": [
+          1.3,
+          1.2,
+          1.2
+        ],
+        "after": [
+          1.1,
+          1.2,
+          1.1
+        ]
+      },
+      "median_ns": {
+        "before": 1.2,
+        "after": 1.1
+      },
+      "change_percent": -8.333333333333325
+    },
+    "core-repeated/parse_plain_state": {
+      "samples_ns": {
+        "before": [
+          7788.6,
+          7622.6,
+          7760.5
+        ],
+        "after": [
+          8012.8,
+          7946.2,
+          8064.8
+        ]
+      },
+      "median_ns": {
+        "before": 7760.5,
+        "after": 8012.8
+      },
+      "change_percent": 3.251079183042327
+    },
+    "core-repeated/parse_escape_state": {
+      "samples_ns": {
+        "before": [
+          3943.4,
+          3858.0,
+          3847.4
+        ],
+        "after": [
+          3981.0,
+          3980.7,
+          3928.7
+        ]
+      },
+      "median_ns": {
+        "before": 3858.0,
+        "after": 3980.7
+      },
+      "change_percent": 3.1804043545878624
+    },
+    "core-repeated/scrollback_page_pair": {
+      "samples_ns": {
+        "before": [
+          3.9,
+          3.9,
+          3.9
+        ],
+        "after": [
+          3.9,
+          3.9,
+          3.9
+        ]
+      },
+      "median_ns": {
+        "before": 3.9,
+        "after": 3.9
+      },
+      "change_percent": 0.0
+    },
+    "core-repeated/selection_extend": {
+      "samples_ns": {
+        "before": [
+          4.2,
+          4.0,
+          4.1
+        ],
+        "after": [
+          4.0,
+          4.0,
+          4.0
+        ]
+      },
+      "median_ns": {
+        "before": 4.1,
+        "after": 4.0
+      },
+      "change_percent": -2.4390243902438935
+    },
+    "projection-paired/visible_projection_80x30": {
+      "samples_ns": {
+        "before": [
+          18494.7,
+          17559.3,
+          17656.5,
+          18257.6,
+          17722.0,
+          17622.6,
+          17413.9,
+          17565.0,
+          18618.8,
+          17662.8,
+          17923.5,
+          17953.7,
+          17682.1,
+          17504.4,
+          17435.4,
+          17908.6,
+          17838.7,
+          18735.2,
+          17842.6,
+          17908.7
+        ],
+        "after": [
+          17667.5,
+          17910.4,
+          17866.8,
+          17740.8,
+          17610.5,
+          20606.3,
+          17631.4,
+          17456.2,
+          17608.3,
+          17471.3,
+          17674.2,
+          17649.8,
+          17720.1,
+          17631.4,
+          18063.1,
+          17338.4,
+          18347.2,
+          17439.6,
+          17650.9,
+          17569.1
+        ]
+      },
+      "median_ns": {
+        "before": 17780.35,
+        "after": 17650.35
+      },
+      "change_percent": -0.7311442125717438
+    },
+    "projection-paired/output_echo_plus_projection": {
+      "samples_ns": {
+        "before": [
+          18096.3,
+          18363.2,
+          17999.0,
+          18190.6,
+          18153.5,
+          17976.8,
+          17964.7,
+          18444.5,
+          18133.3,
+          18229.9,
+          17967.7,
+          18377.4,
+          18380.9,
+          18298.9,
+          18386.4,
+          18176.0,
+          18736.0,
+          19228.6,
+          18388.6,
+          18282.9
+        ],
+        "after": [
+          18067.9,
+          18228.4,
+          18025.5,
+          18339.8,
+          18232.6,
+          18393.3,
+          18193.4,
+          18043.8,
+          18310.6,
+          17922.5,
+          17990.9,
+          18362.6,
+          18193.9,
+          18401.4,
+          18187.8,
+          18229.7,
+          18137.0,
+          18130.5,
+          18089.1,
+          17946.7
+        ]
+      },
+      "median_ns": {
+        "before": 18256.4,
+        "after": 18190.6
+      },
+      "change_percent": -0.3604215507986397
+    },
+    "projection-paired/three_pane_layout_plus_projection": {
+      "samples_ns": {
+        "before": [
+          23275.2,
+          23614.0,
+          23201.0,
+          23251.8,
+          22952.6,
+          23172.8,
+          23621.0,
+          23417.1,
+          23205.0,
+          23307.3,
+          23392.3,
+          23315.6,
+          23133.9,
+          22895.8,
+          22947.6,
+          23804.7,
+          23183.2,
+          23787.6,
+          23299.0,
+          23334.7
+        ],
+        "after": [
+          23180.2,
+          23214.9,
+          22977.0,
+          23224.2,
+          23728.4,
+          22960.6,
+          23442.2,
+          23137.7,
+          23261.6,
+          23169.1,
+          22938.7,
+          22859.4,
+          23802.2,
+          23242.1,
+          23695.9,
+          22852.1,
+          23107.9,
+          24049.1,
+          23050.6,
+          23261.7
+        ]
+      },
+      "median_ns": {
+        "before": 23287.1,
+        "after": 23197.550000000003
+      },
+      "change_percent": -0.38454766802219487
+    },
+    "gpu/sparse/projection_ns": {
+      "samples_ns": {
+        "before": [
+          21380.23,
+          25952.28,
+          39651.25
+        ],
+        "after": [
+          25001.76,
+          21605.79,
+          28574.48
+        ]
+      },
+      "median_ns": {
+        "before": 25952.28,
+        "after": 25001.76
+      },
+      "change_percent": -3.662568375495334
+    },
+    "gpu/sparse/generation_ns": {
+      "samples_ns": {
+        "before": [
+          75494.69,
+          87734.65,
+          118382.75
+        ],
+        "after": [
+          90870.76,
+          79378.29,
+          96041.28
+        ]
+      },
+      "median_ns": {
+        "before": 87734.65,
+        "after": 90870.76
+      },
+      "change_percent": 3.574539819786149
+    },
+    "gpu/sparse/upload_ns": {
+      "samples_ns": {
+        "before": [
+          2751.45,
+          2972.0,
+          4761.13
+        ],
+        "after": [
+          3274.47,
+          2731.19,
+          3324.2
+        ]
+      },
+      "median_ns": {
+        "before": 2972.0,
+        "after": 3274.47
+      },
+      "change_percent": 10.177321668909812
+    },
+    "gpu/sparse/submission_ns": {
+      "samples_ns": {
+        "before": [
+          7749.64,
+          8693.07,
+          37536.83
+        ],
+        "after": [
+          10179.88,
+          7840.59,
+          20670.54
+        ]
+      },
+      "median_ns": {
+        "before": 8693.07,
+        "after": 10179.88
+      },
+      "change_percent": 17.103393852804594
+    },
+    "gpu/sparse/wall_ns": {
+      "samples_ns": {
+        "before": [
+          567802.11,
+          654230.24,
+          879923.39
+        ],
+        "after": [
+          582291.85,
+          535112.47,
+          756002.35
+        ]
+      },
+      "median_ns": {
+        "before": 654230.24,
+        "after": 582291.85
+      },
+      "change_percent": -10.9958827338828
+    },
+    "gpu/dense/projection_ns": {
+      "samples_ns": {
+        "before": [
+          220053.96,
+          232690.43,
+          258288.75
+        ],
+        "after": [
+          244747.15,
+          221929.65,
+          254709.05
+        ]
+      },
+      "median_ns": {
+        "before": 232690.43,
+        "after": 244747.15
+      },
+      "change_percent": 5.181442141819059
+    },
+    "gpu/dense/generation_ns": {
+      "samples_ns": {
+        "before": [
+          707011.3,
+          838744.4,
+          681334.35
+        ],
+        "after": [
+          746194.96,
+          767442.59,
+          744162.59
+        ]
+      },
+      "median_ns": {
+        "before": 707011.3,
+        "after": 746194.96
+      },
+      "change_percent": 5.542154701063473
+    },
+    "gpu/dense/upload_ns": {
+      "samples_ns": {
+        "before": [
+          37213.54,
+          41005.97,
+          35986.02
+        ],
+        "after": [
+          38414.11,
+          37782.19,
+          37373.65
+        ]
+      },
+      "median_ns": {
+        "before": 37213.54,
+        "after": 37782.19
+      },
+      "change_percent": 1.5280728466036786
+    },
+    "gpu/dense/submission_ns": {
+      "samples_ns": {
+        "before": [
+          45775.33,
+          49436.47,
+          47780.11
+        ],
+        "after": [
+          47086.94,
+          49147.37,
+          47847.89
+        ]
+      },
+      "median_ns": {
+        "before": 47780.11,
+        "after": 47847.89
+      },
+      "change_percent": 0.14185819161989244
+    },
+    "gpu/dense/wall_ns": {
+      "samples_ns": {
+        "before": [
+          6048473.0,
+          6020257.61,
+          6448826.03
+        ],
+        "after": [
+          5924582.5,
+          6193682.24,
+          6594930.19
+        ]
+      },
+      "median_ns": {
+        "before": 6048473.0,
+        "after": 6193682.24
+      },
+      "change_percent": 2.400758670824854
+    },
+    "gpu/unicode/projection_ns": {
+      "samples_ns": {
+        "before": [
+          20705.13,
+          24930.36,
+          37891.41
+        ],
+        "after": [
+          20774.56,
+          20521.61,
+          24262.06
+        ]
+      },
+      "median_ns": {
+        "before": 24930.36,
+        "after": 20774.56
+      },
+      "change_percent": -16.669634935075138
+    },
+    "gpu/unicode/generation_ns": {
+      "samples_ns": {
+        "before": [
+          29522.3,
+          34833.88,
+          48990.19
+        ],
+        "after": [
+          23770.44,
+          23180.57,
+          27410.08
+        ]
+      },
+      "median_ns": {
+        "before": 34833.88,
+        "after": 23770.44
+      },
+      "change_percent": -31.7605733268875
+    },
+    "gpu/unicode/upload_ns": {
+      "samples_ns": {
+        "before": [
+          868.56,
+          1024.49,
+          1839.6
+        ],
+        "after": [
+          782.35,
+          695.46,
+          802.74
+        ]
+      },
+      "median_ns": {
+        "before": 1024.49,
+        "after": 782.35
+      },
+      "change_percent": -23.63517457466642
+    },
+    "gpu/unicode/submission_ns": {
+      "samples_ns": {
+        "before": [
+          9535.14,
+          12123.4,
+          22173.58
+        ],
+        "after": [
+          8323.71,
+          8498.67,
+          11281.2
+        ]
+      },
+      "median_ns": {
+        "before": 12123.4,
+        "after": 8498.67
+      },
+      "change_percent": -29.898625798043454
+    },
+    "gpu/unicode/wall_ns": {
+      "samples_ns": {
+        "before": [
+          378973.48,
+          378154.49,
+          461594.81
+        ],
+        "after": [
+          348459.62,
+          337625.83,
+          386082.2
+        ]
+      },
+      "median_ns": {
+        "before": 378973.48,
+        "after": 348459.62
+      },
+      "change_percent": -8.051713803298322
+    },
+    "gpu/transparent/projection_ns": {
+      "samples_ns": {
+        "before": [
+          25737.55,
+          28248.07,
+          31842.84
+        ],
+        "after": [
+          26380.32,
+          34591.6,
+          23692.19
+        ]
+      },
+      "median_ns": {
+        "before": 28248.07,
+        "after": 26380.32
+      },
+      "change_percent": -6.611956144260478
+    },
+    "gpu/transparent/generation_ns": {
+      "samples_ns": {
+        "before": [
+          81627.02,
+          90319.08,
+          91514.79
+        ],
+        "after": [
+          86754.04,
+          109628.94,
+          77621.88
+        ]
+      },
+      "median_ns": {
+        "before": 90319.08,
+        "after": 86754.04
+      },
+      "change_percent": -3.9471615521327386
+    },
+    "gpu/transparent/upload_ns": {
+      "samples_ns": {
+        "before": [
+          3057.24,
+          3538.14,
+          2937.66
+        ],
+        "after": [
+          3003.31,
+          4862.41,
+          2362.68
+        ]
+      },
+      "median_ns": {
+        "before": 3057.24,
+        "after": 3003.31
+      },
+      "change_percent": -1.7640093679266222
+    },
+    "gpu/transparent/submission_ns": {
+      "samples_ns": {
+        "before": [
+          17310.31,
+          18539.22,
+          22693.68
+        ],
+        "after": [
+          20217.72,
+          23038.66,
+          15529.22
+        ]
+      },
+      "median_ns": {
+        "before": 18539.22,
+        "after": 20217.72
+      },
+      "change_percent": 9.053778961574444
+    },
+    "gpu/transparent/wall_ns": {
+      "samples_ns": {
+        "before": [
+          1242104.32,
+          1194819.45,
+          1726637.65
+        ],
+        "after": [
+          1275923.53,
+          1233325.44,
+          1297926.62
+        ]
+      },
+      "median_ns": {
+        "before": 1242104.32,
+        "after": 1275923.53
+      },
+      "change_percent": 2.722735075907301
+    },
+    "gpu/blink/projection_ns": {
+      "samples_ns": {
+        "before": [
+          185108.23,
+          190747.8,
+          210122.05
+        ],
+        "after": [
+          203538.61,
+          184893.39,
+          208570.5
+        ]
+      },
+      "median_ns": {
+        "before": 190747.8,
+        "after": 203538.61
+      },
+      "change_percent": 6.70561338059994
+    },
+    "gpu/blink/generation_ns": {
+      "samples_ns": {
+        "before": [
+          762072.81,
+          812660.23,
+          844565.99
+        ],
+        "after": [
+          830011.59,
+          759219.41,
+          897833.26
+        ]
+      },
+      "median_ns": {
+        "before": 812660.23,
+        "after": 830011.59
+      },
+      "change_percent": 2.1351309390395423
+    },
+    "gpu/blink/upload_ns": {
+      "samples_ns": {
+        "before": [
+          37131.94,
+          41696.21,
+          41152.39
+        ],
+        "after": [
+          40177.32,
+          37378.59,
+          41452.35
+        ]
+      },
+      "median_ns": {
+        "before": 41152.39,
+        "after": 40177.32
+      },
+      "change_percent": -2.3694128093167843
+    },
+    "gpu/blink/submission_ns": {
+      "samples_ns": {
+        "before": [
+          42915.82,
+          49805.21,
+          62288.11
+        ],
+        "after": [
+          53707.75,
+          41436.64,
+          53503.74
+        ]
+      },
+      "median_ns": {
+        "before": 49805.21,
+        "after": 53503.74
+      },
+      "change_percent": 7.425990172514085
+    },
+    "gpu/blink/wall_ns": {
+      "samples_ns": {
+        "before": [
+          5218728.72,
+          6101228.67,
+          7171016.94
+        ],
+        "after": [
+          6251102.72,
+          5057581.2,
+          6226984.69
+        ]
+      },
+      "median_ns": {
+        "before": 6101228.67,
+        "after": 6226984.69
+      },
+      "change_percent": 2.06115893702441
+    },
+    "gpu/theme/projection_ns": {
+      "samples_ns": {
+        "before": [
+          19152.1,
+          27637.07,
+          35255.55
+        ],
+        "after": [
+          27912.02,
+          23593.44,
+          20189.54
+        ]
+      },
+      "median_ns": {
+        "before": 27637.07,
+        "after": 23593.44
+      },
+      "change_percent": -14.631181959592677
+    },
+    "gpu/theme/generation_ns": {
+      "samples_ns": {
+        "before": [
+          81096.6,
+          106933.71,
+          130278.83
+        ],
+        "after": [
+          107297.39,
+          94260.07,
+          85107.77
+        ]
+      },
+      "median_ns": {
+        "before": 106933.71,
+        "after": 94260.07
+      },
+      "change_percent": -11.851865983140398
+    },
+    "gpu/theme/upload_ns": {
+      "samples_ns": {
+        "before": [
+          4055.09,
+          5975.13,
+          9812.15
+        ],
+        "after": [
+          6306.43,
+          5068.01,
+          4067.13
+        ]
+      },
+      "median_ns": {
+        "before": 5975.13,
+        "after": 5068.01
+      },
+      "change_percent": -15.181594375352503
+    },
+    "gpu/theme/submission_ns": {
+      "samples_ns": {
+        "before": [
+          8614.84,
+          13889.74,
+          29172.88
+        ],
+        "after": [
+          14839.16,
+          10951.67,
+          8699.39
+        ]
+      },
+      "median_ns": {
+        "before": 13889.74,
+        "after": 10951.67
+      },
+      "change_percent": -21.152807755940717
+    },
+    "gpu/theme/wall_ns": {
+      "samples_ns": {
+        "before": [
+          448079.68,
+          498633.95,
+          795673.61
+        ],
+        "after": [
+          515847.26,
+          469226.42,
+          500000.72
+        ]
+      },
+      "median_ns": {
+        "before": 498633.95,
+        "after": 500000.72
+      },
+      "change_percent": 0.27410287646878473
+    },
+    "gpu/three_panes/projection_ns": {
+      "samples_ns": {
+        "before": [
+          105384.11,
+          120176.59,
+          152904.32
+        ],
+        "after": [
+          100750.34,
+          98126.36,
+          144906.5
+        ]
+      },
+      "median_ns": {
+        "before": 120176.59,
+        "after": 100750.34
+      },
+      "change_percent": -16.16475388426315
+    },
+    "gpu/three_panes/generation_ns": {
+      "samples_ns": {
+        "before": [
+          840290.16,
+          920794.18,
+          1119323.72
+        ],
+        "after": [
+          850657.5,
+          832025.44,
+          1080115.97
+        ]
+      },
+      "median_ns": {
+        "before": 920794.18,
+        "after": 850657.5
+      },
+      "change_percent": -7.616976901396145
+    },
+    "gpu/three_panes/upload_ns": {
+      "samples_ns": {
+        "before": [
+          18400.96,
+          21618.85,
+          28054.51
+        ],
+        "after": [
+          19079.46,
+          17778.51,
+          25850.19
+        ]
+      },
+      "median_ns": {
+        "before": 21618.85,
+        "after": 19079.46
+      },
+      "change_percent": -11.746184464020981
+    },
+    "gpu/three_panes/submission_ns": {
+      "samples_ns": {
+        "before": [
+          1062305.41,
+          972162.22,
+          1461190.69
+        ],
+        "after": [
+          896147.56,
+          967901.05,
+          1362229.36
+        ]
+      },
+      "median_ns": {
+        "before": 1062305.41,
+        "after": 967901.05
+      },
+      "change_percent": -8.88674378491585
+    },
+    "gpu/three_panes/wall_ns": {
+      "samples_ns": {
+        "before": [
+          2927683.92,
+          2905635.87,
+          4020319.92
+        ],
+        "after": [
+          2663655.66,
+          2745848.77,
+          3921915.89
+        ]
+      },
+      "median_ns": {
+        "before": 2927683.92,
+        "after": 2745848.77
+      },
+      "change_percent": -6.210887341964155
+    }
+  }
+}

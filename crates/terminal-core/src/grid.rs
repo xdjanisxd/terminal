@@ -18,13 +18,6 @@ enum ScrollDirection {
     Down,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum CombiningMarkAttachment {
-    Attached,
-    NoBase,
-    Full,
-}
-
 impl ScreenGrid {
     pub fn new(dimensions: TerminalDimensions) -> Self {
         Self {
@@ -148,24 +141,17 @@ impl ScreenGrid {
         self.cells.get_mut(index)
     }
 
-    pub(crate) fn append_combining_mark(
-        &mut self,
-        row: usize,
-        column: usize,
-        character: char,
-    ) -> CombiningMarkAttachment {
-        let Some(index) = self.index_of(row, column) else {
-            return CombiningMarkAttachment::NoBase;
-        };
-        let lead_index = match self.cells[index].occupancy() {
-            CellOccupancy::WideContinuation if column > 0 => index - 1,
-            CellOccupancy::WideContinuation => return CombiningMarkAttachment::NoBase,
-            CellOccupancy::Single | CellOccupancy::WideLead => index,
-        };
-        match self.cells[lead_index].append_combining_mark(character) {
-            Ok(true) => CombiningMarkAttachment::Attached,
-            Ok(false) => CombiningMarkAttachment::NoBase,
-            Err(()) => CombiningMarkAttachment::Full,
+    /// Replaces a whole grapheme after a width change, clearing intersected pairs.
+    pub(crate) fn write_grapheme(&mut self, row: usize, column: usize, cell: Cell) {
+        let blank = Cell::blank(cell.attributes().background());
+        self.clear_wide_at(row, column, blank);
+        if cell.is_wide_lead() {
+            self.clear_wide_at(row, column + 1, blank);
+        }
+        let index = self.index_of(row, column).expect("grapheme is in bounds");
+        self.cells[index] = cell;
+        if cell.is_wide_lead() {
+            self.cells[index + 1] = Cell::wide_continuation();
         }
     }
 

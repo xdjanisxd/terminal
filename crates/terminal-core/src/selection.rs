@@ -386,7 +386,7 @@ impl TerminalState {
                     continue;
                 }
                 line.push(cell.character());
-                line.extend(cell.combining_marks().iter().copied());
+                line.extend(cell.grapheme_tail().iter().copied());
             }
             if selection.unit == SelectionUnit::Caret || (wrapped != 0 && row < end.row) {
                 result.push_str(&line);

@@ -58,6 +58,7 @@ Completion marks require tested acceptance criteria, not code presence alone.
 - [x] Implement Unicode combining and wide-cell invariants
   - [x] Add typed wide-cell lead/continuation representation and bounded grid/write invariants
   - [x] Add width-zero combining-mark attachment to narrow and wide base cells without cursor advancement
+  - [x] Add bounded extended grapheme clusters, variation selectors, modifiers, flags and ZWJ sequences with whole-cluster font fallback, width updates, selection/copy and reflow. See [capabilities, measurements and acceptance](UNICODE_GRAPHEME_SUPPORT.md); native Linux/Windows manual acceptance remains pending.
 - [x] Implement primary/alternate screens, resize behavior, and bounded scrollback
   - [x] Add project-owned primary/alternate screen buffers with atomic TerminalState switching and independent screen-local state
   - [x] Add DEC `?47` parser dispatch for non-clearing primary/alternate screen switching

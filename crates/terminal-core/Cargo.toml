@@ -8,8 +8,13 @@ publish.workspace = true
 [dependencies]
 base64 = { version = "0.22.1", default-features = false, features = ["alloc"] }
 unicode-width = { version = "0.2.2", default-features = false }
+unicode-segmentation = "1.13.3"
 vte = { version = "0.15.0", default-features = false }
 
 [[bench]]
 name = "state_baselines"
+harness = false
+
+[[bench]]
+name = "unicode_baselines"
 harness = false

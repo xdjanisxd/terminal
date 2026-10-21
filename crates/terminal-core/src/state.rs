@@ -2,7 +2,6 @@ use std::{error::Error, fmt};
 
 use unicode_width::UnicodeWidthChar;
 
-use crate::grid::CombiningMarkAttachment;
 use crate::reply::PendingReplies;
 use crate::screens::{ScreenKind, ScreenSet};
 use crate::tabs::HorizontalTabStops;
@@ -18,7 +17,7 @@ use crate::{
 pub enum PrintError {
     /// Control functions must use their dedicated semantic operation.
     ControlCharacter(char),
-    /// A valid base cell has reached its bounded combining-mark capacity.
+    /// A valid base cell has reached its bounded grapheme-tail capacity.
     CombiningMarkOverflow(char),
     /// Character width is not representable by the current one- or two-cell model.
     UnsupportedCharacter(char),
@@ -34,7 +33,7 @@ impl fmt::Display for PrintError {
             ),
             Self::CombiningMarkOverflow(character) => write!(
                 formatter,
-                "width-zero character U+{:04X} exceeds the bounded combining-mark capacity",
+                "character U+{:04X} exceeds the bounded grapheme-tail capacity",
                 *character as u32
             ),
             Self::UnsupportedCharacter(character) => write!(
@@ -138,6 +137,10 @@ pub enum EraseDirection {
 #[derive(Debug)]
 pub struct TerminalState {
     screen: ScreenSet,
+    // Only uninterrupted output may join positive-width scalars. This survives
+    // PTY chunk boundaries but is invalidated by movement, editing and resize.
+    grapheme_anchor: Option<Cursor>,
+    grapheme_ascii: bool,
     terminal_modes: TerminalModes,
     cursor_style: crate::CursorStyle,
     cursor_style_default: crate::CursorStyle,
@@ -198,6 +201,7 @@ impl TerminalState {
     /// Production construction always retains the normal fixed history limit.
     #[doc(hidden)]
     pub fn configure_throughput_history(&mut self, capacity: usize, prefill: usize) {
+        self.grapheme_anchor = None;
         self.screen.configure_throughput_history(capacity, prefill);
     }
     /// The latest terminal-provided title for this session.
@@ -281,6 +285,8 @@ impl TerminalState {
     pub fn new(dimensions: TerminalDimensions) -> Self {
         Self {
             screen: ScreenSet::new(dimensions),
+            grapheme_anchor: None,
+            grapheme_ascii: true,
             terminal_modes: TerminalModes::default(),
             cursor_style: crate::CursorStyle::default(),
             cursor_style_default: crate::CursorStyle::default(),
@@ -449,6 +455,7 @@ impl TerminalState {
 
     /// Activates the independent primary screen without modifying either screen.
     pub fn switch_to_primary_screen(&mut self) {
+        self.grapheme_anchor = None;
         self.clear_selection();
         self.screen.switch_to(ScreenKind::Primary);
         self.sync_keyboard_reporting();
@@ -456,6 +463,7 @@ impl TerminalState {
 
     /// Activates the independent alternate screen without modifying either screen.
     pub fn switch_to_alternate_screen(&mut self) {
+        self.grapheme_anchor = None;
         self.clear_selection();
         self.screen.switch_to(ScreenKind::Alternate);
         self.sync_keyboard_reporting();
@@ -478,6 +486,7 @@ impl TerminalState {
     /// during reflow; Alternate retains its rectangular saved coordinates. Delayed wrap is not saved and
     /// is cancelled on successful restore, matching other explicit cursor movement.
     pub fn restore_cursor(&mut self) {
+        self.grapheme_anchor = None;
         if let Some((rendition, origin)) = self.screen.restore_cursor() {
             self.terminal_modes.set_origin(origin);
             self.current_rendition = rendition;
@@ -490,6 +499,7 @@ impl TerminalState {
     /// This resets only alternate grid/cursor, vertical scrolling margins, delayed-wrap,
     /// and saved-cursor state. Terminal-global state is not modified.
     pub fn enter_alternate_screen_1047(&mut self) {
+        self.grapheme_anchor = None;
         self.clear_selection();
         self.screen.enter_alternate_screen_1047();
         self.sync_keyboard_reporting();
@@ -497,6 +507,7 @@ impl TerminalState {
 
     /// Activates the primary screen for DEC private mode 1047 without restoring saved state.
     pub fn leave_alternate_screen_1047(&mut self) {
+        self.grapheme_anchor = None;
         self.clear_selection();
         self.screen.leave_alternate_screen_1047();
         self.sync_keyboard_reporting();
@@ -508,6 +519,7 @@ impl TerminalState {
     /// saved slot nor clears the active Alternate buffer. From Primary, it saves the
     /// existing cursor/rendition before applying the established 1047 Alternate reset.
     pub fn enter_alternate_screen_1049(&mut self) {
+        self.grapheme_anchor = None;
         if self.active_screen() == ScreenKind::Primary {
             self.clear_selection();
             self.save_cursor();
@@ -522,6 +534,7 @@ impl TerminalState {
     /// dimensions, rendition is restored, delayed wrap is cancelled, and an empty
     /// Primary slot is a safe no-op.
     pub fn leave_alternate_screen_1049(&mut self) {
+        self.grapheme_anchor = None;
         self.clear_selection();
         self.screen.leave_alternate_screen_1047();
         self.sync_keyboard_reporting();
@@ -612,6 +625,7 @@ impl TerminalState {
 
     /// Enables or disables DECOM, homing the cursor even on repeated requests.
     pub fn set_origin_mode(&mut self, enabled: bool) {
+        self.grapheme_anchor = None;
         self.terminal_modes.set_origin(enabled);
         self.move_cursor(CursorMovement::Position { row: 0, column: 0 });
     }
@@ -624,6 +638,7 @@ impl TerminalState {
     ) -> Result<(), crate::CursorError> {
         let result = self.screen.set_cursor_position(row, column);
         if result.is_ok() {
+            self.grapheme_anchor = None;
             self.screen.set_wrap_pending(false);
         }
         result
@@ -631,6 +646,7 @@ impl TerminalState {
 
     /// Applies cursor movement within screen bounds, or active margins under DECOM.
     pub fn move_cursor(&mut self, movement: CursorMovement) {
+        self.grapheme_anchor = None;
         let cursor = self.cursor();
         let dimensions = self.dimensions();
         let (minimum_row, maximum_row) = if self.terminal_modes.origin() {
@@ -701,24 +717,37 @@ impl TerminalState {
         self.carriage_return();
     }
 
-    /// Prints one Unicode scalar through the project-owned cell model.
+    /// Prints one Unicode scalar, extending the previous grapheme when possible.
     ///
-    /// Width-zero scalars attach to the immediately preceding logical base cell
-    /// without resolving delayed wrap or advancing the cursor. Without a valid
-    /// base they are ignored. A two-cell character that cannot fit at the right
+    /// Grapheme components attach before resolving delayed wrap. Width changes
+    /// update the cursor and occupancy together. Unattached width-zero scalars
+    /// are ignored. A two-cell character that cannot fit at the right
     /// margin wraps before writing only when auto-wrap is enabled; otherwise it
     /// is ignored without changing the grid or cursor.
     pub fn print_character(&mut self, character: char) -> Result<(), PrintError> {
         if let Some(stats) = self.screen.throughput_mut() {
             stats.prints += 1;
         }
-        let mut width = PrintableWidth::classify(character)?;
+        let mut width = match PrintableWidth::classify(character) {
+            Ok(width) => width,
+            Err(error) => {
+                self.grapheme_anchor = None;
+                return Err(error);
+            }
+        };
+        // Ordinary ASCII never visits segmentation or UTF-8 scratch storage.
+        if !(character.is_ascii() && self.grapheme_ascii)
+            && self.extend_grapheme(character, width == PrintableWidth::Zero)?
+        {
+            return Ok(());
+        }
         let narrow_wide = width == PrintableWidth::Two && self.dimensions().columns() == 1;
         if narrow_wide {
             width = PrintableWidth::One;
         }
         if width == PrintableWidth::Zero {
-            return self.attach_combining_mark(character);
+            self.grapheme_anchor = None;
+            return Ok(());
         }
 
         if self.screen.wrap_pending() {
@@ -729,6 +758,7 @@ impl TerminalState {
         let columns = self.dimensions().columns();
         if width == PrintableWidth::Two && cursor.column() + 1 >= columns {
             if self.terminal_modes.auto_wrap() == AutoWrapMode::Disabled {
+                self.grapheme_anchor = None;
                 return Ok(());
             }
             self.wrap_before_print();
@@ -786,6 +816,8 @@ impl TerminalState {
                 .set_wrap_pending(self.terminal_modes.auto_wrap() == AutoWrapMode::Enabled);
         }
 
+        self.grapheme_anchor = Some(cursor);
+        self.grapheme_ascii = character.is_ascii();
         Ok(())
     }
 
@@ -795,6 +827,7 @@ impl TerminalState {
     /// bounded grid width. This explicit current-row editing operation preserves
     /// the cursor but cancels delayed wrap, matching erase and other cursor edits.
     pub fn insert_characters(&mut self, count: usize) {
+        self.grapheme_anchor = None;
         let blank = Cell::blank(self.current_rendition.background());
         let cursor = self.cursor();
         self.screen
@@ -808,6 +841,7 @@ impl TerminalState {
     /// bounded grid width. This explicit current-row editing operation preserves
     /// the cursor but cancels delayed wrap, matching ICH and erase.
     pub fn delete_characters(&mut self, count: usize) {
+        self.grapheme_anchor = None;
         let blank = Cell::blank(self.current_rendition.background());
         let cursor = self.cursor();
         self.screen
@@ -822,6 +856,7 @@ impl TerminalState {
     /// preserves the cursor but cancels delayed wrap, matching existing erase,
     /// ICH, and DCH behavior.
     pub fn erase_characters(&mut self, count: usize) {
+        self.grapheme_anchor = None;
         let blank = Cell::blank(self.current_rendition.background());
         let cursor = self.cursor();
         let columns = self.dimensions().columns();
@@ -833,6 +868,7 @@ impl TerminalState {
 
     /// Moves the cursor to the first column of its current row.
     pub fn carriage_return(&mut self) {
+        self.grapheme_anchor = None;
         if let Some(stats) = self.screen.throughput_mut() {
             stats.carriage_returns += 1;
             stats.transition_moves += 1;
@@ -851,6 +887,7 @@ impl TerminalState {
     /// Alternate scrolls without history. The cursor column and any
     /// delayed-wrap condition are unchanged.
     pub fn line_feed(&mut self) {
+        self.grapheme_anchor = None;
         let blank = Cell::blank(self.current_rendition.background());
         let started = self
             .screen
@@ -876,6 +913,7 @@ impl TerminalState {
     /// Outside the scrolling region, movement remains bounded by the screen and
     /// never scrolls. The cursor column is preserved and delayed wrap is cancelled.
     pub fn index(&mut self) {
+        self.grapheme_anchor = None;
         let blank = Cell::blank(self.current_rendition.background());
         let cursor_row = self.cursor().row();
         let margins = self.screen.vertical_scrolling_margins();
@@ -892,6 +930,7 @@ impl TerminalState {
     /// Outside the scrolling region, movement remains bounded by the screen and
     /// never scrolls. The cursor column is preserved and delayed wrap is cancelled.
     pub fn reverse_index(&mut self) {
+        self.grapheme_anchor = None;
         let blank = Cell::blank(self.current_rendition.background());
         let cursor_row = self.cursor().row();
         let margins = self.screen.vertical_scrolling_margins();
@@ -916,6 +955,7 @@ impl TerminalState {
     /// preserved. A full-screen Primary `SU` is deliberate terminal scrolling
     /// and captures each displaced top row; restricted regions do not.
     pub fn scroll_up(&mut self, rows: usize) {
+        self.grapheme_anchor = None;
         let blank = Cell::blank(self.current_rendition.background());
         let margins = self.screen.vertical_scrolling_margins();
         self.screen.scroll_region_up(margins, rows, blank);
@@ -927,6 +967,7 @@ impl TerminalState {
     /// current background color. Current rendition and delayed wrap are
     /// preserved.
     pub fn scroll_down(&mut self, rows: usize) {
+        self.grapheme_anchor = None;
         let blank = Cell::blank(self.current_rendition.background());
         let margins = self.screen.vertical_scrolling_margins();
         self.screen.scroll_region_down(margins, rows, blank);
@@ -939,6 +980,7 @@ impl TerminalState {
     /// is clamped and exposed rows use current background colors. Delayed
     /// wrap is preserved because this operation does not move the cursor.
     pub fn insert_lines(&mut self, rows: usize) {
+        self.grapheme_anchor = None;
         let blank = Cell::blank(self.current_rendition.background());
         let cursor_row = self.cursor().row();
         let margins = self.screen.vertical_scrolling_margins();
@@ -959,6 +1001,7 @@ impl TerminalState {
     /// is clamped and exposed rows use current background colors. Delayed
     /// wrap is preserved because this operation does not move the cursor.
     pub fn delete_lines(&mut self, rows: usize) {
+        self.grapheme_anchor = None;
         let blank = Cell::blank(self.current_rendition.background());
         let cursor_row = self.cursor().row();
         let margins = self.screen.vertical_scrolling_margins();
@@ -975,6 +1018,7 @@ impl TerminalState {
 
     /// Moves left one column without erasing and without reverse wrapping.
     pub fn backspace(&mut self) {
+        self.grapheme_anchor = None;
         if self.cursor().column() > 0 {
             self.screen.move_cursor(0, -1);
             self.screen.set_wrap_pending(false);
@@ -986,6 +1030,7 @@ impl TerminalState {
     /// A stop at the current column is skipped. The operation changes neither
     /// cells nor modes and cancels any delayed right-margin wrap.
     pub fn horizontal_tab(&mut self) {
+        self.grapheme_anchor = None;
         let cursor = self.cursor();
         let final_column = self.dimensions().columns() - 1;
         let column = self
@@ -1020,12 +1065,14 @@ impl TerminalState {
 
     /// Clears every active-screen cell without moving the cursor.
     pub fn clear_screen(&mut self) {
+        self.grapheme_anchor = None;
         self.screen.clear();
         self.screen.set_wrap_pending(false);
     }
 
     /// Erases cells using the current background in the selected region without moving the cursor.
     pub fn erase(&mut self, region: EraseRegion, direction: EraseDirection) {
+        self.grapheme_anchor = None;
         let blank = Cell::blank(self.current_rendition.background());
         let cursor = self.cursor();
         let columns = self.dimensions().columns();
@@ -1059,6 +1106,7 @@ impl TerminalState {
         if self.dimensions() == dimensions {
             return;
         }
+        self.grapheme_anchor = None;
         self.screen.resize_all(
             dimensions,
             &mut self.selection,
@@ -1148,6 +1196,7 @@ impl TerminalState {
 
     /// Sets the right-margin wrapping behavior.
     pub fn set_auto_wrap(&mut self, auto_wrap: AutoWrapMode) {
+        self.grapheme_anchor = None;
         self.terminal_modes.set_auto_wrap(auto_wrap);
         if auto_wrap == AutoWrapMode::Disabled {
             self.screen.set_wrap_pending(false);
@@ -1156,6 +1205,7 @@ impl TerminalState {
 
     /// Sets whether new characters replace or insert before existing cells.
     pub fn set_character_insertion(&mut self, insertion: CharacterInsertionMode) {
+        self.grapheme_anchor = None;
         self.terminal_modes.set_character_insertion(insertion);
     }
 
@@ -1213,6 +1263,7 @@ impl TerminalState {
     /// buffer, history, selection, tab stops, or moving the active cursor.
     /// Auto-wrap returns to the emulator's enabled startup default.
     pub fn soft_reset(&mut self) {
+        self.grapheme_anchor = None;
         self.terminal_modes = TerminalModes::default();
         self.cursor_style = self.cursor_style_default;
         self.cursor_style_overridden = false;
@@ -1245,9 +1296,9 @@ impl TerminalState {
         self.shell_prompt_version = prompt_version;
     }
 
-    fn attach_combining_mark(&mut self, character: char) -> Result<(), PrintError> {
+    fn extend_grapheme(&mut self, character: char, width_zero: bool) -> Result<bool, PrintError> {
         let cursor = self.cursor();
-        let target_column = if self.screen.wrap_pending()
+        let legacy_column = if self.screen.wrap_pending()
             || self
                 .screen
                 .cell(cursor.row(), cursor.column())
@@ -1257,17 +1308,111 @@ impl TerminalState {
         } else {
             cursor.column().checked_sub(1)
         };
-        let Some(column) = target_column else {
-            return Ok(());
+        let anchor = if let Some(anchor) = self.grapheme_anchor {
+            anchor
+        } else if width_zero {
+            let Some(mut column) = legacy_column else {
+                return Ok(false);
+            };
+            if self
+                .screen
+                .cell(cursor.row(), column)
+                .is_some_and(|cell| cell.is_wide_continuation())
+            {
+                column = column.saturating_sub(1);
+            }
+            let mut anchor = cursor;
+            anchor
+                .set_position(cursor.row(), column, self.dimensions())
+                .expect("bounded attachment");
+            anchor
+        } else {
+            return Ok(false);
         };
-
-        match self
+        let mut cell = *self
             .screen
-            .append_combining_mark(cursor.row(), column, character)
-        {
-            CombiningMarkAttachment::Attached | CombiningMarkAttachment::NoBase => Ok(()),
-            CombiningMarkAttachment::Full => Err(PrintError::CombiningMarkOverflow(character)),
+            .cell(anchor.row(), anchor.column())
+            .expect("live grapheme anchor");
+        if !cell.has_printable_base() || cell.is_wide_continuation() {
+            return Ok(false);
         }
+        let Some(width) = crate::grapheme::extended_width(&cell, character) else {
+            return Ok(false);
+        };
+        if !(1..=2).contains(&width) {
+            return Err(PrintError::UnsupportedCharacter(character));
+        }
+        cell.append_combining_mark(character)
+            .map_err(|()| PrintError::CombiningMarkOverflow(character))?;
+        let old_width = cell.reflow_width();
+        if width == old_width {
+            *self
+                .screen
+                .cell_mut_for_target(anchor.row(), anchor.column())
+                .unwrap() = cell;
+            self.grapheme_ascii = false;
+            return Ok(true);
+        }
+        // Legacy zero-width attachment after cursor positioning must not move
+        // that cursor or retroactively change a different cell's footprint.
+        if self.grapheme_anchor.is_none() {
+            return Ok(true);
+        }
+        let columns = self.dimensions().columns();
+        let old_columns = old_width.min(columns);
+        let new_columns = width.min(columns);
+        let blank = Cell::blank(cell.attributes().background());
+        let (row, column) = if anchor.column() + new_columns > columns {
+            if self.terminal_modes.auto_wrap() == AutoWrapMode::Disabled {
+                return Err(PrintError::UnsupportedCharacter(character));
+            }
+            // The previously displayed narrow base moves with its new tail.
+            let start = anchor.row() * columns + anchor.column();
+            self.screen.erase_cells(start, start + old_columns, blank);
+            self.screen.set_wrap_pending(false);
+            self.screen
+                .set_cursor_position(anchor.row(), anchor.column())
+                .unwrap();
+            self.wrap_before_print();
+            if self.terminal_modes.character_insertion() == CharacterInsertionMode::Insert {
+                let row = self.cursor().row();
+                self.screen.insert_cells(row, 0, new_columns, blank);
+            }
+            (self.cursor().row(), 0)
+        } else {
+            if self.terminal_modes.character_insertion() == CharacterInsertionMode::Insert {
+                if new_columns > old_columns {
+                    self.screen.insert_cells(
+                        anchor.row(),
+                        anchor.column() + old_columns,
+                        new_columns - old_columns,
+                        blank,
+                    );
+                } else if old_columns > new_columns {
+                    self.screen.delete_cells(
+                        anchor.row(),
+                        anchor.column() + new_columns,
+                        old_columns - new_columns,
+                        blank,
+                    );
+                }
+            }
+            (anchor.row(), anchor.column())
+        };
+        self.screen
+            .write_grapheme(row, column, cell.with_grapheme_width(width, columns));
+        self.screen
+            .set_cursor_position(row, (column + new_columns).min(columns - 1))
+            .unwrap();
+        self.screen.set_wrap_pending(
+            column + new_columns == columns
+                && self.terminal_modes.auto_wrap() == AutoWrapMode::Enabled,
+        );
+        let mut anchor = self.cursor();
+        anchor.set_position(row, column, self.dimensions()).unwrap();
+        self.grapheme_anchor = Some(anchor);
+        self.grapheme_ascii = false;
+        Ok(true)
     }
 
     fn wrap_before_print(&mut self) {

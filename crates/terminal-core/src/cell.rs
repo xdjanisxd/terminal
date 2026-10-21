@@ -150,11 +150,16 @@ pub enum CellOccupancy {
     WideContinuation,
 }
 
-/// Maximum width-zero scalars retained on one printable cell.
+/// Maximum trailing grapheme scalars retained on one printable cell.
 ///
-/// Input order is preserved. A further attachment returns a bounded semantic
+/// Input order is preserved, including positive-width ZWJ/flag/modifier
+/// components. The legacy name is retained for API compatibility.
+/// A further attachment returns a bounded semantic
 /// error without changing the cell, cursor, or grid.
 pub const MAX_COMBINING_MARKS: usize = 8;
+
+/// Maximum scalars in a terminal grapheme, including its printable base.
+pub const MAX_GRAPHEME_SCALARS: usize = MAX_COMBINING_MARKS + 1;
 
 /// One fixed-grid terminal cell.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -214,9 +219,29 @@ impl Cell {
         self.occupancy
     }
 
-    /// Returns width-zero scalars attached to this printable base in input order.
+    /// Returns trailing grapheme scalars in input order (including joiners and
+    /// positive-width components). Kept for compatibility with combining callers.
     pub fn combining_marks(&self) -> &[char] {
+        self.grapheme_tail()
+    }
+
+    /// Returns every scalar following the base in this cell's grapheme cluster.
+    pub fn grapheme_tail(&self) -> &[char] {
         &self.combining_marks[..usize::from(self.combining_mark_count)]
+    }
+
+    pub(crate) fn has_printable_base(&self) -> bool {
+        self.has_printable_base
+    }
+
+    pub(crate) fn with_grapheme_width(mut self, width: usize, columns: usize) -> Self {
+        self.occupancy = if width == 2 && columns > 1 {
+            CellOccupancy::WideLead
+        } else {
+            CellOccupancy::Single
+        };
+        self.narrow_wide = width == 2 && columns == 1;
+        self
     }
 
     pub fn is_wide_lead(self) -> bool {

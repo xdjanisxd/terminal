@@ -3,6 +3,7 @@
 mod cell;
 mod cursor;
 mod dimensions;
+mod grapheme;
 mod grid;
 mod input;
 mod keyboard;
@@ -24,7 +25,7 @@ mod throughput;
 
 pub use cell::{
     Cell, CellAttributes, CellColor, CellOccupancy, InverseVideo, ItalicStyle, MAX_COMBINING_MARKS,
-    TextIntensity, UnderlineStyle,
+    MAX_GRAPHEME_SCALARS, TextIntensity, UnderlineStyle,
 };
 pub use cursor::{Cursor, CursorError};
 pub use dimensions::{DimensionsError, MAX_COLUMNS, MAX_GRID_CELLS, MAX_ROWS, TerminalDimensions};

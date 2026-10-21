@@ -57,7 +57,7 @@ No material slowdown was observed in these workloads after the blank skip adjust
 - Native Italic/Bold Italic companion discovery and variable italic/slant axes. Synthetic italics retain existing fixed cell clipping; edge overhang can be clipped, including at small sizes or fractional DPI.
 - Blink, double/curly/dotted underlines, underline colors, overline, independent simultaneous bold+faint, non-RGB color spaces, optional color tolerances, and mixed semicolon/colon color payload forms.
 - DECSCA/selective erase, horizontal margins, additional cursor-save protocols, private CPR/query variants, DEC graphics character sets, and broader OSC/DCS/CSI coverage. Existing saved-cursor policy still cancels delayed wrap and does not save every historical DEC state field.
-- Full grapheme/ZWJ shaping, fuzz execution, Windows native verification, other GPUs, and measured input-to-present latency.
+- Unbounded/full Unicode shaping (bounded grapheme/ZWJ support is documented in [Unicode grapheme support](UNICODE_GRAPHEME_SUPPORT.md)), fuzz execution, Windows native verification, other GPUs, and measured input-to-present latency.
 
 ## Recommended manual checks
 
