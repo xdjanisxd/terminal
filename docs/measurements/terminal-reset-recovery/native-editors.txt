@@ -1,0 +1,11 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.10s
+     Running tests/execute_native.rs (target/debug/deps/execute_native-72c28b0147b1913d)
+
+running 1 test
+passed vim: opened exact Unicode/space path and closed on exit
+passed nvim: opened exact Unicode/space path and closed on exit
+native editor evidence: /tmp/terminal-execute-2010681-1792567719955180549
+test native_execute_editors_with_unicode_and_spaces ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 4.86s
+

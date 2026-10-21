@@ -3810,11 +3810,9 @@ fn parse_terminal_output(
             Ok(()) => break,
             Err(error) => {
                 eprintln!("could not apply local shell output: {error}");
-                let consumed = error.bytes_consumed();
-                if consumed == 0 {
-                    break;
-                }
-                remaining = &remaining[consumed..];
+                // Zero consumption clears an invalid UTF-8 prefix. Retrying the
+                // same byte then makes progress in the parser's new state.
+                remaining = &remaining[error.bytes_consumed()..];
             }
         }
     }
@@ -5614,6 +5612,82 @@ mod tests {
         assert_eq!(terminal.screen().cell(0, 0).unwrap().character(), 'e');
         assert_eq!(terminal.screen().cell(1, 0).unwrap().character(), 'o');
         assert_eq!(terminal.screen().cell(1, 1).unwrap().character(), 'k');
+    }
+
+    fn parsed_row_text(terminal: &TerminalState, row: usize) -> String {
+        (0..terminal.dimensions().columns())
+            .map(|column| terminal.screen().cell(row, column).unwrap().character())
+            .collect()
+    }
+
+    #[test]
+    fn invalid_split_utf8_reprocesses_ris_and_later_text_and_query() {
+        let mut parser = TerminalParser::new();
+        let mut terminal = TerminalState::new(TerminalDimensions::new(16, 2).unwrap());
+        parser.advance(&mut terminal, &[0xe2]).unwrap();
+
+        let replies = parse_terminal_output(&mut parser, &mut terminal, b"\x1bcok\x1b[5n");
+
+        assert_eq!(parsed_row_text(&terminal, 0), "ok              ");
+        assert_eq!(replies, [b"\x1b[0n".to_vec()]);
+    }
+
+    #[test]
+    fn invalid_split_utf8_reprocesses_decstr_and_later_text() {
+        let mut parser = TerminalParser::new();
+        let mut terminal = TerminalState::new(TerminalDimensions::new(16, 2).unwrap());
+        parser.advance(&mut terminal, &[0xe2]).unwrap();
+
+        let replies = parse_terminal_output(&mut parser, &mut terminal, b"\x1b[!ptext");
+
+        assert!(replies.is_empty());
+        assert_eq!(parsed_row_text(&terminal, 0), "text            ");
+    }
+
+    #[test]
+    fn repeated_malformed_prefixes_still_reach_following_input() {
+        let mut parser = TerminalParser::new();
+        let mut terminal = TerminalState::new(TerminalDimensions::new(16, 2).unwrap());
+        parser.advance(&mut terminal, &[0xe2]).unwrap();
+
+        let replies = parse_terminal_output(&mut parser, &mut terminal, b"\xe2\xe2\x1bcX\x1b[5n");
+
+        assert_eq!(parsed_row_text(&terminal, 0), "X               ");
+        assert_eq!(replies, [b"\x1b[0n".to_vec()]);
+    }
+
+    #[test]
+    fn positive_consumption_errors_advance_to_later_valid_input() {
+        let mut parser = TerminalParser::new();
+        let mut terminal = TerminalState::new(TerminalDimensions::new(16, 2).unwrap());
+
+        let replies = parse_terminal_output(&mut parser, &mut terminal, b"\xffvalid\x1b[5n");
+
+        assert_eq!(parsed_row_text(&terminal, 0), "valid           ");
+        assert_eq!(replies, [b"\x1b[0n".to_vec()]);
+    }
+
+    #[test]
+    fn malformed_utf8_unicode_and_resets_recover_at_every_chunk_split() {
+        let input = b"\xe2\x1bcA\xc3\xa9\x1b[!pB\x1b[5n";
+
+        for split in 0..=input.len() {
+            let mut parser = TerminalParser::new();
+            let mut terminal = TerminalState::new(TerminalDimensions::new(16, 2).unwrap());
+            let mut replies = parse_terminal_output(&mut parser, &mut terminal, &input[..split]);
+            replies.extend(parse_terminal_output(
+                &mut parser,
+                &mut terminal,
+                &input[split..],
+            ));
+
+            assert_eq!(
+                parsed_row_text(&terminal, 0),
+                "AéB             ",
+                "split {split}"
+            );
+            assert_eq!(replies, [b"\x1b[0n".to_vec()], "split {split}");
+        }
     }
 
     #[test]
