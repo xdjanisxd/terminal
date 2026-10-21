@@ -61,6 +61,7 @@ struct TestState {
     writes: Vec<Vec<u8>>,
     resizes: Vec<PtySize>,
     terminated: usize,
+    lifecycle_checks: usize,
 }
 
 impl Default for TestState {
@@ -70,6 +71,7 @@ impl Default for TestState {
             writes: Vec::new(),
             resizes: Vec::new(),
             terminated: 0,
+            lifecycle_checks: 0,
         }
     }
 }
@@ -98,7 +100,9 @@ struct TestSession {
 
 impl PtySession for TestSession {
     fn lifecycle(&self) -> PtyLifecycle {
-        self.state.lock().unwrap().lifecycle
+        let mut state = self.state.lock().unwrap();
+        state.lifecycle_checks += 1;
+        state.lifecycle
     }
 
     fn take_output_reader(&mut self) -> Result<Box<dyn PtyOutputReader + Send>, PtyError> {
@@ -437,4 +441,60 @@ fn inline_keyboard_writes_and_long_text_keep_fifo_bytes() {
     }
     assert_eq!(state.lock().unwrap().writes, expected);
     worker.shutdown_and_join().unwrap();
+}
+
+#[test]
+fn reader_acquisition_failure_terminates_the_consumed_session() {
+    let state = Arc::new(Mutex::new(TestState::default()));
+    let session = TestSession {
+        state: Arc::clone(&state),
+        reader: None,
+        first_write_started: None,
+        first_write_gate: None,
+    };
+    assert!(matches!(
+        PtyWorker::start(session),
+        Err(PtyWorkerError::Pty(PtyError::NotRunning))
+    ));
+    assert_eq!(state.lock().unwrap().terminated, 1);
+}
+
+#[test]
+fn shutdown_waiting_for_reader_does_not_spin_on_a_disconnected_command_channel() {
+    struct GatedReader(Receiver<()>);
+    impl PtyOutputReader for GatedReader {
+        fn read(&mut self, _: &mut [u8]) -> Result<usize, PtyError> {
+            self.0.recv_timeout(DEADLINE).unwrap();
+            Ok(0)
+        }
+    }
+    let state = Arc::new(Mutex::new(TestState::default()));
+    let (release, gate) = mpsc::sync_channel(1);
+    let session = TestSession {
+        state: Arc::clone(&state),
+        reader: Some(Box::new(GatedReader(gate))),
+        first_write_started: None,
+        first_write_gate: None,
+    };
+    let mut worker = PtyWorker::start(session).unwrap();
+    let shutdown = std::thread::spawn(move || worker.shutdown_and_join());
+    let deadline = Instant::now() + DEADLINE;
+    while state.lock().unwrap().terminated == 0 {
+        assert!(Instant::now() < deadline);
+        std::thread::yield_now();
+    }
+    let before = state.lock().unwrap().lifecycle_checks;
+    let started = Instant::now();
+    std::thread::sleep(Duration::from_millis(100));
+    let elapsed = started.elapsed();
+    let checks = state.lock().unwrap().lifecycle_checks - before;
+    release.send(()).unwrap();
+    shutdown.join().unwrap().unwrap();
+    // Allow a scheduling boundary and account for an oversleep on busy CI hosts.
+    let maximum = elapsed.as_millis() / 20 + 2;
+    assert!(
+        checks as u128 <= maximum,
+        "shutdown busy loop: {checks} lifecycle checks in {elapsed:?}"
+    );
+    eprintln!("shutdown reader wait: {checks} lifecycle checks in {elapsed:?}");
 }

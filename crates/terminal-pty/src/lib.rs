@@ -565,7 +565,14 @@ impl PtyWorker {
         S: PtySession + Send + 'static,
         N: Fn() + Send + Sync + 'static,
     {
-        let reader = session.take_output_reader().map_err(PtyWorkerError::Pty)?;
+        let reader = match session.take_output_reader() {
+            Ok(reader) => reader,
+            Err(error) => {
+                // Startup consumes the session even when no worker can own it.
+                let _ = session.terminate();
+                return Err(PtyWorkerError::Pty(error));
+            }
+        };
         let throughput = std::env::var_os("TERMINAL_THROUGHPUT_DIAGNOSTICS")
             .is_some_and(|v| v == "1")
             .then(|| Arc::new(throughput::Metrics::default()));
@@ -684,8 +691,10 @@ impl PtyWorker {
         if let Some(sender) = &self.commands {
             let _ = sender.send(PtyCommand::Terminate);
         }
-        self.commands.take();
+        // Keep the sender alive while joining: a disconnected receiver returns
+        // immediately and would spin while child exit or the reader is pending.
         let result = self.join();
+        self.commands.take();
         if let Some(stats) = &self.throughput {
             stats.clear_pending();
         }

@@ -78,6 +78,8 @@ Completion marks require tested acceptance criteria, not code presence alone.
   - Native GitHub Actions run 35329910411 for commit `c848fac066693eee537e6986265b5c873256f8d6` passed the lifecycle suite on Linux x86_64/ARM64, macOS x86_64/ARM64, and Windows x86_64/ARM64.
 - [x] Connect PTY workers through bounded event-driven communication
   - Native GitHub Actions run 35593337297 for commit `c1e65824c14f970f192745493ff68a9104954b0e` passed the worker slice on Linux x86_64/ARM64, macOS x86_64/ARM64, and Windows x86_64/ARM64.
+- [x] Terminate consumed sessions on worker reader-acquisition failure and prevent shutdown CPU spinning while waiting for reader completion.
+  - Focused regressions and native Linux lifecycle/close checks passed; native Windows/macOS follow-up remains. See [startup/shutdown reliability](STARTUP_SHUTDOWN_RELIABILITY.md).
 
 ## M4: Window and renderer
 

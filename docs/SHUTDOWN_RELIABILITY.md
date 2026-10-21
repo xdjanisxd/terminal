@@ -2,6 +2,10 @@
 
 Branch: `fix/shutdown-reliability`. Investigation completed on 2026-10-06.
 
+This records the historical Windows investigation. The subsequent
+[startup/shutdown follow-up](STARTUP_SHUTDOWN_RELIABILITY.md) fixes a reproduced
+worker shutdown busy loop and reader-acquisition failure cleanup on Linux.
+
 No production shutdown hang was reproduced with close requests delivered to the
 terminal window. No production fix is retained. Temporary shutdown tracing,
 explicit teardown probes, and the Saved Workspace trigger were reverted.
@@ -77,7 +81,9 @@ No claim is made that all timing-sensitive production failures are excluded.
    destroys all remaining pane workers.
 4. `PtyWorker::Drop` calls `shutdown_and_join`: first discard the event receiver
    to release blocked bounded-output sends, then send `Terminate`, drop the
-   command sender, and join the session thread. That thread joins its separate
+   command sender, and join the session thread. The later follow-up retains the
+   sender until after joining to avoid spinning on a disconnected receiver.
+   That thread joins its separate
    reader before returning and dropping the session. Worker joins are synchronous.
 5. The existing portable session termination path drops its writer and calls
    the owned child's `kill()` operation. This behavior predates the investigation;
