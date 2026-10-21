@@ -100,12 +100,16 @@ storage; this feature rejects remote URI authorities and UNC forms, not such
 filesystem indirections. A synchronous metadata check can take time on those
 filesystems. It happens during session creation, never on PTY output.
 
-Shells without OSC 7 use the normal fallback. CMD and Fish do not gain reporting
-hooks here. macOS accepts POSIX URI semantics but does not gain automatic shell
-hooks; users need existing OSC 7 integration. Shell startup files can still
-change directory according to existing shell policy. Non-UTF-8 path reports are
-unsupported by the existing OSC 7 state contract. Windows/macOS native build and
-desktop acceptance remain unverified in this Linux-only environment.
+Shells without OSC 7 use the normal fallback. Linux Bash login shells retain
+their native profile startup but do not receive the prompt hook; saved startup
+commands are therefore unsupported for that mode. Bash and Zsh non-login
+interactive shells and Zsh login shells receive the hook. CMD and Fish do not
+gain reporting hooks here. macOS accepts POSIX URI semantics but does not gain
+automatic shell hooks; users need existing OSC 7 integration. Shell startup
+files can still change directory according to their existing policy. Non-UTF-8
+path reports are unsupported by the existing OSC 7 state contract.
+Windows/macOS native build and desktop acceptance remain unverified in this
+Linux-only environment.
 
 ## Validation
 
