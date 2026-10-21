@@ -54,6 +54,7 @@ Completion marks require tested acceptance criteria, not code presence alone.
   - [x] Implement DECOM addressing, homing, margin-relative CPR, and origin-aware saved cursor restoration
   - [x] Route DECSC/DECRC, RIS, and non-erasing DECSTR through core-owned semantic operations
   - [x] Fix malformed split UTF-8 output loss and canceled/truncated OSC side effects; verify reset boundaries and bounded recovery with focused regressions, compatibility fixtures, and Linux lifecycle/editor checks (see [evidence and manual acceptance](TERMINAL_RESET_RECOVERY.md)). Windows and physical-key/visual reset acceptance remain pending.
+  - [x] Add G0/G1 DEC Special Graphics with SI/SO and saved/reset character-set state, Primary ED3 history erasure preserving live state/selection, and VT/FF line-feed aliases; validate split/malformed input, allocations, workspace checks, Linux terminfo/editor/Kitty probes and release parser benchmarks (see [v2 evidence and acceptance](TERMINAL_COMPATIBILITY_V2.md)). Windows and visual/physical-key acceptance remain pending.
   - [ ] Native italic faces, blink, extended underline styles/colors, DECSCA/selective erase, horizontal margins, and further CSI/DEC coverage (see [scope and evidence](TERMINAL_COMPATIBILITY.md))
 - [x] Implement Unicode combining and wide-cell invariants
   - [x] Add typed wide-cell lead/continuation representation and bounded grid/write invariants

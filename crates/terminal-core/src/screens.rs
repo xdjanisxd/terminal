@@ -23,6 +23,7 @@ struct SavedCursor {
     cursor: Cursor,
     rendition: CellAttributes,
     origin: bool,
+    character_sets: crate::state::CharacterSets,
 }
 
 #[derive(Debug)]
@@ -51,15 +52,21 @@ impl ScreenState {
         }
     }
 
-    fn save_cursor(&mut self, rendition: CellAttributes, origin: bool) {
+    fn save_cursor(
+        &mut self,
+        rendition: CellAttributes,
+        origin: bool,
+        character_sets: crate::state::CharacterSets,
+    ) {
         self.saved_cursor = Some(SavedCursor {
             cursor: self.grid.cursor(),
             rendition,
             origin,
+            character_sets,
         });
     }
 
-    fn restore_cursor(&mut self) -> Option<(CellAttributes, bool)> {
+    fn restore_cursor(&mut self) -> Option<(CellAttributes, bool, crate::state::CharacterSets)> {
         let saved = self.saved_cursor?;
         let dimensions = self.grid.dimensions();
         self.grid
@@ -75,7 +82,7 @@ impl ScreenState {
                 saved.cursor.column().min(dimensions.columns() - 1),
             )
             .expect("clamped saved cursor is always in bounds");
-        Some((saved.rendition, saved.origin))
+        Some((saved.rendition, saved.origin, saved.character_sets))
     }
 
     fn reset(&mut self) {
@@ -534,11 +541,19 @@ impl ScreenSet {
         self.active_state_mut().wrap_pending = pending;
     }
 
-    pub(crate) fn save_cursor(&mut self, rendition: CellAttributes, origin: bool) {
-        self.active_state_mut().save_cursor(rendition, origin);
+    pub(crate) fn save_cursor(
+        &mut self,
+        rendition: CellAttributes,
+        origin: bool,
+        character_sets: crate::state::CharacterSets,
+    ) {
+        self.active_state_mut()
+            .save_cursor(rendition, origin, character_sets);
     }
 
-    pub(crate) fn restore_cursor(&mut self) -> Option<(CellAttributes, bool)> {
+    pub(crate) fn restore_cursor(
+        &mut self,
+    ) -> Option<(CellAttributes, bool, crate::state::CharacterSets)> {
         self.active_state_mut().restore_cursor()
     }
 
@@ -547,7 +562,18 @@ impl ScreenSet {
             cursor: Cursor::default(),
             rendition: CellAttributes::default(),
             origin: false,
+            character_sets: Default::default(),
         });
+    }
+
+    pub(crate) fn erase_scrollback(&mut self) {
+        let state = self.active_state_mut();
+        if let Some(history) = state.scrollback.as_mut() {
+            // Keep absolute live-row identities stable for selections.
+            state.history_origin += history.len();
+            history.replace_rows(std::iter::empty());
+            state.viewport_offset = 0;
+        }
     }
 
     pub(crate) fn resize_all(

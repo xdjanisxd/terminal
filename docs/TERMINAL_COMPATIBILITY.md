@@ -1,5 +1,8 @@
 # Terminal compatibility polish
 
+The later [compatibility v2 audit](TERMINAL_COMPATIBILITY_V2.md) adds DEC
+G0/G1 Special Graphics, ED3 saved-line erasure, and VT/FF line-feed aliases.
+
 This pass keeps protocol semantics in `terminal-core` and projects resolved attributes in `terminal-renderer`. The working tree was clean on `feat/terminal-compatibility-polish` before edits. Plan Mode could not be activated in the available session; inspection and the following bounded plan preceded implementation.
 
 1. Trace existing parsing, cell attributes, saved cursors, margins, resets, and renderer caches.
@@ -56,7 +59,7 @@ No material slowdown was observed in these workloads after the blank skip adjust
 
 - Native Italic/Bold Italic companion discovery and variable italic/slant axes. Synthetic italics retain existing fixed cell clipping; edge overhang can be clipped, including at small sizes or fractional DPI.
 - Blink, double/curly/dotted underlines, underline colors, overline, independent simultaneous bold+faint, non-RGB color spaces, optional color tolerances, and mixed semicolon/colon color payload forms.
-- DECSCA/selective erase, horizontal margins, additional cursor-save protocols, private CPR/query variants, DEC graphics character sets, and broader OSC/DCS/CSI coverage. Existing saved-cursor policy still cancels delayed wrap and does not save every historical DEC state field.
+- DECSCA/selective erase, horizontal margins, additional cursor-save protocols, private CPR/query variants, character sets beyond G0/G1 ASCII and DEC Special Graphics, and broader OSC/DCS/CSI coverage. Existing saved-cursor policy still cancels delayed wrap and does not save every historical DEC state field.
 - Unbounded/full Unicode shaping (bounded grapheme/ZWJ support is documented in [Unicode grapheme support](UNICODE_GRAPHEME_SUPPORT.md)), fuzz execution, Windows native verification, other GPUs, and measured input-to-present latency.
 
 ## Recommended manual checks

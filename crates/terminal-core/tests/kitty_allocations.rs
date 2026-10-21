@@ -80,3 +80,24 @@ fn ascii_and_grapheme_printing_do_not_allocate_per_cell() {
     let allocations = COUNT.with(|c| c.replace(None).unwrap());
     assert_eq!(allocations, 0);
 }
+
+#[test]
+fn character_sets_saved_state_and_ed3_do_not_allocate() {
+    let mut terminal = TerminalState::new(TerminalDimensions::new(80, 24).unwrap());
+    let mut parser = TerminalParser::new();
+    for _ in 0..30 {
+        parser.advance(&mut terminal, b"history\r\n").unwrap();
+    }
+    assert!(terminal.scrollback_len() > 0);
+    COUNT.with(|c| c.set(Some(0)));
+    for _ in 0..100 {
+        parser
+            .advance(
+                &mut terminal,
+                b"\r\x1b(0lqqk\x1b7\x1b)0\x0ex\x0f\x1b8\x1b(BASCII\x1b[3J",
+            )
+            .unwrap();
+    }
+    let allocations = COUNT.with(|c| c.replace(None).unwrap());
+    assert_eq!(allocations, 0);
+}

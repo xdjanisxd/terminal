@@ -357,7 +357,7 @@ fn unsupported_controls_are_ignored_without_approximation() {
     let mut parser = TerminalParser::new();
     let mut state = TerminalState::new(TerminalDimensions::new(4, 1).unwrap());
 
-    parser.advance(&mut state, b"a\x0bb\x07c").unwrap();
+    parser.advance(&mut state, b"a\x05b\x07c").unwrap();
 
     assert_eq!(row_text(&state, 0), "abc ");
     assert_eq!((state.cursor().row(), state.cursor().column()), (0, 3));

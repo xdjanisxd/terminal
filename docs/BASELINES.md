@@ -4,7 +4,11 @@ These are reproducible workloads and coverage boundaries for later compatibility
 
 ## Compatibility coverage
 
-`crates/terminal-core/tests/compatibility_fixtures.rs` replays representative byte streams through the incremental parser. The fixtures cover a colored shell prompt redraw with deferred OSC title traffic, a full-screen editor entering and leaving the alternate screen, multiplexer cursor/margin/query traffic, a shell editing and replacing an input line, and a TUI updating progress rows through cursor addressing and erasure. Inputs are split at small byte boundaries, including one byte at a time. They assert visible cells, selected attributes, cursor state, modes, and reply order where relevant. They validate implemented behavior; they are not a claim of compatibility with complete applications or every terminal protocol.
+`crates/terminal-core/tests/compatibility_fixtures.rs` replays representative byte streams through the incremental parser. The fixtures cover a colored shell prompt redraw with OSC title traffic, a full-screen editor entering and leaving the alternate screen, multiplexer cursor/margin/query traffic, a shell editing and replacing an input line, and a TUI updating progress rows through cursor addressing and erasure. Inputs are split at small byte boundaries, including one byte at a time. They assert visible cells, selected attributes, cursor state, modes, and reply order where relevant. They validate implemented behavior; they are not a claim of compatibility with complete applications or every terminal protocol.
+
+`compatibility_v2.rs` adds DEC G0/G1 graphics, save/reset boundaries, ED3
+history/selection preservation, and VT/FF regression coverage. An opt-in Linux
+test replays real `tput` and `clear` output; see [v2 evidence](TERMINAL_COMPATIBILITY_V2.md).
 
 `crates/terminal-core/tests/deterministic_inputs.rs` runs fixed pseudo-random byte streams at three parser chunk sizes and fixed state-operation streams covering scrollback, selection, and resize. It checks cursor bounds, scrollback and reply limits, viewport bounds, and visible-cell addressability. These tests run on stable Rust in CI.
 
