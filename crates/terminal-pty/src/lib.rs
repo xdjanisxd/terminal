@@ -484,6 +484,131 @@ impl PtySession for PortablePtySession {
     }
 }
 
+impl Drop for PortablePtySession {
+    fn drop(&mut self) {
+        let child = self
+            .child
+            .get_mut()
+            .unwrap_or_else(|error| error.into_inner());
+        if matches!(child.try_wait(), Ok(Some(_))) {
+            return;
+        }
+        // Child handles do not terminate or reap a live process when dropped.
+        if child.kill().is_ok() {
+            let _ = child.wait();
+        }
+    }
+}
+
+#[cfg(test)]
+mod session_drop_tests {
+    use super::*;
+    use std::io;
+
+    #[derive(Debug, Default)]
+    struct ChildState {
+        exited: bool,
+        kill_failed: bool,
+        kills: usize,
+        waits: usize,
+    }
+
+    #[derive(Debug, Clone)]
+    struct Child(Arc<Mutex<ChildState>>);
+
+    struct Writer(Arc<Mutex<ChildState>>);
+
+    impl Write for Writer {
+        fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    impl Drop for Writer {
+        fn drop(&mut self) {
+            let state = self.0.lock().unwrap();
+            assert!(
+                state.exited || state.kill_failed,
+                "terminate before dropping the writer"
+            );
+        }
+    }
+
+    impl portable_pty::ChildKiller for Child {
+        fn kill(&mut self) -> io::Result<()> {
+            let mut state = self.0.lock().unwrap();
+            state.kills += 1;
+            if state.kill_failed {
+                return Err(io::Error::other("kill failed"));
+            }
+            state.exited = true;
+            Ok(())
+        }
+
+        fn clone_killer(&self) -> Box<dyn portable_pty::ChildKiller + Send + Sync> {
+            Box::new(self.clone())
+        }
+    }
+
+    impl portable_pty::Child for Child {
+        fn try_wait(&mut self) -> io::Result<Option<portable_pty::ExitStatus>> {
+            Ok(self
+                .0
+                .lock()
+                .unwrap()
+                .exited
+                .then(|| portable_pty::ExitStatus::with_exit_code(0)))
+        }
+
+        fn wait(&mut self) -> io::Result<portable_pty::ExitStatus> {
+            let mut state = self.0.lock().unwrap();
+            assert!(
+                state.exited,
+                "must not wait for a child that failed to terminate"
+            );
+            state.waits += 1;
+            Ok(portable_pty::ExitStatus::with_exit_code(0))
+        }
+
+        fn process_id(&self) -> Option<u32> {
+            None
+        }
+
+        #[cfg(windows)]
+        fn as_raw_handle(&self) -> Option<std::os::windows::io::RawHandle> {
+            None
+        }
+    }
+
+    #[test]
+    fn session_drop_terminates_and_reaps_only_live_children() {
+        for (exited, kill_failed, expected) in [
+            (false, false, (1, 1)),
+            (true, false, (0, 0)),
+            (false, true, (1, 0)),
+        ] {
+            let state = Arc::new(Mutex::new(ChildState {
+                exited,
+                kill_failed,
+                ..Default::default()
+            }));
+            drop(PortablePtySession {
+                master: Mutex::new(None),
+                child: Mutex::new(Box::new(Child(Arc::clone(&state)))),
+                writer: Some(Box::new(Writer(Arc::clone(&state)))),
+                reader: None,
+                startup_observer: None,
+                lifecycle: Mutex::new(PtyLifecycle::Running),
+            });
+            let state = state.lock().unwrap();
+            assert_eq!((state.kills, state.waits), expected);
+        }
+    }
+}
+
 /// Maximum queued commands. Eight commands bounds controller memory while allowing
 /// short write/resize bursts; a full queue rejects the newest command explicitly.
 pub const PTY_COMMAND_CAPACITY: usize = 8;
