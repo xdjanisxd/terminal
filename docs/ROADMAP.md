@@ -132,6 +132,7 @@ later performance/polish work.
 - [x] Add visible HTTP/HTTPS URL Hint Mode (Ctrl+Shift+U), deterministic prefix-free A S D F J K L hints, and Ctrl+Click opening; see [verification](URL_HINT_MODE.md)
 - [x] Add OSC 8 clickable targets with terminal-owned cell metadata, viewport hit testing, explicit Ctrl+Shift+click activation, and an HTTP(S) allowlist
 - [x] Add typed TOML config, validation, themes, keybindings, and partial hot reload
+  - Reload treats only a missing file as a request for defaults; other read, parse, or validation errors retain the last valid config. Regression coverage checks complete config preservation, valid updates, and deletion recovery.
 - [x] Route keybindings and a basic command palette through centralized commands
 - [x] Implement Kitty keyboard protocol negotiation, queries, progressive enhancement, event reporting, and per-screen bounded request stacks; preserve legacy encoding and app-owned shortcuts. See [protocol behavior and pending Linux/Windows manual acceptance](KEYBOARD_PROTOCOL.md).
 

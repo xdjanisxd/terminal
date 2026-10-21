@@ -678,11 +678,18 @@ impl Config {
                 path.display()
             )));
         }
-        Self::load(path)
+        let mut config = Self::from_raw(raw)
+            .map_err(|error| ConfigError(format!("{}: {error}", path.display())))?;
+        config.resolve_paths(path);
+        Ok(config)
     }
     pub fn parse(source: &str) -> Result<Self, ConfigError> {
         let raw: RawConfig =
             toml::from_str(source).map_err(|error| ConfigError(error.to_string()))?;
+        Self::from_raw(raw)
+    }
+
+    fn from_raw(raw: RawConfig) -> Result<Self, ConfigError> {
         let mut config = Self::default();
         if let Some(window) = raw.window {
             config.window.blur = window.blur.unwrap_or(false);
@@ -891,16 +898,36 @@ impl Config {
             .map_err(|error| ConfigError(format!("{}: {error}", path.display())))?;
         let mut config = Self::parse(&source)
             .map_err(|error| ConfigError(format!("{}: {error}", path.display())))?;
+        config.resolve_paths(path);
+        Ok(config)
+    }
+
+    /// Loads configuration, using built-in defaults only when the file is absent.
+    pub fn load_or_default(path: &Path) -> Result<Self, ConfigError> {
+        let source = match fs::read_to_string(path) {
+            Ok(source) => source,
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                return Ok(Self::default());
+            }
+            Err(error) => return Err(ConfigError(format!("{}: {error}", path.display()))),
+        };
+        let mut config = Self::parse(&source)
+            .map_err(|error| ConfigError(format!("{}: {error}", path.display())))?;
+        config.resolve_paths(path);
+        Ok(config)
+    }
+
+    fn resolve_paths(&mut self, path: &Path) {
         let base = path.parent().unwrap_or_else(|| Path::new("."));
         let resolve = |root: &mut std::path::PathBuf| {
             if root.is_relative() {
                 *root = base.join(&*root);
             }
         };
-        if let Some(root) = &mut config.workspace.project_root {
+        if let Some(root) = &mut self.workspace.project_root {
             resolve(root);
         }
-        for tab in &mut config.workspace.tabs {
+        for tab in &mut self.workspace.tabs {
             if let Some(root) = &mut tab.project_root {
                 resolve(root);
             }
@@ -921,10 +948,9 @@ impl Config {
             }
             resolve_layout(&mut tab.layout, base);
         }
-        for project in &mut config.projects {
+        for project in &mut self.projects {
             resolve(&mut project.path);
         }
-        Ok(config)
     }
 }
 
@@ -1222,6 +1248,26 @@ args = ["-NoLogo", "two words", "", "'literal'"]
         );
         assert_eq!(config.projects[0].path, directory.join("core"));
         std::fs::remove_file(file).unwrap();
+        std::fs::remove_dir(directory).unwrap();
+    }
+
+    #[test]
+    fn load_or_default_uses_defaults_only_for_a_missing_file() {
+        let directory = std::env::temp_dir().join(format!(
+            "terminal-config-missing-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        std::fs::create_dir_all(&directory).unwrap();
+        let missing = directory.join("missing.toml");
+        assert_eq!(
+            Config::load_or_default(&missing).unwrap(),
+            Config::default()
+        );
+
+        let error = Config::load_or_default(&directory).unwrap_err().to_string();
+        assert!(error.contains(&directory.display().to_string()));
+
         std::fs::remove_dir(directory).unwrap();
     }
     #[test]
