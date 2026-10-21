@@ -110,6 +110,18 @@ fn cwd_inheritance_respects_explicit_tab_workspace_and_project_roots() {
 }
 
 #[test]
+fn initial_session_keeps_inherited_process_cwd_unless_a_root_is_configured() {
+    let size = PtySize::new(24, 80).unwrap();
+    let session = SessionDefinition::LocalShell;
+    let inherited = spawn_config_for_session(size, None, session.clone(), None);
+    assert_eq!(inherited.working_directory(), None);
+
+    let configured = PathBuf::from("project é 日本語 with spaces");
+    let explicit = spawn_config_for_session(size, Some(configured.clone()), session, None);
+    assert_eq!(explicit.working_directory(), Some(configured.as_path()));
+}
+
+#[test]
 fn cwd_inheritance_missing_remote_invalid_and_deleted_reports_fall_back() {
     let state = saved_workspaces::TestWorkspaceState::new();
     let path = state.path().parent().unwrap().join("removed directory");
@@ -216,6 +228,18 @@ fn cwd_inheritance_native_bash_and_zsh_report_and_launch() {
             },
             env: Default::default(),
         };
+        let process_directory = std::env::current_dir().unwrap();
+        let mut inherited_app = Application::default();
+        start(&mut inherited_app, &shell, None);
+        assert_eq!(
+            inherited_app
+                .terminal
+                .working_directory_uri()
+                .and_then(local_cwd_from_osc7),
+            Some(process_directory)
+        );
+        inherited_app.shutdown_sessions();
+
         let mut app = Application::default();
         start(&mut app, &shell, Some(directory.clone()));
         assert_eq!(

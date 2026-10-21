@@ -39,6 +39,7 @@ class InstallationTests(unittest.TestCase):
     def test_launcher_and_lifecycle_preserve_user_files(self):
         self.install()
         paths = installer.destinations(self.home, self.data)
+        self.assertNotIn("\nPath=", paths[1].read_text())
         unrelated = paths[2].parent / "unrelated.png"
         unrelated.write_bytes(b"keep")
         config = self.home / ".config/terminal/config.toml"
@@ -47,9 +48,11 @@ class InstallationTests(unittest.TestCase):
         if shutil.which("desktop-file-validate"):
             subprocess.run(["desktop-file-validate", str(paths[1])], check=True)
         if shutil.which("gio"):
+            launch_directory = self.home.parent / "selected é 日本語 directory"
+            launch_directory.mkdir()
             environment = os.environ.copy()
             environment["PATH"] = "/usr/bin:/bin"
-            subprocess.run(["gio", "launch", str(paths[1])], cwd="/",
+            subprocess.run(["gio", "launch", str(paths[1])], cwd=launch_directory,
                            env=environment, check=True)
             # gio starts asynchronously; wait for its concrete launch marker.
             import time
@@ -57,7 +60,7 @@ class InstallationTests(unittest.TestCase):
                 if (self.home / "launched").exists():
                     break
                 time.sleep(0.01)
-            self.assertEqual((self.home / "launched").read_text(), str(self.home))
+            self.assertEqual((self.home / "launched").read_text(), str(launch_directory))
         self.binary.write_text("#!/bin/sh\nexit 0\n")
         self.install()
         self.assertEqual(paths[0].read_bytes(), self.binary.read_bytes())

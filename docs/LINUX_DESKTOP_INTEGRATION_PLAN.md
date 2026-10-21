@@ -47,10 +47,10 @@ shell selection, PTY initialization, and workspace startup behavior.
    invalid relative values according to XDG conventions. Require no sudo.
 4. Generate the installed desktop entry from the committed asset with a correctly
    escaped absolute Exec and TryExec, without a shell wrapper or sourcing shell
-   profiles. Use an explicit home working directory for desktop launches so they
-   do not depend on the launcher's inherited directory. Configured workspace roots
-   and shell behavior remain authoritative. Handle spaces and desktop entry
-   reserved characters in installation paths.
+   profiles. Preserve the launcher's inherited process working directory so file
+   managers can pass their selected directory through to the initial shell.
+   Configured workspace roots and shell behavior remain authoritative. Handle
+   spaces and desktop-entry reserved characters in installation paths.
 5. Support repeat installation and removal of only Terminal-owned files. Preserve
    configuration and Saved Workspaces; do not delete shared icon directories.
    Diagnose missing inputs before changing installed files, avoid partial binary

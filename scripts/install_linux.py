@@ -128,7 +128,6 @@ def install(action, binary=None):
     desktop = (share / "applications" / f"{APP_ID}.desktop").read_text()
     desktop = desktop.replace("\nExec=terminal\n", f"\nExec={exec_value(paths[0])}\n")
     desktop = desktop.replace("\nTryExec=terminal\n", f"\nTryExec={string_value(paths[0])}\n")
-    desktop += f"Path={string_value(home)}\n"
     contents.append(desktop.encode())
     contents.extend((share / path.relative_to(data)).read_bytes() for path in paths[2:])
     # A replacement binary is renamed into place, so already running instances

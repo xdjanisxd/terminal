@@ -100,6 +100,8 @@ impl PtySpawnConfig {
     pub fn arguments(&self) -> &[OsString] {
         &self.arguments
     }
+    /// Returns the explicit child directory. If absent, the PTY backend inherits
+    /// the calling process's current directory.
     pub fn working_directory(&self) -> Option<&Path> {
         self.working_directory.as_deref()
     }
@@ -304,7 +306,7 @@ impl PortablePtyBackend {
             .map_err(|_| PtyError::SpawnFailed)?;
         let writer = master.take_writer().map_err(|_| PtyError::SpawnFailed)?;
         observe("environment-build-begin");
-        let command = spawn_command(&configuration);
+        let command = spawn_command(&configuration)?;
         observe("environment-build-end");
         observe("child-spawn-requested");
         let child = slave
@@ -322,18 +324,20 @@ impl PortablePtyBackend {
     }
 }
 
-fn spawn_command(configuration: &PtySpawnConfig) -> CommandBuilder {
+fn spawn_command(configuration: &PtySpawnConfig) -> Result<CommandBuilder, PtyError> {
     let mut command = CommandBuilder::new(configuration.program());
     #[cfg(any(target_os = "linux", target_os = "macos"))]
     initialize_term(&mut command);
     command.args(configuration.arguments());
-    if let Some(directory) = configuration.working_directory() {
-        command.cwd(directory);
-    }
+    let directory = match configuration.working_directory() {
+        Some(directory) => directory.to_owned(),
+        None => std::env::current_dir().map_err(|_| PtyError::SpawnFailed)?,
+    };
+    command.cwd(directory);
     for (key, value) in configuration.environment() {
         command.env(key, value);
     }
-    command
+    Ok(command)
 }
 
 /// Supply terminal capabilities only to the child. Explicit spawn overrides
@@ -384,7 +388,7 @@ mod term_tests {
             let configuration = PtySpawnConfig::new("sh".into(), PtySize::new(24, 80).unwrap())
                 .with_environment([("TERM".into(), explicit.into())]);
             assert_eq!(
-                spawn_command(&configuration).get_env("TERM"),
+                spawn_command(&configuration).unwrap().get_env("TERM"),
                 Some(OsStr::new(explicit))
             );
         }

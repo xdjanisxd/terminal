@@ -38,6 +38,69 @@ fn directory() -> std::path::PathBuf {
 
 #[test]
 #[ignore = "requires native KDE Wayland and GPU; launches the actual application"]
+fn native_local_shell_inherits_process_cwd_for_direct_and_installed_launches() {
+    assert_eq!(std::env::var("XDG_SESSION_TYPE").unwrap(), "wayland");
+    let root = directory();
+    let launch_directory = root.join("launch here é 日本語");
+    fs::create_dir(&launch_directory).unwrap();
+    let script = root.join("cwd-shell");
+    let result = root.join("reported-cwd");
+    let release = root.join("release-shell");
+    fs::write(
+        &script,
+        "#!/bin/sh\npwd > \"$TERMINAL_CWD_RESULT\"\nwhile [ ! -e \"$TERMINAL_CWD_RELEASE\" ]; do sleep 0.01; done\n",
+    )
+    .unwrap();
+    use std::os::unix::fs::PermissionsExt;
+    fs::set_permissions(&script, fs::Permissions::from_mode(0o700)).unwrap();
+    let config = root.join("config.toml");
+    fs::write(
+        &config,
+        format!(
+            "[shell]\nprogram = {:?}\nenv = {{ TERMINAL_CWD_RESULT = {:?}, TERMINAL_CWD_RELEASE = {:?} }}\n",
+            script, result, release
+        ),
+    )
+    .unwrap();
+    let binary = std::env::var_os("TERMINAL_TEST_BINARY")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|| std::path::PathBuf::from(env!("CARGO_BIN_EXE_terminal")));
+    let log = root.join("terminal.log");
+    let mut app = Process(
+        Command::new(binary)
+            .current_dir(&launch_directory)
+            .env("TERMINAL_CONFIG", &config)
+            .env("XDG_CONFIG_HOME", root.join("xdg-config"))
+            .stdout(Stdio::null())
+            .stderr(fs::File::create(&log).unwrap())
+            .spawn()
+            .unwrap(),
+    );
+    wait(
+        || {
+            assert!(
+                app.0.try_wait().unwrap().is_none(),
+                "{}",
+                fs::read_to_string(&log).unwrap()
+            );
+            result.exists()
+        },
+        "local shell CWD report",
+    );
+    assert_eq!(
+        fs::read_to_string(&result).unwrap().trim(),
+        launch_directory.to_str().unwrap()
+    );
+    fs::write(&release, "exit").unwrap();
+    wait(
+        || app.0.try_wait().unwrap().is_some(),
+        "application exit after local shell exit",
+    );
+    assert!(app.0.try_wait().unwrap().unwrap().success());
+}
+
+#[test]
+#[ignore = "requires native KDE Wayland and GPU; launches the actual application"]
 fn native_execute_exact_arguments_and_exit_lifecycle() {
     assert_eq!(std::env::var("XDG_SESSION_TYPE").unwrap(), "wayland");
     let root = directory();

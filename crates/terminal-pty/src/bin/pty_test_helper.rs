@@ -4,6 +4,10 @@ use std::time::Duration;
 fn main() -> io::Result<()> {
     let arguments = std::env::args().skip(1).collect::<Vec<_>>();
     let command = arguments.first().map(String::as_str);
+    if command == Some("cwd") {
+        println!("{}", std::env::current_dir()?.display());
+        return Ok(());
+    }
     let exit_code = (command == Some("exit"))
         .then(|| arguments.get(1))
         .flatten()
