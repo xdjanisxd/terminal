@@ -5,8 +5,8 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use terminal_pty::{
-    PortablePtyBackend, PtyError, PtyExitStatus, PtyLifecycle, PtyOutput, PtySession, PtySize,
-    PtySizeError, PtySpawnConfig,
+    PortablePtyBackend, PtyBackend, PtyError, PtyExitStatus, PtyLifecycle, PtyOutput, PtySession,
+    PtySize, PtySizeError, PtySpawnConfig,
 };
 
 const HELPER_OUTPUT: &[u8] = b"TERMINAL_PTY_HELPER_MARKER";
@@ -137,6 +137,51 @@ fn portable_backend_streams_helper_output_without_assuming_read_boundaries() {
         session.resize(PtySize::new(30, 100).unwrap()),
         Err(PtyError::NotRunning)
     );
+}
+
+#[cfg(unix)]
+#[test]
+fn portable_backend_inherits_process_cwd_and_keeps_explicit_cwd() {
+    fn child_cwd(configuration: PtySpawnConfig) -> PathBuf {
+        let mut session = PortablePtyBackend::new().spawn(configuration).unwrap();
+        let mut reader = session.take_output_reader().unwrap();
+        let deadline = Instant::now() + TEST_DEADLINE;
+        let mut output = Vec::new();
+        loop {
+            let mut chunk = [0_u8; 256];
+            let count = reader.read(&mut chunk).unwrap();
+            if count == 0 {
+                break;
+            }
+            output.extend_from_slice(&chunk[..count]);
+            if output.contains(&b'\n') {
+                break;
+            }
+            assert!(Instant::now() < deadline, "PTY CWD output deadline elapsed");
+        }
+        let path = String::from_utf8(output).unwrap();
+        while matches!(session.lifecycle(), PtyLifecycle::Running) {
+            assert!(Instant::now() < deadline, "PTY child exit deadline elapsed");
+            thread::sleep(Duration::from_millis(10));
+        }
+        PathBuf::from(path.trim())
+    }
+
+    let size = PtySize::new(24, 80).unwrap();
+    let helper = PathBuf::from(env!("CARGO_BIN_EXE_pty_test_helper"));
+    let inherited = std::env::current_dir().unwrap();
+    let inherited_configuration =
+        PtySpawnConfig::new(helper.clone(), size).with_arguments([OsString::from("cwd")]);
+    assert_eq!(child_cwd(inherited_configuration), inherited);
+
+    let explicit =
+        std::env::temp_dir().join(format!("terminal PTY CWD é 日本語 {}", std::process::id()));
+    std::fs::create_dir_all(&explicit).unwrap();
+    let explicit_configuration = PtySpawnConfig::new(helper, size)
+        .with_arguments([OsString::from("cwd")])
+        .with_working_directory(explicit.clone());
+    assert_eq!(child_cwd(explicit_configuration), explicit);
+    std::fs::remove_dir(explicit).unwrap();
 }
 
 #[test]

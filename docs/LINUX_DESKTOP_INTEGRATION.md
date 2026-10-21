@@ -37,9 +37,14 @@ the [XDG specification](https://specifications.freedesktop.org/basedir/latest/).
 Use the same HOME/XDG_DATA_HOME when updating or uninstalling. An alternate data
 directory must also be visible to the desktop session's XDG search paths.
 
-The installed launcher uses an absolute executable path and starts in HOME.
-Paths containing spaces, quotes, backslashes, and dollar signs are
-escaped according to the
+The installed launcher uses an absolute executable path and preserves the
+launcher's process working directory. This lets Dolphin's **Open Terminal Here**
+directory reach the initial shell; when no explicit project, workspace, or pane
+root is configured, PTY children inherit that directory. Configured roots retain
+their existing precedence. The PTY adapter passes the process directory
+explicitly when no root is configured because its backend otherwise defaults to
+HOME. Paths containing spaces, quotes, backslashes, and dollar signs are escaped
+according to the
 [desktop entry specification](https://specifications.freedesktop.org/desktop-entry/latest/exec-variables.html).
 HOME containing `=`, `%`, newline, or carriage return is unsupported (`=` is
 forbidden by the specification; GLib cannot resolve an escaped percent sign in
@@ -145,13 +150,38 @@ outside the graphical session PATH. No login-shell wrapper is introduced.
 
 ## Verification record
 
-Verified on 2026-10-09, KDE Plasma/KWin 6.3.6 under Wayland:
+### Dolphin acceptance
+
+1. Install the updated build and select Terminal as KDE's default terminal
+   application.
+2. In Dolphin, navigate to a local directory whose path contains spaces and
+   non-ASCII characters, then choose **Tools → Open Terminal** (Shift+F4) or
+   **Open Terminal Here** from the context menu.
+3. Run `pwd` and confirm it prints the directory shown in Dolphin.
+4. Repeat with an explicitly configured project, workspace, or pane root and
+   confirm that configured root still takes precedence.
+5. Launch Terminal normally from a shell in another directory and confirm the
+   initial shell inherits that directory. Then check a saved workspace and a
+   direct `terminal -e pwd` launch to confirm their existing launch rules remain
+   intact.
+
+Focused launch-directory regression verification on 2026-10-21:
 
 - Source and installed launchers pass `desktop-file-validate`. GLib resolves the
   installed entry and icon. A real `gio launch` test starts from an unrelated
   directory with `PATH=/usr/bin:/bin`, including an installation path containing
-  spaces, quotes, dollar signs, backticks, and backslashes; its shell stub reports
-  the expected HOME working directory.
+  spaces, quotes, dollar signs, backticks, and backslashes and a launch directory
+  containing spaces and Unicode; its shell stub reports the launcher's inherited
+  process working directory.
+- PTY contract coverage reads the actual child CWD with no configured root and
+  with an explicit Unicode/space root. App shell integration checks Bash and Zsh
+  with no root, and the ignored native application test covers direct and
+  installed executable launches.
+- The native application test was compiled but not run here: Dolphin and KWin are
+  installed, but neither is running in the current session.
+
+Earlier KDE integration verification on 2026-10-09, KDE Plasma/KWin 6.3.6 under
+Wayland:
 - KDE's native application-menu and `krunner_services` search models list Terminal
   with its desktop file and project icon. Triggering the menu entry launches the
   installed build with a working shell and the existing configuration's appearance.

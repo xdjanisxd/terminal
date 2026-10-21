@@ -39,7 +39,9 @@ For a newly created tab or split:
    and workspace root resolution. `--project-root` remains the workspace override.
 2. The source pane's latest tracked OSC 7 URI, if it describes an existing local
    directory under the platform rules below.
-3. No working-directory override: use the existing backend/shell launch default.
+3. No working-directory override: inherit the Terminal process's current
+   directory, then allow the user's shell startup files to apply their normal
+   behavior.
 
 The source pane's pane-specific root is not copied as configuration to children;
 its own launch and Saved Workspace metadata remain intact. New tabs still copy
@@ -52,8 +54,9 @@ file, failed directory metadata lookup, or deleted directory falls back. The
 inherited directory is rechecked immediately before constructing the session's
 spawn configuration. If it disappears or becomes inaccessible after that check,
 the normal spawn error is reported; there is no retry loop or silent shell
-substitution. The normal default can depend on the parent environment, platform,
-and shell startup files; it is not guaranteed to be the user's home directory.
+substitution. With no explicit or inherited root, PTY children start in the
+Terminal process's current directory. User shell startup files can still change
+directory according to their existing behavior.
 
 Shell selection, arguments, environment, configured startup-command readiness
 and exactly-once dispatch are unchanged. New panes do not copy the source pane's
