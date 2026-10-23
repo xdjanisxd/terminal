@@ -1,0 +1,375 @@
+warning: Missing auto-load script at offset 0 in section .debug_gdb_scripts
+of file /home/dellian/codes/terminal/target/debug/deps/terminal_renderer-5c29bd990de9e307.
+Use `info auto-load python-scripts [REGEXP]' to list them.
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+
+running 7 tests
+emoji GPU: AdapterInfo { name: "Intel(R) Iris(R) Xe Graphics (ADL GT2)", vendor: 32902, device: 18086, device_type: IntegratedGpu, driver: "Intel open-source Mesa driver", driver_info: "Mesa 25.0.7-2+deb13u1", backend: Vulkan }
+test gpu::tests::native_gpu_validates_terminal_pipelines ... ok
+[Detaching after vfork from child process 3247687]
+[Detaching after vfork from child process 3247695]
+test gpu::tests::native_gpu_renders_backgrounds_glyphs_underlines_and_cursor ... ok
+[Detaching after vfork from child process 3247697]
+[Detaching after vfork from child process 3247706]
+[Detaching after vfork from child process 3247709]
+test gpu::tests::native_gpu_atlas_separates_variable_weight_instances ... ok
+emoji warm 100 frames: 65.629787ms, Rgba8Unorm, scale=1, opacity=1
+[Detaching after vfork from child process 3247728]
+emoji warm 100 frames: 19.614137ms, Rgba8Unorm, scale=1, opacity=0.5
+[Detaching after vfork from child process 3247749]
+[Detaching after vfork from child process 3247750]
+[Detaching after vfork from child process 3247751]
+[Detaching after vfork from child process 3247752]
+emoji warm 100 frames: 31.200231ms, Rgba8Unorm, scale=1.25, opacity=1
+[Detaching after vfork from child process 3247765]
+[Detaching after vfork from child process 3247766]
+[Detaching after vfork from child process 3247767]
+[Detaching after vfork from child process 3247768]
+emoji warm 100 frames: 25.849726ms, Rgba8Unorm, scale=1.25, opacity=0.5
+[Detaching after vfork from child process 3247781]
+emoji warm 100 frames: 16.45136ms, Rgba8Unorm, scale=2, opacity=1
+[Detaching after vfork from child process 3247782]
+[Detaching after vfork from child process 3247783]
+[Detaching after vfork from child process 3247784]
+[Detaching after vfork from child process 3247785]
+emoji warm 100 frames: 18.454469ms, Rgba8Unorm, scale=2, opacity=0.5
+[Detaching after vfork from child process 3247798]
+[Detaching after vfork from child process 3247799]
+[Detaching after vfork from child process 3247800]
+[Detaching after vfork from child process 3247801]
+emoji warm 100 frames: 19.908405ms, Rgba8UnormSrgb, scale=1, opacity=1
+
+Thread 3 "gpu::tests::nat" received signal SIGSEGV, Segmentation fault.
+[Switching to Thread 0x7ffff7a8e6c0 (LWP 3247638)]
+0x00007ffff781c03c in ?? () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#0  0x00007ffff781c03c in ?? () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#1  0x00007ffff781c408 in ?? () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#2  0x00007ffff7807ea7 in ?? () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#3  0x0000555556002e17 in ash::extensions_generated::ext::debug_utils::Device::set_debug_utils_object_name (self=0x7fffe811eca0, name_info=0x7ffff7a860e8) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ash-0.38.0+1.3.281/src/extensions/ext/debug_utils.rs:15
+#4  0x0000555555f5d0b6 in wgpu_hal::vulkan::DeviceShared::set_object_name<ash::vk::definitions::DescriptorSetLayout> (self=0x7fffe811ec60, object=..., name=...) at src/vulkan/device.rs:60
+#5  0x0000555555f80840 in wgpu_hal::vulkan::device::{impl#4}::create_bind_group_layout (self=0x7fffe8230410, desc=0x7ffff7a86e58) at src/vulkan/device.rs:1519
+#6  0x0000555555e1ad78 in wgpu_hal::dynamic::device::{impl#0}::create_bind_group_layout<wgpu_hal::vulkan::Device> (self=0x7fffe8230410, desc=0x7ffff7a86e58) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-hal-25.0.2/src/dynamic/device.rs:284
+#7  0x0000555555ef418e in wgpu_core::device::resource::Device::create_bind_group_layout (self=0x7ffff7a88218, label=0x7ffff7a88628, entry_map=..., origin=wgpu_core::device::bgl::Origin::Pool) at src/device/resource.rs:2081
+#8  0x0000555555d2e730 in wgpu_core::device::global::{impl#0}::device_create_bind_group_layout::{closure#0} (entry_map=...) at src/device/global.rs:591
+#9  0x0000555555da0ab5 in wgpu_core::pool::{impl#0}::get_or_init::{closure#0}<wgpu_core::device::bgl::EntryMap, wgpu_core::binding_model::BindGroupLayout, wgpu_core::device::global::{impl#0}::device_create_bind_group_layout::{closure_env#0}, wgpu_core::binding_model::CreateBindGroupLayoutError> () at src/pool.rs:64
+#10 0x0000555555db0212 in once_cell::imp::{impl#4}::initialize::{closure#0}<alloc::sync::Weak<wgpu_core::binding_model::BindGroupLayout, alloc::alloc::Global>, wgpu_core::pool::{impl#0}::get_or_init::{closure_env#0}<wgpu_core::device::bgl::EntryMap, wgpu_core::binding_model::BindGroupLayout, wgpu_core::device::global::{impl#0}::device_create_bind_group_layout::{closure_env#0}, wgpu_core::binding_model::CreateBindGroupLayoutError>, wgpu_core::binding_model::CreateBindGroupLayoutError> () at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/once_cell-1.21.4/src/imp_std.rs:72
+#11 0x0000555556615bd6 in core::ops::function::impls::{impl#3}::call_mut<(), dyn core::ops::function::FnMut<(), Output=bool>> (self=0x7ffff7a87af0, args=()) at /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ops/function.rs:298
+#12 0x00005555566158cb in once_cell::imp::initialize_or_wait (queue=0x7fffe8316ba0, init=...) at src/imp_std.rs:196
+#13 0x0000555555daba90 in once_cell::imp::OnceCell<alloc::sync::Weak<wgpu_core::binding_model::BindGroupLayout, alloc::alloc::Global>>::initialize<alloc::sync::Weak<wgpu_core::binding_model::BindGroupLayout, alloc::alloc::Global>, wgpu_core::pool::{impl#0}::get_or_init::{closure_env#0}<wgpu_core::device::bgl::EntryMap, wgpu_core::binding_model::BindGroupLayout, wgpu_core::device::global::{impl#0}::device_create_bind_group_layout::{closure_env#0}, wgpu_core::binding_model::CreateBindGroupLayoutError>, wgpu_core::binding_model::CreateBindGroupLayoutError> (self=0x7fffe8316ba0, f=...) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/once_cell-1.21.4/src/imp_std.rs:68
+#14 0x0000555555e233b9 in once_cell::sync::OnceCell<alloc::sync::Weak<wgpu_core::binding_model::BindGroupLayout, alloc::alloc::Global>>::get_or_try_init<alloc::sync::Weak<wgpu_core::binding_model::BindGroupLayout, alloc::alloc::Global>, wgpu_core::pool::{impl#0}::get_or_init::{closure_env#0}<wgpu_core::device::bgl::EntryMap, wgpu_core::binding_model::BindGroupLayout, wgpu_core::device::global::{impl#0}::device_create_bind_group_layout::{closure_env#0}, wgpu_core::binding_model::CreateBindGroupLayoutError>, wgpu_core::binding_model::CreateBindGroupLayoutError> (self=0x7fffe8316ba0, f=...) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/once_cell-1.21.4/src/lib.rs:1171
+#15 0x0000555555d98ffb in wgpu_core::pool::ResourcePool<wgpu_core::device::bgl::EntryMap, wgpu_core::binding_model::BindGroupLayout>::get_or_init<wgpu_core::device::bgl::EntryMap, wgpu_core::binding_model::BindGroupLayout, wgpu_core::device::global::{impl#0}::device_create_bind_group_layout::{closure_env#0}, wgpu_core::binding_model::CreateBindGroupLayoutError> (self=0x7fffe8035ce8, key=..., constructor=...) at src/pool.rs:63
+#16 0x0000555555d77e69 in wgpu_core::global::Global::device_create_bind_group_layout (self=0x7fffe81e6190, device_id=..., desc=0x7ffff7a88610, id_in=...) at src/device/global.rs:589
+#17 0x0000555555c9dc40 in wgpu::backend::wgpu_core::{impl#12}::create_bind_group_layout (self=0x7fffe814fe80, desc=0x555556ab7668) at src/backend/wgpu_core.rs:1113
+#18 0x0000555555cbfec3 in wgpu::api::device::Device::create_bind_group_layout (self=0x7ffff7a89528, desc=0x555556ab7668) at src/api/device.rs:223
+#19 0x0000555555c83891 in terminal_renderer::gpu::DrawResources::new (device=0x7ffff7a89528, format=...) at crates/renderer/src/gpu.rs:400
+#20 0x0000555555c5af8d in terminal_renderer::gpu::tests::render_native_frame_with_overlay (opacity=0.5, format=..., palette=false, hints=false) at crates/renderer/src/gpu.rs:1833
+#21 0x0000555555c5fa57 in terminal_renderer::gpu::tests::render_native_frame_with_palette (opacity=0.5, format=..., palette=false) at crates/renderer/src/gpu.rs:1710
+#22 0x0000555555c599c5 in terminal_renderer::gpu::tests::render_native_frame (opacity=0.5, format=...) at crates/renderer/src/gpu.rs:1680
+#23 0x0000555555c65370 in terminal_renderer::gpu::tests::native_gpu_background_opacity_and_srgb_premultiplication () at crates/renderer/src/gpu.rs:1674
+#24 0x0000555555c670a7 in terminal_renderer::gpu::tests::native_gpu_background_opacity_and_srgb_premultiplication::{closure#0} () at crates/renderer/src/gpu.rs:1668
+#25 0x0000555555c56cc6 in core::ops::function::FnOnce::call_once<terminal_renderer::gpu::tests::native_gpu_background_opacity_and_srgb_premultiplication::{closure_env#0}, ()> () at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/ops/function.rs:250
+#26 0x00005555565c4dbb in core::ops::function::FnOnce::call_once<fn() -> core::result::Result<(), alloc::string::String>, ()> () at library/core/src/ops/function.rs:250
+#27 test::__rust_begin_short_backtrace<core::result::Result<(), alloc::string::String>, fn() -> core::result::Result<(), alloc::string::String>> () at library/test/src/lib.rs:733
+#28 0x00005555565d2425 in test::run_test_in_process::{closure#0} () at library/test/src/lib.rs:756
+#29 core::panic::unwind_safe::{impl#23}::call_once<core::result::Result<(), alloc::string::String>, test::run_test_in_process::{closure_env#0}> () at library/core/src/panic/unwind_safe.rs:275
+#30 std::panicking::catch_unwind::do_call<core::panic::unwind_safe::AssertUnwindSafe<test::run_test_in_process::{closure_env#0}>, core::result::Result<(), alloc::string::String>> () at library/std/src/panicking.rs:576
+#31 std::panicking::catch_unwind<core::result::Result<(), alloc::string::String>, core::panic::unwind_safe::AssertUnwindSafe<test::run_test_in_process::{closure_env#0}>> () at library/std/src/panicking.rs:544
+#32 std::panic::catch_unwind<core::panic::unwind_safe::AssertUnwindSafe<test::run_test_in_process::{closure_env#0}>, core::result::Result<(), alloc::string::String>> () at library/std/src/panic.rs:359
+#33 test::run_test_in_process () at library/test/src/lib.rs:756
+#34 test::run_test::{closure#0} () at library/test/src/lib.rs:677
+rax            0x7fffe0780cc0      140736959352000
+rbx            0x10aded040410aded  1201877277081644525
+rcx            0x7fffe02b6fe0      140736954331104
+rdx            0x1                 1
+rsi            0x0                 0
+rdi            0x7ffff7871280      140737346212480
+rbp            0x7fffe85e08a0      0x7fffe85e08a0
+rsp            0x7ffff7a85e40      0x7ffff7a85e40
+r8             0x555556ad0988      93825014761864
+r9             0x0                 0
+r10            0x61206870796c6720  6998708653216524064
+r11            0x8080808080808080  -9187201950435737472
+r12            0x7fffe0780cd0      140736959352016
+r13            0x7ffff7a85e78      140737348394616
+r14            0x7ffff7871280      140737346212480
+r15            0x1                 1
+rip            0x7ffff781c03c      0x7ffff781c03c
+eflags         0x10202             [ IF RF ]
+cs             0x33                51
+ss             0x2b                43
+ds             0x0                 0
+es             0x0                 0
+fs             0x0                 0
+gs             0x0                 0
+fs_base        0x7ffff7a8e6c0      140737348429504
+gs_base        0x0                 0
+   0x7ffff781c024:	test   %rax,%rax
+   0x7ffff781c027:	jne    0x7ffff781c05a
+   0x7ffff781c029:	jmp    0x7ffff781c0b0
+   0x7ffff781c02e:	xchg   %ax,%ax
+   0x7ffff781c030:	mov    0x1ab0(%rax),%rdx
+   0x7ffff781c037:	test   %rdx,%rdx
+   0x7ffff781c03a:	je     0x7ffff781c04e
+=> 0x7ffff781c03c:	mov    (%rdx),%rdx
+   0x7ffff781c03f:	test   %rdx,%rdx
+   0x7ffff781c042:	je     0x7ffff781c04e
+   0x7ffff781c044:	cmp    %rbx,(%rdx)
+   0x7ffff781c047:	jne    0x7ffff781c04e
+
+Thread 97 (Thread 0x7fffa3fff6c0 (LWP 3247812) "termina:disk$0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007ffff4809cad in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#5  0x00007ffff47f04cb in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#6  0x00007ffff4809c0b in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 96 (Thread 0x7fffc1ffb6c0 (LWP 3247811) "terminal:gdrv0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007fffc93afc5d in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#5  0x00007fffc937b2ab in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#6  0x00007fffc93afb8b in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 95 (Thread 0x7fffc27fc6c0 (LWP 3247810) "termin:traceq0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007fffc93afc5d in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#5  0x00007fffc937b2ab in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#6  0x00007fffc93afb8b in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 94 (Thread 0x7fff82ffd6c0 (LWP 3247809) "termin:traceq0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007ffff4809cad in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#5  0x00007ffff47f04cb in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#6  0x00007ffff4809c0b in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 93 (Thread 0x7fffc2ffd6c0 (LWP 3247808) "termina:disk$0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007ffff4809cad in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#5  0x00007ffff47f04cb in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#6  0x00007ffff4809c0b in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 92 (Thread 0x7fffa2ffd6c0 (LWP 3247807) "terminal:gdrv0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007fffc93afc5d in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#5  0x00007fffc937b2ab in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#6  0x00007fffc93afb8b in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 91 (Thread 0x7fffc37fe6c0 (LWP 3247806) "termin:traceq0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007fffc93afc5d in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#5  0x00007fffc937b2ab in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#6  0x00007fffc93afb8b in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 90 (Thread 0x7fffa26c46c0 (LWP 3247805) "termin:traceq0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007ffff4809cad in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#5  0x00007ffff47f04cb in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#6  0x00007ffff4809c0b in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 89 (Thread 0x7fffa1ec36c0 (LWP 3247804) "termina:disk$0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007ffff4809cad in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#5  0x00007ffff47f04cb in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#6  0x00007ffff4809c0b in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 88 (Thread 0x7fffcc53c6c0 (LWP 3247803) "terminal:gdrv0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007fffc93afc5d in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#5  0x00007fffc937b2ab in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#6  0x00007fffc93afb8b in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 87 (Thread 0x7fffa37fe6c0 (LWP 3247802) "termin:traceq0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007fffc93afc5d in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#5  0x00007fffc937b2ab in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#6  0x00007fffc93afb8b in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 35 (Thread 0x7fff62ffd6c0 (LWP 3247670) "termin:traceq0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007ffff4809cad in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#5  0x00007ffff47f04cb in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#6  0x00007ffff4809c0b in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 31 (Thread 0x7fff63fff6c0 (LWP 3247666) "termina:disk$0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007ffff4809cad in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#5  0x00007ffff47f04cb in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#6  0x00007ffff4809c0b in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 25 (Thread 0x7fff837fe6c0 (LWP 3247660) "terminal:gdrv0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007fffc93afc5d in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#5  0x00007fffc937b2ab in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#6  0x00007fffc93afb8b in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 24 (Thread 0x7fff83fff6c0 (LWP 3247659) "termin:traceq0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007fffc93afc5d in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#5  0x00007fffc937b2ab in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#6  0x00007fffc93afb8b in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 10 (Thread 0x7fffc3fff6c0 (LWP 3247645) "terminal_r:sh0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007fffc93afc5d in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#5  0x00007fffc937b2ab in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#6  0x00007fffc93afb8b in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 9 (Thread 0x7fffc8bff6c0 (LWP 3247644) "termina:disk$0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007fffc93afc5d in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#5  0x00007fffc937b2ab in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#6  0x00007fffc93afb8b in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 7 (Thread 0x7ffff71eb6c0 (LWP 3247642) "gpu::tests::nat"):
+#0  0x000055555698a2d6 in core::result::Result<&[u8; 4], core::array::TryFromSliceError>::copied<[u8; 4], core::array::TryFromSliceError> (self=...) at /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/result.rs:1722
+#1  core::array::{impl#7}::try_from<u8, 4> (slice=...) at /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/array/mod.rs:260
+#2  0x0000555556991547 in core::convert::{impl#6}::try_into<&[u8], [u8; 4]> (self=...) at /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/convert/mod.rs:822
+#3  0x00005555569968a7 in fontdb::ttf_parser::parser::{impl#1}::parse (data=...) at src/ttf_parser/parser.rs:32
+#4  0x0000555556989ad3 in fontdb::ttf_parser::{impl#0}::parse (data=...) at src/ttf_parser/mod.rs:36
+#5  0x000055555698b96b in core::ops::function::FnOnce::call_once<fn(&[u8]) -> core::option::Option<fontdb::ttf_parser::Magic>, (&[u8])> () at /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ops/function.rs:250
+#6  0x000055555697fc11 in core::option::Option<&[u8]>::and_then<&[u8], fontdb::ttf_parser::Magic, fn(&[u8]) -> core::option::Option<fontdb::ttf_parser::Magic>> (self=..., f=0x7ffff69ea00000) at /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/option.rs:1542
+#7  0x0000555556992a4b in fontdb::ttf_parser::parser::Stream::read<fontdb::ttf_parser::Magic> (self=0x7ffff71e3fc0) at src/ttf_parser/parser.rs:276
+#8  0x0000555556988fc9 in fontdb::ttf_parser::fonts_in_collection (data=...) at src/ttf_parser/mod.rs:204
+#9  0x000055555699ea77 in fontdb::Database::load_fonts_from_file (self=0x7ffff71e59e8, path=..., data=...) at src/lib.rs:238
+#10 0x000055555699dfd8 in fontdb::Database::load_font_file_impl (self=0x7ffff71e59e8, path=...) at src/lib.rs:273
+#11 0x00005555569973cd in fontdb::Database::load_font_file<&std::path::PathBuf> (self=0x7ffff71e59e8, path=0x7ffff71e4790) at src/lib.rs:264
+
+Thread 5 (Thread 0x7ffff75ed6c0 (LWP 3247640) "gpu::tests::nat"):
+#0  0x00007ffff7fc9f88 in ?? () from /lib64/ld-linux-x86-64.so.2
+#1  0x00007ffff7fca3e6 in ?? () from /lib64/ld-linux-x86-64.so.2
+#2  0x00007ffff7fc9399 in _dl_catch_exception () from /lib64/ld-linux-x86-64.so.2
+#3  0x00007ffff7fc94bf in ?? () from /lib64/ld-linux-x86-64.so.2
+#4  0x00007ffff7d20a87 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#5  0x00007ffff7d207b6 in dlclose () from /lib/x86_64-linux-gnu/libc.so.6
+#6  0x00007ffff7828bd7 in ?? () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#7  0x00007ffff782e71c in vkEnumeratePhysicalDevices () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#8  0x0000555556063905 in ash::instance::{impl#3}::enumerate_physical_devices::{closure#0} (count=0x7ffff75e4b84, data=0x7fffe02cc690) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ash-0.38.0+1.3.281/src/instance.rs:498
+#9  0x000055555605b4ad in ash::prelude::read_into_uninitialized_vector<u32, ash::vk::definitions::PhysicalDevice, ash::instance::{impl#3}::enumerate_physical_devices::{closure_env#0}> (f=...) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ash-0.38.0+1.3.281/src/prelude.rs:57
+#10 0x0000555556065367 in ash::instance::Instance::enumerate_physical_devices (self=0x7fffe0334b30) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ash-0.38.0+1.3.281/src/instance.rs:497
+#11 0x0000555555f8525b in wgpu_hal::vulkan::instance::{impl#5}::enumerate_adapters (self=0x7fffe013cae0, _surface_hint=...) at src/vulkan/instance.rs:925
+
+Thread 4 (Thread 0x7ffff77ee6c0 (LWP 3247639) "gpu::tests::nat"):
+#0  0x0000555556995b02 in fontdb::ttf_parser::parser::{impl#0}::parse (data=...) at src/ttf_parser/parser.rs:23
+#1  0x000055555698ba3b in core::ops::function::FnOnce::call_once<fn(&[u8]) -> core::option::Option<u16>, (&[u8])> () at /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ops/function.rs:250
+#2  0x000055555697ff01 in core::option::Option<&[u8]>::and_then<&[u8], u16, fn(&[u8]) -> core::option::Option<u16>> (self=..., f=0x7ffff645fb4c00) at /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/option.rs:1542
+#3  0x0000555556992aae in fontdb::ttf_parser::parser::Stream::read<u16> (self=0x7ffff77e7b40) at src/ttf_parser/parser.rs:276
+#4  0x000055555698ad8c in fontdb::ttf_parser::name::{impl#1}::parse (data=...) at src/ttf_parser/name.rs:77
+#5  0x000055555698b995 in core::ops::function::FnOnce::call_once<fn(&[u8]) -> core::option::Option<fontdb::ttf_parser::name::NameRecord>, (&[u8])> () at /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ops/function.rs:250
+#6  0x000055555697fcf1 in core::option::Option<&[u8]>::and_then<&[u8], fontdb::ttf_parser::name::NameRecord, fn(&[u8]) -> core::option::Option<fontdb::ttf_parser::name::NameRecord>> (self=..., f=0x7ffff645fb4a00) at /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/option.rs:1542
+#7  0x000055555699441d in fontdb::ttf_parser::parser::LazyArray16<fontdb::ttf_parser::name::NameRecord>::get<fontdb::ttf_parser::name::NameRecord> (self=0x7ffff77e8058, index=6) at src/ttf_parser/parser.rs:93
+#8  0x0000555556987827 in fontdb::ttf_parser::name::Names::get (self=0x7ffff77e8058, index=6) at src/ttf_parser/name.rs:137
+#9  0x000055555698a1e7 in fontdb::ttf_parser::name::{impl#6}::next (self=0x7ffff77e8058) at src/ttf_parser/name.rs:188
+#10 0x00005555569873d4 in core::iter::traits::iterator::Iterator::try_fold<fontdb::ttf_parser::name::NamesIter, (), core::iter::traits::iterator::Iterator::find::check::{closure_env#0}<fontdb::ttf_parser::name::Name, fontdb::parse_names::{closure_env#1}>, core::ops::control_flow::ControlFlow<fontdb::ttf_parser::name::Name, ()>> (self=0x7ffff77e8058, init=(), f=...) at /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/iter/traits/iterator.rs:2489
+#11 0x000055555698730e in core::iter::traits::iterator::Iterator::find<fontdb::ttf_parser::name::NamesIter, fontdb::parse_names::{closure_env#1}> (self=0x7ffff77e8058, predicate=...) at /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/iter/traits/iterator.rs:2967
+
+Thread 3 (Thread 0x7ffff7a8e6c0 (LWP 3247638) "gpu::tests::nat"):
+#0  0x00007ffff781c03c in ?? () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#1  0x00007ffff781c408 in ?? () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#2  0x00007ffff7807ea7 in ?? () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#3  0x0000555556002e17 in ash::extensions_generated::ext::debug_utils::Device::set_debug_utils_object_name (self=0x7fffe811eca0, name_info=0x7ffff7a860e8) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ash-0.38.0+1.3.281/src/extensions/ext/debug_utils.rs:15
+#4  0x0000555555f5d0b6 in wgpu_hal::vulkan::DeviceShared::set_object_name<ash::vk::definitions::DescriptorSetLayout> (self=0x7fffe811ec60, object=..., name=...) at src/vulkan/device.rs:60
+#5  0x0000555555f80840 in wgpu_hal::vulkan::device::{impl#4}::create_bind_group_layout (self=0x7fffe8230410, desc=0x7ffff7a86e58) at src/vulkan/device.rs:1519
+#6  0x0000555555e1ad78 in wgpu_hal::dynamic::device::{impl#0}::create_bind_group_layout<wgpu_hal::vulkan::Device> (self=0x7fffe8230410, desc=0x7ffff7a86e58) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-hal-25.0.2/src/dynamic/device.rs:284
+#7  0x0000555555ef418e in wgpu_core::device::resource::Device::create_bind_group_layout (self=0x7ffff7a88218, label=0x7ffff7a88628, entry_map=..., origin=wgpu_core::device::bgl::Origin::Pool) at src/device/resource.rs:2081
+#8  0x0000555555d2e730 in wgpu_core::device::global::{impl#0}::device_create_bind_group_layout::{closure#0} (entry_map=...) at src/device/global.rs:591
+#9  0x0000555555da0ab5 in wgpu_core::pool::{impl#0}::get_or_init::{closure#0}<wgpu_core::device::bgl::EntryMap, wgpu_core::binding_model::BindGroupLayout, wgpu_core::device::global::{impl#0}::device_create_bind_group_layout::{closure_env#0}, wgpu_core::binding_model::CreateBindGroupLayoutError> () at src/pool.rs:64
+#10 0x0000555555db0212 in once_cell::imp::{impl#4}::initialize::{closure#0}<alloc::sync::Weak<wgpu_core::binding_model::BindGroupLayout, alloc::alloc::Global>, wgpu_core::pool::{impl#0}::get_or_init::{closure_env#0}<wgpu_core::device::bgl::EntryMap, wgpu_core::binding_model::BindGroupLayout, wgpu_core::device::global::{impl#0}::device_create_bind_group_layout::{closure_env#0}, wgpu_core::binding_model::CreateBindGroupLayoutError>, wgpu_core::binding_model::CreateBindGroupLayoutError> () at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/once_cell-1.21.4/src/imp_std.rs:72
+#11 0x0000555556615bd6 in core::ops::function::impls::{impl#3}::call_mut<(), dyn core::ops::function::FnMut<(), Output=bool>> (self=0x7ffff7a87af0, args=()) at /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ops/function.rs:298
+
+Thread 1 (Thread 0x7ffff7c91440 (LWP 3247634) "terminal_render"):
+#0  0x00007ffff7da04f9 in syscall () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x0000555556a6a9b6 in std::sys::sync::futex::unix::futex_wait () at library/std/src/sys/sync/futex/unix.rs:63
+#2  std::sys::sync::thread_parking::futex::Parker::park_timeout () at library/std/src/sys/sync/thread_parking/futex.rs:75
+#3  std::thread::thread::Thread::park_timeout () at library/std/src/thread/thread.rs:132
+#4  0x00005555565d319d in std::sync::mpmc::context::Context::wait_until () at library/std/src/sync/mpmc/context.rs:133
+#5  std::sync::mpmc::list::{impl#3}::recv::{closure#1}<test::event::CompletedTest> () at library/std/src/sync/mpmc/list.rs:453
+#6  0x00005555565de685 in std::sync::mpmc::context::{impl#0}::with::{closure#0}<std::sync::mpmc::list::{impl#3}::recv::{closure_env#1}<test::event::CompletedTest>, ()> () at library/std/src/sync/mpmc/context.rs:49
+#7  std::sync::mpmc::context::{impl#0}::with::{closure#1}<std::sync::mpmc::list::{impl#3}::recv::{closure_env#1}<test::event::CompletedTest>, ()> () at library/std/src/sync/mpmc/context.rs:57
+#8  std::thread::local::LocalKey::try_with<core::cell::Cell<core::option::Option<std::sync::mpmc::context::Context>>, std::sync::mpmc::context::{impl#0}::with::{closure_env#1}<std::sync::mpmc::list::{impl#3}::recv::{closure_env#1}<test::event::CompletedTest>, ()>, ()> () at library/std/src/thread/local.rs:463
+#9  std::sync::mpmc::context::Context::with<std::sync::mpmc::list::{impl#3}::recv::{closure_env#1}<test::event::CompletedTest>, ()> () at library/std/src/sync/mpmc/context.rs:53
+#10 std::sync::mpmc::list::Channel::recv<test::event::CompletedTest> () at library/std/src/sync/mpmc/list.rs:442
+#11 0x00005555565eb360 in std::sync::mpmc::Receiver::recv_deadline<test::event::CompletedTest> () at library/std/src/sync/mpmc/mod.rs:1160

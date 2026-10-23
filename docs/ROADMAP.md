@@ -84,12 +84,14 @@ Completion marks require tested acceptance criteria, not code presence alone.
 - [x] Terminate consumed sessions on worker reader-acquisition failure and prevent shutdown CPU spinning while waiting for reader completion.
   - Focused regressions and native Linux lifecycle/close checks passed; native Windows/macOS follow-up remains. See [startup/shutdown reliability](STARTUP_SHUTDOWN_RELIABILITY.md).
 - [x] Add the documented portable-session Drop safety net for direct adapter owners, terminating and reaping live children.
-  - A 40-session native Linux probe left 40 children before and zero after; regression and lifecycle checks passed. [Resource cleanup audit](RESOURCE_CLEANUP_MEMORY_SAFETY.md) records measurements and Windows/macOS acceptance limits. The [GPU crash follow-up](GPU_CONCURRENT_VALIDATION.md) reproduces the Vulkan loader failure without terminal/PTY code; concurrent native GPU validation remains a documented external limitation.
+  - A 40-session native Linux probe left 40 children before and zero after; regression and lifecycle checks passed. [Resource cleanup audit](RESOURCE_CLEANUP_MEMORY_SAFETY.md) records measurements and Windows/macOS acceptance limits. The [GPU crash follow-up](GPU_CONCURRENT_VALIDATION.md) isolates an older Vulkan-loader concurrency failure; Linux GPU tests now serialize their complete lifetimes while raw concurrency remains an upstream/environment limitation.
 - [x] Cancel blocked Unix PTY I/O before worker shutdown and join.
   - Deterministic regressions, Linux child/thread/FD cleanup, and before/after shutdown measurements passed. See [blocked PTY shutdown](BLOCKED_PTY_SHUTDOWN.md). Windows cancellation remains open; macOS execution is unverified.
 
 ## M4: Window and renderer
 
+- [x] Make Linux native GPU validation reliable on affected Vulkan loaders with test-only isolation.
+  - Unchanged concurrent tests crashed 3/3 times on loader 1.4.309 and passed 3/3 on isolated 1.4.345. Guarded native tests passed repeated serial/concurrent-harness runs, all eight GPU entry points passed with Khronos validation, and native Wayland/release presentation passed. No production overhead or dependency changes; see [GPU validation evidence and remaining limits](GPU_CONCURRENT_VALIDATION.md).
 - [x] Create the `winit` application shell and `wgpu` surface lifecycle
   - Native GitHub Actions run 35596742589 for commit `b3e06bb98414e2992da37f3c004ca7c1ecc943c9` passed on Linux x86_64/ARM64, macOS x86_64/ARM64, and Windows x86_64/ARM64.
 - [x] Implement font discovery, shaping/rasterization, fallback, and bounded glyph caching

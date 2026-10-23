@@ -1,0 +1,31 @@
+# Selected raw lines; full log: /tmp/gpu-concurrent-validation/probe-loader-log.log
+[Vulkan Loader] INFO | LAYER:   Insert instance layer "VK_LAYER_MESA_device_select" (libVkLayer_MESA_device_select.so)
+[Vulkan Loader] INFO | LAYER:   Insert instance layer "VK_LAYER_MESA_device_select" (libVkLayer_MESA_device_select.so)
+[Vulkan Loader] INFO | LAYER:   Insert instance layer "VK_LAYER_MESA_device_select" (libVkLayer_MESA_device_select.so)
+[Vulkan Loader] INFO | LAYER:   Insert instance layer "VK_LAYER_MESA_device_select" (libVkLayer_MESA_device_select.so)
+[Vulkan Loader] INFO | LAYER:   Insert instance layer "VK_LAYER_MESA_device_select" (libVkLayer_MESA_device_select.so)
+[Vulkan Loader] INFO | LAYER:   Insert instance layer "VK_LAYER_MESA_device_select" (libVkLayer_MESA_device_select.so)
+[Vulkan Loader] INFO | LAYER:   Insert instance layer "VK_LAYER_MESA_device_select" (libVkLayer_MESA_device_select.so)
+[Vulkan Loader] INFO | DRIVER:  Removing driver libvulkan_intel_hasvk.so due to not having any physical devices
+[Vulkan Loader] INFO | DRIVER:  Removing driver libvulkan_virtio.so due to not having any physical devices
+[Vulkan Loader] INFO | DRIVER:  Removing driver libvulkan_gfxstream.so due to not having any physical devices
+[Vulkan Loader] INFO | DRIVER:  Removing driver libvulkan_nouveau.so due to not having any physical devices
+[Vulkan Loader] INFO | DRIVER:  Removing driver libvulkan_radeon.so due to not having any physical devices
+[Vulkan Loader] INFO | DRIVER:  Removing driver libvulkan_intel_hasvk.so due to not having any physical devices
+[Vulkan Loader] INFO | DRIVER:  Removing driver libvulkan_virtio.so due to not having any physical devices
+[Vulkan Loader] INFO | DRIVER:  Removing driver libvulkan_gfxstream.so due to not having any physical devices
+[Vulkan Loader] INFO | DRIVER:  Removing driver libvulkan_nouveau.so due to not having any physical devices
+[Vulkan Loader] INFO | DRIVER:  Removing driver libvulkan_radeon.so due to not having any physical devices
+[Vulkan Loader] INFO | DRIVER:  Removing driver libvulkan_intel_hasvk.so due to not having any physical devices
+[Vulkan Loader] INFO | DRIVER:  Removing driver libvulkan_virtio.so due to not having any physical devices
+[Vulkan Loader] INFO | DRIVER:  Removing driver libvulkan_gfxstream.so due to not having any physical devices
+[Vulkan Loader] INFO | DRIVER:  Removing driver libvulkan_nouveau.so due to not having any physical devices
+[Vulkan Loader] INFO | DRIVER:  Removing driver libvulkan_radeon.so due to not having any physical devices
+[Vulkan Loader] INFO | DRIVER:  Removing driver libvulkan_intel_hasvk.so due to not having any physical devices
+[Vulkan Loader] INFO | DRIVER:  Removing driver libvulkan_virtio.so due to not having any physical devices
+[Vulkan Loader] INFO | DRIVER:  Removing driver libvulkan_gfxstream.so due to not having any physical devices
+[Vulkan Loader] INFO | DRIVER:  Removing driver libvulkan_nouveau.so due to not having any physical devices
+[Vulkan Loader] INFO | DRIVER:  Removing driver libvulkan_radeon.so due to not having any physical devices
+[Vulkan Loader] INFO | DRIVER:  Removing driver libvulkan_intel_hasvk.so due to not having any physical devices
+[Vulkan Loader] INFO | DRIVER:  Removing driver libvulkan_virtio.so due to not having any physical devices
+[Vulkan Loader] INFO | DRIVER:  Removing driver libvulkan_gfxstream.so due to not having any physical devices
