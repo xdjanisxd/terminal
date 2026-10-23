@@ -7,6 +7,8 @@ use terminal_core::{TerminalDimensions, TerminalParser, TerminalState};
 #[test]
 #[ignore = "requires a GPU and system monospace/emoji fonts; release measurements only"]
 fn renderer_workload_baselines() {
+    #[cfg(target_os = "linux")]
+    let _gpu_test = super::native_gpu_test_guard();
     const FRAMES: usize = 100;
     let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
     let adapter = pollster::block_on(instance.request_adapter(&Default::default())).unwrap();

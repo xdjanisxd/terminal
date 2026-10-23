@@ -1,0 +1,509 @@
+[
+  {
+    "name": "native-baseline-serial",
+    "command": [
+      "target/debug/deps/terminal_renderer-5c29bd990de9e307",
+      "native_gpu_",
+      "--ignored",
+      "--nocapture",
+      "--test-threads=1"
+    ],
+    "returncode": 0,
+    "seconds": 6.788,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1"
+    }
+  },
+  {
+    "name": "native-baseline-serial-2",
+    "command": [
+      "target/debug/deps/terminal_renderer-5c29bd990de9e307",
+      "native_gpu_",
+      "--ignored",
+      "--nocapture",
+      "--test-threads=1"
+    ],
+    "returncode": 0,
+    "seconds": 6.988,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1"
+    }
+  },
+  {
+    "name": "native-baseline-concurrent-1",
+    "command": [
+      "target/debug/deps/terminal_renderer-5c29bd990de9e307",
+      "native_gpu_",
+      "--ignored",
+      "--nocapture",
+      "--test-threads=7"
+    ],
+    "returncode": -11,
+    "seconds": 2.422,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1"
+    }
+  },
+  {
+    "name": "native-baseline-concurrent-2",
+    "command": [
+      "target/debug/deps/terminal_renderer-5c29bd990de9e307",
+      "native_gpu_",
+      "--ignored",
+      "--nocapture",
+      "--test-threads=7"
+    ],
+    "returncode": -11,
+    "seconds": 2.523,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1"
+    }
+  },
+  {
+    "name": "native-baseline-concurrent-3",
+    "command": [
+      "target/debug/deps/terminal_renderer-5c29bd990de9e307",
+      "native_gpu_",
+      "--ignored",
+      "--nocapture",
+      "--test-threads=7"
+    ],
+    "returncode": -11,
+    "seconds": 1.218,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1"
+    }
+  },
+  {
+    "name": "historical-probe",
+    "command": [
+      "/tmp/gpu-concurrent-validation/historical-probe"
+    ],
+    "returncode": -11,
+    "seconds": 0.717,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1"
+    }
+  },
+  {
+    "name": "probe-no-layer",
+    "command": [
+      "/tmp/gpu-concurrent-validation/historical-probe"
+    ],
+    "returncode": -11,
+    "seconds": 0.817,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1",
+      "NODEVICE_SELECT": "1"
+    }
+  },
+  {
+    "name": "probe-intel-only",
+    "command": [
+      "/tmp/gpu-concurrent-validation/historical-probe"
+    ],
+    "returncode": 0,
+    "seconds": 0.465,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1",
+      "VK_DRIVER_FILES": "/usr/share/vulkan/icd.d/intel_icd.json"
+    }
+  },
+  {
+    "name": "suite-no-layer",
+    "command": [
+      "target/debug/deps/terminal_renderer-5c29bd990de9e307",
+      "native_gpu_",
+      "--ignored",
+      "--nocapture",
+      "--test-threads=7"
+    ],
+    "returncode": -11,
+    "seconds": 1.369,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1",
+      "NODEVICE_SELECT": "1"
+    }
+  },
+  {
+    "name": "suite-intel-only",
+    "command": [
+      "target/debug/deps/terminal_renderer-5c29bd990de9e307",
+      "native_gpu_",
+      "--ignored",
+      "--nocapture",
+      "--test-threads=7"
+    ],
+    "returncode": 0,
+    "seconds": 2.874,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1",
+      "VK_DRIVER_FILES": "/usr/share/vulkan/icd.d/intel_icd.json"
+    }
+  },
+  {
+    "name": "suite-intel-only-2",
+    "command": [
+      "target/debug/deps/terminal_renderer-5c29bd990de9e307",
+      "native_gpu_",
+      "--ignored",
+      "--nocapture",
+      "--test-threads=7"
+    ],
+    "returncode": 0,
+    "seconds": 2.872,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1",
+      "VK_DRIVER_FILES": "/usr/share/vulkan/icd.d/intel_icd.json"
+    }
+  },
+  {
+    "name": "suite-intel-only-3",
+    "command": [
+      "target/debug/deps/terminal_renderer-5c29bd990de9e307",
+      "native_gpu_",
+      "--ignored",
+      "--nocapture",
+      "--test-threads=7"
+    ],
+    "returncode": 0,
+    "seconds": 2.873,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1",
+      "VK_DRIVER_FILES": "/usr/share/vulkan/icd.d/intel_icd.json"
+    }
+  },
+  {
+    "name": "vulkan-probe-serial",
+    "command": [
+      "/tmp/gpu-concurrent-validation/vulkan-probe",
+      "1"
+    ],
+    "returncode": 0,
+    "seconds": 0.165,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1"
+    }
+  },
+  {
+    "name": "vulkan-probe-concurrent",
+    "command": [
+      "/tmp/gpu-concurrent-validation/vulkan-probe",
+      "7"
+    ],
+    "returncode": -11,
+    "seconds": 0.616,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1"
+    }
+  },
+  {
+    "name": "fixed-loader-probe",
+    "command": [
+      "/tmp/gpu-concurrent-validation/vulkan-probe",
+      "7"
+    ],
+    "returncode": 0,
+    "seconds": 0.616,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1",
+      "LD_LIBRARY_PATH": "/tmp/gpu-concurrent-validation/loader-build/loader",
+      "LD_DEBUG": "libs"
+    }
+  },
+  {
+    "name": "fixed-loader-suite-1",
+    "command": [
+      "/tmp/gpu-concurrent-validation/renderer-baseline",
+      "native_gpu_",
+      "--ignored",
+      "--nocapture",
+      "--test-threads=7"
+    ],
+    "returncode": 0,
+    "seconds": 2.973,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1",
+      "LD_LIBRARY_PATH": "/tmp/gpu-concurrent-validation/loader-build/loader"
+    }
+  },
+  {
+    "name": "fixed-loader-suite-2",
+    "command": [
+      "/tmp/gpu-concurrent-validation/renderer-baseline",
+      "native_gpu_",
+      "--ignored",
+      "--nocapture",
+      "--test-threads=7"
+    ],
+    "returncode": 0,
+    "seconds": 2.924,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1",
+      "LD_LIBRARY_PATH": "/tmp/gpu-concurrent-validation/loader-build/loader"
+    }
+  },
+  {
+    "name": "fixed-loader-suite-3",
+    "command": [
+      "/tmp/gpu-concurrent-validation/renderer-baseline",
+      "native_gpu_",
+      "--ignored",
+      "--nocapture",
+      "--test-threads=7"
+    ],
+    "returncode": 0,
+    "seconds": 2.973,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1",
+      "LD_LIBRARY_PATH": "/tmp/gpu-concurrent-validation/loader-build/loader"
+    }
+  },
+  {
+    "name": "after-serial-1",
+    "command": [
+      "target/debug/deps/terminal_renderer-5c29bd990de9e307",
+      "native_gpu_",
+      "--ignored",
+      "--nocapture",
+      "--test-threads=1"
+    ],
+    "returncode": 0,
+    "seconds": 13.059,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1"
+    }
+  },
+  {
+    "name": "after-serial-2",
+    "command": [
+      "target/debug/deps/terminal_renderer-5c29bd990de9e307",
+      "native_gpu_",
+      "--ignored",
+      "--nocapture",
+      "--test-threads=1"
+    ],
+    "returncode": 0,
+    "seconds": 13.408,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1"
+    }
+  },
+  {
+    "name": "after-concurrent-harness-1",
+    "command": [
+      "target/debug/deps/terminal_renderer-5c29bd990de9e307",
+      "native_gpu_",
+      "--ignored",
+      "--nocapture",
+      "--test-threads=7"
+    ],
+    "returncode": 0,
+    "seconds": 13.514,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1"
+    }
+  },
+  {
+    "name": "after-concurrent-harness-2",
+    "command": [
+      "target/debug/deps/terminal_renderer-5c29bd990de9e307",
+      "native_gpu_",
+      "--ignored",
+      "--nocapture",
+      "--test-threads=7"
+    ],
+    "returncode": 0,
+    "seconds": 13.215,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1"
+    }
+  },
+  {
+    "name": "after-concurrent-harness-3",
+    "command": [
+      "target/debug/deps/terminal_renderer-5c29bd990de9e307",
+      "native_gpu_",
+      "--ignored",
+      "--nocapture",
+      "--test-threads=7"
+    ],
+    "returncode": 0,
+    "seconds": 14.281,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1"
+    }
+  },
+  {
+    "name": "after-concurrent-harness-4",
+    "command": [
+      "target/debug/deps/terminal_renderer-5c29bd990de9e307",
+      "native_gpu_",
+      "--ignored",
+      "--nocapture",
+      "--test-threads=7"
+    ],
+    "returncode": 0,
+    "seconds": 13.411,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1"
+    }
+  },
+  {
+    "name": "after-concurrent-harness-5",
+    "command": [
+      "target/debug/deps/terminal_renderer-5c29bd990de9e307",
+      "native_gpu_",
+      "--ignored",
+      "--nocapture",
+      "--test-threads=7"
+    ],
+    "returncode": 0,
+    "seconds": 13.264,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1"
+    }
+  },
+  {
+    "name": "after-all-gpu",
+    "command": [
+      "target/debug/deps/terminal_renderer-5c29bd990de9e307",
+      "native_gpu_",
+      "renderer_workload_baselines",
+      "--ignored",
+      "--nocapture",
+      "--test-threads=8"
+    ],
+    "returncode": 0,
+    "seconds": 24.202,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1"
+    }
+  },
+  {
+    "name": "after-gpu-validation-layer",
+    "command": [
+      "target/debug/deps/terminal_renderer-5c29bd990de9e307",
+      "native_gpu_",
+      "renderer_workload_baselines",
+      "--ignored",
+      "--nocapture",
+      "--test-threads=8"
+    ],
+    "returncode": 0,
+    "seconds": 27.871,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1",
+      "VK_LAYER_PATH": "/tmp/gpu-concurrent-validation/validation/usr/share/vulkan/explicit_layer.d",
+      "LD_LIBRARY_PATH": "/tmp/gpu-concurrent-validation/validation/usr/lib/x86_64-linux-gnu",
+      "VK_LAYER_SETTINGS_PATH": "/tmp/gpu-concurrent-validation",
+      "VK_LOADER_DEBUG": "error,warn,layer"
+    }
+  },
+  {
+    "name": "after-validation-layer",
+    "command": [
+      "target/debug/deps/terminal_renderer-5c29bd990de9e307",
+      "--ignored",
+      "--nocapture",
+      "--test-threads=8"
+    ],
+    "returncode": 101,
+    "seconds": 28.586,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1",
+      "VK_LAYER_PATH": "/tmp/gpu-concurrent-validation/validation/usr/share/vulkan/explicit_layer.d",
+      "LD_LIBRARY_PATH": "/tmp/gpu-concurrent-validation/validation/usr/lib/x86_64-linux-gnu",
+      "VK_LAYER_SETTINGS_PATH": "/tmp/gpu-concurrent-validation",
+      "VK_LOADER_DEBUG": "error,warn,layer"
+    }
+  },
+  {
+    "name": "baseline-serial",
+    "command": [
+      "target/debug/deps/terminal_renderer-5c29bd990de9e307",
+      "native_gpu_",
+      "--ignored",
+      "--nocapture",
+      "--test-threads=1"
+    ],
+    "returncode": 0,
+    "seconds": 11.008,
+    "execution": "sandbox: llvmpipe Vulkan",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1"
+    }
+  },
+  {
+    "name": "historical-probe-intel-no-layer",
+    "command": [
+      "/tmp/gpu-concurrent-validation/historical-probe"
+    ],
+    "returncode": 0,
+    "seconds": 0.315,
+    "execution": "host: native Intel Vulkan available",
+    "environment_overrides": {
+      "FONTCONFIG_FILE": "/tmp/gpu-concurrent-validation/fonts.conf",
+      "RUST_BACKTRACE": "1",
+      "NODEVICE_SELECT": "1",
+      "VK_DRIVER_FILES": "/usr/share/vulkan/icd.d/intel_icd.json"
+    }
+  }
+]

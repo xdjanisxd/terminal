@@ -1,0 +1,531 @@
+warning: Missing auto-load script at offset 0 in section .debug_gdb_scripts
+of file /tmp/gpu-concurrent-validation/historical-probe.
+Use `info auto-load python-scripts [REGEXP]' to list them.
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+
+Thread 4 "historical-prob" received signal SIGSEGV, Segmentation fault.
+[Switching to Thread 0x7ffff788d6c0 (LWP 3248780)]
+0x00007ffff6e17066 in ?? () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#0  0x00007ffff6e17066 in ?? () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#1  0x00007ffff6e17408 in ?? () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#2  0x00007ffff6e02ea7 in ?? () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#3  0x0000555555be11c7 in ash::extensions_generated::ext::debug_utils::Device::set_debug_utils_object_name (self=0x7fffec01e410, name_info=0x7ffff788b6a8) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ash-0.38.0+1.3.281/src/extensions/ext/debug_utils.rs:15
+#4  0x0000555555b3a326 in wgpu_hal::vulkan::DeviceShared::set_object_name<ash::vk::definitions::CommandBuffer> (self=0x7fffec01e3d0, object=..., name=...) at src/vulkan/device.rs:60
+#5  0x0000555555b4f8e2 in wgpu_hal::vulkan::command::{impl#2}::begin_encoding (self=0x7fffecd46280, label=...) at src/vulkan/command.rs:77
+#6  0x0000555555a18c28 in wgpu_hal::dynamic::command::{impl#0}::begin_encoding<wgpu_hal::vulkan::CommandEncoder> (self=0x7fffecd46280, label=...) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-hal-25.0.2/src/dynamic/command.rs:219
+#7  0x00005555559cf0fa in wgpu_core::command::CommandEncoder::open (self=0x7fffec0062a0) at src/command/mod.rs:389
+#8  0x00005555559a1c9b in wgpu_core::global::Global::command_encoder_clear_buffer (self=0x7fffec024100, command_encoder_id=..., dst=..., offset=0, size=...) at src/command/clear.rs:162
+#9  0x00005555558e2c58 in wgpu::backend::wgpu_core::{impl#44}::clear_buffer (self=0x7ffff788c960, buffer=0x7ffff788c940, offset=0, size=...) at src/backend/wgpu_core.rs:2416
+#10 0x000055555591de31 in wgpu::api::command_encoder::CommandEncoder::clear_buffer (self=0x7ffff788c960, buffer=0x7ffff788c940, offset=0, size=...) at src/api/command_encoder.rs:198
+#11 0x00005555558d78f5 in wgpu_concurrency_probe::main::{closure#0}::{closure#0} () at docs/measurements/resource-cleanup-memory-safety/gpu-investigation/wgpu_concurrency_probe.rs:21
+#12 0x00005555558d5ba2 in std::sys::backtrace::__rust_begin_short_backtrace<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()> (f=...) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/sys/backtrace.rs:166
+#13 0x00005555558d71da in std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()> () at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/thread/lifecycle.rs:70
+#14 0x00005555558db070 in core::panic::unwind_safe::{impl#23}::call_once<(), std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure_env#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()>> (self=...) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/panic/unwind_safe.rs:275
+#15 0x00005555558d6715 in std::panicking::catch_unwind::do_call<core::panic::unwind_safe::AssertUnwindSafe<std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure_env#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()>>, ()> (data=0x7ffff788cca0) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/panicking.rs:576
+#16 0x00005555558db38b in __rust_try ()
+#17 0x00005555558d6db3 in std::panicking::catch_unwind<(), core::panic::unwind_safe::AssertUnwindSafe<std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure_env#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()>>> (f=...) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/panicking.rs:544
+#18 std::panic::catch_unwind<core::panic::unwind_safe::AssertUnwindSafe<std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure_env#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()>>, ()> (f=...) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/panic.rs:359
+#19 std::thread::lifecycle::spawn_unchecked::{closure#1}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()> () at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/thread/lifecycle.rs:68
+#20 0x00005555558d7d8e in core::ops::function::FnOnce::call_once<std::thread::lifecycle::spawn_unchecked::{closure_env#1}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()>, ()> () at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/ops/function.rs:250
+#21 0x00005555561d47a9 in alloc::boxed::{impl#31}::call_once<(), (dyn core::ops::function::FnOnce<(), Output=()> + core::marker::Send), alloc::alloc::Global> () at library/alloc/src/boxed.rs:2320
+#22 std::sys::thread::unix::{impl#2}::new::thread_start () at library/std/src/sys/thread/unix.rs:123
+#23 0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+rax            0x7fffe8020d70      140737085836656
+rbx            0x10aded040410aded  1201877277081644525
+rcx            0x7fffe8003e70      140737085718128
+rdx            0x3f80000000000000  4575657221408423936
+rsi            0x0                 0
+rdi            0x7ffff6e6c280      140737335706240
+rbp            0x7fffec029ea0      0x7fffec029ea0
+rsp            0x7ffff788b400      0x7ffff788b400
+r8             0x55555620c1d8      93825005568472
+r9             0x0                 0
+r10            0x64656d616e20656e  7234308641667442030
+r11            0x8080808080808080  -9187201950435737472
+r12            0x7fffe801f290      140737085829776
+r13            0x7ffff788b438      140737346319416
+r14            0x7ffff6e6c280      140737335706240
+r15            0x5555561f7e88      93825005485704
+rip            0x7ffff6e17066      0x7ffff6e17066
+eflags         0x10206             [ PF IF RF ]
+cs             0x33                51
+ss             0x2b                43
+ds             0x0                 0
+es             0x0                 0
+fs             0x0                 0
+gs             0x0                 0
+fs_base        0x7ffff788d6c0      140737346328256
+gs_base        0x0                 0
+
+Thread 36 (Thread 0x7fff60b956c0 (LWP 3248812) "histori:disk$0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007ffff4809cad in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#5  0x00007ffff47f04cb in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#6  0x00007ffff4809c0b in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 35 (Thread 0x7fff6153d6c0 (LWP 3248811) "histor:traceq0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007ffff4809cad in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#5  0x00007ffff47f04cb in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#6  0x00007ffff4809c0b in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 34 (Thread 0x7fff6218c6c0 (LWP 3248810) "histor:traceq0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007ffff4809cad in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#5  0x00007ffff47f04cb in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#6  0x00007ffff4809c0b in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 33 (Thread 0x7fff62dad6c0 (LWP 3248809) "histor:traceq0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007ffff4809cad in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#5  0x00007ffff47f04cb in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#6  0x00007ffff4809c0b in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 32 (Thread 0x7fff637fe6c0 (LWP 3248808) "histor:traceq0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007ffff4809cad in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#5  0x00007ffff47f04cb in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#6  0x00007ffff4809c0b in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 31 (Thread 0x7fff63fff6c0 (LWP 3248807) "histor:traceq0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007ffff4809cad in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#5  0x00007ffff47f04cb in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#6  0x00007ffff4809c0b in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 30 (Thread 0x7fff80ff96c0 (LWP 3248806) "historic:gdrv0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007fffc93afc5d in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#5  0x00007fffc937b2ab in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#6  0x00007fffc93afb8b in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 29 (Thread 0x7fff817fa6c0 (LWP 3248805) "histor:traceq0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007fffc93afc5d in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#5  0x00007fffc937b2ab in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#6  0x00007fffc93afb8b in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 28 (Thread 0x7fff81ffb6c0 (LWP 3248804) "histori:disk$0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007ffff4809cad in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#5  0x00007ffff47f04cb in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#6  0x00007ffff4809c0b in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 27 (Thread 0x7fff827fc6c0 (LWP 3248803) "histori:disk$0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007ffff4809cad in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#5  0x00007ffff47f04cb in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#6  0x00007ffff4809c0b in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 26 (Thread 0x7fff82ffd6c0 (LWP 3248802) "histori:disk$0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007ffff4809cad in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#5  0x00007ffff47f04cb in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#6  0x00007ffff4809c0b in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 25 (Thread 0x7fff837fe6c0 (LWP 3248801) "histori:disk$0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007ffff4809cad in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#5  0x00007ffff47f04cb in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#6  0x00007ffff4809c0b in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 24 (Thread 0x7fff83fff6c0 (LWP 3248800) "histori:disk$0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007ffff4809cad in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#5  0x00007ffff47f04cb in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#6  0x00007ffff4809c0b in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 23 (Thread 0x7fffa0ff96c0 (LWP 3248799) "historic:gdrv0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007fffc93afc5d in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#5  0x00007fffc937b2ab in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#6  0x00007fffc93afb8b in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 22 (Thread 0x7fffa17fa6c0 (LWP 3248798) "histor:traceq0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007fffc93afc5d in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#5  0x00007fffc937b2ab in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#6  0x00007fffc93afb8b in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 21 (Thread 0x7fffa1ffb6c0 (LWP 3248797) "histori:disk$0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007ffff4809cad in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#5  0x00007ffff47f04cb in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#6  0x00007ffff4809c0b in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 20 (Thread 0x7fffa27fc6c0 (LWP 3248796) "historic:gdrv0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007fffc93afc5d in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#5  0x00007fffc937b2ab in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#6  0x00007fffc93afb8b in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 19 (Thread 0x7fffa2ffd6c0 (LWP 3248795) "histor:traceq0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007fffc93afc5d in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#5  0x00007fffc937b2ab in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#6  0x00007fffc93afb8b in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 18 (Thread 0x7fffa37fe6c0 (LWP 3248794) "historic:gdrv0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007fffc93afc5d in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#5  0x00007fffc937b2ab in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#6  0x00007fffc93afb8b in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 17 (Thread 0x7fffa3fff6c0 (LWP 3248793) "histor:traceq0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007fffc93afc5d in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#5  0x00007fffc937b2ab in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#6  0x00007fffc93afb8b in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 16 (Thread 0x7fffc0ff96c0 (LWP 3248792) "historic:gdrv0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007fffc93afc5d in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#5  0x00007fffc937b2ab in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#6  0x00007fffc93afb8b in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 15 (Thread 0x7fffc17fa6c0 (LWP 3248791) "histor:traceq0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007fffc93afc5d in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#5  0x00007fffc937b2ab in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#6  0x00007fffc93afb8b in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 14 (Thread 0x7fffc1ffb6c0 (LWP 3248790) "historic:gdrv0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007fffc93afc5d in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#5  0x00007fffc937b2ab in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#6  0x00007fffc93afb8b in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 13 (Thread 0x7fffc27fc6c0 (LWP 3248789) "histor:traceq0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007fffc93afc5d in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#5  0x00007fffc937b2ab in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#6  0x00007fffc93afb8b in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 12 (Thread 0x7fffc2ffd6c0 (LWP 3248788) "historic:gdrv0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007fffc93afc5d in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#5  0x00007fffc937b2ab in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#6  0x00007fffc93afb8b in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 11 (Thread 0x7fffc37fe6c0 (LWP 3248787) "histor:traceq0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007fffc93afc5d in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#5  0x00007fffc937b2ab in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#6  0x00007fffc93afb8b in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 10 (Thread 0x7fffc3fff6c0 (LWP 3248786) "historical:sh0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007fffc93afc5d in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#5  0x00007fffc937b2ab in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#6  0x00007fffc93afb8b in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 9 (Thread 0x7fffc8bff6c0 (LWP 3248785) "histori:disk$0"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d23e98 in pthread_cond_wait () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00007fffc93afc5d in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#5  0x00007fffc937b2ab in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#6  0x00007fffc93afb8b in ?? () from /lib/x86_64-linux-gnu/libgallium-25.0.7-2+deb13u1.so
+#7  0x00007ffff7d248bb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#8  0x00007ffff7da2538 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+
+Thread 8 (Thread 0x7ffff70896c0 (LWP 3248784) "historical-prob"):
+#0  0x00007ffff7d21bbb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d27cb2 in pthread_mutex_lock () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff6e2997e in vkCreateDevice () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#3  0x0000555555c4362c in ash::instance::Instance::create_device (self=0x7fffdc08fc30, physical_device=..., create_info=0x7ffff70835f0, allocation_callbacks=...) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ash-0.38.0+1.3.281/src/instance.rs:369
+#4  0x0000555555b62f97 in wgpu_hal::vulkan::adapter::{impl#5}::open (self=0x7fffdc0998b0, features=..., _limits=0x7ffff7088268, memory_hints=0x7ffff7088228) at src/vulkan/adapter.rs:2259
+#5  0x0000555555a1f101 in wgpu_hal::dynamic::adapter::{impl#1}::open<wgpu_hal::vulkan::Adapter> (self=0x7fffdc0998b0, features=..., limits=0x7ffff7088268, memory_hints=0x7ffff7088228) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-hal-25.0.2/src/dynamic/adapter.rs:48
+#6  0x0000555555a1439f in wgpu_core::instance::Adapter::create_device_and_queue (self=0x7ffff7087ec8, desc=0x7ffff7088228, instance_flags=...) at src/instance.rs:816
+#7  0x00005555559a948b in wgpu_core::global::Global::adapter_request_device (self=0x7fffdc09cef0, adapter_id=..., desc=0x7ffff7088228, device_id_in=..., queue_id_in=...) at src/instance.rs:1104
+#8  0x00005555558e21dd in wgpu::backend::wgpu_core::{impl#10}::request_device (self=0x7fffdc004120, desc=0x7ffff7088868) at src/backend/wgpu_core.rs:914
+#9  0x000055555590d98a in wgpu::api::adapter::Adapter::request_device (self=0x7ffff7088790, desc=0x7ffff7088868) at src/api/adapter.rs:64
+#10 0x00005555558d7519 in wgpu_concurrency_probe::main::{closure#0}::{closure#0} () at docs/measurements/resource-cleanup-memory-safety/gpu-investigation/wgpu_concurrency_probe.rs:12
+#11 0x00005555558d5ba2 in std::sys::backtrace::__rust_begin_short_backtrace<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()> (f=...) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/sys/backtrace.rs:166
+#12 0x00005555558d71da in std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()> () at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/thread/lifecycle.rs:70
+#13 0x00005555558db070 in core::panic::unwind_safe::{impl#23}::call_once<(), std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure_env#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()>> (self=...) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/panic/unwind_safe.rs:275
+#14 0x00005555558d6715 in std::panicking::catch_unwind::do_call<core::panic::unwind_safe::AssertUnwindSafe<std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure_env#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()>>, ()> (data=0x7ffff7088ca0) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/panicking.rs:576
+#15 0x00005555558db38b in __rust_try ()
+#16 0x00005555558d6db3 in std::panicking::catch_unwind<(), core::panic::unwind_safe::AssertUnwindSafe<std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure_env#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()>>> (f=...) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/panicking.rs:544
+#17 std::panic::catch_unwind<core::panic::unwind_safe::AssertUnwindSafe<std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure_env#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()>>, ()> (f=...) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/panic.rs:359
+#18 std::thread::lifecycle::spawn_unchecked::{closure#1}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()> () at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/thread/lifecycle.rs:68
+#19 0x00005555558d7d8e in core::ops::function::FnOnce::call_once<std::thread::lifecycle::spawn_unchecked::{closure_env#1}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()>, ()> () at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/ops/function.rs:250
+
+Thread 7 (Thread 0x7ffff728a6c0 (LWP 3248783) "historical-prob"):
+#0  0x00007ffff7d21bbb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d27cb2 in pthread_mutex_lock () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff6e16ff7 in ?? () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#3  0x00007ffff6e17408 in ?? () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#4  0x00007ffff6e02ea7 in ?? () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#5  0x0000555555be11c7 in ash::extensions_generated::ext::debug_utils::Device::set_debug_utils_object_name (self=0x7fffd801e940, name_info=0x7ffff7285a98) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ash-0.38.0+1.3.281/src/extensions/ext/debug_utils.rs:15
+#6  0x0000555555b3a326 in wgpu_hal::vulkan::DeviceShared::set_object_name<ash::vk::definitions::CommandBuffer> (self=0x7fffd801e900, object=..., name=...) at src/vulkan/device.rs:60
+#7  0x0000555555b4f8e2 in wgpu_hal::vulkan::command::{impl#2}::begin_encoding (self=0x7fffd883f410, label=...) at src/vulkan/command.rs:77
+#8  0x0000555555a18c28 in wgpu_hal::dynamic::command::{impl#0}::begin_encoding<wgpu_hal::vulkan::CommandEncoder> (self=0x7fffd883f410, label=...) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-hal-25.0.2/src/dynamic/command.rs:219
+#9  0x00005555559cf42b in wgpu_core::command::CommandEncoder::open_pass (self=0x7ffff7286770, label=...) at src/command/mod.rs:412
+#10 0x0000555555a8096d in wgpu_core::device::queue::Queue::submit (self=0x7fffd814fa80, command_buffers=...) at src/device/queue.rs:1148
+#11 0x00005555559a82ca in wgpu_core::global::Global::queue_submit (self=0x7fffd8024020, queue_id=..., command_buffer_ids=...) at src/device/queue.rs:1492
+#12 0x00005555558ec76e in wgpu::backend::wgpu_core::{impl#14}::submit (self=0x7fffd8188050, command_buffers=...) at src/backend/wgpu_core.rs:1877
+#13 0x00005555558d51e0 in wgpu::api::queue::Queue::submit<core::option::Option<wgpu::api::command_buffer::CommandBuffer>> (self=0x7ffff72897f8, command_buffers=...) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-25.0.2/src/api/queue.rs:239
+#14 0x00005555558d796f in wgpu_concurrency_probe::main::{closure#0}::{closure#0} () at docs/measurements/resource-cleanup-memory-safety/gpu-investigation/wgpu_concurrency_probe.rs:22
+#15 0x00005555558d5ba2 in std::sys::backtrace::__rust_begin_short_backtrace<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()> (f=...) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/sys/backtrace.rs:166
+#16 0x00005555558d71da in std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()> () at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/thread/lifecycle.rs:70
+#17 0x00005555558db070 in core::panic::unwind_safe::{impl#23}::call_once<(), std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure_env#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()>> (self=...) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/panic/unwind_safe.rs:275
+#18 0x00005555558d6715 in std::panicking::catch_unwind::do_call<core::panic::unwind_safe::AssertUnwindSafe<std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure_env#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()>>, ()> (data=0x7ffff7289ca0) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/panicking.rs:576
+#19 0x00005555558db38b in __rust_try ()
+
+Thread 6 (Thread 0x7ffff748b6c0 (LWP 3248782) "historical-prob"):
+#0  0x00007ffff7d21bbb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d27cb2 in pthread_mutex_lock () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff6e16ff7 in ?? () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#3  0x00007ffff6e17408 in ?? () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#4  0x00007ffff6e02ea7 in ?? () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#5  0x0000555555be11c7 in ash::extensions_generated::ext::debug_utils::Device::set_debug_utils_object_name (self=0x7fffe41646e0, name_info=0x7ffff7488b38) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ash-0.38.0+1.3.281/src/extensions/ext/debug_utils.rs:15
+#6  0x0000555555b3c5a6 in wgpu_hal::vulkan::DeviceShared::set_object_name<ash::vk::definitions::Buffer> (self=0x7fffe41646a0, object=..., name=...) at src/vulkan/device.rs:60
+#7  0x0000555555b53fc0 in wgpu_hal::vulkan::device::{impl#4}::create_buffer (self=0x7fffe4180450, desc=0x7ffff7489598) at src/vulkan/device.rs:1091
+#8  0x0000555555a16f59 in wgpu_hal::dynamic::device::{impl#0}::create_buffer<wgpu_hal::vulkan::Device> (self=0x7fffe4180450, desc=0x7ffff7489598) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-hal-25.0.2/src/dynamic/device.rs:181
+#9  0x0000555555ac247d in wgpu_core::device::resource::Device::create_buffer (self=0x7ffff748a128, desc=0x7ffff748a488) at src/device/resource.rs:682
+#10 0x00005555559971cf in wgpu_core::global::Global::device_create_buffer (self=0x7fffe40352a0, device_id=..., desc=0x7ffff748a488, id_in=...) at src/device/global.rs:119
+#11 0x00005555558e63ed in wgpu::backend::wgpu_core::{impl#12}::create_buffer (self=0x7fffe4215ea0, desc=0x5555561f7f28) at src/backend/wgpu_core.rs:1457
+#12 0x00005555559083e5 in wgpu::api::device::Device::create_buffer (self=0x7ffff748a7f0, desc=0x5555561f7f28) at src/api/device.rs:256
+#13 0x00005555558d76eb in wgpu_concurrency_probe::main::{closure#0}::{closure#0} () at docs/measurements/resource-cleanup-memory-safety/gpu-investigation/wgpu_concurrency_probe.rs:14
+#14 0x00005555558d5ba2 in std::sys::backtrace::__rust_begin_short_backtrace<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()> (f=...) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/sys/backtrace.rs:166
+#15 0x00005555558d71da in std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()> () at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/thread/lifecycle.rs:70
+#16 0x00005555558db070 in core::panic::unwind_safe::{impl#23}::call_once<(), std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure_env#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()>> (self=...) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/panic/unwind_safe.rs:275
+#17 0x00005555558d6715 in std::panicking::catch_unwind::do_call<core::panic::unwind_safe::AssertUnwindSafe<std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure_env#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()>>, ()> (data=0x7ffff748aca0) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/panicking.rs:576
+#18 0x00005555558db38b in __rust_try ()
+#19 0x00005555558d6db3 in std::panicking::catch_unwind<(), core::panic::unwind_safe::AssertUnwindSafe<std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure_env#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()>>> (f=...) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/panicking.rs:544
+
+Thread 5 (Thread 0x7ffff768c6c0 (LWP 3248781) "historical-prob"):
+#0  0x00007ffff7d21bbb in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d27cb2 in pthread_mutex_lock () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff6e16ff7 in ?? () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#3  0x00007ffff6e17408 in ?? () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#4  0x00007ffff6e02ea7 in ?? () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#5  0x0000555555be11c7 in ash::extensions_generated::ext::debug_utils::Device::set_debug_utils_object_name (self=0x7fffe00210b0, name_info=0x7ffff768a6a8) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ash-0.38.0+1.3.281/src/extensions/ext/debug_utils.rs:15
+#6  0x0000555555b3a326 in wgpu_hal::vulkan::DeviceShared::set_object_name<ash::vk::definitions::CommandBuffer> (self=0x7fffe0021070, object=..., name=...) at src/vulkan/device.rs:60
+#7  0x0000555555b4f8e2 in wgpu_hal::vulkan::command::{impl#2}::begin_encoding (self=0x7fffe0769680, label=...) at src/vulkan/command.rs:77
+#8  0x0000555555a18c28 in wgpu_hal::dynamic::command::{impl#0}::begin_encoding<wgpu_hal::vulkan::CommandEncoder> (self=0x7fffe0769680, label=...) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-hal-25.0.2/src/dynamic/command.rs:219
+#9  0x00005555559cf0fa in wgpu_core::command::CommandEncoder::open (self=0x7fffe00062a0) at src/command/mod.rs:389
+#10 0x00005555559a1c9b in wgpu_core::global::Global::command_encoder_clear_buffer (self=0x7fffe0023d20, command_encoder_id=..., dst=..., offset=0, size=...) at src/command/clear.rs:162
+#11 0x00005555558e2c58 in wgpu::backend::wgpu_core::{impl#44}::clear_buffer (self=0x7ffff768b960, buffer=0x7ffff768b940, offset=0, size=...) at src/backend/wgpu_core.rs:2416
+#12 0x000055555591de31 in wgpu::api::command_encoder::CommandEncoder::clear_buffer (self=0x7ffff768b960, buffer=0x7ffff768b940, offset=0, size=...) at src/api/command_encoder.rs:198
+#13 0x00005555558d78f5 in wgpu_concurrency_probe::main::{closure#0}::{closure#0} () at docs/measurements/resource-cleanup-memory-safety/gpu-investigation/wgpu_concurrency_probe.rs:21
+#14 0x00005555558d5ba2 in std::sys::backtrace::__rust_begin_short_backtrace<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()> (f=...) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/sys/backtrace.rs:166
+#15 0x00005555558d71da in std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()> () at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/thread/lifecycle.rs:70
+#16 0x00005555558db070 in core::panic::unwind_safe::{impl#23}::call_once<(), std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure_env#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()>> (self=...) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/panic/unwind_safe.rs:275
+#17 0x00005555558d6715 in std::panicking::catch_unwind::do_call<core::panic::unwind_safe::AssertUnwindSafe<std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure_env#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()>>, ()> (data=0x7ffff768bca0) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/panicking.rs:576
+#18 0x00005555558db38b in __rust_try ()
+#19 0x00005555558d6db3 in std::panicking::catch_unwind<(), core::panic::unwind_safe::AssertUnwindSafe<std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure_env#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()>>> (f=...) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/panicking.rs:544
+
+Thread 4 (Thread 0x7ffff788d6c0 (LWP 3248780) "historical-prob"):
+#0  0x00007ffff6e17066 in ?? () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#1  0x00007ffff6e17408 in ?? () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#2  0x00007ffff6e02ea7 in ?? () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#3  0x0000555555be11c7 in ash::extensions_generated::ext::debug_utils::Device::set_debug_utils_object_name (self=0x7fffec01e410, name_info=0x7ffff788b6a8) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ash-0.38.0+1.3.281/src/extensions/ext/debug_utils.rs:15
+#4  0x0000555555b3a326 in wgpu_hal::vulkan::DeviceShared::set_object_name<ash::vk::definitions::CommandBuffer> (self=0x7fffec01e3d0, object=..., name=...) at src/vulkan/device.rs:60
+#5  0x0000555555b4f8e2 in wgpu_hal::vulkan::command::{impl#2}::begin_encoding (self=0x7fffecd46280, label=...) at src/vulkan/command.rs:77
+#6  0x0000555555a18c28 in wgpu_hal::dynamic::command::{impl#0}::begin_encoding<wgpu_hal::vulkan::CommandEncoder> (self=0x7fffecd46280, label=...) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-hal-25.0.2/src/dynamic/command.rs:219
+#7  0x00005555559cf0fa in wgpu_core::command::CommandEncoder::open (self=0x7fffec0062a0) at src/command/mod.rs:389
+#8  0x00005555559a1c9b in wgpu_core::global::Global::command_encoder_clear_buffer (self=0x7fffec024100, command_encoder_id=..., dst=..., offset=0, size=...) at src/command/clear.rs:162
+#9  0x00005555558e2c58 in wgpu::backend::wgpu_core::{impl#44}::clear_buffer (self=0x7ffff788c960, buffer=0x7ffff788c940, offset=0, size=...) at src/backend/wgpu_core.rs:2416
+#10 0x000055555591de31 in wgpu::api::command_encoder::CommandEncoder::clear_buffer (self=0x7ffff788c960, buffer=0x7ffff788c940, offset=0, size=...) at src/api/command_encoder.rs:198
+#11 0x00005555558d78f5 in wgpu_concurrency_probe::main::{closure#0}::{closure#0} () at docs/measurements/resource-cleanup-memory-safety/gpu-investigation/wgpu_concurrency_probe.rs:21
+#12 0x00005555558d5ba2 in std::sys::backtrace::__rust_begin_short_backtrace<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()> (f=...) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/sys/backtrace.rs:166
+#13 0x00005555558d71da in std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()> () at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/thread/lifecycle.rs:70
+#14 0x00005555558db070 in core::panic::unwind_safe::{impl#23}::call_once<(), std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure_env#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()>> (self=...) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/panic/unwind_safe.rs:275
+#15 0x00005555558d6715 in std::panicking::catch_unwind::do_call<core::panic::unwind_safe::AssertUnwindSafe<std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure_env#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()>>, ()> (data=0x7ffff788cca0) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/panicking.rs:576
+#16 0x00005555558db38b in __rust_try ()
+#17 0x00005555558d6db3 in std::panicking::catch_unwind<(), core::panic::unwind_safe::AssertUnwindSafe<std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure_env#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()>>> (f=...) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/panicking.rs:544
+#18 std::panic::catch_unwind<core::panic::unwind_safe::AssertUnwindSafe<std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure_env#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()>>, ()> (f=...) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/panic.rs:359
+#19 std::thread::lifecycle::spawn_unchecked::{closure#1}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()> () at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/thread/lifecycle.rs:68
+
+Thread 3 (Thread 0x7ffff7a8e6c0 (LWP 3248779) "historical-prob"):
+#0  0x00007ffff7fc9ced in ?? () from /lib64/ld-linux-x86-64.so.2
+#1  0x00007ffff7fca3e6 in ?? () from /lib64/ld-linux-x86-64.so.2
+#2  0x00007ffff7fc9399 in _dl_catch_exception () from /lib64/ld-linux-x86-64.so.2
+#3  0x00007ffff7fc94bf in ?? () from /lib64/ld-linux-x86-64.so.2
+#4  0x00007ffff7d20a87 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#5  0x00007ffff7d207b6 in dlclose () from /lib/x86_64-linux-gnu/libc.so.6
+#6  0x00007ffff6e23bd7 in ?? () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#7  0x00007ffff6e2971c in vkEnumeratePhysicalDevices () from /lib/x86_64-linux-gnu/libvulkan.so.1
+#8  0x0000555555c41cb5 in ash::instance::{impl#3}::enumerate_physical_devices::{closure#0} (count=0x7ffff7a8a494, data=0x7fffe802c6b0) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ash-0.38.0+1.3.281/src/instance.rs:498
+#9  0x0000555555c3985d in ash::prelude::read_into_uninitialized_vector<u32, ash::vk::definitions::PhysicalDevice, ash::instance::{impl#3}::enumerate_physical_devices::{closure_env#0}> (f=...) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ash-0.38.0+1.3.281/src/prelude.rs:57
+#10 0x0000555555c43717 in ash::instance::Instance::enumerate_physical_devices (self=0x7fffe80171c0) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ash-0.38.0+1.3.281/src/instance.rs:497
+#11 0x0000555555b6360b in wgpu_hal::vulkan::instance::{impl#5}::enumerate_adapters (self=0x7fffe8001740, _surface_hint=...) at src/vulkan/instance.rs:925
+#12 0x0000555555a1b0d9 in wgpu_hal::dynamic::instance::{impl#2}::enumerate_adapters<wgpu_hal::vulkan::Instance> (self=0x7fffe8001740, surface_hint=...) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-hal-25.0.2/src/dynamic/instance.rs:60
+#13 0x0000555555a103d9 in wgpu_core::instance::Instance::request_adapter (self=0x7fffe80241b0, desc=0x7ffff7a8ce50, backends=...) at src/instance.rs:446
+#14 0x00005555559a7446 in wgpu_core::global::Global::request_adapter (self=0x7fffe80241b0, desc=0x7ffff7a8d580, backends=..., id_in=...) at src/instance.rs:1019
+#15 0x00005555558e1ec7 in wgpu::backend::wgpu_core::{impl#9}::request_adapter (self=0x7fffe80f1ac0, options=0x7ffff7a8d7e0) at src/backend/wgpu_core.rs:855
+#16 0x000055555590d9fa in wgpu::api::instance::Instance::request_adapter (self=0x7ffff7a8d740, options=0x7ffff7a8d7e0) at src/api/instance.rs:247
+#17 0x00005555558d7410 in wgpu_concurrency_probe::main::{closure#0}::{closure#0} () at docs/measurements/resource-cleanup-memory-safety/gpu-investigation/wgpu_concurrency_probe.rs:11
+#18 0x00005555558d5ba2 in std::sys::backtrace::__rust_begin_short_backtrace<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()> (f=...) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/sys/backtrace.rs:166
+#19 0x00005555558d71da in std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()> () at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/thread/lifecycle.rs:70
+
+Thread 2 (Thread 0x7ffff7c8f6c0 (LWP 3248778) "historical-prob"):
+#0  0x00007ffff7d9e65b in ioctl () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff5ebb890 in drmIoctl () from /lib/x86_64-linux-gnu/libdrm.so.2
+#2  0x00007ffff5ebfe8c in drmSyncobjTimelineWait () from /lib/x86_64-linux-gnu/libdrm.so.2
+#3  0x00007ffff47c92ff in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#4  0x00007ffff47bac06 in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#5  0x00007ffff47ba789 in ?? () from /lib/x86_64-linux-gnu/libvulkan_intel.so
+#6  0x0000555555c9ddb2 in ash::device::Device::wait_semaphores (self=0x7ffff001e4c0, wait_info=0x7ffff7c8d788, timeout=60000000000) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/ash-0.38.0+1.3.281/src/device.rs:696
+#7  0x0000555555b4d506 in wgpu_hal::vulkan::DeviceShared::wait_for_fence (self=0x7ffff001e320, fence=0x7ffff0000c00, wait_value=64, timeout_ns=60000000000) at src/vulkan/device.rs:2905
+#8  0x0000555555b6178e in wgpu_hal::vulkan::device::{impl#4}::wait (self=0x7ffff00fe6a0, fence=0x7ffff0000c00, wait_value=64, timeout_ms=60000) at src/vulkan/device.rs:2534
+#9  0x0000555555a189ac in wgpu_hal::dynamic::device::{impl#0}::wait<wgpu_hal::vulkan::Device> (self=0x7ffff00fe6a0, fence=..., value=64, timeout_ms=60000) at /home/dellian/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/wgpu-hal-25.0.2/src/dynamic/device.rs:504
+#10 0x0000555555adf6ec in wgpu_core::device::resource::Device::maintain (self=0x7ffff0199880, fence=..., poll_type=..., snatch_guard=...) at src/device/resource.rs:491
+#11 0x0000555555996af2 in wgpu_core::global::Global::poll_single_device (device=0x7ffff0199880, poll_type=...) at src/device/global.rs:1978
+#12 0x0000555555995c34 in wgpu_core::global::Global::device_poll (self=0x7ffff0024660, device_id=..., poll_type=...) at src/device/global.rs:1965
+#13 0x00005555558eb7f2 in wgpu::backend::wgpu_core::{impl#12}::poll (self=0x7ffff00f1e50, poll_type=...) at src/backend/wgpu_core.rs:1685
+#14 0x00005555559085a6 in wgpu::api::device::Device::poll (self=0x7ffff7c8e7f0, poll_type=...) at src/api/device.rs:89
+#15 0x00005555558d7706 in wgpu_concurrency_probe::main::{closure#0}::{closure#0} () at docs/measurements/resource-cleanup-memory-safety/gpu-investigation/wgpu_concurrency_probe.rs:24
+#16 0x00005555558d5ba2 in std::sys::backtrace::__rust_begin_short_backtrace<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()> (f=...) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/sys/backtrace.rs:166
+#17 0x00005555558d71da in std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()> () at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/thread/lifecycle.rs:70
+#18 0x00005555558db070 in core::panic::unwind_safe::{impl#23}::call_once<(), std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure_env#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()>> (self=...) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/panic/unwind_safe.rs:275
+#19 0x00005555558d6715 in std::panicking::catch_unwind::do_call<core::panic::unwind_safe::AssertUnwindSafe<std::thread::lifecycle::spawn_unchecked::{closure#1}::{closure_env#0}<wgpu_concurrency_probe::main::{closure#0}::{closure_env#0}, ()>>, ()> (data=0x7ffff7c8eca0) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/panicking.rs:576
+
+Thread 1 (Thread 0x7ffff7c91200 (LWP 3248775) "historical-prob"):
+#0  0x00007ffff7d2c72e in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007ffff7d21388 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007ffff7d219ac in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x00007ffff7d264b4 in ?? () from /lib/x86_64-linux-gnu/libc.so.6
+#4  0x00005555561bf771 in std::sys::thread::unix::Thread::join () at library/std/src/sys/thread/unix.rs:131
+#5  0x00005555558d85fe in std::thread::lifecycle::JoinInner<()>::join<()> (self=...) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/thread/lifecycle.rs:220
+#6  0x00005555558d85bc in std::thread::join_handle::JoinHandle<()>::join<()> (self=...) at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/std/src/thread/join_handle.rs:150
+#7  0x00005555558d7f51 in wgpu_concurrency_probe::main () at docs/measurements/resource-cleanup-memory-safety/gpu-investigation/wgpu_concurrency_probe.rs:29

@@ -1262,6 +1262,15 @@ fn clip_rect_to_cell(rect: [f32; 4], cell: [f32; 4]) -> Option<(f32, f32, f32, f
     (left < right && top < bottom).then_some((left, top, right - left, bottom - top))
 }
 
+// Older Linux Vulkan loaders race across independent instances; see docs/GPU_CONCURRENT_VALIDATION.md.
+#[cfg(all(test, target_os = "linux"))]
+fn native_gpu_test_guard() -> std::sync::MutexGuard<'static, ()> {
+    static LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+    // Each test owns its GPU state, so a failed assertion must not block later tests.
+    LOCK.lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
@@ -1375,6 +1384,8 @@ mod tests {
     #[test]
     #[ignore = "requires a GPU, system monospace font, and Noto Color Emoji"]
     fn native_gpu_color_emoji_dpi_and_warm_cache() {
+        #[cfg(target_os = "linux")]
+        let _gpu_test = super::native_gpu_test_guard();
         const WIDTH: u32 = 256;
         const HEIGHT: u32 = 128;
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
@@ -1564,6 +1575,8 @@ mod tests {
     #[test]
     #[ignore = "requires a native GPU adapter"]
     fn native_gpu_validates_terminal_pipelines() {
+        #[cfg(target_os = "linux")]
+        let _gpu_test = super::native_gpu_test_guard();
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
             backends: if cfg!(target_os = "windows") {
                 wgpu::Backends::DX12
@@ -1589,6 +1602,8 @@ mod tests {
     #[test]
     #[ignore = "requires a GPU and JetBrains Mono variable font, or FONTCONFIG_FILE pointing to fixtures"]
     fn native_gpu_atlas_separates_variable_weight_instances() {
+        #[cfg(target_os = "linux")]
+        let _gpu_test = super::native_gpu_test_guard();
         let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
         let adapter =
             pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default()))
@@ -1660,12 +1675,16 @@ mod tests {
     #[test]
     #[ignore = "requires a native GPU adapter and system monospace font"]
     fn native_gpu_renders_backgrounds_glyphs_underlines_and_cursor() {
+        #[cfg(target_os = "linux")]
+        let _gpu_test = super::native_gpu_test_guard();
         render_native_frame(1.0, wgpu::TextureFormat::Rgba8Unorm);
     }
 
     #[test]
     #[ignore = "requires a native GPU adapter"]
     fn native_gpu_background_opacity_and_srgb_premultiplication() {
+        #[cfg(target_os = "linux")]
+        let _gpu_test = super::native_gpu_test_guard();
         for format in [
             wgpu::TextureFormat::Rgba8Unorm,
             wgpu::TextureFormat::Rgba8UnormSrgb,
@@ -1683,6 +1702,8 @@ mod tests {
     #[test]
     #[ignore = "requires a native GPU adapter and system monospace font"]
     fn native_gpu_palette_preserves_surrounding_alpha() {
+        #[cfg(target_os = "linux")]
+        let _gpu_test = super::native_gpu_test_guard();
         for format in [
             wgpu::TextureFormat::Rgba8Unorm,
             wgpu::TextureFormat::Rgba8UnormSrgb,
@@ -1696,6 +1717,8 @@ mod tests {
     #[test]
     #[ignore = "requires a native GPU adapter and system monospace font"]
     fn native_gpu_url_hints_preserve_surrounding_alpha() {
+        #[cfg(target_os = "linux")]
+        let _gpu_test = super::native_gpu_test_guard();
         for format in [
             wgpu::TextureFormat::Rgba8Unorm,
             wgpu::TextureFormat::Rgba8UnormSrgb,

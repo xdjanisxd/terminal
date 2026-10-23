@@ -1,0 +1,27 @@
+# Raw excerpt; full log: /tmp/gpu-concurrent-validation/after-validation-layer.log
+thread 'font::tests::native_monospace_control_fonts_report_complete_line_metrics' (3257681) panicked at crates/renderer/src/font.rs:2030:9:
+at least one installed monospace control font is required
+stack backtrace:
+shape_ascii cached=false sample=1 operations=2000 ns_per_operation=137201.6
+   0: __rustc::rust_begin_unwind
+             at /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/std/src/panicking.rs:679:5
+   1: core::panicking::panic_fmt
+             at /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/panicking.rs:80:14
+   2: terminal_renderer::font::tests::native_monospace_control_fonts_report_complete_line_metrics
+             at ./crates/renderer/src/font.rs:2030:9
+   3: terminal_renderer::font::tests::native_monospace_control_fonts_report_complete_line_metrics::{closure#0}
+             at ./crates/renderer/src/font.rs:2018:69
+   4: <terminal_renderer::font::tests::native_monospace_control_fonts_report_complete_line_metrics::{closure#0} as core::ops::function::FnOnce<()>>::call_once
+             at /home/dellian/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/ops/function.rs:250:5
+   5: <fn() -> core::result::Result<(), alloc::string::String> as core::ops::function::FnOnce<()>>::call_once
+             at /rustc/b940084d7eb6a299eb4bfeb8e34901bc051e7ac4/library/core/src/ops/function.rs:250:5
+note: Some details are omitted, run with `RUST_BACKTRACE=full` for a verbose backtrace.
+test font::tests::native_monospace_control_fonts_report_complete_line_metrics ... FAILED
+
+failures:
+
+failures:
+    font::tests::native_monospace_control_fonts_report_complete_line_metrics
+
+test result: FAILED. 16 passed; 1 failed; 0 ignored; 0 measured; 88 filtered out; finished in 28.54s
+
