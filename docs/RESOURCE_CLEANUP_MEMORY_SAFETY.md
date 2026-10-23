@@ -93,6 +93,10 @@ temporary directory-enumeration FD consistently in both revisions.
 
 ## Open stability findings
 
+The later [blocked PTY shutdown investigation](BLOCKED_PTY_SHUTDOWN.md) fixes
+Unix I/O cancellation and verifies Linux recovery for finding 1 below. This
+section retains the original observations; Windows cancellation remains open.
+
 1. **Blocked input can still hang worker shutdown.** A raw-mode child that never
    reads input, followed by an 8 MiB queued write, blocked shutdown for two seconds.
    Killing the child externally still did not release the session thread within
@@ -121,8 +125,9 @@ temporary directory-enumeration FD consistently in both revisions.
    source-review risk, not a measured leak in the Bash/Zsh acceptance matrix.
    Failed kill/wait and forced process termination cannot guarantee cleanup.
 
-These open findings mean long-running stability is not fully verified. No
-roadmap item claims the blocked-input or concurrent-GPU issues are resolved.
+These findings mean long-running stability is not fully verified. The later
+Linux blocked-input fix does not resolve Windows cancellation or the concurrent
+GPU limitation.
 
 ## Validation and limits
 

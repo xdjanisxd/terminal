@@ -94,7 +94,10 @@ installed-launcher test. The full workspace run leaves native tests ignored by d
 
 ## Remaining limits and manual acceptance
 
-Blocking PTY writes already in progress, platform kill/wait failures, readers kept
+The later [blocked PTY shutdown fix](BLOCKED_PTY_SHUTDOWN.md) cancels Unix I/O
+before joining and verifies Linux blocked-write recovery. Windows cancellation
+remains open. At the time of this investigation, blocking PTY writes already
+in progress, platform kill/wait failures, readers kept
 open by descendants, and GPU teardown can still block synchronous joins. These
 changes establish no bounded shutdown deadline. OS thread creation still uses
 `thread::spawn`; thread-resource exhaustion is not converted into a recoverable

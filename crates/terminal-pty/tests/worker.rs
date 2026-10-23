@@ -1,15 +1,15 @@
 use std::collections::VecDeque;
 use std::ffi::OsString;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::mpsc::{self, Receiver, SyncSender};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use terminal_pty::{
     PTY_COMMAND_CAPACITY, PTY_EVENT_CAPACITY, PortablePtyBackend, PtyBackend, PtyError,
-    PtyExitStatus, PtyLifecycle, PtyOutput, PtyOutputReader, PtySession, PtySize, PtySpawnConfig,
-    PtyWorker, PtyWorkerError, PtyWorkerEvent,
+    PtyExitStatus, PtyIoCancellation, PtyLifecycle, PtyOutput, PtyOutputReader, PtySession,
+    PtySize, PtySpawnConfig, PtyWorker, PtyWorkerError, PtyWorkerEvent,
 };
 
 const HELPER_MARKER: &[u8] = b"TERMINAL_PTY_HELPER_MARKER";
@@ -497,4 +497,201 @@ fn shutdown_waiting_for_reader_does_not_spin_on_a_disconnected_command_channel()
         "shutdown busy loop: {checks} lifecycle checks in {elapsed:?}"
     );
     eprintln!("shutdown reader wait: {checks} lifecycle checks in {elapsed:?}");
+}
+
+#[derive(Default)]
+struct CancellationState {
+    calls: AtomicUsize,
+    terminated: AtomicUsize,
+    writes: AtomicUsize,
+    reader_dropped: AtomicBool,
+    session_dropped: AtomicBool,
+    order: Mutex<Vec<&'static str>>,
+}
+
+struct BlockingWriteReader(Arc<CancellationState>);
+
+impl PtyOutputReader for BlockingWriteReader {
+    fn read(&mut self, _: &mut [u8]) -> Result<usize, PtyError> {
+        Ok(0)
+    }
+}
+
+impl Drop for BlockingWriteReader {
+    fn drop(&mut self) {
+        self.0.reader_dropped.store(true, Ordering::Release);
+    }
+}
+
+struct BlockingWriteCancellation {
+    release_write: SyncSender<()>,
+    state: Arc<CancellationState>,
+    fail: bool,
+}
+
+impl PtyIoCancellation for BlockingWriteCancellation {
+    fn cancel(&self) -> Result<(), PtyError> {
+        self.state.calls.fetch_add(1, Ordering::SeqCst);
+        self.state.order.lock().unwrap().push("cancel");
+        let _ = self.release_write.send(());
+        if self.fail {
+            Err(PtyError::WriteFailed)
+        } else {
+            Ok(())
+        }
+    }
+}
+
+struct BlockingWriteSession {
+    state: Arc<CancellationState>,
+    reader: Option<Box<dyn PtyOutputReader + Send>>,
+    write_started: Option<SyncSender<()>>,
+    write_gate: Option<Receiver<()>>,
+    cancellation: Option<Box<dyn PtyIoCancellation>>,
+}
+
+impl PtySession for BlockingWriteSession {
+    fn lifecycle(&self) -> PtyLifecycle {
+        if self.state.terminated.load(Ordering::Acquire) == 0 {
+            PtyLifecycle::Running
+        } else {
+            PtyLifecycle::Exited(PtyExitStatus::unknown())
+        }
+    }
+
+    fn take_io_cancellation(&mut self) -> Option<Box<dyn PtyIoCancellation>> {
+        self.cancellation.take()
+    }
+
+    fn take_output_reader(&mut self) -> Result<Box<dyn PtyOutputReader + Send>, PtyError> {
+        self.reader.take().ok_or(PtyError::NotRunning)
+    }
+
+    fn write(&mut self, _: &[u8]) -> Result<(), PtyError> {
+        self.state.writes.fetch_add(1, Ordering::SeqCst);
+        if let Some(started) = self.write_started.take() {
+            started.send(()).unwrap();
+            self.write_gate
+                .take()
+                .unwrap()
+                .recv_timeout(DEADLINE)
+                .map_err(|_| PtyError::WriteFailed)?;
+        }
+        Ok(())
+    }
+
+    fn resize(&mut self, _: PtySize) -> Result<(), PtyError> {
+        Ok(())
+    }
+
+    fn terminate(&mut self) -> Result<(), PtyError> {
+        self.state.order.lock().unwrap().push("terminate");
+        self.state.terminated.fetch_add(1, Ordering::SeqCst);
+        Ok(())
+    }
+}
+
+impl Drop for BlockingWriteSession {
+    fn drop(&mut self) {
+        self.state.session_dropped.store(true, Ordering::Release);
+    }
+}
+
+fn blocked_write_worker(
+    fail_cancellation: bool,
+) -> (
+    PtyWorker,
+    Receiver<()>,
+    SyncSender<()>,
+    Arc<CancellationState>,
+) {
+    let state = Arc::new(CancellationState::default());
+    let (started, write_started) = mpsc::sync_channel(1);
+    let (release, write_gate) = mpsc::sync_channel(1);
+    let fallback_release = release.clone();
+    let session = BlockingWriteSession {
+        state: Arc::clone(&state),
+        reader: Some(Box::new(BlockingWriteReader(Arc::clone(&state)))),
+        write_started: Some(started),
+        write_gate: Some(write_gate),
+        cancellation: Some(Box::new(BlockingWriteCancellation {
+            release_write: release,
+            state: Arc::clone(&state),
+            fail: fail_cancellation,
+        })),
+    };
+    (
+        PtyWorker::start(session).unwrap(),
+        write_started,
+        fallback_release,
+        state,
+    )
+}
+
+#[test]
+fn shutdown_cancels_a_blocked_write_before_termination_with_full_command_queue() {
+    let (mut worker, write_started, fallback_release, state) = blocked_write_worker(false);
+    worker.write(vec![0]).unwrap();
+    write_started.recv_timeout(DEADLINE).unwrap();
+    for byte in 1..=PTY_COMMAND_CAPACITY {
+        worker.write(vec![byte as u8]).unwrap();
+    }
+
+    let (finished, completion) = mpsc::sync_channel(1);
+    let shutdown = std::thread::spawn(move || {
+        let result = worker.shutdown_and_join();
+        let _ = finished.send(result);
+    });
+    let (result, cancellation_finished) = match completion.recv_timeout(DEADLINE) {
+        Ok(result) => (result, true),
+        Err(_) => {
+            // Always release the scripted write before joining, even on regression failure.
+            let _ = fallback_release.send(());
+            (
+                completion
+                    .recv_timeout(DEADLINE)
+                    .expect("shutdown did not finish after watchdog released blocked write"),
+                false,
+            )
+        }
+    };
+    shutdown.join().unwrap();
+    result.unwrap();
+    assert!(
+        cancellation_finished,
+        "cancellation did not release blocked write"
+    );
+
+    // Explicit shutdown and the worker's Drop both invoke idempotent cancellation.
+    assert_eq!(state.calls.load(Ordering::SeqCst), 2);
+    assert_eq!(state.terminated.load(Ordering::SeqCst), 1);
+    assert_eq!(
+        state.writes.load(Ordering::SeqCst),
+        1,
+        "discard queued input during shutdown"
+    );
+    assert!(state.reader_dropped.load(Ordering::Acquire));
+    assert!(state.session_dropped.load(Ordering::Acquire));
+    let order = state.order.lock().unwrap();
+    assert_eq!(&order[..2], &["cancel", "terminate"]);
+}
+
+#[test]
+fn blocked_write_shutdown_is_idempotent_and_reports_cancellation_failure_after_cleanup() {
+    let (mut worker, write_started, _fallback_release, state) = blocked_write_worker(true);
+    worker.write(vec![0]).unwrap();
+    write_started.recv_timeout(DEADLINE).unwrap();
+
+    assert_eq!(
+        worker.shutdown_and_join(),
+        Err(PtyWorkerError::Pty(PtyError::WriteFailed))
+    );
+    assert_eq!(
+        worker.shutdown_and_join(),
+        Err(PtyWorkerError::Pty(PtyError::WriteFailed))
+    );
+    assert_eq!(state.calls.load(Ordering::SeqCst), 2);
+    assert_eq!(state.terminated.load(Ordering::SeqCst), 1);
+    assert!(state.reader_dropped.load(Ordering::Acquire));
+    assert!(state.session_dropped.load(Ordering::Acquire));
 }

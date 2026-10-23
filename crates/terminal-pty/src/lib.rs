@@ -14,6 +14,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Receiver, RecvTimeoutError, SyncSender, TryRecvError, TrySendError};
 use std::sync::{Arc, Mutex};
 mod throughput;
+#[cfg(unix)]
+mod unix_io;
 use std::thread::{self, JoinHandle};
 use std::time::Duration;
 pub use throughput::PtyThroughputStats;
@@ -192,6 +194,12 @@ pub trait PtyOutputReader {
     fn read(&mut self, bytes: &mut [u8]) -> Result<usize, PtyError>;
 }
 
+/// Wakes blocked backend I/O without borrowing the session or killing its child.
+/// Implementations must be idempotent. Session termination still owns child cleanup.
+pub trait PtyIoCancellation: Send + Sync {
+    fn cancel(&self) -> Result<(), PtyError>;
+}
+
 /// Backend-independent live session capability.
 ///
 /// The session owner calls `terminate` for deterministic shutdown; `Drop` is only
@@ -199,6 +207,11 @@ pub trait PtyOutputReader {
 /// `PtyError::NotRunning`; repeated termination succeeds without another effect.
 pub trait PtySession {
     fn lifecycle(&self) -> PtyLifecycle;
+
+    /// Transfers the optional out-of-band I/O cancellation capability to a worker.
+    fn take_io_cancellation(&mut self) -> Option<Box<dyn PtyIoCancellation>> {
+        None
+    }
 
     /// Transfers the single raw-output reader to the caller.
     ///
@@ -243,6 +256,7 @@ pub struct PortablePtySession {
     child: Mutex<Box<dyn portable_pty::Child + Send + Sync>>,
     writer: Option<Box<dyn Write + Send>>,
     reader: Option<Box<dyn Read + Send>>,
+    io_cancellation: Option<Box<dyn PtyIoCancellation>>,
     startup_observer: Option<PtyStartupObserver>,
     lifecycle: Mutex<PtyLifecycle>,
 }
@@ -301,10 +315,18 @@ impl PortablePtyBackend {
             .map_err(|_| PtyError::SpawnFailed)?;
         observe("pty-created");
         observe("initial-size-sent");
+        #[cfg(not(unix))]
         let reader = master
             .try_clone_reader()
             .map_err(|_| PtyError::SpawnFailed)?;
+        #[cfg(not(unix))]
         let writer = master.take_writer().map_err(|_| PtyError::SpawnFailed)?;
+        #[cfg(not(unix))]
+        let io_cancellation = None;
+        #[cfg(unix)]
+        let (reader, writer, io_cancellation) =
+            unix_io::open(master.as_raw_fd().ok_or(PtyError::SpawnFailed)?)
+                .map_err(|_| PtyError::SpawnFailed)?;
         observe("environment-build-begin");
         let command = spawn_command(&configuration)?;
         observe("environment-build-end");
@@ -318,6 +340,7 @@ impl PortablePtyBackend {
             child: Mutex::new(child),
             writer: Some(writer),
             reader: Some(reader),
+            io_cancellation,
             startup_observer: observer,
             lifecycle: Mutex::new(PtyLifecycle::Running),
         })
@@ -421,6 +444,10 @@ impl PortablePtySession {
 }
 
 impl PtySession for PortablePtySession {
+    fn take_io_cancellation(&mut self) -> Option<Box<dyn PtyIoCancellation>> {
+        self.io_cancellation.take()
+    }
+
     fn lifecycle(&self) -> PtyLifecycle {
         self.refresh_lifecycle()
     }
@@ -475,12 +502,14 @@ impl PtySession for PortablePtySession {
             return Ok(());
         }
         *lifecycle = PtyLifecycle::TerminationRequested;
-        self.writer.take();
         self.child
             .lock()
             .expect("PTY child mutex is not poisoned")
             .kill()
-            .map_err(|_| PtyError::TerminateFailed)
+            .map_err(|_| PtyError::TerminateFailed)?;
+        // portable-pty's writer Drop can itself write EOT. Terminate first.
+        self.writer.take();
+        Ok(())
     }
 }
 
@@ -600,11 +629,46 @@ mod session_drop_tests {
                 child: Mutex::new(Box::new(Child(Arc::clone(&state)))),
                 writer: Some(Box::new(Writer(Arc::clone(&state)))),
                 reader: None,
+                io_cancellation: None,
                 startup_observer: None,
                 lifecycle: Mutex::new(PtyLifecycle::Running),
             });
             let state = state.lock().unwrap();
             assert_eq!((state.kills, state.waits), expected);
+        }
+    }
+
+    #[test]
+    fn explicit_termination_kills_before_writer_drop_and_retries_on_drop_after_failure() {
+        for kill_failed in [false, true] {
+            let state = Arc::new(Mutex::new(ChildState {
+                kill_failed,
+                ..Default::default()
+            }));
+            let mut session = PortablePtySession {
+                master: Mutex::new(None),
+                child: Mutex::new(Box::new(Child(Arc::clone(&state)))),
+                writer: Some(Box::new(Writer(Arc::clone(&state)))),
+                reader: None,
+                io_cancellation: None,
+                startup_observer: None,
+                lifecycle: Mutex::new(PtyLifecycle::Running),
+            };
+            assert_eq!(
+                session.terminate(),
+                if kill_failed {
+                    Err(PtyError::TerminateFailed)
+                } else {
+                    Ok(())
+                }
+            );
+            assert_eq!(session.writer.is_some(), kill_failed);
+            drop(session);
+            let state = state.lock().unwrap();
+            assert_eq!(
+                (state.kills, state.waits),
+                if kill_failed { (2, 0) } else { (1, 0) }
+            );
         }
     }
 }
@@ -666,6 +730,8 @@ pub struct PtyWorker {
     commands: Option<SyncSender<PtyCommand>>,
     events: Option<Receiver<PtyWorkerEvent>>,
     join: Option<JoinHandle<()>>,
+    io_cancellation: Option<Box<dyn PtyIoCancellation>>,
+    shutdown_requested: Arc<AtomicBool>,
 }
 
 impl PtyWorker {
@@ -698,6 +764,7 @@ impl PtyWorker {
                 return Err(PtyWorkerError::Pty(error));
             }
         };
+        let io_cancellation = session.take_io_cancellation();
         let throughput = std::env::var_os("TERMINAL_THROUGHPUT_DIAGNOSTICS")
             .is_some_and(|v| v == "1")
             .then(|| Arc::new(throughput::Metrics::default()));
@@ -710,6 +777,7 @@ impl PtyWorker {
         let notifier: Arc<dyn Fn() + Send + Sync> = Arc::new(notifier);
         let reader_events = event_sender.clone();
         let reader_disconnected = Arc::clone(&receiver_disconnected);
+        let shutdown_requested = Arc::clone(&receiver_disconnected);
         let reader_failed_flag = Arc::clone(&reader_failed);
         let reader_notifier = Arc::clone(&notifier);
 
@@ -742,6 +810,8 @@ impl PtyWorker {
             commands: Some(command_sender),
             events: Some(event_receiver),
             join: Some(join),
+            io_cancellation,
+            shutdown_requested,
         })
     }
 
@@ -813,6 +883,12 @@ impl PtyWorker {
     /// Discards unread events, requests termination, and joins both worker threads.
     pub fn shutdown_and_join(&mut self) -> Result<(), PtyWorkerError> {
         self.events.take();
+        self.shutdown_requested.store(true, Ordering::Release);
+        let cancellation = self
+            .io_cancellation
+            .as_ref()
+            .map_or(Ok(()), |cancellation| cancellation.cancel())
+            .map_err(PtyWorkerError::Pty);
         if let Some(sender) = &self.commands {
             let _ = sender.send(PtyCommand::Terminate);
         }
@@ -823,7 +899,7 @@ impl PtyWorker {
         if let Some(stats) = &self.throughput {
             stats.clear_pending();
         }
-        result
+        result.and(cancellation)
     }
 }
 

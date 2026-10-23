@@ -84,7 +84,9 @@ Completion marks require tested acceptance criteria, not code presence alone.
 - [x] Terminate consumed sessions on worker reader-acquisition failure and prevent shutdown CPU spinning while waiting for reader completion.
   - Focused regressions and native Linux lifecycle/close checks passed; native Windows/macOS follow-up remains. See [startup/shutdown reliability](STARTUP_SHUTDOWN_RELIABILITY.md).
 - [x] Add the documented portable-session Drop safety net for direct adapter owners, terminating and reaping live children.
-  - A 40-session native Linux probe left 40 children before and zero after; regression and lifecycle checks passed. [Resource cleanup audit](RESOURCE_CLEANUP_MEMORY_SAFETY.md) records measurements, the unresolved blocked-input shutdown reproduction, and Windows/macOS acceptance limits. The [GPU crash follow-up](GPU_CONCURRENT_VALIDATION.md) reproduces the Vulkan loader failure without terminal/PTY code; concurrent native GPU validation remains a documented external limitation.
+  - A 40-session native Linux probe left 40 children before and zero after; regression and lifecycle checks passed. [Resource cleanup audit](RESOURCE_CLEANUP_MEMORY_SAFETY.md) records measurements and Windows/macOS acceptance limits. The [GPU crash follow-up](GPU_CONCURRENT_VALIDATION.md) reproduces the Vulkan loader failure without terminal/PTY code; concurrent native GPU validation remains a documented external limitation.
+- [x] Cancel blocked Unix PTY I/O before worker shutdown and join.
+  - Deterministic regressions, Linux child/thread/FD cleanup, and before/after shutdown measurements passed. See [blocked PTY shutdown](BLOCKED_PTY_SHUTDOWN.md). Windows cancellation remains open; macOS execution is unverified.
 
 ## M4: Window and renderer
 
