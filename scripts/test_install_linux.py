@@ -110,6 +110,20 @@ class InstallationTests(unittest.TestCase):
             installer.install("install", self.home / "missing")
         self.assertFalse(self.data.exists())
 
+    def test_unwritable_ownership_record_stops_before_installing_files(self):
+        record = self.data / "terminal/desktop-install.json"
+        write = installer.atomic_write
+
+        def fail_record(path, contents, mode):
+            if path == record:
+                raise PermissionError("record directory is read-only")
+            write(path, contents, mode)
+
+        with patch.object(installer, "atomic_write", side_effect=fail_record):
+            with self.assertRaisesRegex(PermissionError, "read-only"):
+                self.install()
+        self.assertFalse(any(path.exists() for path in installer.destinations(self.home, self.data)))
+
     def test_legacy_launcher_is_reported_and_preserved(self):
         legacy = self.data / "applications/terminal.desktop"
         legacy.parent.mkdir(parents=True)

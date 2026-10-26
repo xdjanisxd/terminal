@@ -1,6 +1,6 @@
 # Releases
 
-The `Release` GitHub Actions workflow verifies, builds, packages, and smoke-tests native binaries. Every archive contains exactly `terminal` (`terminal.exe` on Windows), `README.md`, `config.example.toml`, and `LICENSE`. The example config is reference material and is not installed as an active `config.toml`. Windows jobs also build MSI installers from the same executable, without another Cargo build.
+The `Release` GitHub Actions workflow verifies, builds, packages, and smoke-tests native binaries. Every archive contains `terminal` (`terminal.exe` on Windows), `README.md`, `config.example.toml`, and `LICENSE`. Linux archives also contain the per-user installer, desktop integration guide, desktop entry, and hicolor icons. The example config is reference material and is not installed as an active `config.toml`. Windows jobs also build MSI installers from the same executable, without another Cargo build. See the [Linux release-readiness record](LINUX_RELEASE_READINESS.md) for Debian validation evidence and remaining interactive checks.
 
 | Runner | Rust target | Release asset |
 | --- | --- | --- |

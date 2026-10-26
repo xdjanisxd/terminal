@@ -93,6 +93,17 @@ def install(action, binary=None):
     if not data.is_absolute():
         data = home / ".local/share"
     paths = destinations(home, data)
+    if action == "install":
+        root = Path(__file__).resolve().parent
+        share = root / "share" if (root / "share").is_dir() else root.parent / "assets/branding/linux/share"
+        source = Path(binary) if binary else root / "terminal"
+        if not source.is_file() or not os.access(source, os.X_OK):
+            raise ValueError(f"missing executable binary: {source}; pass --binary PATH")
+        desktop = (share / "applications" / f"{APP_ID}.desktop").read_text()
+        desktop = desktop.replace("\nExec=terminal\n", f"\nExec={exec_value(paths[0])}\n")
+        desktop = desktop.replace("\nTryExec=terminal\n", f"\nTryExec={string_value(paths[0])}\n")
+        contents = [source.read_bytes(), desktop.encode()]
+        contents.extend((share / path.relative_to(data)).read_bytes() for path in paths[2:])
     warn_legacy_launcher(data)
     record = data / "terminal/desktop-install.json"
     if record.is_symlink():
@@ -109,6 +120,9 @@ def install(action, binary=None):
         if path.exists() or path.is_symlink():
             if str(path) not in owned or digest(path) != owned[str(path)]:
                 raise ValueError(f"refusing unrelated or modified file: {path}")
+    if action == "install":
+        # Check ownership-record storage before installing into another directory.
+        atomic_write(record, (json.dumps(owned, indent=2) + "\n").encode(), 0o600)
     if action == "uninstall":
         for path in paths:
             if str(path) in owned and path.exists():
@@ -119,17 +133,6 @@ def install(action, binary=None):
         print("Uninstalled Terminal; configuration and Saved Workspaces preserved.")
         return
 
-    root = Path(__file__).resolve().parent
-    share = root / "share" if (root / "share").is_dir() else root.parent / "assets/branding/linux/share"
-    source = Path(binary) if binary else root / "terminal"
-    if not source.is_file() or not os.access(source, os.X_OK):
-        raise ValueError(f"missing executable binary: {source}; pass --binary PATH")
-    contents = [source.read_bytes()]
-    desktop = (share / "applications" / f"{APP_ID}.desktop").read_text()
-    desktop = desktop.replace("\nExec=terminal\n", f"\nExec={exec_value(paths[0])}\n")
-    desktop = desktop.replace("\nTryExec=terminal\n", f"\nTryExec={string_value(paths[0])}\n")
-    contents.append(desktop.encode())
-    contents.extend((share / path.relative_to(data)).read_bytes() for path in paths[2:])
     # A replacement binary is renamed into place, so already running instances
     # retain their executable and an interrupted copy cannot truncate it.
     for index, (path, content) in enumerate(zip(paths, contents)):
