@@ -1,6 +1,6 @@
 # Terminal
 
-Terminal is a keyboard-focused, GPU-rendered terminal emulator with tabs, split panes, and reusable workspaces. It is built in Rust for Windows, Linux, and macOS. Portable archives and Windows MSI installers are configured for GitHub Releases; source builds are also supported.
+Terminal is a keyboard-focused, GPU-rendered terminal emulator with tabs, split panes, and reusable workspaces. It is built in Rust for Windows, Linux, and macOS. The current automated release workflow packages Linux GNU archives; source builds are supported for other targets.
 
 ## Features
 
@@ -44,6 +44,8 @@ tar -xzf terminal-linux-x86_64.tar.gz
 ```
 
 The Linux archive uses the GNU libc target and needs compatible system graphics, window-system, and font libraries. It is not a fully static binary; see [release requirements](docs/RELEASE.md).
+
+Check an extracted binary's version with `./terminal --version` or `./terminal -V`.
 
 ### macOS
 
@@ -192,7 +194,7 @@ Installed fallback fonts can supply color emoji, including Noto Color Emoji on L
 
 ## Project status and development
 
-Portable release packaging is configured for Windows, Linux, and macOS, with additional Windows MSI installers. Signing remains future work. See [release engineering](docs/RELEASE.md), [current state](docs/CURRENT_STATE.md), and the [roadmap](docs/ROADMAP.md) for details. Repository validation uses:
+The current automated release workflow packages Linux x86_64 and ARM64 GNU archives. Windows MSI tooling remains in the repository but is outside that workflow; macOS release packaging is not configured. Signing remains future work. See [release engineering](docs/RELEASE.md), [current state](docs/CURRENT_STATE.md), and the [roadmap](docs/ROADMAP.md) for details. Repository validation uses:
 
 ```sh
 cargo fmt --all -- --check

@@ -4889,6 +4889,10 @@ impl PtyDrainBudget {
 fn main() {
     let started = Instant::now();
     let args: Vec<_> = std::env::args_os().skip(1).collect();
+    if matches!(args.as_slice(), [arg] if arg == "--version" || arg == "-V") {
+        println!("terminal {}", env!("CARGO_PKG_VERSION"));
+        return;
+    }
     if args.first().is_some_and(|arg| arg == "--throughput-run") {
         assert!(
             throughput::enabled(),
