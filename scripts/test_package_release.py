@@ -56,7 +56,7 @@ class PackagingTests(unittest.TestCase):
                 self.assertEqual(Path(command[0]).name, "terminal")
                 self.assertIn(command[1:], (["--help"], ["--version"], ["-V"]))
                 output = ("Usage: terminal [OPTIONS]\n" if command[1] == "--help"
-                          else "terminal 0.2.2-rc.1\n")
+                          else "terminal 0.2.2\n")
                 return subprocess.CompletedProcess(command, 0, output)
 
             with patch.object(release.subprocess, "run", side_effect=smoke_command) as run:
