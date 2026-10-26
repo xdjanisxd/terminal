@@ -1,6 +1,6 @@
 use terminal_core::{
-    AutoWrapMode, CellColor, CellOccupancy, CharacterInsertionMode, TerminalDimensions,
-    TerminalState,
+    AutoWrapMode, CellColor, CellOccupancy, CharacterInsertionMode, CursorMovement,
+    TerminalDimensions, TerminalState,
 };
 
 fn state(columns: usize, rows: usize) -> TerminalState {
@@ -162,6 +162,46 @@ fn erase_editing_resize_reset_and_vertical_moves_preserve_wide_cell_structure() 
             state.screen().cell(row, column).unwrap().occupancy() == CellOccupancy::Single
         }))
     );
+}
+
+#[test]
+fn resize_after_reverse_index_normalizes_wide_cells_in_all_rows() {
+    let mut state = state(12, 5);
+    state.switch_to_alternate_screen();
+    state.print_character('界').unwrap();
+    state.reverse_index();
+
+    state.resize(TerminalDimensions::new(1, 13).unwrap());
+
+    assert_valid_wide_cells(&state);
+}
+
+#[test]
+fn reflow_keeps_wide_continuation_when_cursor_move_clears_delayed_wrap() {
+    let mut state = state(12, 5);
+    for _ in 0..6 {
+        state.print_character('👩').unwrap();
+    }
+    state.move_cursor(CursorMovement::Down(1));
+    state.move_cursor(CursorMovement::Up(1));
+    state.print_character('👩').unwrap();
+
+    assert_eq!(state.viewport_wrap_columns(0), 12);
+    state.resize(TerminalDimensions::new(5, 2).unwrap());
+
+    assert_valid_wide_cells(&state);
+    let historical = (0..state.scrollback_len())
+        .flat_map(|row| state.scrollback_row(row).unwrap())
+        .filter(|cell| cell.is_wide_lead())
+        .count();
+    let live = (0..state.dimensions().rows())
+        .map(|row| {
+            (0..state.dimensions().columns())
+                .filter(|&column| state.screen().cell(row, column).unwrap().is_wide_lead())
+                .count()
+        })
+        .sum::<usize>();
+    assert_eq!(historical + live, 7);
 }
 
 #[test]

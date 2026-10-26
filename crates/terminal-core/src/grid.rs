@@ -308,27 +308,29 @@ impl ScreenGrid {
                 }
             }
         }
-        debug_assert!(self.wide_cells_are_valid());
+        debug_assert!(self.row_wide_cells_are_valid(row));
         debug_assert_eq!(end, start + columns);
     }
 
     fn wide_cells_are_valid(&self) -> bool {
-        (0..self.dimensions.rows()).all(|row| {
-            (0..self.dimensions.columns()).all(|column| {
-                match self.cell(row, column).unwrap().occupancy() {
-                    CellOccupancy::Single => true,
-                    CellOccupancy::WideLead => {
-                        column + 1 < self.dimensions.columns()
-                            && self.cell(row, column + 1).unwrap().occupancy()
-                                == CellOccupancy::WideContinuation
-                    }
-                    CellOccupancy::WideContinuation => {
-                        column > 0
-                            && self.cell(row, column - 1).unwrap().occupancy()
-                                == CellOccupancy::WideLead
-                    }
+        (0..self.dimensions.rows()).all(|row| self.row_wide_cells_are_valid(row))
+    }
+
+    fn row_wide_cells_are_valid(&self, row: usize) -> bool {
+        (0..self.dimensions.columns()).all(|column| {
+            match self.cell(row, column).unwrap().occupancy() {
+                CellOccupancy::Single => true,
+                CellOccupancy::WideLead => {
+                    column + 1 < self.dimensions.columns()
+                        && self.cell(row, column + 1).unwrap().occupancy()
+                            == CellOccupancy::WideContinuation
                 }
-            })
+                CellOccupancy::WideContinuation => {
+                    column > 0
+                        && self.cell(row, column - 1).unwrap().occupancy()
+                            == CellOccupancy::WideLead
+                }
+            }
         })
     }
 
@@ -431,6 +433,7 @@ impl ScreenGrid {
         for row in 0..dimensions.rows() {
             self.normalize_row(row, Cell::default());
         }
+        debug_assert!(self.wide_cells_are_valid());
         self.cursor.clamp_to(dimensions);
     }
 }

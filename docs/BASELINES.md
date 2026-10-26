@@ -20,20 +20,33 @@ The independent `fuzz/` Cargo workspace keeps libFuzzer and nightly-only tooling
 
 | Target | Input and invariant |
 | --- | --- |
-| `parser_bytes` | At most 4 KiB of arbitrary PTY bytes, fed in seven-byte chunks. After each chunk, cursor, scrollback, viewport, reply-queue, and visible-cell bounds must hold, even if a semantic operation reports an error. |
-| `state_actions` | At most 4 KiB of deterministic operation triples selecting index, page navigation, selection, selected-text read, and bounded resize. Cursor, history, and viewport bounds must hold after every action. |
+| `parser_bytes` | At most 4 KiB of arbitrary PTY bytes, replayed at 1-, 2-, 7-, 32-byte, input-derived, and variable chunk boundaries. This covers incomplete and cancelled CSI/OSC/DCS sequences, split UTF-8, and grapheme edits. Cursor, scrollback, viewport, reply-queue, and visible-cell bounds must hold after input, including semantic errors. |
+| `state_actions` | At most 4 KiB of operations selecting index/reverse-index, page and row scrolling, selection, text reads, resize up to 32 × 16, Primary/Alternate switches, reset, and ASCII/CJK/combining/emoji printing. Cursor, history, and viewport bounds must hold after every action; stored row and wrap extents must fit dimensions, and every stored cell must be addressable at the end. |
 
-On a supported Unix-like host, install a nightly toolchain and `cargo-fuzz`, then from the repository root run:
+The targets are split by ownership: `parser_bytes` feeds wire bytes to the incremental parser and semantics, while `state_actions` drives state transitions directly so resize/reflow and screen ownership are reached without needing a matching escape stream. Reviewed initial inputs live in `fuzz/seeds/<target>/`; libFuzzer's generated corpus, crash artifacts, and coverage stay ignored under `fuzz/`. Parser seeds cover malformed parameters, OSC/DCS cancellation, ST/BEL termination, split UTF-8 graphemes, and prior DEC graphics/alternate-screen/ED3/reset regressions. State seeds cover screen switches, resize, scrolling, selection, reset, truncated action records, and the minimized wide-cell reflow regression.
+
+On Linux, install a nightly toolchain and `cargo-fuzz`, then run repeatable 60-second campaigns from `fuzz/`. Use a temporary writable corpus so libFuzzer does not modify reviewed seeds:
 
 ```sh
 rustup toolchain install nightly
 cargo install cargo-fuzz
 cd fuzz
-cargo +nightly fuzz run parser_bytes -- -max_len=4096
-cargo +nightly fuzz run state_actions -- -max_len=4096
+run_campaign() (
+  set -e
+  target=$1
+  seconds=$2
+  corpus=$(mktemp -d)
+  trap 'rm -rf "$corpus"' EXIT
+  cp -R "seeds/$target/." "$corpus/"
+  cargo +nightly fuzz run "$target" "$corpus" -- -max_len=4096 -max_total_time="$seconds" -rss_limit_mb=1024 -timeout=10 -seed=20261026
+)
+run_campaign parser_bytes 60
+run_campaign state_actions 60
 ```
 
-Keep any minimized regression input as a reviewed deterministic fixture or test. Run `cargo test -p terminal-core --test deterministic_inputs --test compatibility_fixtures` for the CI-safe subset. The fuzz binaries were not executed in the initial Windows baseline: `libfuzzer-sys` was unavailable in the local offline registry, and `cargo-fuzz` was not installed. Target compilation and fuzz findings still need a supported host run.
+Use `run_campaign parser_bytes 1800` and `run_campaign state_actions 1800` for 30-minute campaigns. The input cap, 1 GiB RSS limit, and 10-second per-input timeout bound local resource use. Reproduce a saved crash with `cargo +nightly fuzz run <target> <artifact-path>` from `fuzz/`; minimize it with `cargo +nightly fuzz tmin <target> <artifact-path>`. Keep minimized reproductions as reviewed seeds and deterministic terminal-core tests. Run `cargo test -p terminal-core --test deterministic_inputs --test compatibility_fixtures` for the stable-Rust subset.
+
+Linux campaign record, 2026-10-26 (`x86_64-unknown-linux-gnu`, Rust 1.101.0-nightly, `cargo-fuzz` 0.13.2): `parser_bytes` ran 61 seconds and executed 147,709 inputs, reaching 1,808 edge counters at 136 MiB peak RSS. `state_actions` ran 61 seconds and executed 92,136 inputs, reaching 1,242 edge counters at 379 MiB peak RSS. Both finished without crashes or timeouts after fixing the discovered regressions. Edge-counter totals are target-specific, not whole-crate coverage.
 
 ## Benchmarks
 

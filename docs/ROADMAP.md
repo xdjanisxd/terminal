@@ -147,7 +147,7 @@ later performance/polish work.
   - [x] Show split panes simultaneously with layout geometry and pane focus UI
 - [x] Add project roots, startup commands, expanded command palette features, and basic CLI control
 - [x] Establish compatibility, fuzzing, and performance baselines
-  - Representative shell/TUI fixtures, deterministic CI input tests, isolated libFuzzer targets, and fixed-workload parser/state/projection benchmarks are documented in `docs/BASELINES.md`. Fuzz execution on a supported host remains to be run.
+  - Representative shell/TUI fixtures, deterministic CI input tests, isolated libFuzzer targets, and fixed-workload parser/state/projection benchmarks are documented in `docs/BASELINES.md`. Linux campaigns ran both targets for 60 seconds; corpus and findings are recorded there.
 - [x] Dedicated input and frame-pacing performance task: investigate delayed typing/input, janky Backspace/delete, non-smooth PageUp/PageDown, live resize trailing the pointer (including temporary text scaling), and overall UI/frame pacing relative to mature terminals such as Alacritty
 - [x] Add an in-terminal search UI for Primary-screen scrollback, with next/previous match navigation bounded to terminal-owned history and the visible viewport.
   - Ctrl+F opens app-owned literal search; Enter/Shift+Enter navigate bounded matches, and Escape closes it. The renderer highlights the active match without changing terminal cells or searching Alternate-screen content.
