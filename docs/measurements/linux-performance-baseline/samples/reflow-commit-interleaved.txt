@@ -1,0 +1,217 @@
+PAIR 1
+OLD
+resize_one_column_unicode_pair: operations=20 elapsed_ns=11785378 ns_per_operation=589268.9
+resize_columns_pair_history_0: operations=100 elapsed_ns=6103312 ns_per_operation=61033.1
+resize_height_pair_history_0: operations=100 elapsed_ns=4577429 ns_per_operation=45774.3
+resize_unchanged_history_0: operations=10000 elapsed_ns=16058 ns_per_operation=1.6
+resize_columns_pair_history_2000: operations=100 elapsed_ns=134772649 ns_per_operation=1347726.5
+resize_height_pair_history_2000: operations=100 elapsed_ns=3296726 ns_per_operation=32967.3
+resize_unchanged_history_2000: operations=10000 elapsed_ns=18551 ns_per_operation=1.9
+resize_columns_pair_history_10000: operations=100 elapsed_ns=791086891 ns_per_operation=7910868.9
+resize_height_pair_history_10000: operations=100 elapsed_ns=3082117 ns_per_operation=30821.2
+resize_unchanged_history_10000: operations=10000 elapsed_ns=16072 ns_per_operation=1.6
+parse_plain_state: operations=2000 elapsed_ns=16363807 ns_per_operation=8181.9
+parse_escape_state: operations=2000 elapsed_ns=8246820 ns_per_operation=4123.4
+scrollback_page_pair: operations=10000 elapsed_ns=39097 ns_per_operation=3.9
+selection_extend: operations=10000 elapsed_ns=39769 ns_per_operation=4.0
+CURRENT
+resize_one_column_unicode_pair: operations=20 elapsed_ns=8694073 ns_per_operation=434703.7
+resize_columns_pair_history_0: operations=100 elapsed_ns=5714038 ns_per_operation=57140.4
+resize_height_pair_history_0: operations=100 elapsed_ns=4208549 ns_per_operation=42085.5
+resize_unchanged_history_0: operations=10000 elapsed_ns=11503 ns_per_operation=1.2
+resize_columns_pair_history_2000: operations=100 elapsed_ns=126275152 ns_per_operation=1262751.5
+resize_height_pair_history_2000: operations=100 elapsed_ns=3103952 ns_per_operation=31039.5
+resize_unchanged_history_2000: operations=10000 elapsed_ns=11624 ns_per_operation=1.2
+resize_columns_pair_history_10000: operations=100 elapsed_ns=841934224 ns_per_operation=8419342.2
+resize_height_pair_history_10000: operations=100 elapsed_ns=3350914 ns_per_operation=33509.1
+resize_unchanged_history_10000: operations=10000 elapsed_ns=11516 ns_per_operation=1.2
+parse_plain_state: operations=2000 elapsed_ns=16506747 ns_per_operation=8253.4
+parse_escape_state: operations=2000 elapsed_ns=8155995 ns_per_operation=4078.0
+scrollback_page_pair: operations=10000 elapsed_ns=39167 ns_per_operation=3.9
+selection_extend: operations=10000 elapsed_ns=39828 ns_per_operation=4.0
+PAIR 2
+CURRENT
+resize_one_column_unicode_pair: operations=20 elapsed_ns=15106504 ns_per_operation=755325.2
+resize_columns_pair_history_0: operations=100 elapsed_ns=5902344 ns_per_operation=59023.4
+resize_height_pair_history_0: operations=100 elapsed_ns=4646433 ns_per_operation=46464.3
+resize_unchanged_history_0: operations=10000 elapsed_ns=11681 ns_per_operation=1.2
+resize_columns_pair_history_2000: operations=100 elapsed_ns=121565221 ns_per_operation=1215652.2
+resize_height_pair_history_2000: operations=100 elapsed_ns=3049680 ns_per_operation=30496.8
+resize_unchanged_history_2000: operations=10000 elapsed_ns=11629 ns_per_operation=1.2
+resize_columns_pair_history_10000: operations=100 elapsed_ns=873447344 ns_per_operation=8734473.4
+resize_height_pair_history_10000: operations=100 elapsed_ns=3064194 ns_per_operation=30641.9
+resize_unchanged_history_10000: operations=10000 elapsed_ns=11504 ns_per_operation=1.2
+parse_plain_state: operations=2000 elapsed_ns=16143397 ns_per_operation=8071.7
+parse_escape_state: operations=2000 elapsed_ns=8094614 ns_per_operation=4047.3
+scrollback_page_pair: operations=10000 elapsed_ns=38953 ns_per_operation=3.9
+selection_extend: operations=10000 elapsed_ns=39936 ns_per_operation=4.0
+OLD
+resize_one_column_unicode_pair: operations=20 elapsed_ns=8917222 ns_per_operation=445861.1
+resize_columns_pair_history_0: operations=100 elapsed_ns=5662542 ns_per_operation=56625.4
+resize_height_pair_history_0: operations=100 elapsed_ns=4359889 ns_per_operation=43598.9
+resize_unchanged_history_0: operations=10000 elapsed_ns=16017 ns_per_operation=1.6
+resize_columns_pair_history_2000: operations=100 elapsed_ns=97786224 ns_per_operation=977862.2
+resize_height_pair_history_2000: operations=100 elapsed_ns=2999551 ns_per_operation=29995.5
+resize_unchanged_history_2000: operations=10000 elapsed_ns=16183 ns_per_operation=1.6
+resize_columns_pair_history_10000: operations=100 elapsed_ns=812041236 ns_per_operation=8120412.4
+resize_height_pair_history_10000: operations=100 elapsed_ns=3255844 ns_per_operation=32558.4
+resize_unchanged_history_10000: operations=10000 elapsed_ns=16094 ns_per_operation=1.6
+parse_plain_state: operations=2000 elapsed_ns=16248657 ns_per_operation=8124.3
+parse_escape_state: operations=2000 elapsed_ns=8060250 ns_per_operation=4030.1
+scrollback_page_pair: operations=10000 elapsed_ns=39058 ns_per_operation=3.9
+selection_extend: operations=10000 elapsed_ns=45846 ns_per_operation=4.6
+PAIR 3
+OLD
+resize_one_column_unicode_pair: operations=20 elapsed_ns=8383118 ns_per_operation=419155.9
+resize_columns_pair_history_0: operations=100 elapsed_ns=5807968 ns_per_operation=58079.7
+resize_height_pair_history_0: operations=100 elapsed_ns=4462179 ns_per_operation=44621.8
+resize_unchanged_history_0: operations=10000 elapsed_ns=16053 ns_per_operation=1.6
+resize_columns_pair_history_2000: operations=100 elapsed_ns=106796809 ns_per_operation=1067968.1
+resize_height_pair_history_2000: operations=100 elapsed_ns=3129648 ns_per_operation=31296.5
+resize_unchanged_history_2000: operations=10000 elapsed_ns=16046 ns_per_operation=1.6
+resize_columns_pair_history_10000: operations=100 elapsed_ns=819770743 ns_per_operation=8197707.4
+resize_height_pair_history_10000: operations=100 elapsed_ns=3049409 ns_per_operation=30494.1
+resize_unchanged_history_10000: operations=10000 elapsed_ns=16716 ns_per_operation=1.7
+parse_plain_state: operations=2000 elapsed_ns=16240773 ns_per_operation=8120.4
+parse_escape_state: operations=2000 elapsed_ns=7926475 ns_per_operation=3963.2
+scrollback_page_pair: operations=10000 elapsed_ns=38991 ns_per_operation=3.9
+selection_extend: operations=10000 elapsed_ns=39751 ns_per_operation=4.0
+CURRENT
+resize_one_column_unicode_pair: operations=20 elapsed_ns=8399046 ns_per_operation=419952.3
+resize_columns_pair_history_0: operations=100 elapsed_ns=5790302 ns_per_operation=57903.0
+resize_height_pair_history_0: operations=100 elapsed_ns=4654007 ns_per_operation=46540.1
+resize_unchanged_history_0: operations=10000 elapsed_ns=11911 ns_per_operation=1.2
+resize_columns_pair_history_2000: operations=100 elapsed_ns=119146500 ns_per_operation=1191465.0
+resize_height_pair_history_2000: operations=100 elapsed_ns=3467790 ns_per_operation=34677.9
+resize_unchanged_history_2000: operations=10000 elapsed_ns=13287 ns_per_operation=1.3
+resize_columns_pair_history_10000: operations=100 elapsed_ns=834381479 ns_per_operation=8343814.8
+resize_height_pair_history_10000: operations=100 elapsed_ns=3097328 ns_per_operation=30973.3
+resize_unchanged_history_10000: operations=10000 elapsed_ns=11508 ns_per_operation=1.2
+parse_plain_state: operations=2000 elapsed_ns=15797134 ns_per_operation=7898.6
+parse_escape_state: operations=2000 elapsed_ns=8112930 ns_per_operation=4056.5
+scrollback_page_pair: operations=10000 elapsed_ns=39034 ns_per_operation=3.9
+selection_extend: operations=10000 elapsed_ns=46082 ns_per_operation=4.6
+PAIR 4
+CURRENT
+resize_one_column_unicode_pair: operations=20 elapsed_ns=8710237 ns_per_operation=435511.8
+resize_columns_pair_history_0: operations=100 elapsed_ns=5655714 ns_per_operation=56557.1
+resize_height_pair_history_0: operations=100 elapsed_ns=4220997 ns_per_operation=42210.0
+resize_unchanged_history_0: operations=10000 elapsed_ns=11856 ns_per_operation=1.2
+resize_columns_pair_history_2000: operations=100 elapsed_ns=106762425 ns_per_operation=1067624.2
+resize_height_pair_history_2000: operations=100 elapsed_ns=3079062 ns_per_operation=30790.6
+resize_unchanged_history_2000: operations=10000 elapsed_ns=11523 ns_per_operation=1.2
+resize_columns_pair_history_10000: operations=100 elapsed_ns=846542221 ns_per_operation=8465422.2
+resize_height_pair_history_10000: operations=100 elapsed_ns=3159205 ns_per_operation=31592.0
+resize_unchanged_history_10000: operations=10000 elapsed_ns=11481 ns_per_operation=1.1
+parse_plain_state: operations=2000 elapsed_ns=16031452 ns_per_operation=8015.7
+parse_escape_state: operations=2000 elapsed_ns=8226442 ns_per_operation=4113.2
+scrollback_page_pair: operations=10000 elapsed_ns=39006 ns_per_operation=3.9
+selection_extend: operations=10000 elapsed_ns=39813 ns_per_operation=4.0
+OLD
+resize_one_column_unicode_pair: operations=20 elapsed_ns=9191733 ns_per_operation=459586.7
+resize_columns_pair_history_0: operations=100 elapsed_ns=5783010 ns_per_operation=57830.1
+resize_height_pair_history_0: operations=100 elapsed_ns=4489675 ns_per_operation=44896.8
+resize_unchanged_history_0: operations=10000 elapsed_ns=16064 ns_per_operation=1.6
+resize_columns_pair_history_2000: operations=100 elapsed_ns=114022616 ns_per_operation=1140226.2
+resize_height_pair_history_2000: operations=100 elapsed_ns=3386833 ns_per_operation=33868.3
+resize_unchanged_history_2000: operations=10000 elapsed_ns=16323 ns_per_operation=1.6
+resize_columns_pair_history_10000: operations=100 elapsed_ns=819201318 ns_per_operation=8192013.2
+resize_height_pair_history_10000: operations=100 elapsed_ns=3341024 ns_per_operation=33410.2
+resize_unchanged_history_10000: operations=10000 elapsed_ns=16103 ns_per_operation=1.6
+parse_plain_state: operations=2000 elapsed_ns=16173109 ns_per_operation=8086.6
+parse_escape_state: operations=2000 elapsed_ns=7940162 ns_per_operation=3970.1
+scrollback_page_pair: operations=10000 elapsed_ns=45132 ns_per_operation=4.5
+selection_extend: operations=10000 elapsed_ns=39897 ns_per_operation=4.0
+PAIR 5
+OLD
+resize_one_column_unicode_pair: operations=20 elapsed_ns=9548519 ns_per_operation=477426.0
+resize_columns_pair_history_0: operations=100 elapsed_ns=6106024 ns_per_operation=61060.2
+resize_height_pair_history_0: operations=100 elapsed_ns=4344808 ns_per_operation=43448.1
+resize_unchanged_history_0: operations=10000 elapsed_ns=16021 ns_per_operation=1.6
+resize_columns_pair_history_2000: operations=100 elapsed_ns=110145432 ns_per_operation=1101454.3
+resize_height_pair_history_2000: operations=100 elapsed_ns=3082873 ns_per_operation=30828.7
+resize_unchanged_history_2000: operations=10000 elapsed_ns=16050 ns_per_operation=1.6
+resize_columns_pair_history_10000: operations=100 elapsed_ns=817432097 ns_per_operation=8174321.0
+resize_height_pair_history_10000: operations=100 elapsed_ns=3076319 ns_per_operation=30763.2
+resize_unchanged_history_10000: operations=10000 elapsed_ns=16083 ns_per_operation=1.6
+parse_plain_state: operations=2000 elapsed_ns=16181016 ns_per_operation=8090.5
+parse_escape_state: operations=2000 elapsed_ns=7889390 ns_per_operation=3944.7
+scrollback_page_pair: operations=10000 elapsed_ns=39018 ns_per_operation=3.9
+selection_extend: operations=10000 elapsed_ns=45972 ns_per_operation=4.6
+CURRENT
+resize_one_column_unicode_pair: operations=20 elapsed_ns=9928620 ns_per_operation=496431.0
+resize_columns_pair_history_0: operations=100 elapsed_ns=5782243 ns_per_operation=57822.4
+resize_height_pair_history_0: operations=100 elapsed_ns=4485241 ns_per_operation=44852.4
+resize_unchanged_history_0: operations=10000 elapsed_ns=11649 ns_per_operation=1.2
+resize_columns_pair_history_2000: operations=100 elapsed_ns=129420855 ns_per_operation=1294208.6
+resize_height_pair_history_2000: operations=100 elapsed_ns=3148345 ns_per_operation=31483.5
+resize_unchanged_history_2000: operations=10000 elapsed_ns=11846 ns_per_operation=1.2
+resize_columns_pair_history_10000: operations=100 elapsed_ns=823807215 ns_per_operation=8238072.2
+resize_height_pair_history_10000: operations=100 elapsed_ns=3024121 ns_per_operation=30241.2
+resize_unchanged_history_10000: operations=10000 elapsed_ns=11509 ns_per_operation=1.2
+parse_plain_state: operations=2000 elapsed_ns=16087021 ns_per_operation=8043.5
+parse_escape_state: operations=2000 elapsed_ns=8269812 ns_per_operation=4134.9
+scrollback_page_pair: operations=10000 elapsed_ns=39055 ns_per_operation=3.9
+selection_extend: operations=10000 elapsed_ns=39718 ns_per_operation=4.0
+PAIR 6
+CURRENT
+resize_one_column_unicode_pair: operations=20 elapsed_ns=9245758 ns_per_operation=462287.9
+resize_columns_pair_history_0: operations=100 elapsed_ns=5922782 ns_per_operation=59227.8
+resize_height_pair_history_0: operations=100 elapsed_ns=4586457 ns_per_operation=45864.6
+resize_unchanged_history_0: operations=10000 elapsed_ns=11579 ns_per_operation=1.2
+resize_columns_pair_history_2000: operations=100 elapsed_ns=112465862 ns_per_operation=1124658.6
+resize_height_pair_history_2000: operations=100 elapsed_ns=3077261 ns_per_operation=30772.6
+resize_unchanged_history_2000: operations=10000 elapsed_ns=11762 ns_per_operation=1.2
+resize_columns_pair_history_10000: operations=100 elapsed_ns=753307708 ns_per_operation=7533077.1
+resize_height_pair_history_10000: operations=100 elapsed_ns=3131819 ns_per_operation=31318.2
+resize_unchanged_history_10000: operations=10000 elapsed_ns=11483 ns_per_operation=1.1
+parse_plain_state: operations=2000 elapsed_ns=16369374 ns_per_operation=8184.7
+parse_escape_state: operations=2000 elapsed_ns=8043209 ns_per_operation=4021.6
+scrollback_page_pair: operations=10000 elapsed_ns=39014 ns_per_operation=3.9
+selection_extend: operations=10000 elapsed_ns=39778 ns_per_operation=4.0
+OLD
+resize_one_column_unicode_pair: operations=20 elapsed_ns=15326234 ns_per_operation=766311.7
+resize_columns_pair_history_0: operations=100 elapsed_ns=8101606 ns_per_operation=81016.1
+resize_height_pair_history_0: operations=100 elapsed_ns=4222468 ns_per_operation=42224.7
+resize_unchanged_history_0: operations=10000 elapsed_ns=16048 ns_per_operation=1.6
+resize_columns_pair_history_2000: operations=100 elapsed_ns=113761693 ns_per_operation=1137616.9
+resize_height_pair_history_2000: operations=100 elapsed_ns=2841935 ns_per_operation=28419.3
+resize_unchanged_history_2000: operations=10000 elapsed_ns=16092 ns_per_operation=1.6
+resize_columns_pair_history_10000: operations=100 elapsed_ns=875180828 ns_per_operation=8751808.3
+resize_height_pair_history_10000: operations=100 elapsed_ns=3048148 ns_per_operation=30481.5
+resize_unchanged_history_10000: operations=10000 elapsed_ns=16056 ns_per_operation=1.6
+parse_plain_state: operations=2000 elapsed_ns=16106048 ns_per_operation=8053.0
+parse_escape_state: operations=2000 elapsed_ns=7822068 ns_per_operation=3911.0
+scrollback_page_pair: operations=10000 elapsed_ns=39015 ns_per_operation=3.9
+selection_extend: operations=10000 elapsed_ns=39640 ns_per_operation=4.0
+PAIR 7
+OLD
+resize_one_column_unicode_pair: operations=20 elapsed_ns=14605958 ns_per_operation=730297.9
+resize_columns_pair_history_0: operations=100 elapsed_ns=6077796 ns_per_operation=60778.0
+resize_height_pair_history_0: operations=100 elapsed_ns=4769936 ns_per_operation=47699.4
+resize_unchanged_history_0: operations=10000 elapsed_ns=16035 ns_per_operation=1.6
+resize_columns_pair_history_2000: operations=100 elapsed_ns=119203836 ns_per_operation=1192038.4
+resize_height_pair_history_2000: operations=100 elapsed_ns=3505254 ns_per_operation=35052.5
+resize_unchanged_history_2000: operations=10000 elapsed_ns=16048 ns_per_operation=1.6
+resize_columns_pair_history_10000: operations=100 elapsed_ns=887613079 ns_per_operation=8876130.8
+resize_height_pair_history_10000: operations=100 elapsed_ns=3189332 ns_per_operation=31893.3
+resize_unchanged_history_10000: operations=10000 elapsed_ns=18596 ns_per_operation=1.9
+parse_plain_state: operations=2000 elapsed_ns=17181149 ns_per_operation=8590.6
+parse_escape_state: operations=2000 elapsed_ns=8294206 ns_per_operation=4147.1
+scrollback_page_pair: operations=10000 elapsed_ns=39054 ns_per_operation=3.9
+selection_extend: operations=10000 elapsed_ns=40128 ns_per_operation=4.0
+CURRENT
+resize_one_column_unicode_pair: operations=20 elapsed_ns=13252301 ns_per_operation=662615.1
+resize_columns_pair_history_0: operations=100 elapsed_ns=6137313 ns_per_operation=61373.1
+resize_height_pair_history_0: operations=100 elapsed_ns=4652838 ns_per_operation=46528.4
+resize_unchanged_history_0: operations=10000 elapsed_ns=12057 ns_per_operation=1.2
+resize_columns_pair_history_2000: operations=100 elapsed_ns=119254250 ns_per_operation=1192542.5
+resize_height_pair_history_2000: operations=100 elapsed_ns=3250390 ns_per_operation=32503.9
+resize_unchanged_history_2000: operations=10000 elapsed_ns=11504 ns_per_operation=1.2
+resize_columns_pair_history_10000: operations=100 elapsed_ns=881532713 ns_per_operation=8815327.1
+resize_height_pair_history_10000: operations=100 elapsed_ns=3064413 ns_per_operation=30644.1
+resize_unchanged_history_10000: operations=10000 elapsed_ns=11505 ns_per_operation=1.2
+parse_plain_state: operations=2000 elapsed_ns=15745219 ns_per_operation=7872.6
+parse_escape_state: operations=2000 elapsed_ns=7839629 ns_per_operation=3919.8
+scrollback_page_pair: operations=10000 elapsed_ns=38947 ns_per_operation=3.9
+selection_extend: operations=10000 elapsed_ns=39845 ns_per_operation=4.0

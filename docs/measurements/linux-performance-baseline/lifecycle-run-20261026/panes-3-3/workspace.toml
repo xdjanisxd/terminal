@@ -1,0 +1,5 @@
+[workspace]
+active_tab = 0
+[[workspace.tabs]]
+title = "Perf panes"
+layout = { kind = "split", axis = "vertical", first_share = 500000, first = { kind = "split", axis = "vertical", first_share = 500000, first = { kind = "pane", session = { command = { program = "/bin/sh", args = ["-c", "printf 'READY\\n'; exec sleep 300"] } } }, second = { kind = "pane", session = { command = { program = "/bin/sh", args = ["-c", "printf 'READY\\n'; exec sleep 300"] } } } }, second = { kind = "pane", session = { command = { program = "/bin/sh", args = ["-c", "printf 'READY\\n'; exec sleep 300"] } } } }

@@ -1,0 +1,387 @@
+{
+  "measured_utc": "2026-10-26T08:16:40Z",
+  "host": "Linux-6.12.113+deb13-amd64-x86_64-with-glibc2.41",
+  "cpu_model": "12th Gen Intel(R) Core(TM) i5-1250P",
+  "runs": 3,
+  "seconds_per_idle_sample": 10,
+  "binary": "/home/dellian/codes/terminal/target/release/terminal",
+  "samples": [
+    {
+      "scenario": "panes",
+      "count": 1,
+      "sample": 1,
+      "idle_seconds": 10,
+      "close_to_exit_ms": 71.54308499957551,
+      "load_average_before": [
+        1.37744140625,
+        1.38623046875,
+        1.15478515625
+      ],
+      "startup_milestones_ms_from_process_start": {
+        "first-frame-presented": [
+          227.664
+        ],
+        "pty-spawn-complete": [
+          229.652
+        ],
+        "first-shell-text-processed": [
+          231.249
+        ],
+        "first-shell-output-rendered": [
+          240.154
+        ]
+      },
+      "idle_cpu_percent_median": 0.0,
+      "idle_cpu_percent_p95": 1.9984427015323831,
+      "idle_rss_kib_median": 93616.0,
+      "idle_rss_kib_p95": 93616,
+      "idle_rss_kib_range": [
+        93616,
+        93616
+      ],
+      "sample_count": 20,
+      "load_average_after": [
+        1.3193359375,
+        1.373046875,
+        1.15283203125
+      ]
+    },
+    {
+      "scenario": "panes",
+      "count": 1,
+      "sample": 2,
+      "idle_seconds": 10,
+      "close_to_exit_ms": 74.48181899962947,
+      "load_average_before": [
+        1.3193359375,
+        1.373046875,
+        1.15283203125
+      ],
+      "startup_milestones_ms_from_process_start": {
+        "first-frame-presented": [
+          214.374
+        ],
+        "pty-spawn-complete": [
+          216.07
+        ],
+        "first-shell-text-processed": [
+          218.52
+        ],
+        "first-shell-output-rendered": [
+          232.537
+        ]
+      },
+      "idle_cpu_percent_median": 0.0,
+      "idle_cpu_percent_p95": 1.998706085648267,
+      "idle_rss_kib_median": 95072.0,
+      "idle_rss_kib_p95": 95072,
+      "idle_rss_kib_range": [
+        95072,
+        95072
+      ],
+      "sample_count": 20,
+      "load_average_after": [
+        1.31005859375,
+        1.37060546875,
+        1.15625
+      ]
+    },
+    {
+      "scenario": "panes",
+      "count": 1,
+      "sample": 3,
+      "idle_seconds": 10,
+      "close_to_exit_ms": 72.34026199967047,
+      "load_average_before": [
+        1.31005859375,
+        1.37060546875,
+        1.15625
+      ],
+      "startup_milestones_ms_from_process_start": {
+        "first-frame-presented": [
+          204.846
+        ],
+        "pty-spawn-complete": [
+          206.991
+        ],
+        "first-shell-text-processed": [
+          209.154
+        ],
+        "first-shell-output-rendered": [
+          216.038
+        ]
+      },
+      "idle_cpu_percent_median": 0.0,
+      "idle_cpu_percent_p95": 1.9989153965000384,
+      "idle_rss_kib_median": 95188.0,
+      "idle_rss_kib_p95": 95188,
+      "idle_rss_kib_range": [
+        95188,
+        95188
+      ],
+      "sample_count": 20,
+      "load_average_after": [
+        1.1083984375,
+        1.3251953125,
+        1.1435546875
+      ]
+    },
+    {
+      "scenario": "panes",
+      "count": 3,
+      "sample": 1,
+      "idle_seconds": 10,
+      "close_to_exit_ms": 173.28841500057024,
+      "load_average_before": [
+        1.1083984375,
+        1.3251953125,
+        1.1435546875
+      ],
+      "startup_milestones_ms_from_process_start": {
+        "first-frame-presented": [
+          196.576
+        ],
+        "pty-spawn-complete": [
+          201.704
+        ],
+        "first-shell-text-processed": [
+          202.051,
+          205.871,
+          205.877
+        ],
+        "first-shell-output-rendered": [
+          205.84,
+          213.083,
+          213.09
+        ]
+      },
+      "idle_cpu_percent_median": 0.0,
+      "idle_cpu_percent_p95": 1.999210515767173,
+      "idle_rss_kib_median": 98812.0,
+      "idle_rss_kib_p95": 98812,
+      "idle_rss_kib_range": [
+        98812,
+        98812
+      ],
+      "sample_count": 20,
+      "load_average_after": [
+        1.10302734375,
+        1.3095703125,
+        1.14111328125
+      ]
+    },
+    {
+      "scenario": "panes",
+      "count": 3,
+      "sample": 2,
+      "idle_seconds": 10,
+      "close_to_exit_ms": 174.00989300040237,
+      "load_average_before": [
+        1.10302734375,
+        1.3095703125,
+        1.14111328125
+      ],
+      "startup_milestones_ms_from_process_start": {
+        "first-frame-presented": [
+          223.493
+        ],
+        "pty-spawn-complete": [
+          229.49
+        ],
+        "first-shell-text-processed": [
+          229.711,
+          229.726,
+          232.215
+        ],
+        "first-shell-output-rendered": [
+          232.181,
+          232.189
+        ]
+      },
+      "idle_cpu_percent_median": 0.0,
+      "idle_cpu_percent_p95": 1.9986498960072399,
+      "idle_rss_kib_median": 96324.0,
+      "idle_rss_kib_p95": 96324,
+      "idle_rss_kib_range": [
+        96324,
+        96324
+      ],
+      "sample_count": 20,
+      "load_average_after": [
+        1.16748046875,
+        1.31591796875,
+        1.14501953125
+      ]
+    },
+    {
+      "scenario": "panes",
+      "count": 3,
+      "sample": 3,
+      "idle_seconds": 10,
+      "close_to_exit_ms": 171.5634409993072,
+      "load_average_before": [
+        1.16748046875,
+        1.31591796875,
+        1.14501953125
+      ],
+      "startup_milestones_ms_from_process_start": {
+        "first-frame-presented": [
+          195.417
+        ],
+        "pty-spawn-complete": [
+          201.331
+        ],
+        "first-shell-text-processed": [
+          201.632,
+          201.652,
+          206.791
+        ],
+        "first-shell-output-rendered": [
+          206.747,
+          206.76,
+          221.399
+        ]
+      },
+      "idle_cpu_percent_median": 0.0,
+      "idle_cpu_percent_p95": 1.9989255974784539,
+      "idle_rss_kib_median": 99004.0,
+      "idle_rss_kib_p95": 99004,
+      "idle_rss_kib_range": [
+        99004,
+        99004
+      ],
+      "sample_count": 20,
+      "load_average_after": [
+        1.30224609375,
+        1.33447265625,
+        1.1533203125
+      ]
+    },
+    {
+      "scenario": "tabs",
+      "count": 3,
+      "sample": 1,
+      "idle_seconds": 10,
+      "close_to_exit_ms": 173.54169800000818,
+      "load_average_before": [
+        1.30224609375,
+        1.33447265625,
+        1.1533203125
+      ],
+      "startup_milestones_ms_from_process_start": {
+        "first-frame-presented": [
+          218.017
+        ],
+        "pty-spawn-complete": [
+          223.632
+        ],
+        "first-shell-text-processed": [
+          223.938,
+          223.951,
+          226.7
+        ],
+        "first-shell-output-rendered": [
+          226.668
+        ]
+      },
+      "idle_cpu_percent_median": 0.0,
+      "idle_cpu_percent_p95": 1.9992870622278818,
+      "idle_rss_kib_median": 95984.0,
+      "idle_rss_kib_p95": 95984,
+      "idle_rss_kib_range": [
+        95984,
+        95984
+      ],
+      "sample_count": 20,
+      "load_average_after": [
+        1.26220703125,
+        1.32373046875,
+        1.15185546875
+      ]
+    },
+    {
+      "scenario": "tabs",
+      "count": 3,
+      "sample": 2,
+      "idle_seconds": 10,
+      "close_to_exit_ms": 172.97432600025786,
+      "load_average_before": [
+        1.26220703125,
+        1.32373046875,
+        1.15185546875
+      ],
+      "startup_milestones_ms_from_process_start": {
+        "first-frame-presented": [
+          232.638
+        ],
+        "pty-spawn-complete": [
+          239.267
+        ],
+        "first-shell-text-processed": [
+          239.529,
+          239.546,
+          241.789
+        ],
+        "first-shell-output-rendered": [
+          241.76
+        ]
+      },
+      "idle_cpu_percent_median": 0.0,
+      "idle_cpu_percent_p95": 2.0279952289478302,
+      "idle_rss_kib_median": 95944.0,
+      "idle_rss_kib_p95": 95944,
+      "idle_rss_kib_range": [
+        95944,
+        95944
+      ],
+      "sample_count": 20,
+      "load_average_after": [
+        1.11767578125,
+        1.29052734375,
+        1.14404296875
+      ]
+    },
+    {
+      "scenario": "tabs",
+      "count": 3,
+      "sample": 3,
+      "idle_seconds": 10,
+      "close_to_exit_ms": 175.61920300067868,
+      "load_average_before": [
+        1.11767578125,
+        1.29052734375,
+        1.14404296875
+      ],
+      "startup_milestones_ms_from_process_start": {
+        "first-frame-presented": [
+          194.391
+        ],
+        "pty-spawn-complete": [
+          200.593
+        ],
+        "first-shell-text-processed": [
+          200.899,
+          200.912,
+          204.883
+        ],
+        "first-shell-output-rendered": [
+          204.836
+        ]
+      },
+      "idle_cpu_percent_median": 0.0,
+      "idle_cpu_percent_p95": 1.9991956596122886,
+      "idle_rss_kib_median": 96084.0,
+      "idle_rss_kib_p95": 96088,
+      "idle_rss_kib_range": [
+        96076,
+        96088
+      ],
+      "sample_count": 20,
+      "load_average_after": [
+        1.34619140625,
+        1.3310546875,
+        1.15869140625
+      ]
+    }
+  ]
+}

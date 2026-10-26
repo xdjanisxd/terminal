@@ -1,0 +1,14 @@
+RUN 1
+throughput mode=parser workload=finite bytes=8388608 elapsed_ms=925.145 mb_s=9.067 batches=8192 scrollback=10000 columns=80 rows=30
+RUN 2
+throughput mode=parser workload=finite bytes=8388608 elapsed_ms=935.422 mb_s=8.968 batches=8192 scrollback=10000 columns=80 rows=30
+RUN 3
+throughput mode=parser workload=finite bytes=8388608 elapsed_ms=950.895 mb_s=8.822 batches=8192 scrollback=10000 columns=80 rows=30
+RUN 4
+throughput mode=parser workload=finite bytes=8388608 elapsed_ms=951.100 mb_s=8.820 batches=8192 scrollback=10000 columns=80 rows=30
+RUN 5
+throughput mode=parser workload=finite bytes=8388608 elapsed_ms=937.307 mb_s=8.950 batches=8192 scrollback=10000 columns=80 rows=30
+RUN 6
+throughput mode=parser workload=finite bytes=8388608 elapsed_ms=935.879 mb_s=8.963 batches=8192 scrollback=10000 columns=80 rows=30
+RUN 7
+throughput mode=parser workload=finite bytes=8388608 elapsed_ms=933.328 mb_s=8.988 batches=8192 scrollback=10000 columns=80 rows=30
