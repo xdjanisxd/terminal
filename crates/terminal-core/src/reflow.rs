@@ -67,6 +67,13 @@ impl Reflow {
                 .rposition(|cell| *cell != Cell::default())
                 .map_or(0, |i| i + 1)
         };
+        if length != 0
+            && length < cells.len()
+            && cells[length - 1].is_wide_lead()
+            && cells[length].is_wide_continuation()
+        {
+            length += 1;
+        }
         if wrapped == 0 {
             for point in points.iter().filter(|p| p.row == row && !p.cell) {
                 length = length.max(point.column.min(cells.len()));

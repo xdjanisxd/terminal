@@ -651,6 +651,10 @@ impl ScreenSet {
         self.active_state().viewport_cell(row, column)
     }
 
+    pub(crate) fn cell(&self, row: usize, column: usize) -> Option<&Cell> {
+        self.active_state().grid.cell(row, column)
+    }
+
     pub(crate) fn selection_cell(&self, row: usize, column: usize) -> Option<&Cell> {
         self.active_state().selection_cell(row, column)
     }

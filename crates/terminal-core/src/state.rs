@@ -1469,10 +1469,17 @@ impl TerminalState {
 
     fn wrap_before_print(&mut self) {
         let row = self.cursor().row();
+        let column = self.cursor().column();
         let columns = if self.screen.wrap_pending() {
             self.dimensions().columns()
+        } else if self
+            .screen
+            .cell(row, column)
+            .is_some_and(|cell| cell.is_wide_continuation())
+        {
+            column + 1
         } else {
-            self.cursor().column()
+            column
         };
         self.screen.mark_row_wrapped(row, columns);
         debug_assert_eq!(
