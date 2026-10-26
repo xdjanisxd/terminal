@@ -1,0 +1,20 @@
+{
+  "host": "Linux x86_64, KDE Wayland, Intel Iris Xe, 2026-10-26",
+  "workload": "finite",
+  "complete": true,
+  "bytes": 8519680,
+  "elapsed_ms": 2477.939,
+  "megabytes_per_second": 3.438,
+  "parse_ms": 1856.755,
+  "redraws": 148,
+  "presented_frames": 148,
+  "terminal_frames": 147,
+  "scrollback_rows": 10000,
+  "pending_pty_chunks": 0,
+  "pending_pty_bytes": 0,
+  "peak_pty_chunks": 10,
+  "peak_pty_bytes": 10240,
+  "max_drain_ms": 4.618,
+  "frame_interval_ms": {"p50": 16.083759, "p95": 20.204913, "max": 28.396185},
+  "renderer_buffer_allocations": 2
+}

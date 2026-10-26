@@ -364,3 +364,45 @@ fn rapid_tab_and_split_closure_keeps_survivor_and_joins_real_workers() {
     assert!(app.pty.is_none());
     assert!(app.inactive_panes.is_empty());
 }
+
+#[test]
+#[cfg(target_os = "linux")]
+fn workspace_replacement_repeatedly_reaps_real_workers() {
+    let state = saved_workspaces::TestWorkspaceState::new();
+    let mut app = Application {
+        saved_workspaces_path: state.path(),
+        ..Application::default()
+    };
+    app.dispatch_command(Command::NewTab);
+    app.dispatch_command(Command::SplitVertical);
+    app.save_workspace("Replacement stress".into());
+
+    for _ in 0..12 {
+        let before = std::fs::read_to_string("/proc/thread-self/children").unwrap();
+        let before = before
+            .split_whitespace()
+            .map(|pid| pid.parse::<u32>().unwrap())
+            .collect::<std::collections::HashSet<_>>();
+        attach_shell_workers(&mut app, "sh");
+        let pids = std::fs::read_to_string("/proc/thread-self/children")
+            .unwrap()
+            .split_whitespace()
+            .map(|pid| pid.parse::<u32>().unwrap())
+            .filter(|pid| !before.contains(pid))
+            .collect::<Vec<_>>();
+        assert_eq!(pids.len(), 3, "workspace did not start three shells");
+
+        app.open_saved_workspace("Replacement stress");
+        assert!(app.pty.is_none());
+        assert!(
+            app.inactive_panes
+                .values()
+                .all(|runtime| runtime.pty.is_none())
+        );
+        assert!(
+            pids.iter()
+                .all(|pid| !std::path::Path::new(&format!("/proc/{pid}")).exists()),
+            "workspace replacement left child PIDs: {pids:?}"
+        );
+    }
+}
