@@ -1,0 +1,11 @@
+[workspace]
+active_tab = 0
+[[workspace.tabs]]
+title = "Perf tab 1"
+layout = { kind = "pane", session = { command = { program = "/bin/sh", args = ["-c", "printf 'READY\\n'; exec sleep 300"] } } }
+[[workspace.tabs]]
+title = "Perf tab 2"
+layout = { kind = "pane", session = { command = { program = "/bin/sh", args = ["-c", "printf 'READY\\n'; exec sleep 300"] } } }
+[[workspace.tabs]]
+title = "Perf tab 3"
+layout = { kind = "pane", session = { command = { program = "/bin/sh", args = ["-c", "printf 'READY\\n'; exec sleep 300"] } } }

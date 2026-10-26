@@ -1,0 +1,112 @@
+RUN 1
+child=6
+shutdown-start mode=normal panes=1 resources_before=(4, 1) resources_active=(9, 3)
+shutdown-done elapsed_us=50603 resources_after=(4, 1) children_gone=1
+child=10
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+shutdown-start mode=blocked panes=1 resources_before=(4, 1) resources_active=(9, 3)
+shutdown-done elapsed_us=50536 resources_after=(4, 1) children_gone=1
+child=14
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+child=17
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+child=20
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+shutdown-start mode=blocked panes=3 resources_before=(4, 1) resources_active=(19, 7)
+shutdown-done elapsed_us=152121 resources_after=(4, 1) children_gone=3
+RUN 2
+child=24
+shutdown-start mode=normal panes=1 resources_before=(4, 1) resources_active=(9, 3)
+shutdown-done elapsed_us=50529 resources_after=(4, 1) children_gone=1
+child=28
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+shutdown-start mode=blocked panes=1 resources_before=(4, 1) resources_active=(9, 3)
+shutdown-done elapsed_us=50497 resources_after=(4, 1) children_gone=1
+child=32
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+child=35
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+child=38
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+shutdown-start mode=blocked panes=3 resources_before=(4, 1) resources_active=(19, 7)
+shutdown-done elapsed_us=152164 resources_after=(4, 1) children_gone=3
+RUN 3
+child=42
+shutdown-start mode=normal panes=1 resources_before=(4, 1) resources_active=(9, 3)
+shutdown-done elapsed_us=50574 resources_after=(4, 1) children_gone=1
+child=46
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+shutdown-start mode=blocked panes=1 resources_before=(4, 1) resources_active=(9, 3)
+shutdown-done elapsed_us=50863 resources_after=(4, 1) children_gone=1
+child=50
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+child=53
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+child=56
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+shutdown-start mode=blocked panes=3 resources_before=(4, 1) resources_active=(19, 7)
+shutdown-done elapsed_us=152099 resources_after=(4, 1) children_gone=3
+RUN 4
+child=60
+shutdown-start mode=normal panes=1 resources_before=(4, 1) resources_active=(9, 3)
+shutdown-done elapsed_us=50354 resources_after=(4, 1) children_gone=1
+child=64
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+shutdown-start mode=blocked panes=1 resources_before=(4, 1) resources_active=(9, 3)
+shutdown-done elapsed_us=50602 resources_after=(4, 1) children_gone=1
+child=68
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+child=71
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+child=74
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+shutdown-start mode=blocked panes=3 resources_before=(4, 1) resources_active=(19, 7)
+shutdown-done elapsed_us=152042 resources_after=(4, 1) children_gone=3
+RUN 5
+child=78
+shutdown-start mode=normal panes=1 resources_before=(4, 1) resources_active=(9, 3)
+shutdown-done elapsed_us=50642 resources_after=(4, 1) children_gone=1
+child=82
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+shutdown-start mode=blocked panes=1 resources_before=(4, 1) resources_active=(9, 3)
+shutdown-done elapsed_us=50587 resources_after=(4, 1) children_gone=1
+child=86
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+child=89
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+child=92
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+shutdown-start mode=blocked panes=3 resources_before=(4, 1) resources_active=(19, 7)
+shutdown-done elapsed_us=151491 resources_after=(4, 1) children_gone=3
+RUN 6
+child=96
+shutdown-start mode=normal panes=1 resources_before=(4, 1) resources_active=(9, 3)
+shutdown-done elapsed_us=50376 resources_after=(4, 1) children_gone=1
+child=100
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+shutdown-start mode=blocked panes=1 resources_before=(4, 1) resources_active=(9, 3)
+shutdown-done elapsed_us=50608 resources_after=(4, 1) children_gone=1
+child=104
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+child=107
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+child=110
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+shutdown-start mode=blocked panes=3 resources_before=(4, 1) resources_active=(19, 7)
+shutdown-done elapsed_us=152093 resources_after=(4, 1) children_gone=3
+RUN 7
+child=114
+shutdown-start mode=normal panes=1 resources_before=(4, 1) resources_active=(9, 3)
+shutdown-done elapsed_us=50644 resources_after=(4, 1) children_gone=1
+child=118
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+shutdown-start mode=blocked panes=1 resources_before=(4, 1) resources_active=(9, 3)
+shutdown-done elapsed_us=50483 resources_after=(4, 1) children_gone=1
+child=121
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+child=124
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+child=127
+blocked_waits=["do_sys_poll", "do_sys_poll"]
+shutdown-start mode=blocked panes=3 resources_before=(4, 1) resources_active=(19, 7)
+shutdown-done elapsed_us=151742 resources_after=(4, 1) children_gone=3

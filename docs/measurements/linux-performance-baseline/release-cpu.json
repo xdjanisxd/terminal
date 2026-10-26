@@ -1,0 +1,340 @@
+{
+  "schema": 1,
+  "measured_utc": "2026-10-26T08:19:39+00:00",
+  "runs": 7,
+  "environment": {
+    "os": "Debian GNU/Linux 13 (trixie)",
+    "kernel": "6.12.113+deb13-amd64",
+    "architecture": "x86_64",
+    "cpu_model": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+    "rustc_details": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1",
+    "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+    "revision": "82838573f4ce8cba454ca75bbd0e45357e95965a",
+    "profile": "Cargo bench release profile",
+    "cpu_affinity": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "load_average": [
+      1.0,
+      1.2373046875,
+      1.1611328125
+    ]
+  },
+  "benchmarks": {
+    "resize_one_column_unicode_pair": {
+      "samples_ns_per_operation": [
+        596542.1,
+        717382.3,
+        470154.2,
+        494495.5,
+        464493.0,
+        477685.0,
+        465879.6
+      ],
+      "median_ns_per_operation": 477685.0,
+      "p95_ns_per_operation": 717382.3,
+      "mad_ns_per_operation": 13192.0,
+      "cv_percent": 16.89836225397715
+    },
+    "resize_columns_pair_history_0": {
+      "samples_ns_per_operation": [
+        72653.1,
+        59545.1,
+        64260.8,
+        65965.3,
+        57966.8,
+        67989.9,
+        68001.2
+      ],
+      "median_ns_per_operation": 65965.3,
+      "p95_ns_per_operation": 72653.1,
+      "mad_ns_per_operation": 2035.8999999999942,
+      "cv_percent": 7.26260408232816
+    },
+    "resize_height_pair_history_0": {
+      "samples_ns_per_operation": [
+        53019.2,
+        43284.8,
+        46856.2,
+        47856.3,
+        46581.8,
+        49207.2,
+        45066.0
+      ],
+      "median_ns_per_operation": 46856.2,
+      "p95_ns_per_operation": 53019.2,
+      "mad_ns_per_operation": 1790.199999999997,
+      "cv_percent": 6.092174148891121
+    },
+    "resize_unchanged_history_0": {
+      "samples_ns_per_operation": [
+        1.4,
+        1.2,
+        1.3,
+        1.3,
+        1.2,
+        3.0,
+        1.2
+      ],
+      "median_ns_per_operation": 1.3,
+      "p95_ns_per_operation": 3.0,
+      "mad_ns_per_operation": 0.10000000000000009,
+      "cv_percent": 40.312944564568866
+    },
+    "resize_columns_pair_history_2000": {
+      "samples_ns_per_operation": [
+        1353520.9,
+        1376412.5,
+        1794979.3,
+        1333715.1,
+        1160048.0,
+        1279540.6,
+        1422632.8
+      ],
+      "median_ns_per_operation": 1353520.9,
+      "p95_ns_per_operation": 1794979.3,
+      "mad_ns_per_operation": 69111.90000000014,
+      "cv_percent": 13.189118908925687
+    },
+    "resize_height_pair_history_2000": {
+      "samples_ns_per_operation": [
+        34967.5,
+        32896.9,
+        36342.4,
+        31713.2,
+        30916.3,
+        38738.7,
+        31338.3
+      ],
+      "median_ns_per_operation": 32896.9,
+      "p95_ns_per_operation": 38738.7,
+      "mad_ns_per_operation": 1980.6000000000022,
+      "cv_percent": 8.03365357913811
+    },
+    "resize_unchanged_history_2000": {
+      "samples_ns_per_operation": [
+        1.2,
+        1.2,
+        1.4,
+        1.2,
+        1.1,
+        2.0,
+        1.2
+      ],
+      "median_ns_per_operation": 1.2,
+      "p95_ns_per_operation": 2.0,
+      "mad_ns_per_operation": 0.0,
+      "cv_percent": 21.55907274813271
+    },
+    "resize_columns_pair_history_10000": {
+      "samples_ns_per_operation": [
+        9515759.2,
+        9798233.4,
+        9624909.8,
+        9413611.9,
+        9184901.1,
+        9135460.2,
+        9404375.5
+      ],
+      "median_ns_per_operation": 9413611.9,
+      "p95_ns_per_operation": 9798233.4,
+      "mad_ns_per_operation": 211297.90000000037,
+      "cv_percent": 2.2933207121520147
+    },
+    "resize_height_pair_history_10000": {
+      "samples_ns_per_operation": [
+        34387.9,
+        33134.2,
+        30716.6,
+        31667.3,
+        31362.4,
+        33124.9,
+        31846.7
+      ],
+      "median_ns_per_operation": 31846.7,
+      "p95_ns_per_operation": 34387.9,
+      "mad_ns_per_operation": 1130.1000000000022,
+      "cv_percent": 3.6468890210213503
+    },
+    "resize_unchanged_history_10000": {
+      "samples_ns_per_operation": [
+        1.3,
+        1.2,
+        1.1,
+        1.1,
+        1.2,
+        1.1,
+        1.2
+      ],
+      "median_ns_per_operation": 1.2,
+      "p95_ns_per_operation": 1.3,
+      "mad_ns_per_operation": 0.09999999999999987,
+      "cv_percent": 5.974365226300431
+    },
+    "parse_plain_state": {
+      "samples_ns_per_operation": [
+        8292.6,
+        8686.1,
+        8309.1,
+        8263.8,
+        8278.9,
+        8401.4,
+        8350.1
+      ],
+      "median_ns_per_operation": 8309.1,
+      "p95_ns_per_operation": 8686.1,
+      "mad_ns_per_operation": 41.0,
+      "cv_percent": 1.6319441512270998
+    },
+    "parse_escape_state": {
+      "samples_ns_per_operation": [
+        4106.3,
+        4271.2,
+        4006.7,
+        4113.6,
+        4116.7,
+        4153.6,
+        4095.2
+      ],
+      "median_ns_per_operation": 4113.6,
+      "p95_ns_per_operation": 4271.2,
+      "mad_ns_per_operation": 18.400000000000546,
+      "cv_percent": 1.7775501957688715
+    },
+    "scrollback_page_pair": {
+      "samples_ns_per_operation": [
+        3.9,
+        4.5,
+        3.9,
+        3.9,
+        3.9,
+        3.9,
+        3.9
+      ],
+      "median_ns_per_operation": 3.9,
+      "p95_ns_per_operation": 4.5,
+      "mad_ns_per_operation": 0.0,
+      "cv_percent": 5.2677198769530715
+    },
+    "selection_extend": {
+      "samples_ns_per_operation": [
+        4.7,
+        4.6,
+        4.0,
+        4.0,
+        4.0,
+        4.0,
+        4.0
+      ],
+      "median_ns_per_operation": 4.0,
+      "p95_ns_per_operation": 4.7,
+      "mad_ns_per_operation": 0.0,
+      "cv_percent": 7.044289228856755
+    },
+    "visible_projection_80x30": {
+      "samples_ns_per_operation": [
+        19324.2,
+        19708.3,
+        24082.9,
+        29142.5,
+        20852.7,
+        26334.3,
+        21881.5
+      ],
+      "median_ns_per_operation": 21881.5,
+      "p95_ns_per_operation": 29142.5,
+      "mad_ns_per_operation": 2201.4000000000015,
+      "cv_percent": 14.688207481875768
+    },
+    "output_echo_plus_projection": {
+      "samples_ns_per_operation": [
+        18448.8,
+        21245.7,
+        20532.0,
+        21285.2,
+        20635.6,
+        20719.3,
+        20752.7
+      ],
+      "median_ns_per_operation": 20719.3,
+      "p95_ns_per_operation": 21285.2,
+      "mad_ns_per_operation": 187.29999999999927,
+      "cv_percent": 4.324009782745254
+    },
+    "three_pane_layout_plus_projection": {
+      "samples_ns_per_operation": [
+        23640.9,
+        26068.1,
+        25295.1,
+        25698.7,
+        23231.2,
+        25109.3,
+        24460.5
+      ],
+      "median_ns_per_operation": 25109.3,
+      "p95_ns_per_operation": 26068.1,
+      "mad_ns_per_operation": 648.7999999999993,
+      "cv_percent": 3.939756496616194
+    }
+  },
+  "gate_thresholds_percent": {
+    "parse_plain_state": 15,
+    "parse_escape_state": 15,
+    "resize_one_column_unicode_pair": 30,
+    "resize_columns_pair_history_2000": 25,
+    "resize_columns_pair_history_10000": 15,
+    "visible_projection_80x30": 50,
+    "output_echo_plus_projection": 50,
+    "three_pane_layout_plus_projection": 25
+  },
+  "environment_after": {
+    "os": "Debian GNU/Linux 13 (trixie)",
+    "kernel": "6.12.113+deb13-amd64",
+    "architecture": "x86_64",
+    "cpu_model": "12th Gen Intel(R) Core(TM) i5-1250P",
+    "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+    "rustc_details": "rustc 1.99.0 (b940084d7 2026-09-28)\nbinary: rustc\ncommit-hash: b940084d7eb6a299eb4bfeb8e34901bc051e7ac4\ncommit-date: 2026-09-28\nhost: x86_64-unknown-linux-gnu\nrelease: 1.99.0\nLLVM version: 23.1.1",
+    "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+    "revision": "82838573f4ce8cba454ca75bbd0e45357e95965a",
+    "profile": "Cargo bench release profile",
+    "cpu_affinity": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "load_average": [
+      1.30126953125,
+      1.29541015625,
+      1.181640625
+    ]
+  }
+}
