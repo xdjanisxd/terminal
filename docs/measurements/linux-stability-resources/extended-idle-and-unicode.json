@@ -1,0 +1,206 @@
+{
+  "measured_utc": "2026-10-26T12:15:08Z",
+  "host": "Linux-6.12.113+deb13-amd64-x86_64-with-glibc2.41",
+  "cpu_model": "12th Gen Intel(R) Core(TM) i5-1250P",
+  "cycles_per_layout": 1,
+  "idle_seconds_per_run": 60,
+  "unicode_output_bytes": 33554432,
+  "binary": "/home/dellian/codes/terminal/target/release/terminal",
+  "samples": [
+    {
+      "scenario": "one_pane",
+      "cycle": 1,
+      "samples": 120,
+      "idle_seconds": 60,
+      "before": {
+        "rss_kib": 92688,
+        "private_kib": 50332,
+        "anon_kib": 21272,
+        "file_kib": 71356,
+        "threads": 10,
+        "fds": 49,
+        "children": [
+          127151
+        ],
+        "cpu_percent": null
+      },
+      "peak": {
+        "rss_kib": 94376,
+        "private_kib": 52020,
+        "threads": 10,
+        "fds": 49,
+        "children": 1
+      },
+      "final_before_close": {
+        "rss_kib": 94376,
+        "private_kib": 52020,
+        "anon_kib": 22960,
+        "file_kib": 71356,
+        "threads": 10,
+        "fds": 49,
+        "children": [
+          127151
+        ],
+        "cpu_percent": 0.0
+      },
+      "unicode_pass_checkpoints": [],
+      "activity_cpu_percent_median": null,
+      "idle_cpu_percent_median": 0.0,
+      "idle_cpu_percent_p95": 1.9873910610136234,
+      "close_to_exit_ms": 134.2767489986727,
+      "process_after_close": true,
+      "children_after_close": []
+    },
+    {
+      "scenario": "three_panes",
+      "cycle": 1,
+      "samples": 120,
+      "idle_seconds": 60,
+      "before": {
+        "rss_kib": 94880,
+        "private_kib": 52544,
+        "anon_kib": 23100,
+        "file_kib": 71720,
+        "threads": 14,
+        "fds": 59,
+        "children": [
+          127283,
+          127286,
+          127289
+        ],
+        "cpu_percent": null
+      },
+      "peak": {
+        "rss_kib": 96592,
+        "private_kib": 54256,
+        "threads": 14,
+        "fds": 59,
+        "children": 3
+      },
+      "final_before_close": {
+        "rss_kib": 96592,
+        "private_kib": 54256,
+        "anon_kib": 24812,
+        "file_kib": 71720,
+        "threads": 14,
+        "fds": 59,
+        "children": [
+          127283,
+          127286,
+          127289
+        ],
+        "cpu_percent": 0.0
+      },
+      "unicode_pass_checkpoints": [],
+      "activity_cpu_percent_median": null,
+      "idle_cpu_percent_median": 0.0,
+      "idle_cpu_percent_p95": 1.9887426031625077,
+      "close_to_exit_ms": 230.12564400050906,
+      "process_after_close": true,
+      "children_after_close": []
+    },
+    {
+      "scenario": "three_tabs",
+      "cycle": 1,
+      "samples": 120,
+      "idle_seconds": 60,
+      "before": {
+        "rss_kib": 93812,
+        "private_kib": 51472,
+        "anon_kib": 22032,
+        "file_kib": 71720,
+        "threads": 14,
+        "fds": 59,
+        "children": [
+          127537,
+          127540,
+          127543
+        ],
+        "cpu_percent": null
+      },
+      "peak": {
+        "rss_kib": 95500,
+        "private_kib": 53160,
+        "threads": 14,
+        "fds": 59,
+        "children": 3
+      },
+      "final_before_close": {
+        "rss_kib": 95500,
+        "private_kib": 53160,
+        "anon_kib": 23720,
+        "file_kib": 71720,
+        "threads": 14,
+        "fds": 59,
+        "children": [
+          127537,
+          127540,
+          127543
+        ],
+        "cpu_percent": 1.9852019473508682
+      },
+      "unicode_pass_checkpoints": [],
+      "activity_cpu_percent_median": null,
+      "idle_cpu_percent_median": 0.0,
+      "idle_cpu_percent_p95": 1.9880455204628598,
+      "close_to_exit_ms": 233.0607770018105,
+      "process_after_close": true,
+      "children_after_close": []
+    },
+    {
+      "scenario": "unicode_output",
+      "cycle": 1,
+      "samples": 138,
+      "idle_seconds": 60,
+      "before": {
+        "rss_kib": 91768,
+        "private_kib": 49528,
+        "anon_kib": 20416,
+        "file_kib": 71292,
+        "threads": 10,
+        "fds": 49,
+        "children": [
+          127675
+        ],
+        "cpu_percent": null
+      },
+      "peak": {
+        "rss_kib": 151256,
+        "private_kib": 109016,
+        "threads": 10,
+        "fds": 50,
+        "children": 1
+      },
+      "final_before_close": {
+        "rss_kib": 151256,
+        "private_kib": 109016,
+        "anon_kib": 79904,
+        "file_kib": 71292,
+        "threads": 10,
+        "fds": 49,
+        "children": [
+          127675
+        ],
+        "cpu_percent": 0.0
+      },
+      "unicode_pass_checkpoints": [
+        {
+          "pass": 1,
+          "rss_kib": 151248,
+          "private_kib": 109008
+        },
+        {
+          "pass": 2,
+          "rss_kib": 151256,
+          "private_kib": 109016
+        }
+      ],
+      "activity_cpu_percent_median": 104.78218680495567,
+      "idle_cpu_percent_median": 0.0,
+      "idle_cpu_percent_p95": 1.98366310609668,
+      "close_to_exit_ms": 135.83579400074086,
+      "process_after_close": true,
+      "children_after_close": []
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "host": "Linux x86_64, 2026-10-26",
+  "probe": "docs/measurements/blocked-pty-shutdown/probe.rs",
+  "resource_order": ["file_descriptors", "threads"],
+  "scenarios": [
+    {
+      "mode": "normal",
+      "workers": 1,
+      "shutdown_ms": 50.774,
+      "resources_before": [4, 1],
+      "resources_active": [9, 3],
+      "resources_after": [4, 1],
+      "children_reaped": 1
+    },
+    {
+      "mode": "blocked",
+      "input_bytes": 8388608,
+      "workers": 1,
+      "shutdown_ms": 51.109,
+      "resources_before": [4, 1],
+      "resources_active": [9, 3],
+      "resources_after": [4, 1],
+      "children_reaped": 1
+    },
+    {
+      "mode": "full",
+      "input_bytes": 8388608,
+      "queued_commands": 8,
+      "workers": 1,
+      "shutdown_ms": 50.895,
+      "resources_before": [4, 1],
+      "resources_active": [9, 3],
+      "resources_after": [4, 1],
+      "children_reaped": 1
+    },
+    {
+      "mode": "blocked",
+      "input_bytes": 8388608,
+      "workers": 3,
+      "shutdown_ms": 153.781,
+      "resources_before": [4, 1],
+      "resources_active": [19, 7],
+      "resources_after": [4, 1],
+      "children_reaped": 3
+    }
+  ]
+}

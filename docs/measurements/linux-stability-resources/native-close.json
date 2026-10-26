@@ -1,0 +1,15 @@
+{
+  "host": "Linux x86_64, KDE Wayland, 2026-10-26",
+  "harness": "docs/measurements/blocked-pty-shutdown/native_close.py",
+  "scenarios": [
+    {"shell": "bash", "panes": 1, "stage": "early", "close_to_exit_ms": 591.85, "shell_pids_reaped": 0},
+    {"shell": "bash", "panes": 1, "stage": "ready", "close_to_exit_ms": 431.05, "shell_pids_reaped": 1},
+    {"shell": "bash", "panes": 3, "stage": "early", "close_to_exit_ms": 531.31, "shell_pids_reaped": 1},
+    {"shell": "bash", "panes": 3, "stage": "ready", "close_to_exit_ms": 530.40, "shell_pids_reaped": 3},
+    {"shell": "zsh", "panes": 1, "stage": "early", "close_to_exit_ms": 435.13, "shell_pids_reaped": 0},
+    {"shell": "zsh", "panes": 1, "stage": "ready", "close_to_exit_ms": 428.31, "shell_pids_reaped": 1},
+    {"shell": "zsh", "panes": 3, "stage": "early", "close_to_exit_ms": 536.51, "shell_pids_reaped": 0},
+    {"shell": "zsh", "panes": 3, "stage": "ready", "close_to_exit_ms": 528.52, "shell_pids_reaped": 3}
+  ],
+  "checks": ["process exited successfully", "remaining shell PIDs absent", "temporary integration files removed", "saved workspace bytes unchanged"]
+}
