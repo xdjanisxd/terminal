@@ -1,6 +1,6 @@
 # Releases
 
-The current `Release` GitHub Actions workflow verifies, builds, packages, and smoke-tests Linux GNU binaries only. Each archive contains `terminal`, `README.md`, `config.example.toml`, and `LICENSE`; Linux archives also contain the per-user installer, desktop integration guide, desktop entry, and hicolor icons. The example config is reference material and is not installed as an active `config.toml`. See the [Linux release-readiness record](LINUX_RELEASE_READINESS.md) for candidate evidence and remaining interactive checks. Windows MSI scripts remain in the repository but are not part of the current workflow. macOS packaging is not configured in the current workflow.
+The current `Release` GitHub Actions workflow verifies, builds, packages, and smoke-tests Linux GNU binaries only. Each archive contains `terminal`, `README.md`, `config.example.toml`, and `LICENSE`; Linux archives also contain the per-user installer, desktop integration guide, desktop entry, and hicolor icons. The example config is reference material and is not installed as an active `config.toml`. See the [Linux release-readiness record](LINUX_RELEASE_READINESS.md) for RC evidence and the [final Linux sign-off](LINUX_RELEASE_SIGNOFF.md). Windows MSI scripts remain in the repository but are not part of the current workflow. macOS packaging is not configured in the current workflow.
 
 | Runner | Rust target | Release asset |
 | --- | --- | --- |
@@ -9,13 +9,13 @@ The current `Release` GitHub Actions workflow verifies, builds, packages, and sm
 
 Both package jobs are native Ubuntu builds. The workflow installs Python 3.14 and pinned Pillow 12.1.0, checks committed branding, then runs formatting, workspace checks/tests, doc tests, and Clippy on Linux runners. Branding validation compares decoded pixels, exact dimensions and formats, ICO resolutions, the Linux icon path set, and rejects embedded image metadata/color profiles. Its package smoke checks the archive manifest and executable CLI from a temporary directory without opening a window. The Linux shared-library check uses `ldd`. Interactive shell and GPU behavior still need native acceptance; CI configuration alone does not establish that evidence.
 
-The Linux binaries target GNU libc and are dynamically linked. Users need a compatible GNU libc system plus graphics, window-system, and font support. A successful runner smoke test does not establish compatibility with older distributions or every desktop environment. The release candidate's observed ABI floor and tested environment are recorded in the Linux readiness report.
+The Linux binaries target GNU libc and are dynamically linked. Users need a compatible GNU libc system plus graphics, window-system, and font support. A successful runner smoke test does not establish compatibility with older distributions or every desktop environment. The tested build's observed ABI floor and environment are recorded in the Linux readiness and sign-off reports.
 
-The Linux release candidate is built from workspace package version `0.2.2-rc.1`, following the latest existing tag `v0.2.1`. The executable reports it with `terminal --version` or `terminal -V`. Published asset names remain target-stable; local release candidate artifacts include the version in their filenames.
+The proposed Linux release is built from workspace package version `0.2.2`, following the latest existing tag `v0.2.1`. The executable reports it with `terminal --version` or `terminal -V`. Published asset names remain target-stable; local artifacts use `terminal-linux-x86_64.tar.gz` and `terminal-linux-aarch64.tar.gz`.
 
 ## Publishing
 
-After the Linux candidate is accepted, merge the release commit to `master` and push a stable tag in the form `vX.Y.Z` (for example, `v0.2.2`). The workflow rejects prerelease tags for publication. A stable tag push runs the two Linux verification and packaging jobs, then creates a GitHub Release with `terminal-linux-x86_64.tar.gz` and `terminal-linux-aarch64.tar.gz`. A branch workflow dispatch uploads inspection artifacts and does not publish. Do not dispatch this workflow from a tag during unpublished candidate validation.
+After final release sign-off, merge the release commit to `master` and push a stable tag in the form `vX.Y.Z` (for example, `v0.2.2`). The workflow rejects prerelease tags for publication. A stable tag push runs the two Linux verification and packaging jobs, then creates a GitHub Release with `terminal-linux-x86_64.tar.gz` and `terminal-linux-aarch64.tar.gz`. A branch workflow dispatch uploads inspection artifacts and does not publish. Do not dispatch this workflow from a tag during unpublished candidate validation.
 
 Packaging and local smoke testing can be repeated on a matching native host after a release build:
 

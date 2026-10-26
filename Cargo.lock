@@ -1942,7 +1942,7 @@ dependencies = [
 
 [[package]]
 name = "terminal-app"
-version = "0.2.2-rc.1"
+version = "0.2.2"
 dependencies = [
  "serde",
  "terminal-config",
@@ -1958,7 +1958,7 @@ dependencies = [
 
 [[package]]
 name = "terminal-config"
-version = "0.2.2-rc.1"
+version = "0.2.2"
 dependencies = [
  "serde",
  "terminal-workspace",
@@ -1967,7 +1967,7 @@ dependencies = [
 
 [[package]]
 name = "terminal-core"
-version = "0.2.2-rc.1"
+version = "0.2.2"
 dependencies = [
  "base64",
  "unicode-segmentation",
@@ -1977,7 +1977,7 @@ dependencies = [
 
 [[package]]
 name = "terminal-platform"
-version = "0.2.2-rc.1"
+version = "0.2.2"
 dependencies = [
  "arboard",
  "libc",
@@ -1987,7 +1987,7 @@ dependencies = [
 
 [[package]]
 name = "terminal-pty"
-version = "0.2.2-rc.1"
+version = "0.2.2"
 dependencies = [
  "libc",
  "portable-pty",
@@ -1995,7 +1995,7 @@ dependencies = [
 
 [[package]]
 name = "terminal-renderer"
-version = "0.2.2-rc.1"
+version = "0.2.2"
 dependencies = [
  "bytemuck",
  "fontdb",
@@ -2011,7 +2011,7 @@ dependencies = [
 
 [[package]]
 name = "terminal-workspace"
-version = "0.2.2-rc.1"
+version = "0.2.2"
 dependencies = [
  "serde",
 ]
