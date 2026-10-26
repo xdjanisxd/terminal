@@ -54,12 +54,15 @@ class PackagingTests(unittest.TestCase):
                 for icon in icons:
                     self.assertEqual((extracted / icon).read_bytes(), linux[icon])
                 self.assertEqual(Path(command[0]).name, "terminal")
-                self.assertEqual(command[1:], ["--help"])
-                return subprocess.CompletedProcess(command, 0, "Usage: terminal [OPTIONS]\n")
+                self.assertIn(command[1:], (["--help"], ["--version"], ["-V"]))
+                output = ("Usage: terminal [OPTIONS]\n" if command[1] == "--help"
+                          else "terminal 0.2.2-rc.1\n")
+                return subprocess.CompletedProcess(command, 0, output)
 
             with patch.object(release.subprocess, "run", side_effect=smoke_command) as run:
                 release.smoke_archive(archive, linux, False)
-                run.assert_called_once()
+                self.assertEqual([call.args[0][1] for call in run.call_args_list],
+                                 ["--help", "--version", "-V"])
             self.assertFalse(list(root.glob(".terminal-smoke-*")))
 
 

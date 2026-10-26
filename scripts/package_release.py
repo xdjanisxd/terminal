@@ -119,12 +119,25 @@ def smoke_archive(path: Path, files: dict[str, bytes], windows: bool) -> None:
             raise RuntimeError("packaged executable is not executable")
         env = os.environ.copy()
         env.pop("TERMINAL_CONFIG", None)
+        for name in ("DISPLAY", "WAYLAND_DISPLAY", "XDG_RUNTIME_DIR"):
+            env.pop(name, None)
         env["APPDATA" if windows else "XDG_CONFIG_HOME"] = str(extracted / "no-config")
-        result = subprocess.run([str(executable), "--help"], cwd=extracted,
-                                env=env, capture_output=True, text=True,
-                                timeout=30, check=True)
-        if not result.stdout.startswith("Usage: terminal "):
-            raise RuntimeError(f"unexpected packaged binary smoke output: {result.stdout!r}")
+        for option, prefix in (("--help", "Usage: terminal "),
+                               ("--version", "terminal "), ("-V", "terminal ")):
+            startup_log = extracted / f".{option.removeprefix('-')}-startup.log"
+            smoke_env = env.copy()
+            if option in ("--version", "-V"):
+                smoke_env["TERMINAL_STARTUP_DIAGNOSTICS"] = "1"
+                smoke_env["TERMINAL_STARTUP_LOG"] = str(startup_log)
+            result = subprocess.run([str(executable), option], cwd=extracted,
+                                    env=smoke_env, capture_output=True, text=True,
+                                    timeout=30, check=True)
+            if not result.stdout.startswith(prefix):
+                raise RuntimeError(
+                    f"unexpected packaged binary {option} output: {result.stdout!r}"
+                )
+            if option in ("--version", "-V") and startup_log.exists():
+                raise RuntimeError(f"packaged binary {option} initialized startup diagnostics")
     finally:
         shutil.rmtree(extracted)
 

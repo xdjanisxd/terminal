@@ -14,9 +14,10 @@ try {
         if ($ReleaseTag -notmatch '^v(\d+)\.(\d+)\.(\d+)$') { throw 'Expected vX.Y.Z release tag' }
         $version = $ReleaseTag.Substring(1)
     } else {
-        $manifest = Get-Content crates/app/Cargo.toml -Raw
-        if ($manifest -notmatch '(?m)^version\s*=\s*"(\d+\.\d+\.\d+)"') { throw 'Missing Cargo version' }
+        $manifest = Get-Content Cargo.toml -Raw
+        if ($manifest -notmatch '(?ms)^\[workspace\.package\]\s+.*?^version\s*=\s*"([^"]+)"') { throw 'Missing workspace Cargo version' }
         $version = $Matches[1]
+        if ($version -notmatch '^\d+\.\d+\.\d+$') { throw 'Cargo prerelease version cannot be represented in MSI ProductVersion' }
     }
     $parts = $version.Split('.') | ForEach-Object { [uint32]$_ }
     if ($parts[0] -gt 255 -or $parts[1] -gt 255 -or $parts[2] -gt 65535) {
