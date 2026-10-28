@@ -162,7 +162,7 @@ These are the bindings in `terminal-config` on this branch. Commands without a d
 | `Ctrl+Shift+Z` | `toggle_pane_zoom` | Zoom or restore the focused pane. |
 | `Ctrl+Shift+W` | `close_pane` | Close the focused pane. |
 
-`Ctrl+F` opens scrollback search through the app's input handling; it is not a configurable default binding.
+`Ctrl+F` opens scrollback search through the app's input handling; it is not a configurable default binding. Search matches text across soft-wrapped rows, but not across line breaks.
 
 URL Hint Mode uses A S D F J K L, filters by prefix, opens immediately on a
 complete hint, supports Backspace, and cancels with Escape. Ctrl+left-click

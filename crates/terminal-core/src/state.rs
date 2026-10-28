@@ -436,6 +436,17 @@ impl TerminalState {
         self.screen.selection_row_wrap_columns(row)
     }
 
+    /// Soft-wrap width for a retained primary row, indexed from oldest history.
+    pub fn primary_row_wrap_columns(&self, row: usize) -> usize {
+        if self.active_screen() != ScreenKind::Primary
+            || row >= self.scrollback_len() + self.dimensions().rows()
+        {
+            return 0;
+        }
+        self.screen
+            .selection_row_wrap_columns(self.screen.selection_history_origin() + row)
+    }
+
     pub(crate) fn selection_cursor_at_wrap(&self) -> bool {
         self.screen.wrap_pending()
     }
