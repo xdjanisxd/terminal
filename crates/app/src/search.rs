@@ -303,4 +303,47 @@ mod tests {
         search.push_text("alpha", &mut terminal);
         assert_eq!(search.count(), 0);
     }
+
+    #[test]
+    fn searches_large_retained_history_after_scrolling_resize_and_screen_switch() {
+        let mut terminal = TerminalState::new(TerminalDimensions::new(16, 3).unwrap());
+        let mut parser = terminal_core::TerminalParser::new();
+        parser
+            .advance(&mut terminal, b"discarded\r\npad\r\npad\r\noldneedle\r\n")
+            .unwrap();
+        for _ in 0..terminal_core::MAX_SCROLLBACK_ROWS {
+            parser.advance(&mut terminal, b"filler\r\n").unwrap();
+        }
+        parser.advance(&mut terminal, b"newneedle").unwrap();
+        assert_eq!(
+            terminal.scrollback_len(),
+            terminal_core::MAX_SCROLLBACK_ROWS
+        );
+
+        let mut search = Search::default();
+        search.push_text("discarded", &mut terminal);
+        assert_eq!(search.count(), 0);
+        search = Search::default();
+        search.push_text("needle", &mut terminal);
+        assert_eq!(search.count(), 2);
+        assert!(search.viewport_match(&terminal).is_some());
+        search.navigate(&mut terminal, -1);
+        assert!(terminal.viewport_offset() > 9000);
+        assert!(search.viewport_match(&terminal).is_some());
+        assert!(search.viewport_matches(&terminal).iter().any(|m| m.3));
+        terminal.scroll_viewport_rows(-20);
+        search.refresh(&mut terminal);
+        assert_eq!(search.count(), 2);
+        assert!(search.viewport_match(&terminal).is_some());
+        terminal.resize(TerminalDimensions::new(20, 4).unwrap());
+        search.refresh(&mut terminal);
+        assert_eq!(search.count(), 2);
+        assert!(search.viewport_match(&terminal).is_some());
+        terminal.switch_to_alternate_screen();
+        search.refresh(&mut terminal);
+        assert_eq!(search.count(), 0);
+        terminal.switch_to_primary_screen();
+        search.refresh(&mut terminal);
+        assert_eq!(search.count(), 2);
+    }
 }

@@ -505,6 +505,46 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn kitty_modified_horizontal_arrows_preserve_complete_press_and_release_sequences() {
+        for flags in [1, 3] {
+            for application_cursor in [false, true] {
+                let mut terminal = terminal(flags);
+                if application_cursor {
+                    TerminalParser::new()
+                        .advance(&mut terminal, b"\x1b[?1h")
+                        .unwrap();
+                }
+                for (code, named, press, release) in [
+                    (
+                        KeyCode::ArrowLeft,
+                        NamedKey::ArrowLeft,
+                        b"\x1b[1;6D".as_slice(),
+                        b"\x1b[1;6:3D".as_slice(),
+                    ),
+                    (
+                        KeyCode::ArrowRight,
+                        NamedKey::ArrowRight,
+                        b"\x1b[1;6C".as_slice(),
+                        b"\x1b[1;6:3C".as_slice(),
+                    ),
+                ] {
+                    let mut state = KeyboardState::default();
+                    let key = Key::Named(named);
+                    let modifiers = ModifiersState::CONTROL | ModifiersState::SHIFT;
+                    assert_eq!(
+                        run(&mut state, &terminal, code, &key, modifiers, false, false),
+                        press
+                    );
+                    assert_eq!(
+                        run(&mut state, &terminal, code, &key, modifiers, true, false),
+                        if flags == 3 { release } else { b"" }
+                    );
+                }
+            }
+        }
+    }
     #[test]
     fn kitty_release_requires_forwarded_press_and_survives_repeat() {
         let terminal = terminal(11);
@@ -593,6 +633,27 @@ mod tests {
             b"\x1b[97u"
         );
         assert!(!state.begin_press(physical, true));
+    }
+
+    #[test]
+    fn kitty_search_shortcut_consumes_repeat_and_release() {
+        let terminal = terminal(3);
+        let mut state = KeyboardState::default();
+        let physical = PhysicalKey::Code(KeyCode::KeyF);
+        assert!(!state.begin_press(physical, false));
+        assert!(state.begin_press(physical, true));
+        assert!(
+            run(
+                &mut state,
+                &terminal,
+                KeyCode::KeyF,
+                &character_key("f"),
+                ModifiersState::CONTROL,
+                true,
+                false,
+            )
+            .is_empty()
+        );
     }
     #[test]
     fn kitty_held_state_cannot_leak_across_screens_resets_or_focus() {
