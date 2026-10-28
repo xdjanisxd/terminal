@@ -1457,7 +1457,7 @@ impl Application {
             | Command::SelectWordRight => {
                 let right = matches!(command, Command::SelectRight | Command::SelectWordRight);
                 let word = matches!(command, Command::SelectWordLeft | Command::SelectWordRight);
-                if terminal_owns_editing_shortcuts(
+                if terminal_owns_selection_shortcuts(
                     self.terminal.active_screen(),
                     *self.terminal.input_modes(),
                 ) {
@@ -1916,13 +1916,26 @@ impl Application {
                     | Command::SelectWordLeft
                     | Command::SelectWordRight
             ) {
-                return terminal_owns_editing_shortcuts(
+                return terminal_owns_selection_shortcuts(
                     self.terminal.active_screen(),
                     *self.terminal.input_modes(),
                 );
             }
             *command != Command::OpenUrlHints || url_hints::enabled(&self.terminal)
         })
+    }
+
+    fn is_search_shortcut(&self, physical: PhysicalKey) -> bool {
+        physical == PhysicalKey::Code(KeyCode::KeyF)
+            && self.modifiers == ModifiersState::CONTROL
+            && self.terminal.active_screen() == ScreenKind::Primary
+    }
+
+    fn resize_active_terminal(&mut self, dimensions: TerminalDimensions) {
+        self.terminal.resize(dimensions);
+        if let Some(search) = self.search.as_mut() {
+            search.refresh(&mut self.terminal);
+        }
     }
 
     fn send_kitty_key(&mut self, event: &winit::event::KeyEvent) -> bool {
@@ -2483,7 +2496,7 @@ impl Application {
                     self.url_hints = None;
                     self.url_click = None;
                     let started = std::time::Instant::now();
-                    self.terminal.resize(dimensions);
+                    self.resize_active_terminal(dimensions);
                     terminal_resize_time += started.elapsed();
                     grid_resizes += 1;
                     let started = std::time::Instant::now();
@@ -3508,13 +3521,7 @@ impl ApplicationHandler<PtyWake> for Application {
                     self.handle_tab_picker_key(&event.logical_key, event.text.as_deref());
                 } else if let Some(command) = self.terminal_command(event.physical_key) {
                     self.dispatch_command(command);
-                } else if event.physical_key == PhysicalKey::Code(KeyCode::KeyF)
-                    && self.modifiers == ModifiersState::CONTROL
-                    && terminal_owns_editing_shortcuts(
-                        self.terminal.active_screen(),
-                        *self.terminal.input_modes(),
-                    )
-                {
+                } else if self.is_search_shortcut(event.physical_key) {
                     self.url_hints = None;
                     self.search = Some(Search::default());
                     self.invalidate_frame();
@@ -3992,8 +3999,12 @@ fn xterm_modifier(modifiers: ModifiersState) -> u8 {
 }
 
 fn terminal_owns_editing_shortcuts(screen: ScreenKind, modes: InputModes) -> bool {
-    screen == ScreenKind::Primary
+    terminal_owns_selection_shortcuts(screen, modes)
         && modes.cursor_keys() == terminal_core::CursorKeyMode::Normal
+}
+
+fn terminal_owns_selection_shortcuts(screen: ScreenKind, modes: InputModes) -> bool {
+    screen == ScreenKind::Primary
         && modes.mouse_tracking() == MouseTracking::Off
         && !modes.keyboard_reporting_requested()
 }
@@ -7572,10 +7583,107 @@ mod tests {
     }
 
     #[test]
+    fn application_cursor_mode_keeps_word_selection_local() {
+        for (key, text, expected) in [
+            (KeyCode::ArrowLeft, "foo bar", "bar"),
+            (KeyCode::ArrowRight, "foo bar\r", "foo"),
+        ] {
+            let mut app = Application {
+                modifiers: ModifiersState::CONTROL | ModifiersState::SHIFT,
+                ..Application::default()
+            };
+            app.parser.advance(&mut app.terminal, b"\x1b[?1h").unwrap();
+            app.parser
+                .advance(&mut app.terminal, text.as_bytes())
+                .unwrap();
+            let command = app.terminal_command(PhysicalKey::Code(key)).unwrap();
+            app.dispatch_command(command);
+            assert_eq!(app.terminal.selected_text().as_deref(), Some(expected));
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn word_selection_does_not_write_stray_bytes_to_pty() {
+        use crate::shell;
+        use terminal_pty::{PortablePtyBackend, PtySpawnConfig, PtyWorker};
+
+        let config = PtySpawnConfig::new("/bin/cat".into(), PtySize::new(24, 80).unwrap());
+        let session = shell::spawn(&PortablePtyBackend::new(), config, None).unwrap();
+        let transport = std::sync::Arc::new(std::sync::Mutex::new(SmokeTransport::default()));
+        let worker = PtyWorker::start(SmokeSession {
+            session,
+            transport: std::sync::Arc::clone(&transport),
+        })
+        .unwrap();
+        let mut app = Application {
+            pty: Some(worker),
+            modifiers: ModifiersState::CONTROL | ModifiersState::SHIFT,
+            ..Application::default()
+        };
+        app.parser
+            .advance(&mut app.terminal, b"\x1b[?1hfoo bar")
+            .unwrap();
+        for key in [KeyCode::ArrowLeft, KeyCode::ArrowRight] {
+            app.dispatch_command(app.terminal_command(PhysicalKey::Code(key)).unwrap());
+        }
+        app.write_to_pty(b"barrier\n".to_vec());
+        let deadline = Instant::now() + Duration::from_secs(2);
+        while transport.lock().unwrap().writes_started.is_empty() && Instant::now() < deadline {
+            std::thread::yield_now();
+        }
+        assert_eq!(
+            transport.lock().unwrap().writes_started,
+            [b"barrier\n".to_vec()]
+        );
+        app.pty.as_mut().unwrap().shutdown_and_join().unwrap();
+    }
+
+    #[test]
+    fn primary_search_shortcut_works_in_application_cursor_mode() {
+        let mut app = Application {
+            modifiers: ModifiersState::CONTROL,
+            ..Application::default()
+        };
+        app.parser.advance(&mut app.terminal, b"\x1b[?1h").unwrap();
+        assert!(app.is_search_shortcut(PhysicalKey::Code(KeyCode::KeyF)));
+        app.parser.advance(&mut app.terminal, b"\x1b[>1u").unwrap();
+        assert!(app.is_search_shortcut(PhysicalKey::Code(KeyCode::KeyF)));
+        app.terminal.switch_to_alternate_screen();
+        assert!(!app.is_search_shortcut(PhysicalKey::Code(KeyCode::KeyF)));
+    }
+
+    #[test]
+    fn search_matches_follow_active_terminal_reflow() {
+        let mut app = Application {
+            terminal: TerminalState::new(TerminalDimensions::new(12, 2).unwrap()),
+            ..Application::default()
+        };
+        app.parser
+            .advance(&mut app.terminal, b"123456needle")
+            .unwrap();
+        app.search = Some(Search::default());
+        app.handle_search_key(&Key::Character("needle".into()), Some("needle"));
+        assert_eq!(
+            app.search
+                .as_ref()
+                .unwrap()
+                .selected_match()
+                .unwrap()
+                .start_column,
+            6
+        );
+        app.resize_active_terminal(TerminalDimensions::new(6, 2).unwrap());
+        let search = app.search.as_ref().unwrap();
+        assert_eq!(search.count(), 1);
+        assert_eq!(search.selected_match().unwrap().start_column, 0);
+        assert!(search.viewport_match(&app.terminal).is_some());
+    }
+
+    #[test]
     fn shift_arrow_selection_commands_yield_to_application_modes() {
         for request in [
             b"\x1b[?1049h".as_slice(),
-            b"\x1b[?1h",
             b"\x1b[?1000h",
             b"\x1b[>1u",
             b"\x1b[>4;2m",
@@ -7618,6 +7726,7 @@ mod tests {
                 ));
                 let command =
                     configured_command(&app.config, PhysicalKey::Code(key), modifiers).unwrap();
+                assert_eq!(app.terminal_command(PhysicalKey::Code(key)), None);
                 app.dispatch_command(command);
                 assert_eq!(app.terminal.selected_text(), None);
                 assert_eq!(
@@ -7642,6 +7751,11 @@ mod tests {
                 .unwrap();
                 assert_eq!(
                     configured_command(&config, PhysicalKey::Code(key), modifiers),
+                    Some(Command::Copy)
+                );
+                app.config = config;
+                assert_eq!(
+                    app.terminal_command(PhysicalKey::Code(key)),
                     Some(Command::Copy)
                 );
             }
