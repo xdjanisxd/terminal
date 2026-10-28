@@ -380,12 +380,13 @@ visible HTTP/HTTPS URL without a binding. Both gestures are restricted to the
 Primary screen with mouse reporting off. See [URL Hint Mode](URL_HINT_MODE.md).
 
 The default Shift+Left/Right and Ctrl+Shift+Left/Right bindings extend the
-shared terminal selection. They apply on Primary with normal cursor keys,
-mouse reporting off, and no requested keyboard reporting. Otherwise the
+shared terminal selection. They apply on Primary with mouse reporting off
+and no requested keyboard reporting, including application cursor-key mode. Otherwise the
 modified arrows reach the application. Custom `[[bindings]]` replace the
 default set, including these selection bindings; explicit bindings also
 take precedence over Ctrl+Delete and Ctrl+Backspace input handling.
-In the same Primary input context, Ctrl+Delete sends Meta+D and
+On Primary with normal cursor keys, mouse reporting off, and no requested
+keyboard reporting, Ctrl+Delete sends Meta+D and
 Ctrl+Backspace sends Ctrl+W. The shell interprets these word-delete inputs.
 Plain Backspace remains DEL; there is no separate Backspace-byte setting.
 

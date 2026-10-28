@@ -19,7 +19,7 @@ Goal complete: automated validation and user-reported physical-key acceptance pa
 
 Overlays retain their existing handling. Configured commands are resolved before terminal key encoding; an explicit copy/paste or other non-selection command wins in application modes too. Configured selection commands still apply the ownership rule below. A custom bindings list replaces defaults.
 
-Default Shift+Left/Right selection commands stay app-owned only on the Primary screen with normal cursor-key mode, mouse tracking off, and no keyboard-reporting request. Ctrl+Shift+Left/Right uses the same rule for word selection. Alternate screen, application cursor mode (DECCKM), mouse tracking, or a nonzero Kitty keyboard-protocol / modifyOtherKeys request causes these selection commands to forward through the PTY. An unbound chord reaches the active input encoder directly. Kitty protocol behavior and current manual acceptance status are documented in [KEYBOARD_PROTOCOL.md](KEYBOARD_PROTOCOL.md).
+Default Shift+Left/Right selection commands stay app-owned on the Primary screen with mouse tracking off and no keyboard-reporting request, including application cursor mode (DECCKM). Ctrl+Shift+Left/Right uses the same rule for word selection. Alternate screen, mouse tracking, or a nonzero Kitty keyboard-protocol / modifyOtherKeys request causes these selection commands to forward through the PTY. An unbound chord reaches the active input encoder directly. Kitty protocol behavior and current manual acceptance status are documented in [KEYBOARD_PROTOCOL.md](KEYBOARD_PROTOCOL.md).
 
 | Key | Forwarded bytes |
 | --- | --- |
@@ -34,7 +34,7 @@ Normal-screen character/word selection, contraction and reversal, shared selecti
 
 ## Automated evidence
 
-New tests cover all four default selection chords on normal screen, selection yielding to alternate screen / DECCKM / mouse tracking / keyboard-reporting requests, explicit bindings in those modes, and exact Shift/Ctrl+Shift bytes on both screens and in both cursor modes. Existing core selection tests cover contraction, reversal, Unicode and wrapped rows.
+Tests cover all four default selection chords on Primary, selection in DECCKM, selection yielding to alternate screen / mouse tracking / keyboard-reporting requests, explicit bindings in those modes, and exact Shift/Ctrl+Shift bytes on both screens and in both cursor modes. Existing core selection tests cover contraction, reversal, Unicode and wrapped rows.
 
 Validation passed: focused app/core tests, `cargo fmt --all -- --check`, `cargo check --workspace --all-targets -q`, `cargo test --workspace --all-targets -q`, `cargo test --workspace --doc -q` (four doctests), `cargo clippy --workspace --all-targets -- -D warnings`, `git diff --check`, and `cargo build -q -p terminal-app --bin terminal`. Four existing ignored tests remain ignored. Branch ancestry was verified. Physical-key compatibility is separate from automated byte/routing evidence.
 
