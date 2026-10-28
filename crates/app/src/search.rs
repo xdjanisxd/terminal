@@ -7,6 +7,7 @@ pub(crate) struct Match {
     pub row: usize,
     pub start_column: usize,
     pub end_column: usize,
+    pub end_row: usize,
 }
 
 #[derive(Debug, Default)]
@@ -38,13 +39,13 @@ impl Search {
     pub fn markers(&self) -> Vec<(usize, bool)> {
         let mut markers: Vec<(usize, bool)> = Vec::new();
         for (index, found) in self.matches.iter().enumerate() {
-            let active = Some(index) == self.selected;
-            if let Some((row, row_active)) = markers.last_mut()
-                && *row == found.row
-            {
-                *row_active |= active;
-            } else {
-                markers.push((found.row, active));
+            for row in found.row..=found.end_row {
+                let active = Some(index) == self.selected;
+                if let Some(last) = markers.last_mut().filter(|last| last.0 == row) {
+                    last.1 |= active;
+                } else {
+                    markers.push((row, active));
+                }
             }
         }
         markers
@@ -55,8 +56,16 @@ impl Search {
         let top = terminal
             .scrollback_len()
             .saturating_sub(terminal.viewport_offset());
-        let row = found.row.checked_sub(top)?;
-        (row < terminal.dimensions().rows()).then_some((row, found.start_column))
+        if found.end_row < top {
+            return None;
+        }
+        let row = found.row.saturating_sub(top);
+        let column = if found.row < top {
+            0
+        } else {
+            found.start_column
+        };
+        (row < terminal.dimensions().rows()).then_some((row, column))
     }
 
     pub fn viewport_matches(&self, terminal: &TerminalState) -> Vec<(usize, usize, usize, bool)> {
@@ -64,22 +73,23 @@ impl Search {
             .scrollback_len()
             .saturating_sub(terminal.viewport_offset());
         let bottom = top + terminal.dimensions().rows();
-        self.matches
-            .iter()
-            .enumerate()
-            .filter_map(|(index, found)| {
-                if found.row >= top && found.row < bottom {
-                    Some((
-                        found.row - top,
-                        found.start_column,
-                        found.end_column,
-                        Some(index) == self.selected,
-                    ))
+        let mut spans = Vec::new();
+        for (index, found) in self.matches.iter().enumerate() {
+            for row in found.row.max(top)..=found.end_row.min(bottom.saturating_sub(1)) {
+                let start = if row == found.row {
+                    found.start_column
                 } else {
-                    None
-                }
-            })
-            .collect()
+                    0
+                };
+                let end = if row == found.end_row {
+                    found.end_column
+                } else {
+                    terminal.primary_row_wrap_columns(row)
+                };
+                spans.push((row - top, start, end, Some(index) == self.selected));
+            }
+        }
+        spans
     }
 
     pub fn push_text(&mut self, text: &str, terminal: &mut TerminalState) {
@@ -105,6 +115,10 @@ impl Search {
 
         let history_len = terminal.scrollback_len();
         let rows = terminal.dimensions().rows();
+        let folded_query = self.query.to_lowercase();
+        let query_chars = folded_query.chars().count();
+        let mut line = String::new();
+        let mut positions = Vec::new();
         for row in 0..history_len + rows {
             let cells = if row < history_len {
                 terminal.scrollback_row(row)
@@ -112,10 +126,9 @@ impl Search {
                 None
             };
             let width = cells.map_or(terminal.dimensions().columns(), <[_]>::len);
-            let mut line = String::new();
-            let mut columns = Vec::with_capacity(width);
-            let mut ends = Vec::with_capacity(width);
-            for column in 0..width {
+            let wrap = terminal.primary_row_wrap_columns(row);
+            let length = if wrap == 0 { width } else { wrap.min(width) };
+            for column in 0..length {
                 let cell = if let Some(cells) = cells {
                     cells.get(column)
                 } else {
@@ -129,20 +142,39 @@ impl Search {
                         .flat_map(char::to_lowercase)
                     {
                         line.push(folded);
-                        columns.push(column);
-                        ends.push(column + usize::from(cell.is_wide_lead()) + 1);
+                        positions.push((
+                            row,
+                            column,
+                            (column + usize::from(cell.is_wide_lead()) + 1).min(width),
+                        ));
                     }
                 }
             }
-            let folded_query = self.query.to_lowercase();
-            for (byte, matched) in line.match_indices(&folded_query) {
-                let character = line[..byte].chars().count();
-                let end_character = character + matched.chars().count();
+            let mut indexed_bytes = line.char_indices().map(|(byte, _)| byte).enumerate();
+            let mut consumed = 0;
+            for (byte, _) in line.match_indices(&folded_query) {
+                let character = indexed_bytes.find(|&(_, offset)| offset == byte).unwrap().0;
+                let end_character = character + query_chars - 1;
                 self.matches.push(Match {
-                    row,
-                    start_column: columns[character],
-                    end_column: ends[end_character - 1].min(width),
+                    row: positions[character].0,
+                    start_column: positions[character].1,
+                    end_row: positions[end_character].0,
+                    end_column: positions[end_character].2,
                 });
+                consumed = end_character + 1;
+            }
+            if wrap == 0 {
+                line.clear();
+                positions.clear();
+            } else {
+                // Retain only a possible prefix of a match crossing the next row.
+                let discard = consumed.max(positions.len().saturating_sub(query_chars - 1));
+                let byte = line
+                    .char_indices()
+                    .nth(discard)
+                    .map_or(line.len(), |(i, _)| i);
+                line.drain(..byte);
+                positions.drain(..discard);
             }
         }
         if !self.matches.is_empty() {
@@ -254,6 +286,91 @@ mod tests {
     }
 
     #[test]
+    fn finds_text_across_soft_wrapped_rows() {
+        let mut terminal = TerminalState::new(TerminalDimensions::new(5, 3).unwrap());
+        terminal_core::TerminalParser::new()
+            .advance(&mut terminal, b"abcneedle")
+            .unwrap();
+        let mut search = Search::default();
+        search.push_text("needle", &mut terminal);
+        assert_eq!(search.count(), 1);
+        assert_eq!(
+            search.viewport_matches(&terminal),
+            vec![(0, 3, 5, true), (1, 0, 4, true)]
+        );
+        assert_eq!(search.markers(), vec![(0, true), (1, true)]);
+        terminal.resize(TerminalDimensions::new(4, 3).unwrap());
+        search.refresh(&mut terminal);
+        assert_eq!(search.count(), 1);
+    }
+
+    #[test]
+    fn does_not_match_across_hard_line_breaks() {
+        let mut terminal = TerminalState::new(TerminalDimensions::new(5, 3).unwrap());
+        terminal_core::TerminalParser::new()
+            .advance(&mut terminal, b"abcne\r\nedle")
+            .unwrap();
+        let mut search = Search::default();
+        search.push_text("needle", &mut terminal);
+        assert_eq!(search.count(), 0);
+    }
+
+    #[test]
+    fn finds_wrapped_match_across_history_boundary() {
+        let mut terminal = TerminalState::new(TerminalDimensions::new(5, 2).unwrap());
+        terminal_core::TerminalParser::new()
+            .advance(&mut terminal, b"abcneedle123")
+            .unwrap();
+        assert_eq!(terminal.scrollback_len(), 1);
+        let mut search = Search::default();
+        search.push_text("needle", &mut terminal);
+        assert_eq!(search.count(), 1);
+        assert_eq!(search.selected_match().unwrap().row, 0);
+        assert_eq!(search.selected_match().unwrap().end_row, 1);
+        terminal.scroll_viewport_rows(-1);
+        assert_eq!(search.viewport_match(&terminal), Some((0, 0)));
+    }
+
+    #[test]
+    fn wrapped_search_preserves_non_overlapping_matches_and_unicode() {
+        let mut terminal = TerminalState::new(TerminalDimensions::new(3, 5).unwrap());
+        terminal_core::TerminalParser::new()
+            .advance(&mut terminal, "aaaaaaİxİx".as_bytes())
+            .unwrap();
+        let mut search = Search::default();
+        search.push_text("aaaa", &mut terminal);
+        assert_eq!(search.count(), 1);
+        let mut search = Search::default();
+        search.push_text("i\u{307}x", &mut terminal);
+        assert_eq!(search.count(), 2);
+    }
+
+    #[test]
+    fn wrapped_search_matches_literal_string_at_various_widths() {
+        let text = "ababaabaababaabbababa";
+        for width in 2..=8 {
+            let mut terminal = TerminalState::new(TerminalDimensions::new(width, 2).unwrap());
+            terminal_core::TerminalParser::new()
+                .advance(&mut terminal, text.as_bytes())
+                .unwrap();
+            for query in ["a", "aba", "aabaa", "babaa", "missing"] {
+                let mut search = Search::default();
+                search.push_text(query, &mut terminal);
+                let expected: Vec<_> = text
+                    .match_indices(query)
+                    .map(|(offset, _)| offset)
+                    .collect();
+                let actual: Vec<_> = search
+                    .matches
+                    .iter()
+                    .map(|found| found.row * width + found.start_column)
+                    .collect();
+                assert_eq!(actual, expected, "width={width}, query={query}");
+            }
+        }
+    }
+
+    #[test]
     fn returns_every_visible_match_with_active_state_and_full_span() {
         let mut terminal = terminal();
         let mut search = Search::default();
@@ -274,16 +391,19 @@ mod tests {
                     row: 1,
                     start_column: 0,
                     end_column: 1,
+                    end_row: 1,
                 },
                 Match {
                     row: 1,
                     start_column: 3,
                     end_column: 4,
+                    end_row: 1,
                 },
                 Match {
                     row: 4,
                     start_column: 0,
                     end_column: 1,
+                    end_row: 4,
                 },
             ],
             selected: Some(1),
