@@ -594,6 +594,7 @@ fn native_wayland_url_hints_theme_opacity_and_interaction() {
         event_loop.run_app(&mut driver).unwrap()
     }));
     driver.app.renderer = None;
+    driver.app.window_effects = None;
     driver.app.window = None;
     if let Err(panic) = outcome {
         std::panic::resume_unwind(panic);

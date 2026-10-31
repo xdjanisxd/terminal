@@ -67,6 +67,12 @@ fn native_wayland_blur_reload_recreation_and_shutdown() {
                         }
                     }
                     2 => {
+                        let _ = self
+                            .app
+                            .window
+                            .as_ref()
+                            .unwrap()
+                            .request_inner_size(PhysicalSize::new(900, 550));
                         self.snapshot("selection-blur");
                         self.app.dispatch_command(Command::OpenPalette);
                     }
@@ -83,6 +89,7 @@ fn native_wayland_blur_reload_recreation_and_shutdown() {
                         self.snapshot("surface-recreated");
                         let id = self.app.window.as_ref().unwrap().id();
                         self.app.renderer = None;
+                        self.app.window_effects = None;
                         self.app.window = None;
                         self.app.create_window_and_renderer(event_loop);
                         assert_ne!(self.app.window.as_ref().unwrap().id(), id);
@@ -104,6 +111,7 @@ fn native_wayland_blur_reload_recreation_and_shutdown() {
             self.app.exiting(event_loop);
             assert!(self.app.renderer.is_none());
             assert!(self.app.window.is_none());
+            assert!(self.app.window_effects.is_none());
         }
     }
 

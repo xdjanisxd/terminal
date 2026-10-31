@@ -1,5 +1,10 @@
 # KDE Wayland background blur
 
+Current implementation and Plasma 6.7+ validation:
+[successor protocol compatibility fix](KDE_WAYLAND_BLUR_FIX.md).
+The remainder of this document records the original legacy-only implementation
+and its October 9 verification; its successor-only fallback limitation is superseded.
+
 Verified on 2026-10-09 on branch `feat/linux-window-blur`.
 
 ```toml
