@@ -1952,6 +1952,9 @@ dependencies = [
  "terminal-renderer",
  "terminal-workspace",
  "toml 0.9.12+spec-1.1.0",
+ "wayland-backend",
+ "wayland-client",
+ "wayland-protocols",
  "winit",
  "winresource",
 ]

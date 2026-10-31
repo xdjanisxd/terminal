@@ -84,11 +84,12 @@ selection, and UI keep their existing rendering. Blur and opacity changes reload
 while running, including enabling and disabling blur. At opacity `1.0`, the
 opaque background hides the effect. Invalid reloads retain both previous values.
 
-Blur requires the compositor's KDE blur protocol and an enabled blur effect;
+Blur requires `ext-background-effect-v1` (Plasma 6.7+) or the legacy KDE blur
+protocol and an enabled blur effect;
 the request does not guarantee a visible effect. Unsupported compositors retain
 opacity-only rendering. X11, Windows, and macOS accept the setting without
 applying blur. No system compositor settings are changed. See
-[the KDE Wayland blur report](LINUX_WINDOW_BLUR.md) for integration and limits.
+[the current KDE Wayland blur report](KDE_WAYLAND_BLUR_FIX.md) for integration and limits.
 
 ## Shell
 

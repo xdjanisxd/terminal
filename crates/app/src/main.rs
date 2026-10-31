@@ -84,6 +84,7 @@ use winit::window::{Window, WindowId};
 struct Application {
     chrome: window_chrome::Interaction,
     throughput: Option<throughput::Stats>,
+    window_effects: Option<window_effects::WindowEffects>,
     window: Option<Arc<Window>>,
     renderer: Option<Renderer>,
     startup_presentation: StartupPresentation,
@@ -701,6 +702,7 @@ impl Default for Application {
         Self {
             chrome: window_chrome::Interaction::default(),
             throughput: throughput::enabled().then(throughput::Stats::default),
+            window_effects: None,
             window: None,
             renderer: None,
             startup_presentation: StartupPresentation::default(),
@@ -1075,9 +1077,9 @@ impl Application {
                 }
                 if config.window != self.config.window {
                     if config.window.blur != self.config.window.blur
-                        && let Some(window) = self.window.as_ref()
+                        && let Some(effects) = self.window_effects.as_mut()
                     {
-                        window_effects::set_blur(window, config.window.blur);
+                        effects.set_blur(config.window.blur);
                     }
                     if let Some(renderer) = self.renderer.as_mut() {
                         renderer.set_background_opacity(config.window.opacity);
@@ -2191,8 +2193,13 @@ impl Application {
                 branding::window_attributes().with_visible(self.startup_presentation.presented);
             match event_loop.create_window(attributes) {
                 Ok(window) => {
-                    window_effects::set_blur(&window, self.config.window.blur);
-                    self.window = Some(Arc::new(window));
+                    let window = Arc::new(window);
+                    self.window_effects = Some(window_effects::WindowEffects::new(
+                        Arc::clone(&window),
+                        event_loop.owned_display_handle(),
+                        self.config.window.blur,
+                    ));
+                    self.window = Some(window);
                     drop(window_stage);
                     startup_milestone("window-created");
                 }
@@ -3013,6 +3020,9 @@ impl ApplicationHandler<PtyWake> for Application {
     }
 
     fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        if let Some(effects) = self.window_effects.as_mut() {
+            effects.dispatch_pending();
+        }
         if std::mem::take(&mut self.pty_drain_deferred) {
             self.pty_wake_pending.store(false, Ordering::Release);
             self.drain_pty_events(true);
@@ -3627,6 +3637,7 @@ impl ApplicationHandler<PtyWake> for Application {
         {
             // Release GPU/native effects before winit releases the display.
             self.renderer = None;
+            self.window_effects = None;
             self.window = None;
         }
     }

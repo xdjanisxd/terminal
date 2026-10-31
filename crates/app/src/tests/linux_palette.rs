@@ -638,6 +638,7 @@ fn native_panel_acceptance(tab_picker: bool) {
     // Also release GPU owners before the Wayland event loop on assertion failure.
     driver.app.renderer = None;
     driver.background = None;
+    driver.app.window_effects = None;
     driver.app.window = None;
     if let Err(panic) = outcome {
         std::panic::resume_unwind(panic);
