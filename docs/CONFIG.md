@@ -51,6 +51,22 @@ Cursor visibility (`DECTCEM`) remains independent. Blink transitions request
 frames only for the focused, visible cursor, and the event loop sleeps between
 those deadlines.
 
+## Terminal session directories
+
+```toml
+[terminal]
+inherit_cwd = true
+```
+
+`inherit_cwd` defaults to `true`. New tabs and splits then use the active pane's
+latest valid local OSC 7 directory when no explicit workspace, tab, or project
+root applies. Set it to `false` to start those sessions in the user's home
+directory. This setting affects future sessions and reloads live; existing
+sessions keep their current directories. Initial application startup and
+externally supplied working directories remain unchanged. Explicit roots and
+restored workspace roots keep their existing behavior. See
+[CWD inheritance](CWD_INHERITANCE.md) for shell integration details.
+
 ## Window opacity and blur
 
 ```toml

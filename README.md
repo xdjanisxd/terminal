@@ -180,7 +180,7 @@ Saved Workspaces are reusable templates stored in the app's `workspaces.toml`, s
 
 ## Shell integration
 
-New tabs and splits inherit the focused pane's latest local OSC 7 directory when the new pane has no explicit project, tab, or workspace root. Inheritance is best effort: an unavailable, remote, invalid, or deleted directory uses the normal launch default. Explicit roots keep their existing precedence and launch errors. See [CWD inheritance](docs/CWD_INHERITANCE.md) for platform rules, limitations, and manual acceptance checks.
+New tabs and splits inherit the focused pane's latest local OSC 7 directory by default when no explicit project, tab, or workspace root applies. Set `[terminal].inherit_cwd = false` to use the user's home directory instead. See [CWD inheritance](docs/CWD_INHERITANCE.md) for platform rules and limitations.
 
 On Windows, local PowerShell sessions keep the user's normal profile and add a session-local prompt hook that reports the current filesystem directory with OSC 7. Saved Workspaces use that report to capture pane directories. Shell titles can also appear in the app UI. On Linux, local interactive Bash and Zsh sessions add session-local OSC 7 directory and OSC 133 prompt readiness hooks. Existing user rc files, prompts, and hooks are retained; saved startup commands run once after readiness. An explicit saved pane root is applied after initialization, and a missing root produces a launch error. Fish directory reporting is not implemented.
 

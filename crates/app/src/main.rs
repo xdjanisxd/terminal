@@ -1357,11 +1357,14 @@ impl Application {
             .is_some_and(|(root, _)| root.is_none())
         {
             // The active runtime still belongs to the source pane until activate_pane.
-            runtime.inherited_cwd = self
-                .terminal
-                .working_directory_uri()
-                .and_then(local_cwd_from_osc7)
-                .filter(|path| path.is_dir());
+            runtime.inherited_cwd = if self.config.terminal.inherit_cwd {
+                self.terminal
+                    .working_directory_uri()
+                    .and_then(local_cwd_from_osc7)
+                    .filter(|path| path.is_dir())
+            } else {
+                home_directory()
+            };
         }
         self.inactive_panes.insert(new_pane, runtime);
         emit_diagnostic(format_args!(
@@ -4224,6 +4227,14 @@ fn app_storage_directory() -> PathBuf {
     directory
         .unwrap_or_else(|| PathBuf::from("."))
         .join("terminal")
+}
+
+fn home_directory() -> Option<PathBuf> {
+    #[cfg(windows)]
+    let home = std::env::var_os("USERPROFILE").or_else(|| std::env::var_os("HOME"));
+    #[cfg(not(windows))]
+    let home = std::env::var_os("HOME").or_else(|| std::env::var_os("USERPROFILE"));
+    home.map(PathBuf::from).filter(|path| path.is_dir())
 }
 
 fn apply_pane_roots(

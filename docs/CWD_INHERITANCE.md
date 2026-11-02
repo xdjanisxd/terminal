@@ -39,9 +39,9 @@ For a newly created tab or split:
    and workspace root resolution. `--project-root` remains the workspace override.
 2. The source pane's latest tracked OSC 7 URI, if it describes an existing local
    directory under the platform rules below.
-3. No working-directory override: inherit the Terminal process's current
-   directory, then allow the user's shell startup files to apply their normal
-   behavior.
+3. `[terminal].inherit_cwd = false`: the user's home directory.
+4. Otherwise, no working-directory override: inherit the Terminal process's
+   current directory, then allow shell startup files to apply normal behavior.
 
 The source pane's pane-specific root is not copied as configuration to children;
 its own launch and Saved Workspace metadata remain intact. New tabs still copy
@@ -55,8 +55,13 @@ inherited directory is rechecked immediately before constructing the session's
 spawn configuration. If it disappears or becomes inaccessible after that check,
 the normal spawn error is reported; there is no retry loop or silent shell
 substitution. With no explicit or inherited root, PTY children start in the
-Terminal process's current directory. User shell startup files can still change
+Terminal process's current directory. When inheritance is disabled, new tabs
+and splits use the home directory. Shell startup files can still change
 directory according to their existing behavior.
+
+`[terminal].inherit_cwd` defaults to `true`. It applies to new tabs and splits
+and updates on configuration reload. It does not change initial application
+startup, externally supplied launch directories, or explicit/restored roots.
 
 Shell selection, arguments, environment, configured startup-command readiness
 and exactly-once dispatch are unchanged. New panes do not copy the source pane's
@@ -147,6 +152,9 @@ manual checks below, and Windows/macOS native execution were not run.
    Open a tab with Ctrl+Shift+T and split with Ctrl+Shift+E and Ctrl+Shift+O.
    Run `pwd` in each child: expect that directory. Change one pane to a second
    directory; focus each source and create children to confirm source isolation.
+   Repeat with `[terminal].inherit_cwd = false`: every new tab and split must
+   start in `$HOME`, even after changing the focused pane's directory. Reload
+   the setting in both directions and check that only future sessions change.
 2. Repeat with a configured workspace root and tab root; children must use those
    roots even after the source changes directory. Use an Open Project tab/split
    action and verify its explicit root wins. Restore a workspace with distinct

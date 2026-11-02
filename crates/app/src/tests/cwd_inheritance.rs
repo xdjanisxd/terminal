@@ -72,39 +72,109 @@ fn cwd_inheritance_tracks_focused_pane_without_promoting_roots_or_commands() {
 }
 
 #[test]
+fn disabled_cwd_inheritance_uses_home_for_tabs_and_splits() {
+    let home = super::home_directory().expect("test environment has a home directory");
+    let state = saved_workspaces::TestWorkspaceState::new();
+    let source_dir = state.path().parent().unwrap().join("source cwd");
+    std::fs::create_dir_all(&source_dir).unwrap();
+    let mut app = Application {
+        config: Config::parse("[terminal]\ninherit_cwd = false").unwrap(),
+        ..Application::default()
+    };
+    report(&mut app, &uri(&source_dir));
+
+    app.create_pane(None);
+    assert_eq!(app.inherited_cwd, Some(home.clone()));
+    assert_eq!(
+        cwd::launch_root(
+            app.workspace
+                .pane_launch(app.active_runtime_pane)
+                .unwrap()
+                .0,
+            app.inherited_cwd.as_ref(),
+        ),
+        Some(home.clone())
+    );
+
+    app.create_pane(Some(SplitAxis::Vertical));
+    assert_eq!(app.inherited_cwd, Some(home.clone()));
+    assert_eq!(
+        cwd::launch_root(
+            app.workspace
+                .pane_launch(app.active_runtime_pane)
+                .unwrap()
+                .0,
+            app.inherited_cwd.as_ref(),
+        ),
+        Some(home)
+    );
+}
+
+#[test]
+fn cwd_inheritance_reload_changes_future_session_directory_policy() {
+    let state = saved_workspaces::TestWorkspaceState::new();
+    let config_path = state.path().with_extension("toml");
+    let source_dir = state.path().parent().unwrap().to_path_buf();
+    std::fs::create_dir_all(&source_dir).unwrap();
+    let mut app = Application {
+        workspace_loaded: true,
+        config_path: config_path.clone(),
+        ..Application::default()
+    };
+
+    std::fs::write(&config_path, "[terminal]\ninherit_cwd = false").unwrap();
+    app.reload_config();
+    report(&mut app, &uri(&source_dir));
+    app.create_pane(None);
+    assert_eq!(app.inherited_cwd, super::home_directory());
+
+    std::fs::write(&config_path, "[terminal]\ninherit_cwd = true").unwrap();
+    app.reload_config();
+    report(&mut app, &uri(&source_dir));
+    app.create_pane(Some(SplitAxis::Horizontal));
+    assert_eq!(app.inherited_cwd, Some(source_dir));
+}
+
+#[test]
 fn cwd_inheritance_respects_explicit_tab_workspace_and_project_roots() {
     let directory = std::env::current_dir().unwrap();
-    for tab_root in [false, true] {
-        for axis in [None, Some(SplitAxis::Horizontal)] {
-            let mut app = Application::default();
-            let mut definition = app.workspace.definition();
-            let root = PathBuf::from("explicit root keeps existing validation");
-            if tab_root {
-                definition.tabs[0].project_root = Some(root.clone());
-            } else {
-                definition.project_root = Some(root.clone());
+    for inherit_cwd in [true, false] {
+        for tab_root in [false, true] {
+            for axis in [None, Some(SplitAxis::Horizontal)] {
+                let mut app = Application {
+                    config: Config::parse(&format!("[terminal]\ninherit_cwd = {inherit_cwd}"))
+                        .unwrap(),
+                    ..Application::default()
+                };
+                let mut definition = app.workspace.definition();
+                let root = PathBuf::from("explicit root keeps existing validation");
+                if tab_root {
+                    definition.tabs[0].project_root = Some(root.clone());
+                } else {
+                    definition.project_root = Some(root.clone());
+                }
+                app.load_workspace(&definition);
+                report(&mut app, &uri(&directory));
+                app.create_pane(axis);
+                assert_eq!(
+                    app.workspace
+                        .pane_launch(app.active_runtime_pane)
+                        .unwrap()
+                        .0,
+                    Some(root)
+                );
+                assert_eq!(app.inherited_cwd, None);
+                report(&mut app, &uri(&directory));
+                app.create_pane_at_root(axis, Some("project action".into()));
+                assert_eq!(
+                    app.workspace
+                        .pane_launch(app.active_runtime_pane)
+                        .unwrap()
+                        .0,
+                    Some("project action".into())
+                );
+                assert_eq!(app.inherited_cwd, None);
             }
-            app.load_workspace(&definition);
-            report(&mut app, &uri(&directory));
-            app.create_pane(axis);
-            assert_eq!(
-                app.workspace
-                    .pane_launch(app.active_runtime_pane)
-                    .unwrap()
-                    .0,
-                Some(root)
-            );
-            assert_eq!(app.inherited_cwd, None);
-            report(&mut app, &uri(&directory));
-            app.create_pane_at_root(axis, Some("project action".into()));
-            assert_eq!(
-                app.workspace
-                    .pane_launch(app.active_runtime_pane)
-                    .unwrap()
-                    .0,
-                Some("project action".into())
-            );
-            assert_eq!(app.inherited_cwd, None);
         }
     }
 }
