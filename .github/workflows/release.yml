@@ -19,6 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - { runner: windows-2025, target: x86_64-pc-windows-msvc }
           - { runner: ubuntu-24.04, target: x86_64-unknown-linux-gnu }
           - { runner: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu }
     steps:
@@ -54,6 +55,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - { runner: windows-2025, target: x86_64-pc-windows-msvc, asset: terminal-windows-x86_64.zip, msi: terminal-windows-x86_64.msi }
           - { runner: ubuntu-24.04, target: x86_64-unknown-linux-gnu, asset: terminal-linux-x86_64.tar.gz }
           - { runner: ubuntu-24.04-arm, target: aarch64-unknown-linux-gnu, asset: terminal-linux-aarch64.tar.gz }
     steps:
@@ -134,6 +136,7 @@ jobs:
       - name: Verify the complete release set
         shell: bash
         run: |
+          expected=(terminal-windows-x86_64.zip terminal-windows-x86_64.msi terminal-linux-x86_64.tar.gz terminal-linux-aarch64.tar.gz)
           expected=(terminal-linux-x86_64.tar.gz terminal-linux-aarch64.tar.gz)
           test "$(find dist -maxdepth 1 -type f | wc -l)" -eq "${#expected[@]}"
           for asset in "${expected[@]}"; do test -s "dist/$asset"; done
