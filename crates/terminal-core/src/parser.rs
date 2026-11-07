@@ -671,8 +671,12 @@ impl vte::Perform for SemanticPerformer<'_> {
 
         // DECSCUSR is CSI Ps SP q: the space is an intermediate byte.
         if action == 'q' && intermediates == b" " && count <= 1 {
-            let style = match if count == 0 { 0 } else { values[0] } {
-                0 | 1 => Some(crate::CursorStyle {
+            if count == 0 || values[0] == 0 {
+                self.terminal.reset_cursor_style_from_application();
+                return;
+            }
+            let style = match values[0] {
+                1 => Some(crate::CursorStyle {
                     shape: crate::CursorShape::Block,
                     blinking: true,
                 }),
