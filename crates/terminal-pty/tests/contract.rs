@@ -5,9 +5,12 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use terminal_pty::{
-    PortablePtyBackend, PtyBackend, PtyError, PtyExitStatus, PtyLifecycle, PtyOutput, PtySession,
-    PtySize, PtySizeError, PtySpawnConfig,
+    PortablePtyBackend, PtyError, PtyExitStatus, PtyLifecycle, PtyOutput, PtySession, PtySize,
+    PtySizeError, PtySpawnConfig,
 };
+
+#[cfg(unix)]
+use terminal_pty::PtyBackend;
 
 const HELPER_OUTPUT: &[u8] = b"TERMINAL_PTY_HELPER_MARKER";
 const CONPTY_CURSOR_POSITION_QUERY: &[u8] = b"\x1b[6n";
