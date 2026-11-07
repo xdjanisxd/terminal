@@ -101,6 +101,7 @@ struct Application {
     pty_wake_proxy: Option<EventLoopProxy<PtyWake>>,
     pty_wake_pending: Arc<AtomicBool>,
     pty_drain_deferred: bool,
+    pty_drain_cursor: usize,
     exited_panes: HashSet<PaneId>,
     session_exit_requested: bool,
     frame: FrameState,
@@ -719,6 +720,7 @@ impl Default for Application {
             pty_wake_proxy: None,
             pty_wake_pending: Arc::new(AtomicBool::new(false)),
             pty_drain_deferred: false,
+            pty_drain_cursor: 0,
             exited_panes: HashSet::new(),
             session_exit_requested: false,
             frame: FrameState::default(),
@@ -989,6 +991,7 @@ impl Application {
                 self.unseen_tab_activity.clear();
                 self.pty_wake_pending.store(false, Ordering::Release);
                 self.pty_drain_deferred = false;
+                self.pty_drain_cursor = 0;
                 if let Some(size) = self.window.as_ref().map(|window| window.inner_size()) {
                     self.resize_terminal_to_viewport(size);
                 }
@@ -2646,34 +2649,21 @@ impl Application {
 
     fn drain_pty_events(&mut self, request_redraw: bool) -> bool {
         let started = std::time::Instant::now();
-        // Yield between bounded per-pane batches so output cannot monopolize
-        // the event loop. The byte stream and persistent parser are unchanged.
+        // One event-loop turn has one budget, shared by all panes. Resume at
+        // the next pane on the following turn so a busy pane cannot starve a
+        // quiet pane when processing an event consumes the time allowance.
         let mut budget = PtyDrainBudget::new();
-        let mut yielded = false;
         let mut events = 0;
         let mut bytes = 0;
         let mut visible_output = false;
-        while let Some(pty) = self.pty.as_ref() {
-            if budget.exhausted() {
-                yielded = true;
-                break;
-            }
-            let event = match pty.recv_timeout(Duration::ZERO) {
-                Ok(Some(event)) => event,
-                Ok(None) => break,
-                Err(error) => {
-                    eprintln!("could not receive local shell output: {error}");
-                    break;
-                }
-            };
-            events += 1;
-            budget.record_event();
-            if let PtyWorkerEvent::Output(PtyOutput::Bytes(chunk)) = &event {
-                bytes += chunk.len();
-            }
-            visible_output |= self.handle_pty_event(event);
-        }
-        let visible: Vec<_> = self
+        let panes: Vec<_> = self
+            .workspace
+            .panes()
+            .into_iter()
+            .map(|pane| pane.id)
+            .collect();
+        let mut schedule = PtyDrainSchedule::new(panes.len(), self.pty_drain_cursor);
+        let visible: HashSet<_> = self
             .workspace
             .active_tab()
             .panes()
@@ -2681,59 +2671,79 @@ impl Application {
             .map(|pane| pane.id)
             .collect();
         let mut background_output = HashSet::new();
-        for (pane_id, runtime) in &mut self.inactive_panes {
-            let mut budget = PtyDrainBudget::new();
-            while let Some(pty) = runtime.pty.as_ref() {
-                if budget.exhausted() {
-                    yielded = true;
-                    break;
+        while let Some(index) = schedule.next(&budget) {
+            let pane_id = panes[index];
+            let worker = if pane_id == self.active_runtime_pane {
+                self.pty.as_ref()
+            } else {
+                self.inactive_panes
+                    .get(&pane_id)
+                    .and_then(|runtime| runtime.pty.as_ref())
+            };
+            let event = match worker.map(|pty| pty.recv_timeout(Duration::ZERO)) {
+                Some(Ok(Some(event))) => event,
+                None | Some(Ok(None)) => {
+                    schedule.record(false);
+                    continue;
                 }
-                let event = match pty.recv_timeout(Duration::ZERO) {
-                    Ok(Some(event)) => event,
-                    Ok(None) => break,
-                    Err(error) => {
+                Some(Err(error)) => {
+                    if pane_id == self.active_runtime_pane {
+                        eprintln!("could not receive local shell output: {error}");
+                    } else {
                         eprintln!("could not receive background shell output: {error}");
-                        break;
                     }
-                };
-                events += 1;
-                budget.record_event();
-                if let PtyWorkerEvent::Output(PtyOutput::Bytes(chunk)) = &event {
-                    bytes += chunk.len();
-                    visible_output |= visible.contains(pane_id);
-                    if !chunk.is_empty() && !visible.contains(pane_id) {
-                        background_output.insert(*pane_id);
-                    }
+                    schedule.record(false);
+                    continue;
                 }
-                let parse_started = self.throughput.as_ref().map(|_| Instant::now());
-                let output_bytes = match &event {
-                    PtyWorkerEvent::Output(PtyOutput::Bytes(bytes)) => Some(bytes.as_slice()),
-                    _ => None,
-                };
-                let is_output = output_bytes.is_some();
-                // Record byte totals before moving the event; parsing time below
-                // includes the same app-owned apply/reply work as the active pane.
-                if let (Some(stats), Some(bytes)) = (&mut self.throughput, output_bytes) {
-                    let was_dirty = stats.data_dirty;
-                    stats.output(bytes, Duration::ZERO);
-                    stats.data_dirty = was_dirty || visible.contains(pane_id);
-                }
-                if matches!(event, PtyWorkerEvent::Output(PtyOutput::Exited(_))) {
-                    self.exited_panes.insert(*pane_id);
-                }
-                handle_background_pty_event(*pane_id, runtime, event);
-                if is_output && let Some(stats) = &mut self.throughput {
-                    stats.parse += parse_started.unwrap().elapsed();
+            };
+            schedule.record(true);
+            events += 1;
+            budget.record_event();
+            if let PtyWorkerEvent::Output(PtyOutput::Bytes(chunk)) = &event {
+                bytes += chunk.len();
+            }
+            if pane_id == self.active_runtime_pane {
+                visible_output |= self.handle_pty_event(event);
+                continue;
+            }
+            let is_visible = visible.contains(&pane_id);
+            if let PtyWorkerEvent::Output(PtyOutput::Bytes(chunk)) = &event {
+                visible_output |= is_visible;
+                if !chunk.is_empty() && !is_visible {
+                    background_output.insert(pane_id);
                 }
             }
+            let parse_started = self.throughput.as_ref().map(|_| Instant::now());
+            let output_bytes = match &event {
+                PtyWorkerEvent::Output(PtyOutput::Bytes(bytes)) => Some(bytes.as_slice()),
+                _ => None,
+            };
+            let is_output = output_bytes.is_some();
+            // Record byte totals before moving the event; parsing time below
+            // includes the same app-owned apply/reply work as the active pane.
+            if let (Some(stats), Some(bytes)) = (&mut self.throughput, output_bytes) {
+                let was_dirty = stats.data_dirty;
+                stats.output(bytes, Duration::ZERO);
+                stats.data_dirty = was_dirty || is_visible;
+            }
+            if matches!(event, PtyWorkerEvent::Output(PtyOutput::Exited(_))) {
+                self.exited_panes.insert(pane_id);
+            }
+            if let Some(runtime) = self.inactive_panes.get_mut(&pane_id) {
+                handle_background_pty_event(pane_id, runtime, event);
+            }
+            if is_output && let Some(stats) = &mut self.throughput {
+                stats.parse += parse_started.unwrap().elapsed();
+            }
         }
+        self.pty_drain_cursor = schedule.cursor;
         for pane_id in background_output {
             self.record_background_output(pane_id);
         }
         self.close_exited_panes();
         // Continue on the next event-loop turn. Repeated proxy notifications can
         // run ahead of Windows redraw events even when each drain is bounded.
-        if yielded {
+        if schedule.yielded(&budget) {
             self.pty_drain_deferred = true;
             self.pty_wake_pending.store(true, Ordering::Release);
         }
@@ -4878,10 +4888,52 @@ fn configured_command(
         .map(|binding| binding.command)
 }
 
-/// Bounds each pane independently, including panes outside the active tab.
+/// Bounds one drain across all panes, including panes outside the active tab.
 struct PtyDrainBudget {
     started: Instant,
     events: usize,
+}
+
+/// Visits each pane once per round and carries the next position across drains.
+struct PtyDrainSchedule {
+    pane_count: usize,
+    cursor: usize,
+    idle: usize,
+}
+
+impl PtyDrainSchedule {
+    fn new(pane_count: usize, cursor: usize) -> Self {
+        Self {
+            pane_count,
+            cursor: if pane_count == 0 {
+                0
+            } else {
+                cursor % pane_count
+            },
+            idle: 0,
+        }
+    }
+
+    fn next(&mut self, budget: &PtyDrainBudget) -> Option<usize> {
+        if self.idle == self.pane_count || budget.exhausted() {
+            return None;
+        }
+        let index = self.cursor;
+        self.cursor = (self.cursor + 1) % self.pane_count;
+        Some(index)
+    }
+
+    fn record(&mut self, had_event: bool) {
+        if had_event {
+            self.idle = 0;
+        } else {
+            self.idle += 1;
+        }
+    }
+
+    fn yielded(&self, budget: &PtyDrainBudget) -> bool {
+        self.pane_count != 0 && self.idle < self.pane_count && budget.exhausted()
+    }
 }
 
 impl PtyDrainBudget {

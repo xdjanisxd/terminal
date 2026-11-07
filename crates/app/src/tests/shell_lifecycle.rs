@@ -1,5 +1,130 @@
 use super::*;
 use terminal_pty::PtyExitStatus;
+#[cfg(target_os = "linux")]
+use terminal_pty::{PortablePtyBackend, PtyBackend, PtySize, PtySpawnConfig, PtyWorker};
+
+#[test]
+fn pty_drain_schedule_round_robins_and_carries_cursor_between_turns() {
+    let budget = PtyDrainBudget::new();
+    let mut schedule = PtyDrainSchedule::new(4, 3);
+    let mut visited = Vec::new();
+    for _ in 0..8 {
+        let index = schedule.next(&budget).expect("schedule remains active");
+        visited.push(index);
+        schedule.record(true);
+    }
+
+    assert_eq!(visited, [3, 0, 1, 2, 3, 0, 1, 2]);
+    assert_eq!(schedule.cursor, 3);
+}
+
+#[test]
+fn pty_drain_budget_is_shared_and_preserves_fair_service_until_exhausted() {
+    let pane_count = 8;
+    let mut budget = PtyDrainBudget::new();
+    let mut schedule = PtyDrainSchedule::new(pane_count, 5);
+    let mut visits = vec![0; pane_count];
+
+    for _ in 0..PtyDrainBudget::EVENT_LIMIT {
+        let pane = schedule.next(&budget).expect("shared budget has room");
+        schedule.record(true);
+        budget.record_event();
+        // Keep this pure scheduling test independent of CI load and exercise
+        // the event-count limit separately from the elapsed-time limit.
+        budget.started = Instant::now();
+        visits[pane] += 1;
+    }
+
+    assert!(schedule.next(&budget).is_none());
+    assert!(schedule.yielded(&budget));
+    assert_eq!(budget.events, PtyDrainBudget::EVENT_LIMIT);
+    assert_eq!(
+        visits,
+        vec![PtyDrainBudget::EVENT_LIMIT / pane_count; pane_count]
+    );
+    assert_eq!(schedule.cursor, 5);
+}
+
+#[test]
+fn pty_drain_schedule_stops_without_rewake_after_all_panes_are_idle() {
+    let budget = PtyDrainBudget::new();
+    let mut schedule = PtyDrainSchedule::new(3, 1);
+
+    for expected in [1, 2, 0] {
+        assert_eq!(schedule.next(&budget), Some(expected));
+        schedule.record(false);
+    }
+
+    assert_eq!(schedule.next(&budget), None);
+    assert!(!schedule.yielded(&budget));
+}
+
+#[cfg(target_os = "linux")]
+#[test]
+fn pty_drain_rewakes_pending_work_and_serves_quiet_pane_during_flood() {
+    use std::sync::atomic::Ordering;
+    use std::time::{Duration, Instant};
+
+    let mut app = Application::default();
+    for _ in 0..8 {
+        app.dispatch_command(Command::SplitVertical);
+    }
+    let panes = app.workspace.panes();
+    let probe_id = panes[panes.len() / 2].id;
+    assert_ne!(probe_id, app.active_runtime_pane);
+
+    let backend = PortablePtyBackend::new();
+    for pane in &panes {
+        let script = if pane.id == probe_id {
+            "import os,time; os.write(1,b'\\x1b[2J\\x1b[HQUIET-PROBE'); time.sleep(3)"
+        } else {
+            "import os,time; data=b'x'*4095+b'\\n'; end=time.monotonic()+3\nwhile time.monotonic()<end: os.write(1,data)"
+        };
+        let config = PtySpawnConfig::new("/usr/bin/python3".into(), PtySize::new(24, 80).unwrap())
+            .with_arguments(["-c".into(), script.into()]);
+        let worker = PtyWorker::start(backend.spawn(config).unwrap()).unwrap();
+        if pane.id == app.active_runtime_pane {
+            app.pty = Some(worker);
+        } else {
+            app.inactive_panes.get_mut(&pane.id).unwrap().pty = Some(worker);
+        }
+    }
+
+    std::thread::sleep(Duration::from_millis(50));
+    app.drain_pty_events(false);
+    assert!(
+        app.pty_drain_deferred,
+        "unfinished flood work must defer the drain"
+    );
+    assert!(
+        app.pty_wake_pending.load(Ordering::Acquire),
+        "deferred work must arm the next drain wake"
+    );
+
+    let probe_seen = |app: &Application| {
+        app.inactive_panes[&probe_id]
+            .terminal
+            .screen()
+            .cell(0, 0)
+            .is_some_and(|cell| cell.character() == 'Q')
+    };
+    let deadline = Instant::now() + Duration::from_secs(2);
+    let mut drain_turns = 0;
+    while !probe_seen(&app) && Instant::now() < deadline && drain_turns < panes.len() * 2 {
+        if std::mem::take(&mut app.pty_drain_deferred) {
+            assert!(
+                app.pty_wake_pending.swap(false, Ordering::AcqRel),
+                "about-to-wait continuation must consume its pending wake"
+            );
+        }
+        app.drain_pty_events(false);
+        drain_turns += 1;
+    }
+    assert!(probe_seen(&app), "quiet pane was starved by flood panes");
+    app.shutdown_sessions();
+    assert!(app.pty.is_none());
+    assert!(app.inactive_panes.is_empty());
+}
 
 fn exit_active(app: &mut Application, code: i32) {
     app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Exited(
