@@ -313,6 +313,46 @@ mod tests {
     }
 
     #[test]
+    fn trailing_semicolon_prompt_command_still_reports_prompt_readiness() {
+        use std::time::{Duration, Instant};
+        use terminal_pty::{PtyOutput, PtyWorker, PtyWorkerEvent};
+
+        let mut config = request("bash", &["--noprofile", "--norc"]);
+        let mut environment = config.environment().to_vec();
+        environment.push(("PROMPT_COMMAND".into(), "history -a; history -a; ".into()));
+        config = config.with_environment(environment);
+        let session = super::super::super::shell::spawn(
+            &super::super::super::PortablePtyBackend::new(),
+            config,
+            None,
+        )
+        .unwrap();
+        let mut worker = PtyWorker::start(session).unwrap();
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let marker = b"\x1b]133;A\x07";
+        let mut output = Vec::new();
+        while Instant::now() < deadline
+            && !output.windows(marker.len()).any(|window| window == marker)
+        {
+            if let Some(event) = worker.recv_timeout(Duration::from_millis(20)).unwrap() {
+                match event {
+                    PtyWorkerEvent::Output(PtyOutput::Bytes(bytes)) => output.extend(bytes),
+                    PtyWorkerEvent::Output(PtyOutput::Exited(status)) => {
+                        panic!("bash exited before prompt readiness: {status:?}")
+                    }
+                    _ => {}
+                }
+            }
+        }
+        worker.shutdown_and_join().unwrap();
+        assert!(
+            output.windows(marker.len()).any(|window| window == marker),
+            "bash prompt marker missing; output: {}",
+            String::from_utf8_lossy(&output)
+        );
+    }
+
+    #[test]
     fn unrelated_terminal_prefixed_environment_is_preserved() {
         for program in ["bash", "zsh"] {
             let config = request(program, &[]).with_environment([

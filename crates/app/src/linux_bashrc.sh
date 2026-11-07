@@ -33,7 +33,9 @@ __terminal_report_prompt() {
 if [[ $(declare -p PROMPT_COMMAND 2>/dev/null) == 'declare -a '* ]]; then
     PROMPT_COMMAND+=(__terminal_report_prompt)
 else
-    PROMPT_COMMAND="${PROMPT_COMMAND:+$PROMPT_COMMAND; }__terminal_report_prompt"
+    # A previous scalar hook may already end in `;`. Separate commands with
+    # a newline so Bash never sees the invalid `; ;` sequence.
+    PROMPT_COMMAND="${PROMPT_COMMAND:+$PROMPT_COMMAND$'\n'}__terminal_report_prompt"
 fi
 
 # --norc keeps both system and user rc disabled; its bootstrap runs as the
