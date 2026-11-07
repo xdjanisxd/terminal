@@ -7344,18 +7344,18 @@ mod tests {
         app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
             b"\x1b[?2004h".to_vec(),
         )));
-        assert!(app.paste_text("second é\nline"));
+        assert!(app.paste_text("second\u{1b} é\nline\u{85}"));
         app.dispatch_command(Command::PreviousPane);
         assert_eq!(app.active_runtime_pane, first);
         assert!(!app.terminal.input_modes().bracketed_paste());
-        assert!(app.paste_text("first 🦀\nline"));
+        assert!(app.paste_text("first\u{7f} 🦀\nline\u{7}"));
         app.dispatch_command(Command::NextPane);
         assert_eq!(app.active_runtime_pane, second);
         assert!(app.terminal.input_modes().bracketed_paste());
         app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
             b"\x1b[?2004l".to_vec(),
         )));
-        assert!(app.paste_text("plain second"));
+        assert!(app.paste_text("plain\u{0} second\u{9b}"));
         let deadline = Instant::now() + Duration::from_secs(2);
         while first_transport.lock().unwrap().writes_started.is_empty()
             || second_transport.lock().unwrap().writes_started.len() < 2

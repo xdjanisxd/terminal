@@ -154,6 +154,51 @@ fn output_modes_drive_cursor_focus_and_paste_bytes() {
 }
 
 #[test]
+fn paste_filters_control_characters_in_both_modes() {
+    let (mut parser, mut terminal) = terminal();
+    let controls: String = ('\u{0}'..='\u{1f}').chain('\u{7f}'..='\u{9f}').collect();
+    let blocked: String = controls
+        .chars()
+        .filter(|character| !matches!(character, '\t' | '\n' | '\r'))
+        .collect();
+
+    for bracketed in [false, true] {
+        if bracketed {
+            parser.advance(&mut terminal, b"\x1b[?2004h").unwrap();
+        }
+        let modes = *terminal.input_modes();
+        let frame = |text: &str| {
+            if bracketed {
+                format!("\x1b[200~{text}\x1b[201~").into_bytes()
+            } else {
+                text.as_bytes().to_vec()
+            }
+        };
+        assert_eq!(encode_paste(modes, &controls), frame("\t\n\r"));
+        assert_eq!(encode_paste(modes, &blocked), frame(""));
+        assert_eq!(encode_paste(modes, ""), frame(""));
+        assert_eq!(
+            encode_paste(modes, "before\u{1b}after"),
+            frame("beforeafter")
+        );
+    }
+}
+
+#[test]
+fn paste_preserves_unicode_and_text_whitespace_in_both_modes() {
+    let (mut parser, mut terminal) = terminal();
+    // Include UTF-8 continuation bytes in the control-byte range: filtering must
+    // operate on characters, never individual bytes of valid Unicode text.
+    let text = "  Türkçe é e\u{301} 世界 🦀\u{200d}🦀\tline\r\nnext\nlast\r ";
+    assert_eq!(encode_paste(*terminal.input_modes(), text), text.as_bytes());
+    parser.advance(&mut terminal, b"\x1b[?2004h").unwrap();
+    assert_eq!(
+        encode_paste(*terminal.input_modes(), text),
+        format!("\x1b[200~{text}\x1b[201~").as_bytes()
+    );
+}
+
+#[test]
 fn control_left_and_right_use_modified_csi_in_both_cursor_key_modes() {
     let (mut parser, mut terminal) = terminal();
     for application_mode in [false, true] {
