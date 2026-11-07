@@ -1538,10 +1538,26 @@ fn decscusr_sets_shape_and_blink_and_reset_restores_configured_default() {
     let mut parser = TerminalParser::new();
     let mut state = TerminalState::new(TerminalDimensions::new(8, 2).unwrap());
     let configured = CursorStyle {
-        shape: CursorShape::Underline,
-        blinking: true,
+        shape: CursorShape::Block,
+        blinking: false,
     };
     state.set_cursor_style_default(configured);
+
+    // Applications commonly send DECSCUSR 0 when leaving a full-screen editor.
+    // It means restore the terminal's configured default, including blink-off.
+    parser.advance(&mut state, b"\x1b[1 q").unwrap();
+    assert_eq!(
+        state.cursor_style(),
+        CursorStyle {
+            shape: CursorShape::Block,
+            blinking: true,
+        }
+    );
+    parser.advance(&mut state, b"\x1b[0 q").unwrap();
+    assert_eq!(state.cursor_style(), configured);
+    parser.advance(&mut state, b"\x1b[1 q").unwrap();
+    parser.advance(&mut state, b"\x1b[ q").unwrap();
+    assert_eq!(state.cursor_style(), configured);
 
     for (sequence, expected) in [
         (

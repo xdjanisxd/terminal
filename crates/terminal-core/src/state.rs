@@ -1256,6 +1256,12 @@ impl TerminalState {
         self.cursor_style_overridden = true;
     }
 
+    /// Restores the configured cursor style when an application requests its default.
+    pub fn reset_cursor_style_from_application(&mut self) {
+        self.cursor_style = self.cursor_style_default;
+        self.cursor_style_overridden = false;
+    }
+
     /// Sets the right-margin wrapping behavior.
     pub fn set_auto_wrap(&mut self, auto_wrap: AutoWrapMode) {
         self.grapheme_anchor = None;
