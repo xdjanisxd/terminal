@@ -240,6 +240,13 @@ impl Error for FontProcessingError {}
 const GLYPH_CACHE_CAPACITY: usize = 256;
 const SHAPED_TEXT_CACHE_CAPACITY: usize = 512;
 
+#[derive(Clone, Eq, Hash, PartialEq)]
+struct ShapedCacheKey {
+    text: String,
+    pixels_per_em: u32,
+    bold: bool,
+}
+
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
 struct GlyphCacheKey {
     face_id: ID,
@@ -344,9 +351,8 @@ pub(super) struct FontSystem {
     bold_companions: HashMap<ID, Option<ID>>,
     bold_intensity: f32,
     bold_instances: HashMap<ID, (ID, Option<u32>)>,
-    shaped_cache: HashMap<(String, bool), ShapedText>,
-    shaped_lru: VecDeque<(String, bool)>,
-    shaped_pixels_per_em: Option<u32>,
+    shaped_cache: HashMap<ShapedCacheKey, ShapedText>,
+    shaped_lru: VecDeque<ShapedCacheKey>,
 }
 
 impl FontSystem {
@@ -444,7 +450,6 @@ impl FontSystem {
             bold_instances: HashMap::new(),
             shaped_cache: HashMap::new(),
             shaped_lru: VecDeque::new(),
-            shaped_pixels_per_em: None,
         })
     }
 
@@ -476,13 +481,11 @@ impl FontSystem {
         if text.is_empty() {
             return Ok((ShapedText::default(), true));
         }
-        let scale = pixels_per_em.to_bits();
-        if self.shaped_pixels_per_em != Some(scale) {
-            self.shaped_cache.clear();
-            self.shaped_lru.clear();
-            self.shaped_pixels_per_em = Some(scale);
-        }
-        let key = (text.to_owned(), bold);
+        let key = ShapedCacheKey {
+            text: text.to_owned(),
+            pixels_per_em: pixels_per_em.to_bits(),
+            bold,
+        };
         if let Some(shaped) = self.shaped_cache.get(&key).cloned() {
             if let Some(position) = self
                 .shaped_lru
@@ -1365,6 +1368,7 @@ mod tests {
     fn variable_intensity_clamps_separates_caches_and_preserves_grid() {
         let mut light = variable_system(0.75);
         let mut heavy = variable_system(1.25);
+        let mut shaped_sizes = std::collections::HashSet::new();
         for scale in [1.0, 1.25, 2.0] {
             for logical_size in [12.0, 16.0, 20.0] {
                 let size = scale as f32 * logical_size;
@@ -1376,7 +1380,7 @@ mod tests {
                 let (a, hit) = light
                     .shape_text_cached_with_bold("Ag0@é e\u{301}", size, true)
                     .unwrap();
-                assert!(!hit);
+                assert_eq!(hit, !shaped_sizes.insert(size.to_bits()));
                 let b = heavy
                     .shape_text_cached_with_bold("Ag0@é e\u{301}", size, true)
                     .unwrap()
@@ -1939,24 +1943,54 @@ mod tests {
     }
 
     #[test]
-    fn shape_cache_reuses_text_and_invalidates_on_font_scale_change() {
+    fn shape_cache_reuses_text_across_font_sizes_with_size_correct_advances() {
         let mut system = fixture_system();
-        assert!(!system.shape_text_cached("ABC", 16.0).unwrap().1);
+        let (small, small_hit) = system.shape_text_cached("ABC", 16.0).unwrap();
+        assert!(!small_hit);
         assert!(system.shape_text_cached("ABC", 16.0).unwrap().1);
-        assert!(!system.shape_text_cached("ABC", 17.0).unwrap().1);
-        assert_eq!(system.shaped_cache.len(), 1);
+
+        let (large, large_hit) = system.shape_text_cached("ABC", 32.0).unwrap();
+        assert!(!large_hit);
+        assert!(system.shape_text_cached("ABC", 32.0).unwrap().1);
+        assert!(system.shape_text_cached("ABC", 16.0).unwrap().1);
+        assert_eq!(system.shaped_cache.len(), 2);
+
+        let small_advance: f32 = small.glyphs().iter().map(|glyph| glyph.advance()).sum();
+        let large_advance: f32 = large.glyphs().iter().map(|glyph| glyph.advance()).sum();
+        assert!(small_advance > 0.0);
+        assert!((large_advance - small_advance * 2.0).abs() < 0.01);
     }
 
     #[test]
-    fn shape_cache_evicts_least_recently_used_text() {
+    fn shape_cache_invalidates_all_sizes_when_font_weight_configuration_changes() {
         let mut system = fixture_system();
-        for index in 0..SHAPED_TEXT_CACHE_CAPACITY {
-            system.shape_text_cached(&format!("{index}"), 16.0).unwrap();
+        assert!(!system.shape_text_cached("A", 16.0).unwrap().1);
+        assert!(!system.shape_text_cached("A", 32.0).unwrap().1);
+        assert_eq!(system.shaped_cache.len(), 2);
+
+        system = system.with_bold_intensity(1.25);
+        assert!(system.shaped_cache.is_empty());
+        assert!(system.shaped_lru.is_empty());
+        assert!(!system.shape_text_cached("A", 16.0).unwrap().1);
+        assert!(!system.shape_text_cached("A", 32.0).unwrap().1);
+        assert!(system.shape_text_cached("A", 16.0).unwrap().1);
+    }
+
+    #[test]
+    fn shape_cache_shares_capacity_and_evicts_lru_across_font_sizes() {
+        let mut system = fixture_system();
+        for pixels_per_em in [16.0, 32.0] {
+            for index in 0..SHAPED_TEXT_CACHE_CAPACITY / 2 {
+                system
+                    .shape_text_cached(&format!("{index}"), pixels_per_em)
+                    .unwrap();
+            }
         }
         assert!(system.shape_text_cached("0", 16.0).unwrap().1);
-        system.shape_text_cached("new", 16.0).unwrap();
+        system.shape_text_cached("new", 64.0).unwrap();
         assert_eq!(system.shaped_cache.len(), SHAPED_TEXT_CACHE_CAPACITY);
         assert!(system.shape_text_cached("0", 16.0).unwrap().1);
+        assert!(system.shape_text_cached("0", 32.0).unwrap().1);
         assert!(!system.shape_text_cached("1", 16.0).unwrap().1);
     }
 
