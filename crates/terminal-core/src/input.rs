@@ -126,12 +126,17 @@ pub fn encode_focus(modes: InputModes, focused: bool) -> Option<&'static [u8]> {
         .then_some(if focused { b"\x1b[I" } else { b"\x1b[O" })
 }
 
+/// Preserve pasted text and whitespace while excluding terminal control characters.
 pub fn encode_paste(modes: InputModes, text: &str) -> Vec<u8> {
     let mut bytes = Vec::with_capacity(text.len() + if modes.bracketed_paste() { 12 } else { 0 });
     if modes.bracketed_paste() {
         bytes.extend_from_slice(b"\x1b[200~");
     }
-    bytes.extend_from_slice(text.as_bytes());
+    for character in text.chars() {
+        if !character.is_control() || matches!(character, '\t' | '\n' | '\r') {
+            bytes.extend_from_slice(character.encode_utf8(&mut [0; 4]).as_bytes());
+        }
+    }
     if modes.bracketed_paste() {
         bytes.extend_from_slice(b"\x1b[201~");
     }
