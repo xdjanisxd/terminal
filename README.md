@@ -16,7 +16,7 @@ while the left button is held, including with a stationary pointer.
 
 ## Installation
 
-Download a release asset from [GitHub Releases](https://github.com/xdjanisxd/terminal/releases) for your operating system and CPU. Windows offers MSI installation or a portable ZIP; Linux and macOS offer portable archives. Each archive contains the `terminal` executable, this README, `config.example.toml`, and the MIT license. Extract it to a directory you keep; you can run the executable there or put it on PATH. You do not need to copy `config.example.toml`: Terminal uses built-in defaults when no user config exists.
+Current [GitHub Releases](https://github.com/xdjanisxd/terminal/releases) provide portable Linux x86_64 and ARM64 GNU archives. Recent releases do not include Windows or macOS packages; build from source on those systems using the instructions below. Older releases in the history include Windows and macOS assets, but they are older versions of Terminal. Each current Linux archive contains the `terminal` executable, this README, `config.example.toml`, the MIT license, and Linux desktop installation files. Extract it to a directory you keep; you can run the executable there or put it on PATH. You do not need to copy `config.example.toml`: Terminal uses built-in defaults when no user config exists.
 
 On Linux, run `python3 install_linux.py install` from the extracted archive to
 install Terminal for your user, including application menu/search and dock icons.
@@ -26,13 +26,7 @@ commands, XDG paths, requirements, and verification.
 
 ### Windows
 
-**Installer:** Download `terminal-windows-x86_64.msi` for x64 Windows or `terminal-windows-aarch64.msi` for Windows ARM64. Run the MSI and approve the normal administrator prompt. It installs Terminal for all users into the native `Program Files\Terminal` directory and creates a **Terminal** Start Menu shortcut using the application icon. No desktop shortcut is created. The installer adds its directory to the system PATH by default; open a new PowerShell session and run `terminal --help`. An existing matching PATH entry is preserved. Existing shell processes are not modified; signing out and back in may be needed if a parent process retains an old PATH.
-
-Uninstall **Terminal** through Windows **Installed Apps**. The installer removes its files, Start Menu shortcut, metadata, and the PATH entry it owns. User config and Saved Workspaces remain intact. Newer MSI versions upgrade the installed application; older versions are rejected. No `config.toml` is installed, and built-in defaults remain available.
-
-The MSI and executable are unsigned. Windows SmartScreen or other Windows security prompts may warn; no signing or reputation claim is implied.
-
-**Portable:** Download `terminal-windows-x86_64.zip` for x64 Windows or `terminal-windows-aarch64.zip` for Windows ARM64. Extract the ZIP, then run `terminal.exe`. You can move the executable to a permanent directory and add that directory to PATH as described below. The ZIP remains a separate distribution option and does not register an installation.
+There is no Windows installer or portable ZIP in the current release. [Build from source](#build-from-source) on Windows, then run `target\release\terminal.exe` or copy it to a stable directory and [add that directory to PATH](#add-terminal-to-path). The repository retains [manual MSI tooling](docs/RELEASE.md#manual-windows-msi-tooling); its presence does not mean an MSI is published for the current release.
 
 ### Linux
 
@@ -49,7 +43,7 @@ Check an extracted binary's version with `./terminal --version` or `./terminal -
 
 ### macOS
 
-Download `terminal-macos-x86_64.tar.gz` for Intel or `terminal-macos-aarch64.tar.gz` for Apple Silicon. Extract the archive with `tar -xzf <archive-name>`, then run `./terminal` from Terminal. This command-line application is currently unsigned and not notarized. macOS Gatekeeper may warn or block it; see [Apple's guidance for opening an unverified app](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unidentified-developer-mh40616/mac).
+There is no macOS archive in the current release. [Build from source](#build-from-source) on macOS, then run `target/release/terminal`. This command-line application is unsigned and not notarized. macOS Gatekeeper may warn or block it; see [Apple's guidance for opening an unverified app](https://support.apple.com/guide/mac-help/open-a-mac-app-from-an-unidentified-developer-mh40616/mac).
 
 ### Build from source
 
@@ -77,7 +71,7 @@ install -m 755 terminal ~/.local/bin/terminal
 
 If `~/.local/bin` is not on PATH, add `export PATH="$HOME/.local/bin:$PATH"` to your shell startup file (`~/.bashrc` for Bash or `~/.zshrc` for Zsh), then reopen the shell or source that file. For a system-wide install instead, run `sudo install -m 755 terminal /usr/local/bin/terminal`.
 
-**macOS:** Install to your user-local directory with `mkdir -p ~/.local/bin` and `install -m 755 terminal ~/.local/bin/terminal`. If needed, add `export PATH="$HOME/.local/bin:$PATH"` to `~/.zshrc`, then reopen the shell or run `source ~/.zshrc`. A common system-wide alternative is `sudo install -m 755 terminal /usr/local/bin/terminal`. Run `terminal --help` from a new shell to check PATH.
+**macOS:** After building from source, install to your user-local directory with `mkdir -p ~/.local/bin` and `install -m 755 target/release/terminal ~/.local/bin/terminal`. If needed, add `export PATH="$HOME/.local/bin:$PATH"` to `~/.zshrc`, then reopen the shell or run `source ~/.zshrc`. A common system-wide alternative is `sudo install -m 755 target/release/terminal /usr/local/bin/terminal`. Run `terminal --help` from a new shell to check PATH.
 
 ## Command execution
 
