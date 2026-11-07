@@ -74,11 +74,13 @@ struct GlyphAtlas {
     entries: HashMap<GpuGlyphKey, AtlasEntry>,
     lru: VecDeque<GpuGlyphKey>,
     slots: Vec<Option<GpuGlyphKey>>,
+    pinned: [bool; ATLAS_CAPACITY],
 }
 
 impl GlyphAtlas {
     fn get(&mut self, key: &GpuGlyphKey) -> Option<AtlasEntry> {
         let entry = self.entries.get(key).copied()?;
+        self.pinned[entry.slot] = true;
         self.touch(key);
         Some(entry)
     }
@@ -131,6 +133,7 @@ impl GlyphAtlas {
             entries: HashMap::new(),
             lru: VecDeque::new(),
             slots: vec![None; ATLAS_CAPACITY],
+            pinned: [false; ATLAS_CAPACITY],
         }
     }
 
@@ -150,7 +153,7 @@ impl GlyphAtlas {
         if let Some(entry) = self.get(&key) {
             return Some(entry);
         }
-        let slot = self.allocate_slot();
+        let slot = self.allocate_slot()?;
         let x = (slot as u32 % ATLAS_COLUMNS) * ATLAS_SLOT_SIZE;
         let y = (slot as u32 / ATLAS_COLUMNS) * ATLAS_SLOT_SIZE;
         let mask_rgba;
@@ -191,22 +194,37 @@ impl GlyphAtlas {
             bearing_y: bitmap.bearing_y(),
             is_color: bitmap.is_color(),
         };
+        self.pinned[slot] = true;
         self.entries.insert(key.clone(), entry);
         self.slots[slot] = Some(key.clone());
         self.lru.push_back(key);
         Some(entry)
     }
 
-    fn allocate_slot(&mut self) -> usize {
+    // A submit orders all pending atlas writes before its draw. Only after that
+    // submit may a later batch (or pane) overwrite the slots used by the draw.
+    fn begin_batch(&mut self) {
+        self.pinned.fill(false);
+    }
+
+    fn has_available_slot(&self) -> bool {
+        self.pinned.iter().any(|&pinned| !pinned)
+    }
+
+    fn allocate_slot(&mut self) -> Option<usize> {
         if let Some(slot) = self.slots.iter().position(Option::is_none) {
-            return slot;
+            return Some(slot);
         }
-        let oldest = self.lru.pop_front().expect("non-empty full glyph atlas");
+        let index = self
+            .lru
+            .iter()
+            .position(|key| !self.pinned[self.entries[key].slot])?;
+        let oldest = self.lru.remove(index).expect("known unpinned atlas key");
         let entry = self
             .entries
             .remove(&oldest)
             .expect("atlas LRU matches entries");
-        entry.slot
+        Some(entry.slot)
     }
 
     fn touch(&mut self, key: &GpuGlyphKey) {
@@ -271,6 +289,27 @@ pub(super) struct RenderWork {
     pub(super) instance_generation: Duration,
     pub(super) buffer_upload: Duration,
     pub(super) submission: Duration,
+}
+
+#[derive(Default)]
+struct BatchWork {
+    buffer_allocations: usize,
+    buffer_writes: usize,
+    queue_submissions: usize,
+    buffer_bytes: usize,
+    buffer_upload: Duration,
+    submission: Duration,
+}
+
+impl BatchWork {
+    fn add(&mut self, other: Self) {
+        self.buffer_allocations += other.buffer_allocations;
+        self.buffer_writes += other.buffer_writes;
+        self.queue_submissions += other.queue_submissions;
+        self.buffer_bytes += other.buffer_bytes;
+        self.buffer_upload += other.buffer_upload;
+        self.submission += other.submission;
+    }
 }
 
 struct InstanceBuffer<T> {
@@ -711,141 +750,6 @@ impl DrawResources {
                     color: cell.foreground.0,
                 });
             }
-            if (cell.character == ' ' && cell.text.as_str().len() == 1) || cell.character == '\0' {
-                continue;
-            }
-            let pixels_per_em = frame.cell_metrics.pixels_per_em();
-            shape_calls += 1;
-            let Ok((shaped, cache_hit)) = font_system.shape_text_cached_with_bold(
-                cell.text.as_str(),
-                pixels_per_em,
-                cell.bold,
-            ) else {
-                continue;
-            };
-            shape_misses += usize::from(!cache_hit);
-            let advance: f32 = shaped.glyphs().iter().map(|glyph| glyph.advance()).sum();
-            let mut pen = 0.0;
-            for shaped_glyph in shaped.glyphs() {
-                let glyph_pen = pen;
-                pen += shaped_glyph.advance();
-                let key = GpuGlyphKey {
-                    face: shaped_glyph.face_cache_identity(),
-                    glyph_id: shaped_glyph.glyph_id(),
-                    pixels_per_em: pixels_per_em.to_bits(),
-                    bold: cell.bold,
-                    italic: cell.italic,
-                };
-                atlas_lookups += 1;
-                let entry = if let Some(entry) = self.glyph_atlas.get(&key) {
-                    Some(entry)
-                } else {
-                    raster_calls += 1;
-                    font_system
-                        .rasterize_glyph_with_style(
-                            shaped_glyph,
-                            pixels_per_em,
-                            cell.bold,
-                            cell.italic,
-                        )
-                        .ok()
-                        .and_then(|bitmap| self.glyph_atlas.get_or_insert(queue, key, &bitmap))
-                };
-                let Some(entry) = entry else {
-                    continue;
-                };
-                let slot_x = (entry.slot as u32 % ATLAS_COLUMNS) * ATLAS_SLOT_SIZE;
-                let slot_y = (entry.slot as u32 / ATLAS_COLUMNS) * ATLAS_SLOT_SIZE;
-                let [mut glyph_x, mut glyph_y] = glyph_origin(
-                    x + glyph_pen,
-                    y,
-                    frame.cell_metrics.baseline() as f32,
-                    entry.bearing_x,
-                    entry.bearing_y,
-                    shaped_glyph.offset_x(),
-                    shaped_glyph.offset_y(),
-                );
-                // Color fonts can have bitmap-strike metrics much larger than
-                // the primary face. Fit ink to the terminal-owned cell span.
-                let color_span = if advance > 0.0 {
-                    width * shaped_glyph.advance() / advance
-                } else {
-                    width
-                };
-                let scale = if entry.is_color {
-                    (color_span / entry.width as f32)
-                        .min(cell_height / entry.height as f32)
-                        .min(1.0)
-                } else {
-                    1.0
-                };
-                if entry.is_color {
-                    let color_pen = if advance > 0.0 {
-                        width * glyph_pen / advance
-                    } else {
-                        0.0
-                    };
-                    glyph_x = x + color_pen + (color_span - entry.width as f32 * scale) * 0.5;
-                    glyph_y = y + (cell_height - entry.height as f32 * scale) * 0.5;
-                }
-                let Some((clipped_x, clipped_y, clipped_width, clipped_height)) = clip_rect_to_cell(
-                    [
-                        glyph_x,
-                        glyph_y,
-                        entry.width as f32 * scale,
-                        entry.height as f32 * scale,
-                    ],
-                    [x, y, width, cell_height],
-                ) else {
-                    continue;
-                };
-                self.glyphs.push(GlyphInstance {
-                    rect: to_clip_rect(
-                        clipped_x,
-                        clipped_y,
-                        clipped_width,
-                        clipped_height,
-                        frame.surface_size,
-                    ),
-                    uv: [
-                        (slot_x as f32 + (clipped_x - glyph_x) / scale) / ATLAS_WIDTH as f32,
-                        (slot_y as f32 + (clipped_y - glyph_y) / scale) / ATLAS_HEIGHT as f32,
-                        (slot_x as f32 + (clipped_x - glyph_x + clipped_width) / scale)
-                            / ATLAS_WIDTH as f32,
-                        (slot_y as f32 + (clipped_y - glyph_y + clipped_height) / scale)
-                            / ATLAS_HEIGHT as f32,
-                    ],
-                    color: cell.foreground.0,
-                    content: if entry.is_color {
-                        1 + u32::from(self.format.is_srgb())
-                    } else {
-                        0
-                    },
-                });
-                if diagnostics_enabled() && !geometry_pair_logged {
-                    let sample = GlyphGeometrySample {
-                        row: cell.row as u32,
-                        cell_y: y,
-                        cell_height,
-                        ascent: frame.cell_metrics.ascent(),
-                        descent: frame.cell_metrics.descent(),
-                        baseline: frame.cell_metrics.baseline() as f32,
-                        placement_top: entry.bearing_y,
-                        bitmap_height: entry.height,
-                        quad_y_start: clipped_y,
-                        quad_y_end: clipped_y + clipped_height,
-                    };
-                    if let Some(previous) = previous_geometry
-                        && sample.row == previous.row + 1
-                    {
-                        emit_glyph_geometry_sample(previous);
-                        emit_glyph_geometry_sample(sample);
-                        geometry_pair_logged = true;
-                    } else if previous_geometry.is_none_or(|previous| previous.row != sample.row) {
-                        previous_geometry = Some(sample);
-                    }
-                }
-            }
         }
         for (rect, color) in pane_draw.rectangles {
             self.rectangles.push(RectInstance {
@@ -973,9 +877,6 @@ impl DrawResources {
             for instance in &mut self.rectangles {
                 instance.color = crate::Rgba(instance.color).linearized().0;
             }
-            for instance in &mut self.glyphs {
-                instance.color = crate::Rgba(instance.color).linearized().0;
-            }
             for instance in &mut overlays {
                 instance.color = crate::Rgba(instance.color).linearized().0;
             }
@@ -986,9 +887,223 @@ impl DrawResources {
             data.surface_background.0
         };
         let rectangle_count = self.rectangles.len();
-        let glyph_count = self.glyphs.len();
-        let instance_generation = generation_start.elapsed();
+        let mut first_batch = true;
+        let mut work = BatchWork::default();
+        let mut glyph_count = 0;
+        self.glyph_atlas.begin_batch();
+        for cell in &data.cells {
+            if cell.concealed {
+                continue;
+            }
+            let x = pane[0] as f32 + pane_draw.text_offset[0] + cell.column as f32 * cell_width;
+            let y = pane[1] as f32 + pane_draw.text_offset[1] + cell.row as f32 * cell_height;
+            let width = cell.width as f32 * cell_width;
+            if (cell.character == ' ' && cell.text.as_str().len() == 1) || cell.character == '\0' {
+                continue;
+            }
+            let pixels_per_em = frame.cell_metrics.pixels_per_em();
+            shape_calls += 1;
+            let Ok((shaped, cache_hit)) = font_system.shape_text_cached_with_bold(
+                cell.text.as_str(),
+                pixels_per_em,
+                cell.bold,
+            ) else {
+                continue;
+            };
+            shape_misses += usize::from(!cache_hit);
+            let advance: f32 = shaped.glyphs().iter().map(|glyph| glyph.advance()).sum();
+            let mut pen = 0.0;
+            for shaped_glyph in shaped.glyphs() {
+                let glyph_pen = pen;
+                pen += shaped_glyph.advance();
+                let key = GpuGlyphKey {
+                    face: shaped_glyph.face_cache_identity(),
+                    glyph_id: shaped_glyph.glyph_id(),
+                    pixels_per_em: pixels_per_em.to_bits(),
+                    bold: cell.bold,
+                    italic: cell.italic,
+                };
+                atlas_lookups += 1;
+                let entry = if let Some(entry) = self.glyph_atlas.get(&key) {
+                    Some(entry)
+                } else {
+                    if !self.glyph_atlas.has_available_slot() {
+                        work.add(self.submit_batch(
+                            device,
+                            queue,
+                            &frame,
+                            pane,
+                            (first_batch && pane_draw.clear).then_some(clear_color),
+                            if first_batch { rectangle_count } else { 0 },
+                            if first_batch { replacement_count } else { 0 },
+                            &[],
+                        ));
+                        glyph_count += self.glyphs.len();
+                        self.glyphs.clear();
+                        self.glyph_atlas.begin_batch();
+                        first_batch = false;
+                    }
+                    raster_calls += 1;
+                    font_system
+                        .rasterize_glyph_with_style(
+                            shaped_glyph,
+                            pixels_per_em,
+                            cell.bold,
+                            cell.italic,
+                        )
+                        .ok()
+                        .and_then(|bitmap| self.glyph_atlas.get_or_insert(queue, key, &bitmap))
+                };
+                let Some(entry) = entry else {
+                    continue;
+                };
+                let slot_x = (entry.slot as u32 % ATLAS_COLUMNS) * ATLAS_SLOT_SIZE;
+                let slot_y = (entry.slot as u32 / ATLAS_COLUMNS) * ATLAS_SLOT_SIZE;
+                let [mut glyph_x, mut glyph_y] = glyph_origin(
+                    x + glyph_pen,
+                    y,
+                    frame.cell_metrics.baseline() as f32,
+                    entry.bearing_x,
+                    entry.bearing_y,
+                    shaped_glyph.offset_x(),
+                    shaped_glyph.offset_y(),
+                );
+                // Color fonts can have bitmap-strike metrics much larger than
+                // the primary face. Fit ink to the terminal-owned cell span.
+                let color_span = if advance > 0.0 {
+                    width * shaped_glyph.advance() / advance
+                } else {
+                    width
+                };
+                let scale = if entry.is_color {
+                    (color_span / entry.width as f32)
+                        .min(cell_height / entry.height as f32)
+                        .min(1.0)
+                } else {
+                    1.0
+                };
+                if entry.is_color {
+                    let color_pen = if advance > 0.0 {
+                        width * glyph_pen / advance
+                    } else {
+                        0.0
+                    };
+                    glyph_x = x + color_pen + (color_span - entry.width as f32 * scale) * 0.5;
+                    glyph_y = y + (cell_height - entry.height as f32 * scale) * 0.5;
+                }
+                let Some((clipped_x, clipped_y, clipped_width, clipped_height)) = clip_rect_to_cell(
+                    [
+                        glyph_x,
+                        glyph_y,
+                        entry.width as f32 * scale,
+                        entry.height as f32 * scale,
+                    ],
+                    [x, y, width, cell_height],
+                ) else {
+                    continue;
+                };
+                self.glyphs.push(GlyphInstance {
+                    rect: to_clip_rect(
+                        clipped_x,
+                        clipped_y,
+                        clipped_width,
+                        clipped_height,
+                        frame.surface_size,
+                    ),
+                    uv: [
+                        (slot_x as f32 + (clipped_x - glyph_x) / scale) / ATLAS_WIDTH as f32,
+                        (slot_y as f32 + (clipped_y - glyph_y) / scale) / ATLAS_HEIGHT as f32,
+                        (slot_x as f32 + (clipped_x - glyph_x + clipped_width) / scale)
+                            / ATLAS_WIDTH as f32,
+                        (slot_y as f32 + (clipped_y - glyph_y + clipped_height) / scale)
+                            / ATLAS_HEIGHT as f32,
+                    ],
+                    color: if self.format.is_srgb() {
+                        cell.foreground.linearized().0
+                    } else {
+                        cell.foreground.0
+                    },
+                    content: if entry.is_color {
+                        1 + u32::from(self.format.is_srgb())
+                    } else {
+                        0
+                    },
+                });
+                if diagnostics_enabled() && !geometry_pair_logged {
+                    let sample = GlyphGeometrySample {
+                        row: cell.row as u32,
+                        cell_y: y,
+                        cell_height,
+                        ascent: frame.cell_metrics.ascent(),
+                        descent: frame.cell_metrics.descent(),
+                        baseline: frame.cell_metrics.baseline() as f32,
+                        placement_top: entry.bearing_y,
+                        bitmap_height: entry.height,
+                        quad_y_start: clipped_y,
+                        quad_y_end: clipped_y + clipped_height,
+                    };
+                    if let Some(previous) = previous_geometry
+                        && sample.row == previous.row + 1
+                    {
+                        emit_glyph_geometry_sample(previous);
+                        emit_glyph_geometry_sample(sample);
+                        geometry_pair_logged = true;
+                    } else if previous_geometry.is_none_or(|previous| previous.row != sample.row) {
+                        previous_geometry = Some(sample);
+                    }
+                }
+            }
+        }
+        let instance_generation = generation_start
+            .elapsed()
+            .saturating_sub(work.buffer_upload + work.submission);
         drop(generation_stage);
+        work.add(self.submit_batch(
+            device,
+            queue,
+            &frame,
+            pane,
+            (first_batch && pane_draw.clear).then_some(clear_color),
+            if first_batch { rectangle_count } else { 0 },
+            if first_batch { replacement_count } else { 0 },
+            &overlays,
+        ));
+        glyph_count += self.glyphs.len();
+        RenderWork {
+            instances: RenderInstanceCounts {
+                backgrounds: background_count,
+                glyphs: glyph_count,
+                decorations: rectangle_count - background_count,
+                cursor: usize::from(data.cursor.is_some()),
+                scrollbar: usize::from(data.scrollbar.is_some()) * 2,
+            },
+            buffer_allocations: work.buffer_allocations,
+            buffer_writes: work.buffer_writes,
+            queue_submissions: work.queue_submissions,
+            buffer_bytes: work.buffer_bytes,
+            shape_calls,
+            shape_misses,
+            raster_calls,
+            atlas_lookups,
+            instance_generation,
+            buffer_upload: work.buffer_upload,
+            submission: work.submission,
+        }
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn submit_batch(
+        &mut self,
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        frame: &FrameContext<'_>,
+        pane: [u32; 4],
+        clear_color: Option<[f32; 4]>,
+        rectangle_count: usize,
+        replacement_count: usize,
+        overlays: &[RectInstance],
+    ) -> BatchWork {
+        let glyph_count = self.glyphs.len();
         let buffer_stage = crate::startup_stage("buffer-create-upload");
         let upload_start = Instant::now();
         let rectangle_upload = InstanceBuffer::upload(
@@ -996,7 +1111,7 @@ impl DrawResources {
             device,
             queue,
             "terminal rectangle instances",
-            &self.rectangles,
+            &self.rectangles[..rectangle_count],
         );
         let glyph_upload = InstanceBuffer::upload(
             &mut self.glyph_buffer,
@@ -1013,7 +1128,7 @@ impl DrawResources {
                 device,
                 queue,
                 "terminal overlay instances",
-                &overlays,
+                overlays,
             )
         };
         let buffer_upload = upload_start.elapsed();
@@ -1030,12 +1145,12 @@ impl DrawResources {
                     view: frame.target,
                     resolve_target: None,
                     ops: wgpu::Operations {
-                        load: if pane_draw.clear {
+                        load: if let Some(clear_color) = clear_color {
                             wgpu::LoadOp::Clear(wgpu::Color {
                                 r: (clear_color[0] * clear_color[3]) as f64,
                                 g: (clear_color[1] * clear_color[3]) as f64,
                                 b: (clear_color[2] * clear_color[3]) as f64,
-                                a: data.surface_background.0[3] as f64,
+                                a: clear_color[3] as f64,
                             })
                         } else {
                             wgpu::LoadOp::Load
@@ -1097,25 +1212,13 @@ impl DrawResources {
         queue.submit(Some(commands));
         drop(submit_stage);
         let submission = submission_start.elapsed();
-        RenderWork {
-            instances: RenderInstanceCounts {
-                backgrounds: background_count,
-                glyphs: glyph_count,
-                decorations: rectangle_count - background_count,
-                cursor: usize::from(data.cursor.is_some()),
-                scrollbar: usize::from(data.scrollbar.is_some()) * 2,
-            },
+        BatchWork {
             buffer_allocations: usize::from(rectangle_upload.allocated)
                 + usize::from(glyph_upload.allocated)
                 + usize::from(overlay_upload.allocated),
             buffer_writes: rectangle_upload.writes + glyph_upload.writes + overlay_upload.writes,
             queue_submissions: 1,
             buffer_bytes: rectangle_upload.bytes + glyph_upload.bytes + overlay_upload.bytes,
-            shape_calls,
-            shape_misses,
-            raster_calls,
-            atlas_lookups,
-            instance_generation,
             buffer_upload,
             submission,
         }
@@ -1531,8 +1634,159 @@ mod tests {
         }
     }
 
+    #[test]
+    #[ignore = "requires a GPU and a system monospace font"]
+    fn native_gpu_atlas_batches_preserve_glyphs_and_panes() {
+        #[cfg(target_os = "linux")]
+        let _gpu_test = super::native_gpu_test_guard();
+        const WIDTH: u32 = 768; // RGBA copy rows are 256-byte aligned.
+        const ROW_HEIGHT: u32 = 24;
+        const HEIGHT: u32 = ROW_HEIGHT * 8;
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
+        let adapter = pollster::block_on(instance.request_adapter(&Default::default())).unwrap();
+        let (device, queue) =
+            pollster::block_on(adapter.request_device(&crate::renderer_device_descriptor()))
+                .unwrap();
+        let mut fonts = FontSystem::load_system(FontRequest::default()).unwrap();
+        let metrics = crate::CellMetrics::from_physical(8, ROW_HEIGHT, 16.0);
+        let mut terminal = TerminalState::new(TerminalDimensions::new(94, 4).unwrap());
+        for row in 0..4 {
+            terminal.set_cursor_position(row, 0).unwrap();
+            for character in '!'..='~' {
+                terminal.print_character(character).unwrap();
+            }
+        }
+        for format in [
+            wgpu::TextureFormat::Rgba8Unorm,
+            wgpu::TextureFormat::Rgba8UnormSrgb,
+        ] {
+            for opacity in [1.0, 0.5] {
+                let theme = crate::RenderTheme::default();
+                let mut data =
+                    TerminalRenderData::from_terminal_with_opacity(&terminal, &theme, opacity);
+                for cell in &mut data.cells {
+                    // Four styles make 376 atlas keys using portable ASCII.
+                    cell.bold = cell.row & 1 != 0;
+                    cell.italic = cell.row & 2 != 0;
+                    cell.underline = cell.column % 7 == 0;
+                    cell.strikethrough = cell.column % 11 == 0;
+                    if cell.column % 5 == 0 {
+                        cell.background = crate::Rgba([0.2, 0.3, 0.4, opacity]);
+                    }
+                }
+                let targets: Vec<_> = (0..2)
+                    .map(|_| {
+                        device.create_texture(&wgpu::TextureDescriptor {
+                            label: Some("atlas batch regression target"),
+                            size: wgpu::Extent3d {
+                                width: WIDTH,
+                                height: HEIGHT,
+                                depth_or_array_layers: 1,
+                            },
+                            mip_level_count: 1,
+                            sample_count: 1,
+                            dimension: wgpu::TextureDimension::D2,
+                            format,
+                            usage: wgpu::TextureUsages::RENDER_ATTACHMENT
+                                | wgpu::TextureUsages::COPY_SRC,
+                            view_formats: &[],
+                        })
+                    })
+                    .collect();
+                let mut batched = DrawResources::new(&device, format);
+                let mut reference = DrawResources::new(&device, format);
+                // Repeat with warm resources, then draw a second pane without
+                // waiting for the GPU: later writes must preserve prior draws.
+                for _ in 0..2 {
+                    for pane in 0..2 {
+                        let view = targets[0].create_view(&Default::default());
+                        let work = batched.draw_pane(
+                            &device,
+                            &queue,
+                            FrameContext {
+                                target: &view,
+                                surface_size: SurfaceSize::new(WIDTH, HEIGHT).unwrap(),
+                                cell_metrics: metrics,
+                                ui: &theme.ui,
+                            },
+                            &data,
+                            &mut fonts,
+                            super::PaneDraw {
+                                rect: [0, pane * 4 * ROW_HEIGHT, WIDTH, 4 * ROW_HEIGHT],
+                                clear: pane == 0,
+                                focused_border: false,
+                                text_offset: [0.0; 2],
+                                rectangles: &[],
+                            },
+                        );
+                        assert!(
+                            work.queue_submissions >= 2,
+                            "fixture must exceed atlas capacity"
+                        );
+                        assert_eq!(batched.glyph_atlas.entries.len(), super::ATLAS_CAPACITY);
+                        assert!(work.instances.glyphs > super::ATLAS_CAPACITY);
+                        let mut reference_glyphs = 0;
+                        // Each reference draw fits in the atlas. Pixel equality
+                        // catches slot reuse, clears, background and cursor order.
+                        for row in 0..4 {
+                            let mut line = data.clone();
+                            line.rows = 1;
+                            line.cells.retain(|cell| cell.row == row);
+                            for cell in &mut line.cells {
+                                cell.row = 0;
+                            }
+                            line.cursor =
+                                data.cursor
+                                    .filter(|cursor| cursor.row == row)
+                                    .map(|mut cursor| {
+                                        cursor.row = 0;
+                                        cursor
+                                    });
+                            let view = targets[1].create_view(&Default::default());
+                            let reference_work = reference.draw_pane(
+                                &device,
+                                &queue,
+                                FrameContext {
+                                    target: &view,
+                                    surface_size: SurfaceSize::new(WIDTH, HEIGHT).unwrap(),
+                                    cell_metrics: metrics,
+                                    ui: &theme.ui,
+                                },
+                                &line,
+                                &mut fonts,
+                                super::PaneDraw {
+                                    rect: [
+                                        0,
+                                        (pane * 4 + row as u32) * ROW_HEIGHT,
+                                        WIDTH,
+                                        ROW_HEIGHT,
+                                    ],
+                                    clear: pane == 0 && row == 0,
+                                    focused_border: false,
+                                    text_offset: [0.0; 2],
+                                    rectangles: &[],
+                                },
+                            );
+                            reference_glyphs += reference_work.instances.glyphs;
+                        }
+                        // A font's ink may be clipped entirely out of a cell;
+                        // compare emitted glyphs with the small-draw reference.
+                        assert_eq!(work.instances.glyphs, reference_glyphs);
+                    }
+                    let actual = read_rgba(&device, &queue, &targets[0]);
+                    let expected = read_rgba(&device, &queue, &targets[1]);
+                    let mismatch = actual.iter().zip(&expected).position(|(a, b)| a != b);
+                    assert_eq!(
+                        mismatch, None,
+                        "format={format:?}, opacity={opacity}, first differing byte"
+                    );
+                }
+            }
+        }
+    }
+
     fn read_rgba(device: &wgpu::Device, queue: &wgpu::Queue, texture: &wgpu::Texture) -> Vec<u8> {
-        // Callers use 256-wide RGBA targets, satisfying copy-row alignment.
+        // Callers use RGBA targets with 256-byte-aligned copy rows.
         let width = texture.width();
         let buffer = device.create_buffer(&wgpu::BufferDescriptor {
             label: Some("emoji readback"),
