@@ -80,7 +80,9 @@ struct GlyphAtlas {
 impl GlyphAtlas {
     fn get(&mut self, key: &GpuGlyphKey) -> Option<AtlasEntry> {
         let entry = self.entries.get(key).copied()?;
-        self.pinned[entry.slot] = true;
+        for slot in region_slots(entry.slot, tile_span(entry.width, entry.height)?) {
+            self.pinned[slot] = true;
+        }
         self.touch(key);
         Some(entry)
     }
@@ -143,17 +145,11 @@ impl GlyphAtlas {
         key: GpuGlyphKey,
         bitmap: &crate::GlyphBitmap,
     ) -> Option<AtlasEntry> {
-        if bitmap.width() == 0
-            || bitmap.height() == 0
-            || bitmap.width() > ATLAS_SLOT_SIZE
-            || bitmap.height() > ATLAS_SLOT_SIZE
-        {
-            return None;
-        }
+        let span = tile_span(bitmap.width(), bitmap.height())?;
         if let Some(entry) = self.get(&key) {
             return Some(entry);
         }
-        let slot = self.allocate_slot()?;
+        let slot = self.allocate_region(span)?;
         let x = (slot as u32 % ATLAS_COLUMNS) * ATLAS_SLOT_SIZE;
         let y = (slot as u32 / ATLAS_COLUMNS) * ATLAS_SLOT_SIZE;
         let mask_rgba;
@@ -194,9 +190,11 @@ impl GlyphAtlas {
             bearing_y: bitmap.bearing_y(),
             is_color: bitmap.is_color(),
         };
-        self.pinned[slot] = true;
+        for occupied in region_slots(slot, span) {
+            self.pinned[occupied] = true;
+            self.slots[occupied] = Some(key.clone());
+        }
         self.entries.insert(key.clone(), entry);
-        self.slots[slot] = Some(key.clone());
         self.lru.push_back(key);
         Some(entry)
     }
@@ -207,10 +205,6 @@ impl GlyphAtlas {
         self.pinned.fill(false);
     }
 
-    fn has_available_slot(&self) -> bool {
-        self.pinned.iter().any(|&pinned| !pinned)
-    }
-
     fn allocate_slot(&mut self) -> Option<usize> {
         if let Some(slot) = self.slots.iter().position(Option::is_none) {
             return Some(slot);
@@ -219,12 +213,37 @@ impl GlyphAtlas {
             .lru
             .iter()
             .position(|key| !self.pinned[self.entries[key].slot])?;
-        let oldest = self.lru.remove(index).expect("known unpinned atlas key");
-        let entry = self
-            .entries
-            .remove(&oldest)
+        let oldest = self.lru[index].clone();
+        Some(self.evict_entry(&oldest))
+    }
+
+    fn allocate_region(&mut self, span: (u32, u32)) -> Option<usize> {
+        if span == (1, 1) {
+            return self.allocate_slot();
+        }
+        let origin = find_atlas_region(&self.slots, &self.pinned, span)?;
+        let occupants = region_slots(origin, span)
+            .filter_map(|slot| self.slots[slot].clone())
+            .collect::<std::collections::HashSet<_>>();
+        for key in occupants {
+            self.evict_entry(&key);
+        }
+        Some(origin)
+    }
+
+    fn evict_entry(&mut self, key: &GpuGlyphKey) -> usize {
+        let entry = self.entries.remove(key).expect("atlas slots match entries");
+        let span = tile_span(entry.width, entry.height).expect("atlas entry fits texture");
+        for slot in region_slots(entry.slot, span) {
+            self.slots[slot] = None;
+        }
+        let index = self
+            .lru
+            .iter()
+            .position(|candidate| candidate == key)
             .expect("atlas LRU matches entries");
-        Some(entry.slot)
+        self.lru.remove(index);
+        entry.slot
     }
 
     fn touch(&mut self, key: &GpuGlyphKey) {
@@ -233,6 +252,54 @@ impl GlyphAtlas {
         }
         self.lru.push_back(key.clone());
     }
+}
+
+fn tile_span(width: u32, height: u32) -> Option<(u32, u32)> {
+    if width == 0 || height == 0 || width > ATLAS_WIDTH || height > ATLAS_HEIGHT {
+        return None;
+    }
+    Some((
+        width.div_ceil(ATLAS_SLOT_SIZE),
+        height.div_ceil(ATLAS_SLOT_SIZE),
+    ))
+}
+
+fn region_slots(origin: usize, span: (u32, u32)) -> impl Iterator<Item = usize> {
+    let x = origin as u32 % ATLAS_COLUMNS;
+    let y = origin as u32 / ATLAS_COLUMNS;
+    (0..span.1).flat_map(move |row| {
+        (0..span.0).map(move |column| ((y + row) * ATLAS_COLUMNS + x + column) as usize)
+    })
+}
+
+fn find_atlas_region<K>(
+    slots: &[Option<K>],
+    pinned: &[bool; ATLAS_CAPACITY],
+    span: (u32, u32),
+) -> Option<usize> {
+    let rows = ATLAS_HEIGHT / ATLAS_SLOT_SIZE;
+    let mut reusable = None;
+    for y in 0..=rows.checked_sub(span.1)? {
+        for x in 0..=ATLAS_COLUMNS.checked_sub(span.0)? {
+            let origin = (y * ATLAS_COLUMNS + x) as usize;
+            let mut occupied = false;
+            let mut blocked = false;
+            for slot in region_slots(origin, span) {
+                if pinned[slot] {
+                    blocked = true;
+                    break;
+                }
+                occupied |= slots[slot].is_some();
+            }
+            if !blocked {
+                if !occupied {
+                    return Some(origin);
+                }
+                reusable.get_or_insert(origin);
+            }
+        }
+    }
+    reusable
 }
 
 struct CompositionResources {
@@ -927,22 +994,6 @@ impl DrawResources {
                 let entry = if let Some(entry) = self.glyph_atlas.get(&key) {
                     Some(entry)
                 } else {
-                    if !self.glyph_atlas.has_available_slot() {
-                        work.add(self.submit_batch(
-                            device,
-                            queue,
-                            &frame,
-                            pane,
-                            (first_batch && pane_draw.clear).then_some(clear_color),
-                            if first_batch { rectangle_count } else { 0 },
-                            if first_batch { replacement_count } else { 0 },
-                            &[],
-                        ));
-                        glyph_count += self.glyphs.len();
-                        self.glyphs.clear();
-                        self.glyph_atlas.begin_batch();
-                        first_batch = false;
-                    }
                     raster_calls += 1;
                     font_system
                         .rasterize_glyph_with_style(
@@ -952,7 +1003,31 @@ impl DrawResources {
                             cell.italic,
                         )
                         .ok()
-                        .and_then(|bitmap| self.glyph_atlas.get_or_insert(queue, key, &bitmap))
+                        .and_then(|bitmap| {
+                            tile_span(bitmap.width(), bitmap.height())?;
+                            if let Some(entry) =
+                                self.glyph_atlas.get_or_insert(queue, key.clone(), &bitmap)
+                            {
+                                return Some(entry);
+                            }
+                            // All fitting regions contain glyphs pinned by this
+                            // draw. Submit before reusing their atlas pixels.
+                            work.add(self.submit_batch(
+                                device,
+                                queue,
+                                &frame,
+                                pane,
+                                (first_batch && pane_draw.clear).then_some(clear_color),
+                                if first_batch { rectangle_count } else { 0 },
+                                if first_batch { replacement_count } else { 0 },
+                                &[],
+                            ));
+                            glyph_count += self.glyphs.len();
+                            self.glyphs.clear();
+                            self.glyph_atlas.begin_batch();
+                            first_batch = false;
+                            self.glyph_atlas.get_or_insert(queue, key, &bitmap)
+                        })
                 };
                 let Some(entry) = entry else {
                     continue;
@@ -1377,12 +1452,73 @@ fn native_gpu_test_guard() -> std::sync::MutexGuard<'static, ()> {
 #[cfg(test)]
 mod tests {
     use super::{
-        DrawResources, FrameContext, GpuGlyphKey, changed_instance_ranges, clip_rect_to_cell,
-        glyph_origin, instance_buffer_capacity, instance_buffer_requires_allocation,
-        scrollbar_geometry, to_clip_rect,
+        ATLAS_CAPACITY, ATLAS_COLUMNS, DrawResources, FrameContext, GpuGlyphKey,
+        changed_instance_ranges, clip_rect_to_cell, find_atlas_region, glyph_origin,
+        instance_buffer_capacity, instance_buffer_requires_allocation, scrollbar_geometry,
+        tile_span, to_clip_rect,
     };
     use crate::{FontRequest, FontSystem, ScrollbarRenderData, SurfaceSize, TerminalRenderData};
     use terminal_core::{CellColor, TerminalDimensions, TerminalState, UnderlineStyle};
+
+    #[test]
+    fn glyph_tile_spans_cover_large_bitmaps_and_reject_invalid_sizes() {
+        assert_eq!(tile_span(1, 1), Some((1, 1)));
+        assert_eq!(tile_span(64, 64), Some((1, 1)));
+        assert_eq!(tile_span(65, 64), Some((2, 1)));
+        assert_eq!(tile_span(64, 65), Some((1, 2)));
+        assert_eq!(tile_span(128, 129), Some((2, 3)));
+        assert_eq!(tile_span(1024, 1024), Some((16, 16)));
+        assert_eq!(tile_span(0, 64), None);
+        assert_eq!(tile_span(64, 0), None);
+        assert_eq!(tile_span(1025, 64), None);
+        assert_eq!(tile_span(64, 1025), None);
+    }
+
+    #[test]
+    fn atlas_region_search_prefers_empty_contiguous_regions() {
+        let slots = vec![None::<u8>; ATLAS_CAPACITY];
+        let pinned = [false; ATLAS_CAPACITY];
+        assert_eq!(find_atlas_region(&slots, &pinned, (2, 3)), Some(0));
+        assert_eq!(find_atlas_region(&slots, &pinned, (16, 16)), Some(0));
+        assert_eq!(find_atlas_region(&slots, &pinned, (17, 1)), None);
+        assert_eq!(find_atlas_region(&slots, &pinned, (1, 17)), None);
+
+        let mut only_row_edge_tiles = [true; ATLAS_CAPACITY];
+        only_row_edge_tiles[ATLAS_COLUMNS as usize - 2] = false;
+        only_row_edge_tiles[ATLAS_COLUMNS as usize - 1] = false;
+        only_row_edge_tiles[ATLAS_COLUMNS as usize] = false;
+        assert_eq!(
+            find_atlas_region(&slots, &only_row_edge_tiles, (2, 1)),
+            Some(ATLAS_COLUMNS as usize - 2)
+        );
+        only_row_edge_tiles[ATLAS_COLUMNS as usize - 2] = true;
+        assert_eq!(
+            find_atlas_region(&slots, &only_row_edge_tiles, (2, 1)),
+            None
+        );
+
+        assert_eq!(
+            find_atlas_region(&slots, &[true; ATLAS_CAPACITY], (1, 1)),
+            None
+        );
+    }
+
+    #[test]
+    fn atlas_region_search_skips_pinned_tiles_and_can_reuse_unpinned_regions() {
+        let mut slots = vec![None::<u8>; ATLAS_CAPACITY];
+        let mut pinned = [false; ATLAS_CAPACITY];
+        pinned[0] = true;
+        assert_eq!(find_atlas_region(&slots, &pinned, (2, 1)), Some(1));
+
+        slots.fill(Some(1));
+        pinned[0] = false;
+        let origin = find_atlas_region(&slots, &pinned, (2, 1));
+        assert_eq!(origin, Some(0));
+        assert_eq!(origin.unwrap() as u32 % ATLAS_COLUMNS, 0);
+
+        pinned[1] = true;
+        assert_ne!(find_atlas_region(&slots, &pinned, (2, 1)), Some(0));
+    }
 
     #[test]
     fn scrollbar_geometry_tracks_history_position_growth_and_resize() {
@@ -1482,6 +1618,40 @@ mod tests {
             vec![5..6]
         );
         assert!(changed_instance_ranges(&previous, &[1, 2, 3]).is_empty());
+    }
+
+    #[test]
+    #[ignore = "requires a GPU and a system monospace font"]
+    fn native_gpu_large_glyph_atlas_accepts_and_reuses_over_64px_bitmap() {
+        #[cfg(target_os = "linux")]
+        let _gpu_test = super::native_gpu_test_guard();
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
+        let adapter = pollster::block_on(instance.request_adapter(&Default::default())).unwrap();
+        let (device, queue) =
+            pollster::block_on(adapter.request_device(&crate::renderer_device_descriptor()))
+                .unwrap();
+        let mut resources = DrawResources::new(&device, wgpu::TextureFormat::Rgba8Unorm);
+        let mut fonts = FontSystem::load_system(FontRequest::default()).unwrap();
+        let shaped = fonts.shape_text("W", 128.0).unwrap();
+        let glyph = &shaped.glyphs()[0];
+        let bitmap = fonts.rasterize_glyph(glyph, 128.0).unwrap();
+        assert!(bitmap.width() > 64 || bitmap.height() > 64);
+        let key = GpuGlyphKey {
+            face: glyph.face_cache_identity(),
+            glyph_id: glyph.glyph_id(),
+            pixels_per_em: 128.0f32.to_bits(),
+            bold: false,
+            italic: false,
+        };
+
+        let inserted = resources
+            .glyph_atlas
+            .get_or_insert(&queue, key.clone(), &bitmap)
+            .expect("large bitmap fits in the glyph atlas");
+        assert_eq!(
+            resources.glyph_atlas.get(&key).map(|entry| entry.slot),
+            Some(inserted.slot)
+        );
     }
 
     #[test]
