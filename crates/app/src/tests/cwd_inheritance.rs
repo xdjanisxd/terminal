@@ -110,6 +110,44 @@ fn cwd_inheritance_respects_explicit_tab_workspace_and_project_roots() {
 }
 
 #[test]
+fn cwd_inheritance_can_be_disabled_without_affecting_explicit_roots() {
+    let mut app = Application::default();
+    app.config.terminal.inherit_cwd = false;
+    let directory = std::env::current_dir().unwrap();
+    report(&mut app, &uri(&directory));
+    app.create_pane(Some(SplitAxis::Horizontal));
+    assert_eq!(app.inherited_cwd, None);
+    assert_eq!(
+        app.workspace
+            .pane_launch(app.active_runtime_pane)
+            .unwrap()
+            .0,
+        None
+    );
+    assert!(matches!(
+        &app.snapshot_workspace().tabs[0].layout,
+        LayoutDefinition::Split { first, second, .. }
+            if matches!(first.as_ref(), LayoutDefinition::Pane { project_root: None, .. })
+                && matches!(second.as_ref(), LayoutDefinition::Pane { project_root: None, .. })
+    ));
+
+    let explicit = PathBuf::from("explicit root remains honored");
+    let mut definition = app.workspace.definition();
+    definition.project_root = Some(explicit.clone());
+    app.load_workspace(&definition);
+    assert_eq!(
+        cwd::launch_root(
+            app.workspace
+                .pane_launch(app.active_runtime_pane)
+                .unwrap()
+                .0,
+            app.inherited_cwd.as_ref(),
+        ),
+        Some(explicit)
+    );
+}
+
+#[test]
 fn initial_session_keeps_inherited_process_cwd_unless_a_root_is_configured() {
     let size = PtySize::new(24, 80).unwrap();
     let session = SessionDefinition::LocalShell;
