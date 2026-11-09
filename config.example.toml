@@ -23,6 +23,11 @@
 # Changes affect future local-shell sessions, including reopened workspaces.
 # Explicit launch failures never fall back. See docs/CONFIG.md for integration.
 
+# Let new panes/tabs inherit the focused pane's reported directory (default true).
+# Set false to keep the process working directory unless a root is explicitly set.
+# [terminal]
+# inherit_cwd = false
+
 [font]
 # family = "Cascadia Mono" # Installed monospace family; default: platform choice.
 size = 16 # Logical pixels, 1..=256. Restart after editing [font].

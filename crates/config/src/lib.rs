@@ -525,6 +525,7 @@ pub struct Binding {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Config {
     pub window: WindowConfig,
+    pub terminal: TerminalConfig,
     pub shell: Option<ShellConfig>,
     pub font: FontConfig,
     pub cursor: CursorConfig,
@@ -532,6 +533,19 @@ pub struct Config {
     pub bindings: Vec<Binding>,
     pub workspace: WorkspaceDefinition,
     pub projects: Vec<ProjectRoot>,
+}
+
+/// Terminal behavior settings.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct TerminalConfig {
+    /// Let new panes inherit the focused pane's reported working directory.
+    pub inherit_cwd: bool,
+}
+
+impl Default for TerminalConfig {
+    fn default() -> Self {
+        Self { inherit_cwd: true }
+    }
 }
 
 /// Cursor shape and blink defaults used when no application override is active.
@@ -616,6 +630,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             window: WindowConfig::default(),
+            terminal: TerminalConfig::default(),
             shell: None,
             font: FontConfig::default(),
             cursor: CursorConfig::default(),
@@ -691,6 +706,9 @@ impl Config {
 
     fn from_raw(raw: RawConfig) -> Result<Self, ConfigError> {
         let mut config = Self::default();
+        if let Some(terminal) = raw.terminal {
+            config.terminal.inherit_cwd = terminal.inherit_cwd.unwrap_or(true);
+        }
         if let Some(window) = raw.window {
             config.window.blur = window.blur.unwrap_or(false);
             if let Some(opacity) = window.opacity {
@@ -967,6 +985,7 @@ impl std::error::Error for ConfigError {}
 #[serde(default, deny_unknown_fields)]
 struct RawConfig {
     window: Option<RawWindow>,
+    terminal: Option<RawTerminal>,
     shell: Option<ShellConfig>,
     font: Option<RawFont>,
     cursor: Option<RawCursor>,
@@ -974,6 +993,12 @@ struct RawConfig {
     bindings: Option<Vec<RawBinding>>,
     workspace: Option<WorkspaceDefinition>,
     projects: Option<Vec<ProjectRoot>>,
+}
+
+#[derive(Deserialize, Default)]
+#[serde(default, deny_unknown_fields)]
+struct RawTerminal {
+    inherit_cwd: Option<bool>,
 }
 
 #[derive(Deserialize, Default)]
@@ -1124,6 +1149,25 @@ mod tests {
         }
     }
     use super::*;
+    #[test]
+    fn terminal_cwd_inheritance_defaults_on_and_can_be_disabled() {
+        assert!(Config::default().terminal.inherit_cwd);
+        assert!(Config::parse("").unwrap().terminal.inherit_cwd);
+        assert!(
+            Config::parse("[terminal]\ninherit_cwd = true")
+                .unwrap()
+                .terminal
+                .inherit_cwd
+        );
+        assert!(
+            !Config::parse("[terminal]\ninherit_cwd = false")
+                .unwrap()
+                .terminal
+                .inherit_cwd
+        );
+        assert!(Config::parse("[terminal]\nunknown = false").is_err());
+    }
+
     #[test]
     fn optional_shell_parses_names_paths_and_separate_arguments() {
         assert_eq!(Config::parse("").unwrap().shell, None);

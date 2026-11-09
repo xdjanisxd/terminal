@@ -910,6 +910,7 @@ impl Application {
                             .and_then(|runtime| runtime.inherited_cwd.as_ref())
                     };
                     terminal
+                        .filter(|_| self.config.terminal.inherit_cwd)
                         .and_then(TerminalState::working_directory_uri)
                         .and_then(local_cwd_from_osc7)
                         .or_else(|| {
@@ -1077,6 +1078,12 @@ impl Application {
                     }
                     startup_milestone("workspace-restore-end");
                     self.workspace_loaded = true;
+                }
+                if !config.terminal.inherit_cwd {
+                    self.inherited_cwd = None;
+                    for runtime in self.inactive_panes.values_mut() {
+                        runtime.inherited_cwd = None;
+                    }
                 }
                 if config.window != self.config.window {
                     if config.window.blur != self.config.window.blur
@@ -1354,10 +1361,11 @@ impl Application {
             "app event=pane-workspace-created pane={new_pane:?}"
         ));
         let mut runtime = PaneRuntime::new(self.terminal.dimensions());
-        if self
-            .workspace
-            .pane_launch(new_pane)
-            .is_some_and(|(root, _)| root.is_none())
+        if self.config.terminal.inherit_cwd
+            && self
+                .workspace
+                .pane_launch(new_pane)
+                .is_some_and(|(root, _)| root.is_none())
         {
             // The active runtime still belongs to the source pane until activate_pane.
             runtime.inherited_cwd = self
@@ -2563,7 +2571,14 @@ impl Application {
         if self.pty.is_none()
             && let Some((root, startup)) = self.workspace.pane_launch(self.active_runtime_pane)
         {
-            let root = cwd::launch_root(root, self.inherited_cwd.as_ref());
+            let root = cwd::launch_root(
+                root,
+                self.config
+                    .terminal
+                    .inherit_cwd
+                    .then_some(self.inherited_cwd.as_ref())
+                    .flatten(),
+            );
             let execute = self.execute.take();
             self.pending_startup_command = self
                 .workspace
@@ -2603,7 +2618,14 @@ impl Application {
             if runtime.pty.is_none()
                 && let Some((root, startup)) = self.workspace.pane_launch(*pane_id)
             {
-                let root = cwd::launch_root(root, runtime.inherited_cwd.as_ref());
+                let root = cwd::launch_root(
+                    root,
+                    self.config
+                        .terminal
+                        .inherit_cwd
+                        .then_some(runtime.inherited_cwd.as_ref())
+                        .flatten(),
+                );
                 runtime.pending_startup_command = self
                     .workspace
                     .pane_startup_command(*pane_id)
