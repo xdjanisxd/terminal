@@ -78,3 +78,56 @@ the automated results above:
 
 The MSI install, repair, upgrade, and uninstall smoke tests are handled by the
 Windows installer validation workflow, separately from this local Rust run.
+
+## Windows default working directory investigation
+
+The installed MSI registry entry reports version `0.2.2`. The common Start
+Menu link targets `Program Files\Terminal\terminal.exe`; its recorded working
+directory at inspection time was the current account's profile folder. The
+user could not find a Start in field and reported a Program Files working
+directory from direct executable launches. I could not confirm the inspected
+common link was the shortcut the user launched, so the shortcut alone does not
+explain the behavior. No MSI install was run locally. The MSI authoring remains
+unchanged while the app's default launch-directory behavior is handled and
+validated separately.
+
+A temporary Shell Link probe confirmed Windows expands a literal
+`%USERPROFILE%` when launching that link. This does not prove Windows Installer
+will preserve the variable in a per-machine shortcut, so MSI database checks
+alone are not treated as evidence of the installed shortcut's runtime behavior.
+
+## Normal Windows shell launch default (2026-11-14)
+
+Normal Windows local-shell sessions now start in the launching user's valid
+`USERPROFILE` when no explicit or inherited root is configured. This is set in
+the app's PTY spawn configuration, so it also applies when launching the EXE
+directly. Explicit and inherited roots retain precedence. Direct `-e`/
+`--execute` commands keep the caller's working directory.
+
+The Windows workspace test run passed: 912 passed, 0 failed, and 20 ignored
+across 75 harnesses. The native shell smoke deliberately ran with process CWD
+`crates/app` while the expected home was the user profile, then confirmed both
+PowerShell `Get-Location` and CMD `%CD%` reported that profile. The targeted
+probe passed 1/1, and the CLI `-e` caller-CWD regression test passed in the full
+suite.
+
+After the runtime change, the x64 MSI was rebuilt with unchanged shortcut
+authoring and its MSI tables and extracted payload hashes validated. The
+portable ZIP was regenerated and its manifest, icon, and executable CLI smoke
+passed. The inspected installation is version `0.2.2`; to make an upgrade
+candidate without editing the workspace version, the local MSI was built with
+`-ReleaseTag v0.2.6`. This sets the MSI ProductVersion to `0.2.6`, while the
+embedded executable still reports the Cargo version `0.2.2`. This is a local
+test package only: no source version change, Git tag, or publication was made.
+I did not install the MSI locally; the user later confirmed the MSI now works.
+`cargo build --release` updates the build artifact, not an existing installation
+under Program Files. MSI install/repair/upgrade/uninstall smoke remains a
+GitHub-hosted-runner check.
+
+Current local artifacts:
+
+- `dist/terminal-windows-x86_64.msi` (ProductVersion `0.2.6`, EXE version
+  `0.2.2`): 3,182,592 bytes; SHA-256
+  `A0B3A55214F78C965C86C8B7D1EACB1EE37248223B79CF3C00AA9BE750882824`.
+- `dist/terminal-windows-x86_64.zip`: 3,752,211 bytes; SHA-256
+  `865A472E43E55834ADB6D290CD5C296E503B179A9E038EC1763A476AED89B5A2`.

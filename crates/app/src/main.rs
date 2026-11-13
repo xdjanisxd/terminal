@@ -3825,6 +3825,11 @@ fn spawn_config_for_session(
     startup: SessionDefinition,
     shell: Option<&ShellConfig>,
 ) -> PtySpawnConfig {
+    let root = match (root, &startup) {
+        (Some(root), _) => Some(root),
+        (None, SessionDefinition::LocalShell) => windows_user_home_directory(),
+        (None, SessionDefinition::Command { .. }) => None,
+    };
     let config = match startup {
         SessionDefinition::LocalShell => match shell {
             Some(shell) => {
@@ -3843,6 +3848,18 @@ fn spawn_config_for_session(
         Some(root) => config.with_working_directory(root),
         None => config,
     }
+}
+
+#[cfg(windows)]
+fn windows_user_home_directory() -> Option<PathBuf> {
+    std::env::var_os("USERPROFILE")
+        .map(PathBuf::from)
+        .filter(|directory| directory.is_dir())
+}
+
+#[cfg(not(windows))]
+fn windows_user_home_directory() -> Option<PathBuf> {
+    None
 }
 
 fn parse_terminal_output(
@@ -5794,6 +5811,18 @@ mod tests {
             super::spawn_config_for_session(size, None, SessionDefinition::LocalShell, None);
         assert_eq!(absent.program(), default.program());
         assert_eq!(absent.arguments(), default.arguments());
+        assert_eq!(
+            absent.working_directory(),
+            super::windows_user_home_directory().as_deref()
+        );
+        let explicit_root = std::env::temp_dir();
+        let explicit = super::spawn_config_for_session(
+            size,
+            Some(explicit_root.clone()),
+            SessionDefinition::LocalShell,
+            None,
+        );
+        assert_eq!(explicit.working_directory(), Some(explicit_root.as_path()));
         let saved = saved_workspaces::SavedWorkspaces {
             workspaces: vec![saved_workspaces::SavedWorkspace {
                 name: "Local".into(),
@@ -5833,6 +5862,7 @@ mod tests {
         );
         assert_eq!(direct.program(), std::path::Path::new("pwsh"));
         assert_eq!(direct.arguments(), &["-Command", "build"]);
+        assert_eq!(direct.working_directory(), None);
         let direct_cmd = super::spawn_config_for_session(
             size,
             None,
@@ -5843,6 +5873,7 @@ mod tests {
             Some(&shell),
         );
         assert_eq!(direct_cmd.arguments(), &["/k", "echo direct"]);
+        assert_eq!(direct_cmd.working_directory(), None);
         assert!(direct_cmd.environment().is_empty());
     }
 
@@ -6100,6 +6131,25 @@ mod tests {
     #[test]
     fn native_shell_launch_smoke() {
         use std::time::{Duration, Instant};
+        let expected_home = super::windows_user_home_directory();
+        #[cfg(windows)]
+        assert!(
+            expected_home.is_some(),
+            "USERPROFILE must be a valid directory"
+        );
+        #[cfg(windows)]
+        {
+            let process_directory = std::env::current_dir().unwrap();
+            let home_directory = expected_home.as_ref().unwrap();
+            assert_ne!(
+                process_directory.to_string_lossy().to_ascii_lowercase(),
+                home_directory.to_string_lossy().to_ascii_lowercase(),
+                "native shell CWD probe must start outside USERPROFILE"
+            );
+            eprintln!(
+                "native shell CWD probe: process={process_directory:?}, expected_home={home_directory:?}"
+            );
+        }
         let mut cases: Vec<Option<ShellConfig>> = vec![None];
         #[cfg(windows)]
         {
@@ -6146,6 +6196,7 @@ mod tests {
             );
             let program = config.program().to_owned();
             let marker = format!("TERMINAL_SHELL_SMOKE_{}_{}", std::process::id(), case);
+            let cwd_marker = format!("TERMINAL_SHELL_CWD_{}_{}=", std::process::id(), case);
             // Keep executable selection and the production-injected integration
             // script under test, but avoid racing interactive readline startup.
             // Invoke the installed prompt hook explicitly; prompt text and user
@@ -6164,7 +6215,7 @@ mod tests {
                     OsString::from("-NonInteractive"),
                     OsString::from("-Command"),
                     OsString::from(format!(
-                        "& {{ {} }}; if (!$global:__terminalOsc7Installed) {{ exit 1 }}; & prompt | Out-Null; Write-Output '{marker}'; exit 0",
+                        "& {{ {} }}; if (!$global:__terminalOsc7Installed) {{ exit 1 }}; & prompt | Out-Null; Write-Output '{marker}'; Write-Output ('{cwd_marker}' + (Get-Location).Path); exit 0",
                         integration.to_string_lossy()
                     )),
                 ]);
@@ -6174,7 +6225,7 @@ mod tests {
                 let args = [
                     OsString::from("/d"),
                     "/c".into(),
-                    format!("echo {marker}").into(),
+                    format!("echo {marker} & echo {cwd_marker}%CD%").into(),
                 ];
                 #[cfg(not(windows))]
                 let args = [
@@ -6202,6 +6253,7 @@ mod tests {
             let mut passed = false;
             let mut process_state = "no exit observed".to_owned();
             let mut marker_observed = false;
+            let mut cwd_reported = false;
             while Instant::now() < deadline {
                 match worker.recv_timeout(Duration::from_millis(100)) {
                     Ok(Some(PtyWorkerEvent::Output(PtyOutput::Bytes(chunk)))) => {
@@ -6221,7 +6273,25 @@ mod tests {
                 }
                 let output = String::from_utf8_lossy(&smoke.raw);
                 marker_observed = smoke.marker_observed(&marker);
+                let cwd_observed = expected_home.as_ref().is_none_or(|home| {
+                    let expected = format!("{cwd_marker}{}", home.display())
+                        .replace('/', "\\")
+                        .to_ascii_lowercase();
+                    output
+                        .replace('/', "\\")
+                        .to_ascii_lowercase()
+                        .contains(&expected)
+                });
+                #[cfg(windows)]
+                if marker_observed && cwd_observed && !cwd_reported {
+                    eprintln!(
+                        "native shell {program:?} reported USERPROFILE {:?} as its initial directory",
+                        expected_home.as_ref().unwrap()
+                    );
+                    cwd_reported = true;
+                }
                 if marker_observed
+                    && cwd_observed
                     && (!powershell
                         || (output.contains("\x1b]7;file:") && output.contains("\x1b]133;A")))
                 {

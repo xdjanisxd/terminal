@@ -39,9 +39,10 @@ For a newly created tab or split:
    and workspace root resolution. `--project-root` remains the workspace override.
 2. The source pane's latest tracked OSC 7 URI, if it describes an existing local
    directory under the platform rules below.
-3. No working-directory override: inherit the Terminal process's current
-   directory, then allow the user's shell startup files to apply their normal
-   behavior.
+3. No explicit or inherited root: normal local-shell sessions on Windows start
+   in the launching user's profile directory; Linux and macOS use the Terminal
+   process's current directory. Direct `-e`/`--execute` commands retain their
+   caller's current directory when no explicit project root is set.
 
 The source pane's pane-specific root is not copied as configuration to children;
 its own launch and Saved Workspace metadata remain intact. New tabs still copy
@@ -54,9 +55,10 @@ file, failed directory metadata lookup, or deleted directory falls back. The
 inherited directory is rechecked immediately before constructing the session's
 spawn configuration. If it disappears or becomes inaccessible after that check,
 the normal spawn error is reported; there is no retry loop or silent shell
-substitution. With no explicit or inherited root, PTY children start in the
-Terminal process's current directory. User shell startup files can still change
-directory according to their existing behavior.
+substitution. User shell startup files can still change directory according to
+their existing behavior. On Windows, the profile fallback applies to normal
+local shells when no explicit or inherited root is present. Direct
+`-e`/`--execute` commands keep their caller's directory.
 
 Shell selection, arguments, environment, configured startup-command readiness
 and exactly-once dispatch are unchanged. New panes do not copy the source pane's
@@ -175,9 +177,10 @@ manual checks below, and Windows/macOS native execution were not run.
 3. From a controlled foreground command, emit remote-host, UNC, `/C:relative`,
    root-relative and deleted-directory reports using `[Console]::Write` with ESC
    and BEL, then pause with `Start-Sleep -Seconds 20` before the next prompt.
-   Create children during the pause; expect normal fallback. Try valid
-   `file:///C:/...`, localhost and actual machine-name authorities; expect local
-   inheritance. Non-filesystem PowerShell providers must not create local paths.
+   Create children during the pause; expect the normal Windows profile fallback.
+   Try valid `file:///C:/...`, localhost and actual machine-name authorities;
+   expect local inheritance. Non-filesystem PowerShell providers must not create
+   local paths.
 4. Verify configured shell arguments/profiles and CMD behavior are unchanged;
    CMD without OSC 7 uses fallback. Verify `terminal -e cmd /c cd` retains caller
    directory behavior and does not acquire an unrelated pane's directory.

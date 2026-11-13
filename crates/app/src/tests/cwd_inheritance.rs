@@ -148,11 +148,14 @@ fn cwd_inheritance_can_be_disabled_without_affecting_explicit_roots() {
 }
 
 #[test]
-fn initial_session_keeps_inherited_process_cwd_unless_a_root_is_configured() {
+fn initial_session_defaults_to_user_home_without_a_root_on_windows() {
     let size = PtySize::new(24, 80).unwrap();
     let session = SessionDefinition::LocalShell;
     let inherited = spawn_config_for_session(size, None, session.clone(), None);
-    assert_eq!(inherited.working_directory(), None);
+    assert_eq!(
+        inherited.working_directory(),
+        windows_user_home_directory().as_deref()
+    );
 
     let configured = PathBuf::from("project é 日本語 with spaces");
     let explicit = spawn_config_for_session(size, Some(configured.clone()), session, None);

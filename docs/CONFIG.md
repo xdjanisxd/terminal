@@ -95,10 +95,12 @@ applying blur. No system compositor settings are changed. See
 
 `[terminal]` controls whether a newly created pane or tab starts in the focused
 pane's locally reported working directory (OSC 7). The default is `true`.
-Set `inherit_cwd = false` to keep new sessions at the process working directory
-unless an explicit workspace, tab, pane, or project root is configured. This
-setting applies on reload and prevents live pane directories from being added
-as roots when saving a workspace.
+Set `inherit_cwd = false` to disable active-pane CWD inheritance. With no
+explicit workspace, tab, pane, or project root, normal Windows local shells use
+the launching user's profile directory; Linux and macOS use the Terminal
+process working directory. Direct `-e`/`--execute` commands keep the caller's
+working directory. This setting applies on reload and prevents live pane
+directories from being added as roots when saving a workspace.
 
 ```toml
 [terminal]
