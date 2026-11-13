@@ -1,6 +1,6 @@
 # Terminal
 
-Terminal is a keyboard-focused, GPU-rendered terminal emulator with tabs, split panes, and reusable workspaces. It is built in Rust for Windows, Linux, and macOS. The current automated release workflow packages Linux GNU archives; source builds are supported for other targets.
+Terminal is a keyboard-focused, GPU-rendered terminal emulator with tabs, split panes, and reusable workspaces. It is built in Rust for Windows, Linux, and macOS. The automated release workflow is configured to package Windows x64 and Linux GNU artifacts; source builds are supported for other targets.
 
 ## Features
 
@@ -26,7 +26,7 @@ commands, XDG paths, requirements, and verification.
 
 ### Windows
 
-There is no Windows installer or portable ZIP in the current release. [Build from source](#build-from-source) on Windows, then run `target\release\terminal.exe` or copy it to a stable directory and [add that directory to PATH](#add-terminal-to-path). The repository retains [manual MSI tooling](docs/RELEASE.md#manual-windows-msi-tooling); its presence does not mean an MSI is published for the current release.
+There is no Windows installer or portable ZIP in the current published release. The repository's **Windows MSI** workflow can build and upload x64 Windows inspection artifacts, and the next tagged release is configured to publish them. Until then, [build from source](#build-from-source) on Windows, then run `target\release\terminal.exe` or copy it to a stable directory and [add that directory to PATH](#add-terminal-to-path). See [Windows MSI build and manual workflow](docs/RELEASE.md#windows-msi-build-and-manual-workflow) for details.
 
 ### Linux
 
@@ -188,7 +188,7 @@ Installed fallback fonts can supply color emoji, including Noto Color Emoji on L
 
 ## Project status and development
 
-The current automated release workflow packages Linux x86_64 and ARM64 GNU archives. Windows MSI tooling remains in the repository but is outside that workflow; macOS release packaging is not configured. Signing remains future work. See [release engineering](docs/RELEASE.md), [current state](docs/CURRENT_STATE.md), and the [roadmap](docs/ROADMAP.md) for details. Repository validation uses:
+The automated release workflow packages Windows x64 ZIP/MSI artifacts and Linux x86_64 and ARM64 GNU archives. The separate **Windows MSI** workflow can be run manually to verify, smoke-test, and upload x64 Windows artifacts. macOS release packaging is not configured. Signing remains future work. See [release engineering](docs/RELEASE.md), [current state](docs/CURRENT_STATE.md), and the [roadmap](docs/ROADMAP.md) for details. Repository validation uses:
 
 ```sh
 cargo fmt --all -- --check

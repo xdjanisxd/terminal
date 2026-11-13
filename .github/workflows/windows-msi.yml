@@ -1,0 +1,99 @@
+name: Windows MSI
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-msi-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: Verify and package x64 MSI
+    runs-on: windows-2025
+    timeout-minutes: 90
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust and components
+        run: rustup toolchain install stable --profile minimal --component rustfmt,clippy --target x86_64-pc-windows-msvc --no-self-update
+
+      - name: Select stable Rust
+        run: rustup default stable
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Install branding validation dependency
+        run: python -m pip install -r scripts/branding-requirements.txt
+
+      - name: Verify committed branding assets and metadata
+        run: python scripts/generate_branding.py --check
+
+      - name: Test release package manifests and smoke checks
+        run: python scripts/test_package_release.py
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Check workspace
+        run: cargo check --workspace --all-targets
+
+      - name: Run workspace tests
+        run: cargo test --workspace --all-targets
+
+      - name: Run doc tests
+        run: cargo test --workspace --doc
+
+      - name: Run Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Build release executable
+        run: cargo build --locked --release -p terminal-app --bin terminal --target x86_64-pc-windows-msvc
+
+      - name: Create portable archive and smoke-test executable
+        run: python scripts/package_release.py x86_64-pc-windows-msvc
+
+      - name: Install .NET for pinned WiX toolchain
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build and validate MSI
+        shell: pwsh
+        run: ./scripts/build_windows_msi.ps1 -Target x86_64-pc-windows-msvc
+
+      - name: Smoke-test MSI install, repair, upgrade and uninstall
+        shell: pwsh
+        run: ./scripts/smoke_windows_msi.ps1 -Msi 'dist/terminal-windows-x86_64.msi' -Target x86_64-pc-windows-msvc
+
+      - name: Upload MSI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: terminal-windows-x86_64.msi
+          path: dist/terminal-windows-x86_64.msi
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload portable archive artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: terminal-windows-x86_64.zip
+          path: dist/terminal-windows-x86_64.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload MSI diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-logs-x86_64-pc-windows-msvc
+          path: ${{ runner.temp }}/terminal-msi-*.log
+          if-no-files-found: ignore
+          retention-days: 14

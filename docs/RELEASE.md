@@ -1,13 +1,14 @@
 # Releases
 
-The current `Release` GitHub Actions workflow verifies, builds, packages, and smoke-tests Linux GNU binaries only. Each archive contains `terminal`, `README.md`, `config.example.toml`, and `LICENSE`; Linux archives also contain the per-user installer, desktop integration guide, desktop entry, and hicolor icons. The example config is reference material and is not installed as an active `config.toml`. See the [Linux release-readiness record](LINUX_RELEASE_READINESS.md) for RC evidence and the [final Linux sign-off](LINUX_RELEASE_SIGNOFF.md). Windows MSI scripts remain in the repository but are not part of the current workflow. macOS packaging is not configured in the current workflow.
+The `Release` GitHub Actions workflow verifies, builds, packages, and smoke-tests Windows x64 and Linux GNU binaries. Windows produces both a portable ZIP and an MSI; Linux produces GNU archives. Each archive contains `terminal`, `README.md`, `config.example.toml`, and `LICENSE`; Linux archives also contain the per-user installer, desktop integration guide, desktop entry, and hicolor icons. The example config is reference material and is not installed as an active `config.toml`. See the [Linux release-readiness record](LINUX_RELEASE_READINESS.md) for RC evidence and the [final Linux sign-off](LINUX_RELEASE_SIGNOFF.md). macOS packaging is not configured.
 
 | Runner | Rust target | Release asset |
 | --- | --- | --- |
+| `windows-2025` | `x86_64-pc-windows-msvc` | `terminal-windows-x86_64.zip`, `terminal-windows-x86_64.msi` |
 | `ubuntu-24.04` | `x86_64-unknown-linux-gnu` | `terminal-linux-x86_64.tar.gz` |
 | `ubuntu-24.04-arm` | `aarch64-unknown-linux-gnu` | `terminal-linux-aarch64.tar.gz` |
 
-Both package jobs are native Ubuntu builds. The workflow installs Python 3.14 and pinned Pillow 12.1.0, checks committed branding, then runs formatting, workspace checks/tests, doc tests, and Clippy on Linux runners. Branding validation compares decoded pixels, exact dimensions and formats, ICO resolutions, the Linux icon path set, and rejects embedded image metadata/color profiles. Its package smoke checks the archive manifest and executable CLI from a temporary directory without opening a window. The Linux shared-library check uses `ldd`. Interactive shell and GPU behavior still need native acceptance; CI configuration alone does not establish that evidence.
+The Linux package jobs are native Ubuntu builds. The Release workflow installs Python 3.14 and pinned Pillow 12.1.0, checks committed branding, then runs formatting, workspace checks/tests, doc tests, and Clippy across Windows and Linux verification runners. Branding validation compares decoded pixels, exact dimensions and formats, ICO resolutions, the Linux icon path set, and rejects embedded image metadata/color profiles. Package smoke checks archive manifests and executable CLIs from temporary directories without opening a window. The Linux shared-library check uses `ldd`. The Windows MSI is compiled and inspected, then install/repair/upgrade/uninstall behavior is smoke-tested on a disposable GitHub-hosted Windows runner. Interactive shell and GPU behavior still need native acceptance; workflow configuration alone does not establish that evidence.
 
 The Linux binaries target GNU libc and are dynamically linked. Users need a compatible GNU libc system plus graphics, window-system, and font support. A successful runner smoke test does not establish compatibility with older distributions or every desktop environment. The tested build's observed ABI floor and environment are recorded in the Linux readiness and sign-off reports.
 
@@ -15,7 +16,7 @@ The proposed Linux release is built from workspace package version `0.2.2`, foll
 
 ## Publishing
 
-After final release sign-off, merge the release commit to `master` and push a stable tag in the form `vX.Y.Z` (for example, `v0.2.2`). The workflow rejects prerelease tags for publication. A stable tag push runs the two Linux verification and packaging jobs, then creates a GitHub Release with `terminal-linux-x86_64.tar.gz` and `terminal-linux-aarch64.tar.gz`. A branch workflow dispatch uploads inspection artifacts and does not publish. Do not dispatch this workflow from a tag during unpublished candidate validation.
+After final release sign-off, merge the release commit to `master` and push a stable tag in the form `vX.Y.Z` (for example, `v0.2.2`). The workflow rejects prerelease tags for publication. A stable tag push runs verification and packaging, then creates a GitHub Release with both Windows assets and both Linux archives. A branch dispatch of `Release` uploads inspection artifacts and does not publish. The separate `Windows MSI` workflow can be dispatched from a branch to build, validate, smoke-test, and upload the x64 MSI plus portable ZIP; it does not publish a release. Do not dispatch `Release` from a tag during unpublished candidate validation.
 
 Packaging and local smoke testing can be repeated on a matching native host after a release build:
 
@@ -26,14 +27,11 @@ python scripts/package_release.py <rust-target>
 
 The script rejects a target that does not match the host, avoiding a misleading executable smoke result from cross-compilation. Windows packaging also verifies that executable icon resources match the committed ICO.
 
-## Manual Windows MSI tooling
+## Windows MSI build and manual workflow
 
-This tooling is not part of the current release workflow and was not validated
-by the Linux release candidate. Its manifest fallback reads the centralized
-workspace version. MSI ProductVersion accepts only three numeric fields, so a
-Cargo prerelease version is rejected; use a stable `-ReleaseTag` for a Windows
-release build. No Windows runtime or installer implementation changed for this
-Linux task.
+The `Windows MSI` GitHub Actions workflow is manually invoked from the Actions tab with **Run workflow**. It runs the Windows x64 verification gates, builds the release executable, compiles and validates the MSI, performs hosted-runner install/repair/upgrade/uninstall smoke checks, and uploads `terminal-windows-x86_64.msi` and `terminal-windows-x86_64.zip` as 14-day artifacts. The normal `Release` workflow also builds the MSI and includes it in stable tagged releases. Workflow configuration describes intended checks; only a successful run is validation evidence. Local Windows ZIP/MSI packaging evidence is recorded in the [Windows validation report](WINDOWS_VALIDATION.md); that local run did not install the MSI.
+
+The build script's version fallback reads the centralized workspace version. MSI ProductVersion accepts only three numeric fields, so a Cargo prerelease version is rejected; use a stable `-ReleaseTag` for a Windows release build.
 
 WiX Toolset **6.0.2** is pinned in `.config/dotnet-tools.json`; the manual build script derives the matching UI extension version from that manifest. A Windows packaging run requires .NET 8, restores the local .NET tool, and compiles `installer/windows/terminal.wxs` with warnings treated as errors and normal MSI validation enabled. Authoring is source controlled and requires no GUI tools. Both `x64` and `arm64` MSI platforms are supported by the script. Native ARM64 execution and install/uninstall validation require an ARM64 Windows runner; this Linux candidate did not run those checks.
 
@@ -60,11 +58,9 @@ The shared, fixed UpgradeCode in `terminal.wxs` identifies Terminal across versi
 
 `build_windows_msi.ps1` rejects a mismatched executable PE architecture or missing executable branding metadata. `validate_windows_msi.ps1` reads the MSI database and checks ProductVersion, native architecture template, per-machine scope, stable UpgradeCode, executable/license payload, Program Files location, icon, common Start Menu target, Environment row/ownership condition, UI, and upgrade rows. WiX then extracts the cabinet and embedded icon; SHA-256 hashes must match the already-built binary, license, and canonical ICO. Extraction runs no installation and changes no machine state. Intermediate files and extension cache are ignored under `target/` and `.wix/`.
 
-On a disposable GitHub-hosted Windows runner, `smoke_windows_msi.ps1` refuses to proceed if installation files, shortcut, registry metadata, or a matching PATH entry already exist. It builds a higher-version test MSI from the same binary under `target/`, silently installs the MSI, checks `terminal.exe --help`, optional config, shortcut target/icon, and repair without duplicate PATH. It upgrades to the test MSI, checks old/new product registration and retained PATH ownership, then uninstalls in a `finally` block. It checks removal of files, shortcut, metadata, and exact restoration of the original PATH. A second install/uninstall models a pre-existing user-managed PATH entry and verifies it is never claimed or removed. It changes no current-process environment and never manually deletes application directories. MSI logs are stored under the runner's temporary directory. This smoke script deliberately rejects developer machines and self-hosted runners. It is not invoked by the current Linux-only workflow. Graphical/PTY startup, upgrade rollback, and retained user state require the manual checks below.
+On a disposable GitHub-hosted Windows runner, `smoke_windows_msi.ps1` refuses to proceed if installation files, shortcut, registry metadata, or a matching PATH entry already exist. It builds a higher-version test MSI from the same binary under `target/`, silently installs the MSI, checks `terminal.exe --help`, optional config, shortcut target/icon, and repair without duplicate PATH. It upgrades to the test MSI, checks old/new product registration and retained PATH ownership, then uninstalls in a `finally` block. It checks removal of files, shortcut, metadata, and exact restoration of the original PATH. A second install/uninstall models a pre-existing user-managed PATH entry and verifies it is never claimed or removed. It changes no current-process environment and never manually deletes application directories. MSI logs are stored under the runner's temporary directory. This smoke script deliberately rejects developer machines and self-hosted runners. Graphical/PTY startup, upgrade rollback, and retained user state require the manual checks below.
 
-Windows MSI compilation, install/upgrade/uninstall, and clean-VM acceptance were
-not run during this Linux-only preparation. The current automated release matrix
-does not include Windows targets.
+Windows MSI compilation, install/upgrade/uninstall, and clean-VM acceptance should only be reported after the corresponding GitHub-hosted workflow or manual VM checks complete successfully. The hosted smoke test does not establish graphical/PTY startup, upgrade rollback, or retained user state; those still require the manual checks below.
 
 ### Manual acceptance on a clean Windows VM
 

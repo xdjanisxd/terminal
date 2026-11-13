@@ -31,11 +31,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.14'
+      - name: Install branding validation dependency
+        run: python -m pip install -r scripts/branding-requirements.txt
       - name: Verify committed branding assets and metadata
-        run: |
-          python -m pip install -r scripts/branding-requirements.txt
-          python scripts/generate_branding.py --check
-          python scripts/test_package_release.py
+        run: python scripts/generate_branding.py --check
+      - name: Test release package manifests and smoke checks
+        run: python scripts/test_package_release.py
       - name: Check formatting
         run: cargo fmt --all -- --check
       - name: Check workspace
@@ -137,7 +138,6 @@ jobs:
         shell: bash
         run: |
           expected=(terminal-windows-x86_64.zip terminal-windows-x86_64.msi terminal-linux-x86_64.tar.gz terminal-linux-aarch64.tar.gz)
-          expected=(terminal-linux-x86_64.tar.gz terminal-linux-aarch64.tar.gz)
           test "$(find dist -maxdepth 1 -type f | wc -l)" -eq "${#expected[@]}"
           for asset in "${expected[@]}"; do test -s "dist/$asset"; done
       - name: Publish portable archives and Windows installers
