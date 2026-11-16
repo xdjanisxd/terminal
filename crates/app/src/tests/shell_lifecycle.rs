@@ -430,7 +430,7 @@ fn shell_exit_collapses_zoomed_split_layout_without_losing_focus() {
     app.exited_panes.insert(first);
     app.close_exited_panes();
     assert_eq!(app.active_runtime_pane, second);
-    assert!(app.workspace.active_tab().is_zoomed());
+    assert!(!app.workspace.active_tab().is_zoomed());
     let viewport = PaneRect {
         x: 0,
         y: 0,
@@ -440,6 +440,32 @@ fn shell_exit_collapses_zoomed_split_layout_without_losing_focus() {
     assert_eq!(
         app.workspace.active_tab().pane_rects(viewport),
         vec![(second, viewport)]
+    );
+    app.dispatch_command(Command::SplitVertical);
+    let third = app.workspace.active_pane();
+    assert!(!app.workspace.active_tab().is_zoomed());
+    assert_eq!(
+        app.workspace.active_tab().pane_rects(viewport),
+        vec![
+            (
+                second,
+                PaneRect {
+                    x: 0,
+                    y: 0,
+                    width: 50,
+                    height: 51
+                }
+            ),
+            (
+                third,
+                PaneRect {
+                    x: 50,
+                    y: 0,
+                    width: 51,
+                    height: 51
+                }
+            ),
+        ]
     );
     assert!(!app.session_exit_requested);
 }

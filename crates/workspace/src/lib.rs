@@ -551,6 +551,9 @@ impl Workspace {
     }
     pub fn toggle_zoom(&mut self) -> bool {
         let tab = &mut self.tabs[self.active_tab];
+        if !tab.zoomed && tab.panes().len() < 2 {
+            return false;
+        }
         tab.zoomed = !tab.zoomed;
         tab.zoomed
     }
@@ -731,6 +734,9 @@ impl Workspace {
             if tab.active_pane == active {
                 let remaining = tab.panes();
                 tab.active_pane = remaining[position.min(remaining.len() - 1)].id;
+            }
+            if tab.panes().len() == 1 {
+                tab.zoomed = false;
             }
         }
         Some(active)
@@ -1209,6 +1215,40 @@ mod tests {
         assert_eq!(workspace.close_active_pane(), Some(split));
         assert_eq!(workspace.active_pane(), first);
         assert_eq!(workspace.close_active_pane(), None);
+    }
+
+    #[test]
+    fn zoom_requires_multiple_panes_and_closing_to_one_clears_it() {
+        let mut workspace = Workspace::default();
+        let first = workspace.active_pane();
+        let viewport = PaneRect {
+            x: 0,
+            y: 0,
+            width: 80,
+            height: 24,
+        };
+        assert!(!workspace.toggle_zoom());
+        assert_eq!(
+            workspace.active_tab().pane_rects(viewport),
+            vec![(first, viewport)]
+        );
+
+        let second = workspace.split_active(SplitAxis::Vertical);
+        assert_eq!(workspace.active_tab().pane_rects(viewport).len(), 2);
+        let third = workspace.split_active(SplitAxis::Horizontal);
+        assert!(workspace.toggle_zoom());
+
+        assert_eq!(workspace.close_pane(third), Some(third));
+        assert!(workspace.active_tab().is_zoomed());
+        assert_eq!(workspace.active_pane(), second);
+
+        assert_eq!(workspace.close_pane(second), Some(second));
+        assert!(!workspace.active_tab().is_zoomed());
+        assert_eq!(workspace.active_pane(), first);
+        assert_eq!(
+            workspace.active_tab().pane_rects(viewport),
+            vec![(first, viewport)]
+        );
     }
     #[test]
     fn nested_split_rectangles_tile_the_viewport_with_odd_pixels() {
