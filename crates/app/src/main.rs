@@ -7584,6 +7584,10 @@ mod tests {
         .expect("configured Enter chord should resolve");
 
         app.dispatch_command(command);
+        assert!(!app.workspace.active_tab().is_zoomed());
+
+        app.dispatch_command(Command::SplitVertical);
+        app.dispatch_command(command);
         assert!(app.workspace.active_tab().is_zoomed());
     }
 
