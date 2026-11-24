@@ -2,6 +2,7 @@ use std::{error::Error, fmt};
 
 use unicode_width::UnicodeWidthChar;
 
+use crate::palette::{DEFAULT_ANSI_COLORS, default_indexed_color};
 use crate::reply::{DefaultColorChannel, PendingReplies};
 use crate::screens::{ScreenKind, ScreenSet};
 use crate::tabs::HorizontalTabStops;
@@ -173,6 +174,7 @@ pub struct TerminalState {
     horizontal_tab_stops: HorizontalTabStops,
     default_foreground: [u8; 3],
     default_background: [u8; 3],
+    ansi_colors: [[u8; 3]; 16],
     pending_replies: PendingReplies,
     pub(crate) selection: Option<crate::selection::Selection>,
     pending_osc52_write: Option<String>,
@@ -348,6 +350,7 @@ impl TerminalState {
             // Match the application's default terminal theme.
             default_foreground: [230; 3],
             default_background: [0; 3],
+            ansi_colors: DEFAULT_ANSI_COLORS,
             pending_replies: PendingReplies::default(),
             selection: None,
             pending_osc52_write: None,
@@ -626,6 +629,24 @@ impl TerminalState {
     pub fn set_default_colors(&mut self, foreground: [u8; 3], background: [u8; 3]) {
         self.default_foreground = foreground;
         self.default_background = background;
+    }
+
+    /// Updates the host-configured ANSI palette reported by OSC 4 queries for indexes 0–15.
+    pub fn set_ansi_colors(&mut self, ansi_colors: [[u8; 3]; 16]) {
+        self.ansi_colors = ansi_colors;
+    }
+
+    pub(crate) fn request_indexed_color(&mut self, index: u8, bell_terminated: bool) {
+        let rgb = self
+            .ansi_colors
+            .get(usize::from(index))
+            .copied()
+            .unwrap_or_else(|| default_indexed_color(index));
+        self.pending_replies.push(TerminalReply::IndexedColor {
+            index,
+            rgb,
+            bell_terminated,
+        });
     }
 
     pub(crate) fn request_default_color(
@@ -1314,6 +1335,25 @@ impl TerminalState {
         self.input_modes.set_cursor_keys(cursor_keys);
     }
 
+    /// Returns whether alternate-screen wheel motion is translated to cursor keys.
+    pub const fn alternate_scroll(&self) -> bool {
+        self.input_modes.alternate_scroll()
+    }
+
+    /// Sets DEC private mode 1007.
+    pub fn set_alternate_scroll(&mut self, enabled: bool) {
+        self.input_modes.set_alternate_scroll(enabled);
+    }
+
+    /// Queues the current DEC private mode 1007 status.
+    #[must_use]
+    pub fn request_alternate_scroll_status(&mut self) -> bool {
+        self.pending_replies
+            .push(crate::TerminalReply::AlternateScrollStatus {
+                enabled: self.alternate_scroll(),
+            })
+    }
+
     /// Updates terminal-requested focus reporting.
     pub fn set_focus_reporting(&mut self, enabled: bool) {
         self.input_modes.set_focus_reporting(enabled);
@@ -1349,11 +1389,13 @@ impl TerminalState {
         let cursor_style_default = self.cursor_style_default;
         let default_foreground = self.default_foreground;
         let default_background = self.default_background;
+        let ansi_colors = self.ansi_colors;
         let pending_replies = std::mem::take(&mut self.pending_replies);
         *self = Self::new(self.dimensions());
         self.keyboard_generation = keyboard_generation;
         self.set_cursor_style_default(cursor_style_default);
         self.set_default_colors(default_foreground, default_background);
+        self.set_ansi_colors(ansi_colors);
         self.pending_replies = pending_replies;
     }
 
@@ -1366,6 +1408,7 @@ impl TerminalState {
         self.cursor_style = self.cursor_style_default;
         self.cursor_style_overridden = false;
         self.input_modes.set_cursor_keys(CursorKeyMode::Normal);
+        self.input_modes.set_alternate_scroll(false);
         self.keyboard_reporting_stacks = Default::default();
         self.sync_keyboard_reporting();
         self.current_rendition = CellAttributes::default();

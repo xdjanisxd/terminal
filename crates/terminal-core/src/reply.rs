@@ -4,7 +4,7 @@ pub const MAX_PENDING_REPLIES: usize = 16;
 const PRIMARY_DEVICE_ATTRIBUTES_BYTES: &[u8] = b"\x1b[?1;0c";
 const SECONDARY_DEVICE_ATTRIBUTES_BYTES: &[u8] = b"\x1b[>0;0;0c";
 const TERMINAL_STATUS_BYTES: &[u8] = b"\x1b[0n";
-const MAX_ENCODED_REPLY_BYTES: usize = b"\x1b]10;rgb:0000/0000/0000\x1b\\".len();
+const MAX_ENCODED_REPLY_BYTES: usize = b"\x1b]4;255;rgb:0000/0000/0000\x1b\\".len();
 
 /// A bounded wire encoding of a project-owned terminal reply.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -42,30 +42,29 @@ impl TerminalReplyBytes {
         encoded
     }
 
-    fn default_color(channel: DefaultColorChannel, rgb: [u8; 3], bell_terminated: bool) -> Self {
+    fn with_osc_color(mut self, rgb: [u8; 3], bell_terminated: bool) -> Self {
         const HEX: &[u8; 16] = b"0123456789abcdef";
-        let mut encoded = Self::from_static(match channel {
-            DefaultColorChannel::Foreground => b"\x1b]10;rgb:",
-            DefaultColorChannel::Background => b"\x1b]11;rgb:",
-        });
+        for byte in b";rgb:" {
+            self.push(*byte);
+        }
         for (index, value) in rgb.into_iter().enumerate() {
             if index != 0 {
-                encoded.push(b'/');
+                self.push(b'/');
             }
             let high = HEX[usize::from(value >> 4)];
             let low = HEX[usize::from(value & 0x0f)];
             // An 8-bit channel expands to 16 bits by repeating its two hex digits.
             for digit in [high, low, high, low] {
-                encoded.push(digit);
+                self.push(digit);
             }
         }
         if bell_terminated {
-            encoded.push(b'\x07');
+            self.push(b'\x07');
         } else {
-            encoded.push(b'\x1b');
-            encoded.push(b'\\');
+            self.push(b'\x1b');
+            self.push(b'\\');
         }
-        encoded
+        self
     }
 
     fn push(&mut self, byte: u8) {
@@ -117,6 +116,14 @@ pub enum TerminalReply {
         rgb: [u8; 3],
         bell_terminated: bool,
     },
+    /// OSC 4 indexed color reply with the RGB value captured at query time.
+    IndexedColor {
+        index: u8,
+        rgb: [u8; 3],
+        bell_terminated: bool,
+    },
+    /// DEC private mode report for alternate scroll mode.
+    AlternateScrollStatus { enabled: bool },
 }
 
 impl TerminalReply {
@@ -144,7 +151,29 @@ impl TerminalReply {
                 channel,
                 rgb,
                 bell_terminated,
-            } => TerminalReplyBytes::default_color(*channel, *rgb, *bell_terminated),
+            } => {
+                let prefix = match channel {
+                    DefaultColorChannel::Foreground => b"\x1b]10",
+                    DefaultColorChannel::Background => b"\x1b]11",
+                };
+                TerminalReplyBytes::from_static(prefix).with_osc_color(*rgb, *bell_terminated)
+            }
+            Self::IndexedColor {
+                index,
+                rgb,
+                bell_terminated,
+            } => {
+                let mut bytes = TerminalReplyBytes::from_static(b"\x1b]4;");
+                bytes.push_decimal(u16::from(*index));
+                bytes.with_osc_color(*rgb, *bell_terminated)
+            }
+            Self::AlternateScrollStatus { enabled } => {
+                let mut bytes = TerminalReplyBytes::from_static(b"\x1b[?1007;");
+                bytes.push(if *enabled { b'1' } else { b'2' });
+                bytes.push(b'$');
+                bytes.push(b'y');
+                bytes
+            }
         }
     }
 }

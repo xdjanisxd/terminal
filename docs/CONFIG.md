@@ -107,6 +107,10 @@ directories from being added as roots when saving a workspace.
 inherit_cwd = false
 ```
 
+Alternate scroll mode (DEC private mode 1007) starts disabled. When a program
+enables it, vertical wheel motion on the alternate screen sends Up and Down
+cursor keys. Mouse reporting takes precedence.
+
 ## Shell
 
 The entire `[shell]` section is optional. When absent, Terminal keeps its existing
@@ -256,7 +260,10 @@ Editing `preset` in the configuration file switches the theme on the next live
 reload.
 
 Programs can query the active terminal foreground and background with OSC 10
-and OSC 11. Replies report the theme RGB values before window compositing.
+and OSC 11, and read indexed palette colors with OSC 4. OSC 4 accepts up to
+seven `index;?` pairs per sequence. Indexes 0–15 follow the active theme and
+indexes 16–255 use the fixed xterm 256-color palette. Replies report the RGB
+values before window compositing. OSC 4 is read-only.
 
 ```toml
 [theme]

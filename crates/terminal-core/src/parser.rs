@@ -13,6 +13,7 @@ use crate::{
 const MAX_OSC_BYTES: usize = 1024;
 // vte 0.15's fixed parameter capacity (not exposed by its public API).
 const MAX_OSC_PARAMS: usize = 16;
+const MAX_INDEXED_COLOR_QUERIES: usize = (MAX_OSC_PARAMS - 1) / 2;
 pub const MAX_OSC52_DECODED_BYTES: usize = 512;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -32,6 +33,7 @@ const CURSOR_VISIBILITY_MODE: u16 = 25;
 const MOUSE_PRESS_MODE: u16 = 1000;
 const MOUSE_DRAG_MODE: u16 = 1002;
 const MOUSE_ANY_MODE: u16 = 1003;
+const ALTERNATE_SCROLL_MODE: u16 = 1007;
 const FOCUS_REPORTING_MODE: u16 = 1004;
 const SGR_MOUSE_MODE: u16 = 1006;
 const BRACKETED_PASTE_MODE: u16 = 2004;
@@ -43,6 +45,49 @@ enum ExtendedColorChannel {
     Foreground,
     Background,
     Ignored,
+}
+
+enum ColorQuery {
+    Default(DefaultColorChannel),
+    Indexed([Option<u8>; MAX_INDEXED_COLOR_QUERIES]),
+}
+
+impl ColorQuery {
+    fn parse(params: &[&[u8]]) -> Option<Self> {
+        match params {
+            [b"10", b"?"] => Some(Self::Default(DefaultColorChannel::Foreground)),
+            [b"11", b"?"] => Some(Self::Default(DefaultColorChannel::Background)),
+            [b"4", pairs @ ..] => {
+                let (pairs, remainder) = pairs.as_chunks::<2>();
+                if !remainder.is_empty() {
+                    return None;
+                }
+                let mut indices = [None; MAX_INDEXED_COLOR_QUERIES];
+                for (slot, pair) in indices.iter_mut().zip(pairs) {
+                    if let [index, b"?"] = pair
+                        && index.iter().all(u8::is_ascii_digit)
+                    {
+                        *slot = std::str::from_utf8(index)
+                            .ok()
+                            .and_then(|index| index.parse().ok());
+                    }
+                }
+                Some(Self::Indexed(indices))
+            }
+            _ => None,
+        }
+    }
+
+    fn reply(&self, terminal: &mut TerminalState, bell_terminated: bool) {
+        match self {
+            Self::Default(channel) => terminal.request_default_color(*channel, bell_terminated),
+            Self::Indexed(indices) => {
+                for &index in indices.iter().flatten() {
+                    terminal.request_indexed_color(index, bell_terminated);
+                }
+            }
+        }
+    }
 }
 
 /// Incremental raw-byte parser for the supported terminal-core semantics.
@@ -59,7 +104,7 @@ enum ExtendedColorChannel {
 pub struct TerminalParser {
     parser: vte::Parser<MAX_OSC_BYTES>,
     osc52_policy: Osc52Policy,
-    pending_color_query: Option<DefaultColorChannel>,
+    pending_color_query: Option<ColorQuery>,
 }
 
 impl TerminalParser {
@@ -93,10 +138,11 @@ impl TerminalParser {
             SemanticPerformer::new(terminal, self.osc52_policy, &mut self.pending_color_query);
 
         for (index, byte) in bytes.iter().enumerate() {
-            if let Some(channel) = performer.pending_color_query.take()
-                && *byte == b'\\'
-            {
-                performer.terminal.request_default_color(channel, false);
+            if let Some(query) = performer.pending_color_query.as_ref() {
+                if *byte == b'\\' {
+                    query.reply(performer.terminal, false);
+                }
+                *performer.pending_color_query = None;
             }
             performer.dispatch_byte = *byte;
             let consumed = self
@@ -162,7 +208,7 @@ struct SemanticPerformer<'a> {
     terminal: &'a mut TerminalState,
     semantic_error: Option<PrintError>,
     osc52_policy: Osc52Policy,
-    pending_color_query: &'a mut Option<DefaultColorChannel>,
+    pending_color_query: &'a mut Option<ColorQuery>,
     dispatch_byte: u8,
 }
 
@@ -170,7 +216,7 @@ impl<'a> SemanticPerformer<'a> {
     fn new(
         terminal: &'a mut TerminalState,
         osc52_policy: Osc52Policy,
-        pending_color_query: &'a mut Option<DefaultColorChannel>,
+        pending_color_query: &'a mut Option<ColorQuery>,
     ) -> Self {
         Self {
             terminal,
@@ -191,6 +237,7 @@ impl<'a> SemanticPerformer<'a> {
                 (true, MOUSE_PRESS_MODE) => self.terminal.set_mouse_press_tracking(enabled),
                 (true, MOUSE_DRAG_MODE) => self.terminal.set_mouse_drag_tracking(enabled),
                 (true, MOUSE_ANY_MODE) => self.terminal.set_mouse_any_tracking(enabled),
+                (true, ALTERNATE_SCROLL_MODE) => self.terminal.set_alternate_scroll(enabled),
                 (true, FOCUS_REPORTING_MODE) => self.terminal.set_focus_reporting(enabled),
                 (true, SGR_MOUSE_MODE) => self.terminal.set_mouse_encoding(if enabled {
                     MouseEncoding::Sgr
@@ -520,17 +567,12 @@ impl vte::Perform for SemanticPerformer<'_> {
         {
             return;
         }
-        let color_query = match params {
-            [b"10", b"?"] => Some(DefaultColorChannel::Foreground),
-            [b"11", b"?"] => Some(DefaultColorChannel::Background),
-            _ => None,
-        };
-        if let Some(channel) = color_query {
+        if let Some(query) = ColorQuery::parse(params) {
             if bell_terminated {
-                self.terminal.request_default_color(channel, true);
+                query.reply(self.terminal, true);
             } else {
                 // vte dispatches at ESC, before the backslash that completes ST.
-                *self.pending_color_query = Some(channel);
+                *self.pending_color_query = Some(query);
             }
             return;
         }
@@ -691,6 +733,15 @@ impl vte::Perform for SemanticPerformer<'_> {
             if count == 0 || (count == 1 && values[0] == 0) {
                 self.terminal.soft_reset();
             }
+            return;
+        }
+
+        if action == 'p'
+            && intermediates == b"?$"
+            && count == 1
+            && values[0] == ALTERNATE_SCROLL_MODE
+        {
+            let _ = self.terminal.request_alternate_scroll_status();
             return;
         }
 
