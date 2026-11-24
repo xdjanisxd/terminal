@@ -2314,11 +2314,11 @@ impl Application {
         self.apply_pending_resize();
         // A PTY worker may have queued another chunk after its wake was
         // handled but before this redraw. Include it in this present.
-        let output_drained_before_redraw = if self.pty_wake_pending.swap(false, Ordering::AcqRel) {
-            self.drain_pty_events(false)
-        } else {
-            false
-        };
+        let mut output_drained_before_redraw =
+            self.expire_synchronized_updates(Instant::now(), false);
+        if self.pty_wake_pending.swap(false, Ordering::AcqRel) {
+            output_drained_before_redraw |= self.drain_pty_events(false);
+        }
         self.validate_url_hints();
         self.frame.begin_redraw();
         let ui_stage = startup_stage("initial-ui-and-pane-layout");
@@ -2750,12 +2750,6 @@ impl Application {
                 continue;
             }
             let is_visible = visible.contains(&pane_id);
-            if let PtyWorkerEvent::Output(PtyOutput::Bytes(chunk)) = &event {
-                visible_output |= is_visible;
-                if !chunk.is_empty() && !is_visible {
-                    background_output.insert(pane_id);
-                }
-            }
             let parse_started = self.throughput.as_ref().map(|_| Instant::now());
             let output_bytes = match &event {
                 PtyWorkerEvent::Output(PtyOutput::Bytes(bytes)) => Some(bytes.as_slice()),
@@ -2767,13 +2761,20 @@ impl Application {
             if let (Some(stats), Some(bytes)) = (&mut self.throughput, output_bytes) {
                 let was_dirty = stats.data_dirty;
                 stats.output(bytes, Duration::ZERO);
-                stats.data_dirty = was_dirty || is_visible;
+                stats.data_dirty = was_dirty;
             }
             if matches!(event, PtyWorkerEvent::Output(PtyOutput::Exited(_))) {
                 self.exited_panes.insert(pane_id);
             }
-            if let Some(runtime) = self.inactive_panes.get_mut(&pane_id) {
-                handle_background_pty_event(pane_id, runtime, event);
+            let published = self
+                .inactive_panes
+                .get_mut(&pane_id)
+                .is_some_and(|runtime| handle_background_pty_event(pane_id, runtime, event));
+            if published {
+                visible_output |= is_visible;
+                if !is_visible {
+                    background_output.insert(pane_id);
+                }
             }
             if is_output && let Some(stats) = &mut self.throughput {
                 stats.parse += parse_started.unwrap().elapsed();
@@ -2792,16 +2793,7 @@ impl Application {
         }
         let output_us = started.elapsed().as_micros();
         let invalidate_started = std::time::Instant::now();
-        if visible_output {
-            if self.terminal.active_screen() != terminal_core::ScreenKind::Primary {
-                self.search = None;
-            } else if let Some(search) = self.search.as_mut() {
-                search.refresh(&mut self.terminal);
-            }
-        }
-        if visible_output && request_redraw {
-            self.invalidate_frame();
-        }
+        self.finish_pty_publication(visible_output, request_redraw);
         if let Some(stats) = &mut self.throughput {
             stats.max_drain = stats.max_drain.max(started.elapsed());
         }
@@ -2817,36 +2809,23 @@ impl Application {
         match event {
             PtyWorkerEvent::Output(PtyOutput::Bytes(bytes)) => {
                 let parse_started = std::time::Instant::now();
-                self.terminal.clear_selection();
                 let previous_title_version = self.terminal.shell_title_version();
+                let previous_output_version = self.parser.output_version();
                 let replies = parse_terminal_output(&mut self.parser, &mut self.terminal, &bytes);
-                startup::output(self.active_runtime_pane, &bytes, &self.terminal);
-                if issue_startup_command_if_ready(
-                    &mut self.pending_startup_command,
-                    &self.terminal,
-                    self.pty.as_ref(),
-                ) {
-                    startup::milestone(self.active_runtime_pane, "startup-command-dispatched");
+                let published = self.parser.output_version() != previous_output_version;
+                if published {
+                    self.terminal.clear_selection();
                 }
-                if self.terminal.shell_title_version() != previous_title_version {
-                    self.update_workspace_title();
-                }
+                self.finish_active_pty_output(&bytes, previous_title_version, replies);
                 emit_diagnostic(format_args!(
                     "app event=parser-feed bytes={} elapsed_us={}",
                     bytes.len(),
                     parse_started.elapsed().as_micros()
                 ));
-                if let Some(text) = self.terminal.take_osc52_write()
-                    && let Err(error) =
-                        terminal_platform::write_clipboard(&text, self.window.as_deref())
-                {
-                    eprintln!("could not write OSC 52 clipboard text: {error}");
-                }
-                for reply in replies {
-                    self.write_to_pty(reply);
-                }
                 if let Some(stats) = &mut self.throughput {
+                    let was_dirty = stats.data_dirty;
                     stats.output(&bytes, parse_started.elapsed());
+                    stats.data_dirty = was_dirty || published;
                     if stats.workload.as_deref() == Some("input")
                         && stats.bytes >= 512 * 1024
                         && stats.probe_requested.is_none()
@@ -2859,7 +2838,7 @@ impl Application {
                             .unwrap();
                     }
                 }
-                true
+                published
             }
             PtyWorkerEvent::Output(PtyOutput::Eof) => {
                 if let Some(stats) = &mut self.throughput {
@@ -2881,6 +2860,96 @@ impl Application {
                 false
             }
         }
+    }
+
+    fn finish_active_pty_output(
+        &mut self,
+        bytes: &[u8],
+        previous_title_version: u64,
+        replies: Vec<Vec<u8>>,
+    ) {
+        startup::output(self.active_runtime_pane, bytes, &self.terminal);
+        if issue_startup_command_if_ready(
+            &mut self.pending_startup_command,
+            &self.terminal,
+            self.pty.as_ref(),
+        ) {
+            startup::milestone(self.active_runtime_pane, "startup-command-dispatched");
+        }
+        if self.terminal.shell_title_version() != previous_title_version {
+            self.update_workspace_title();
+        }
+        if let Some(text) = self.terminal.take_osc52_write()
+            && let Err(error) = terminal_platform::write_clipboard(&text, self.window.as_deref())
+        {
+            eprintln!("could not write OSC 52 clipboard text: {error}");
+        }
+        for reply in replies {
+            self.write_to_pty(reply);
+        }
+    }
+
+    fn finish_pty_publication(&mut self, visible_output: bool, request_redraw: bool) {
+        if !visible_output {
+            return;
+        }
+        if let Some(stats) = &mut self.throughput {
+            stats.data_dirty = true;
+        }
+        if self.terminal.active_screen() != terminal_core::ScreenKind::Primary {
+            self.search = None;
+        } else if let Some(search) = self.search.as_mut() {
+            search.refresh(&mut self.terminal);
+        }
+        if request_redraw {
+            self.invalidate_frame();
+        }
+    }
+
+    fn synchronized_update_deadline(&self) -> Option<Instant> {
+        self.parser
+            .synchronized_update_deadline()
+            .into_iter()
+            .chain(
+                self.inactive_panes
+                    .values()
+                    .filter_map(|runtime| runtime.parser.synchronized_update_deadline()),
+            )
+            .min()
+    }
+
+    fn expire_synchronized_updates(&mut self, now: Instant, request_redraw: bool) -> bool {
+        if self
+            .synchronized_update_deadline()
+            .is_none_or(|deadline| now < deadline)
+        {
+            return false;
+        }
+        let previous_title_version = self.terminal.shell_title_version();
+        let mut visible_output = expire_terminal_output(&mut self.parser, &mut self.terminal, now);
+        if visible_output {
+            let replies = take_terminal_replies(&mut self.terminal);
+            self.finish_active_pty_output(&[], previous_title_version, replies);
+        }
+
+        let visible = self.workspace.active_tab().panes();
+        let mut background_output = Vec::new();
+        for (&pane_id, runtime) in &mut self.inactive_panes {
+            if expire_terminal_output(&mut runtime.parser, &mut runtime.terminal, now) {
+                let replies = take_terminal_replies(&mut runtime.terminal);
+                finish_background_pty_output(pane_id, runtime, &[], replies);
+                if visible.iter().any(|pane| pane.id == pane_id) {
+                    visible_output = true;
+                } else {
+                    background_output.push(pane_id);
+                }
+            }
+        }
+        for pane_id in background_output {
+            self.record_background_output(pane_id);
+        }
+        self.finish_pty_publication(visible_output, request_redraw);
+        visible_output
     }
 
     fn write_to_pty(&self, bytes: Vec<u8>) -> bool {
@@ -3084,6 +3153,7 @@ impl ApplicationHandler<PtyWake> for Application {
             event_loop.exit();
             return;
         }
+        self.expire_synchronized_updates(Instant::now(), true);
         if self.finish_throughput_workload(event_loop) {
             return;
         }
@@ -3124,6 +3194,7 @@ impl ApplicationHandler<PtyWake> for Application {
             .into_iter()
             .chain(activity_deadline)
             .chain(self.cursor_blink.deadline)
+            .chain(self.synchronized_update_deadline())
             .chain(
                 self.throughput
                     .as_ref()
@@ -3784,31 +3855,52 @@ fn spawn_configured_session(
     }
 }
 
-fn handle_background_pty_event(pane_id: PaneId, runtime: &mut PaneRuntime, event: PtyWorkerEvent) {
+fn handle_background_pty_event(
+    pane_id: PaneId,
+    runtime: &mut PaneRuntime,
+    event: PtyWorkerEvent,
+) -> bool {
     match event {
         PtyWorkerEvent::Output(PtyOutput::Bytes(bytes)) => {
-            runtime.terminal.clear_selection();
+            let previous_output_version = runtime.parser.output_version();
             let replies = parse_terminal_output(&mut runtime.parser, &mut runtime.terminal, &bytes);
-            startup::output(pane_id, &bytes, &runtime.terminal);
-            if issue_startup_command_if_ready(
-                &mut runtime.pending_startup_command,
-                &runtime.terminal,
-                runtime.pty.as_ref(),
-            ) {
-                startup::milestone(pane_id, "startup-command-dispatched");
+            let published = runtime.parser.output_version() != previous_output_version;
+            if published {
+                runtime.terminal.clear_selection();
             }
-            // OSC 52 is denied by the parser for every pane.
-            runtime.terminal.take_osc52_write();
-            if let Some(pty) = runtime.pty.as_ref() {
-                for reply in replies {
-                    if let Err(error) = pty.write(reply) {
-                        eprintln!("could not reply to background shell: {error}");
-                    }
-                }
+            finish_background_pty_output(pane_id, runtime, &bytes, replies);
+            published
+        }
+        PtyWorkerEvent::Output(PtyOutput::Eof | PtyOutput::Exited(_)) => false,
+        PtyWorkerEvent::Error(error) => {
+            eprintln!("background shell worker error: {error}");
+            false
+        }
+    }
+}
+
+fn finish_background_pty_output(
+    pane_id: PaneId,
+    runtime: &mut PaneRuntime,
+    bytes: &[u8],
+    replies: Vec<Vec<u8>>,
+) {
+    startup::output(pane_id, bytes, &runtime.terminal);
+    if issue_startup_command_if_ready(
+        &mut runtime.pending_startup_command,
+        &runtime.terminal,
+        runtime.pty.as_ref(),
+    ) {
+        startup::milestone(pane_id, "startup-command-dispatched");
+    }
+    // OSC 52 is denied by the parser for every pane.
+    runtime.terminal.take_osc52_write();
+    if let Some(pty) = runtime.pty.as_ref() {
+        for reply in replies {
+            if let Err(error) = pty.write(reply) {
+                eprintln!("could not reply to background shell: {error}");
             }
         }
-        PtyWorkerEvent::Output(PtyOutput::Eof | PtyOutput::Exited(_)) => {}
-        PtyWorkerEvent::Error(error) => eprintln!("background shell worker error: {error}"),
     }
 }
 
@@ -3906,12 +3998,32 @@ fn parse_terminal_output(
             Ok(()) => break,
             Err(error) => {
                 eprintln!("could not apply local shell output: {error}");
-                // Zero consumption clears an invalid UTF-8 prefix. Retrying the
-                // same byte then makes progress in the parser's new state.
+                // A zero count cleared an invalid UTF-8 prefix or published an
+                // expired update. Retrying starts from the new parser state.
                 remaining = &remaining[error.bytes_consumed()..];
             }
         }
     }
+    take_terminal_replies(terminal)
+}
+
+fn expire_terminal_output(
+    parser: &mut TerminalParser,
+    terminal: &mut TerminalState,
+    now: Instant,
+) -> bool {
+    let previous_output_version = parser.output_version();
+    if let Some(Err(error)) = parser.expire_synchronized_update(terminal, now) {
+        eprintln!("could not apply synchronized shell output: {error}");
+    }
+    let published = parser.output_version() != previous_output_version;
+    if published {
+        terminal.clear_selection();
+    }
+    published
+}
+
+fn take_terminal_replies(terminal: &mut TerminalState) -> Vec<Vec<u8>> {
     let mut replies = Vec::new();
     while let Some(reply) = terminal.take_reply() {
         replies.push(reply.as_bytes().as_slice().to_vec());
@@ -6950,6 +7062,75 @@ mod tests {
         assert_eq!(app.frame.requests_armed, 1);
         assert_eq!(app.terminal.screen().cell(0, 0).unwrap().character(), 'A');
         assert_eq!(app.terminal.screen().cell(0, 1).unwrap().character(), 'B');
+    }
+
+    #[test]
+    fn synchronized_output_preserves_active_selection_until_publish() {
+        let mut app = Application::default();
+        assert!(app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(b"old".to_vec()))));
+        assert!(app.terminal.select_word(0, 0));
+        assert!(
+            !app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
+                b"\x1b[?2026h\rnew".to_vec(),
+            )))
+        );
+        assert_eq!(app.terminal.selected_text().as_deref(), Some("old"));
+        assert!(
+            app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
+                b"\x1b[?2026l".to_vec(),
+            )))
+        );
+        assert_eq!(app.terminal.selected_text(), None);
+        assert_eq!(app.terminal.screen().cell(0, 0).unwrap().character(), 'n');
+    }
+
+    #[test]
+    fn synchronized_output_expiry_repaints_a_visible_split_independently() {
+        let mut app = Application::default();
+        let first = app.workspace.active_pane();
+        assert!(
+            !app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
+                b"\x1b[?2026hA".to_vec(),
+            )))
+        );
+        let deadline = app.synchronized_update_deadline().unwrap();
+        app.dispatch_command(Command::SplitVertical);
+        assert!(app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(b"B".to_vec()))));
+        assert_eq!(app.terminal.screen().cell(0, 0).unwrap().character(), 'B');
+        assert_eq!(app.synchronized_update_deadline(), Some(deadline));
+        let before_deadline = deadline - Duration::from_nanos(1);
+        app.frame.begin_redraw();
+        assert!(!app.expire_synchronized_updates(before_deadline, true));
+        assert!(!app.frame.redraw_requested);
+        let terminal = &app.inactive_panes[&first].terminal;
+        assert_eq!(terminal.screen().cell(0, 0).unwrap().character(), ' ');
+        assert!(app.expire_synchronized_updates(deadline, true));
+        assert!(app.frame.redraw_requested);
+        assert_eq!(app.synchronized_update_deadline(), None);
+        let terminal = &app.inactive_panes[&first].terminal;
+        assert_eq!(terminal.screen().cell(0, 0).unwrap().character(), 'A');
+    }
+
+    #[test]
+    fn closing_a_synchronized_pane_discards_its_output_and_deadline() {
+        let mut app = Application::default();
+        let first = app.workspace.active_pane();
+        assert!(app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(b"A".to_vec()))));
+        app.dispatch_command(Command::SplitVertical);
+        let split = app.workspace.active_pane();
+        assert!(
+            !app.handle_pty_event(PtyWorkerEvent::Output(PtyOutput::Bytes(
+                b"\x1b[?2026hB".to_vec(),
+            )))
+        );
+        let deadline = app.synchronized_update_deadline().unwrap();
+        app.close_pane();
+        assert_eq!(app.active_runtime_pane, first);
+        assert!(!app.inactive_panes.contains_key(&split));
+        assert_eq!(app.synchronized_update_deadline(), None);
+        assert!(!app.expire_synchronized_updates(deadline, true));
+        assert_eq!(app.terminal.screen().cell(0, 0).unwrap().character(), 'A');
+        assert_eq!(app.terminal.screen().cell(0, 1).unwrap().character(), ' ');
     }
 
     #[test]
