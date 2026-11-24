@@ -220,6 +220,12 @@ The renderer scales the size for display DPI. A missing or proportional family
 can prevent renderer initialization. The font shortcuts adjust size during the
 current run; editing `[font]` requires a restart.
 
+SGR italic uses the family's native Italic or Oblique face when that face
+covers the text. SGR bold italic looks for the corresponding heavier face and
+applies `bold_intensity` to its weight. If a suitable face is unavailable,
+Terminal slants the upright glyph. All styles use the regular face's cell
+size and baseline.
+
 `bold_intensity` controls actual font weight for SGR 1 text. Omission or `1.0`
 keeps the existing native Bold selection and rasterization exactly. Other values
 multiply the selected native Bold face's OpenType weight (usually 700). A usable

@@ -1,6 +1,6 @@
 //! Renderer-owned font discovery, face selection, shaping, and rasterization.
 //!
-//! Native Bold companions and Unicode fallback share the retained database;
+//! Native style companions and Unicode fallback share the retained database;
 //! terminal cell metrics always come from the configured primary face.
 
 use std::collections::{HashMap, VecDeque};
@@ -9,7 +9,7 @@ use std::fmt;
 
 #[cfg(any(target_os = "linux", test))]
 use fontdb::Source as FontSource;
-use fontdb::{Database, Family, ID, Query, Weight};
+use fontdb::{Database, FaceInfo, Family, ID, Query, Style, Weight};
 #[cfg(any(target_os = "linux", test))]
 use std::path::Path;
 #[cfg(target_os = "linux")]
@@ -245,6 +245,7 @@ struct ShapedCacheKey {
     text: String,
     pixels_per_em: u32,
     bold: bool,
+    italic: bool,
 }
 
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
@@ -349,6 +350,7 @@ pub(super) struct FontSystem {
     fallback_by_grapheme: HashMap<String, ID>,
     glyph_cache: GlyphCache,
     bold_companions: HashMap<ID, Option<ID>>,
+    italic_companions: HashMap<(ID, bool), Option<ID>>,
     bold_intensity: f32,
     bold_instances: HashMap<ID, (ID, Option<u32>)>,
     shaped_cache: HashMap<ShapedCacheKey, ShapedText>,
@@ -446,6 +448,7 @@ impl FontSystem {
             fallback_by_grapheme: HashMap::new(),
             glyph_cache: GlyphCache::new(cache_capacity),
             bold_companions: HashMap::new(),
+            italic_companions: HashMap::new(),
             bold_intensity: 1.0,
             bold_instances: HashMap::new(),
             shaped_cache: HashMap::new(),
@@ -477,6 +480,16 @@ impl FontSystem {
         pixels_per_em: f32,
         bold: bool,
     ) -> Result<(ShapedText, bool), FontProcessingError> {
+        self.shape_text_cached_with_style(text, pixels_per_em, bold, false)
+    }
+
+    pub(super) fn shape_text_cached_with_style(
+        &mut self,
+        text: &str,
+        pixels_per_em: f32,
+        bold: bool,
+        italic: bool,
+    ) -> Result<(ShapedText, bool), FontProcessingError> {
         validate_pixels_per_em(pixels_per_em)?;
         if text.is_empty() {
             return Ok((ShapedText::default(), true));
@@ -485,6 +498,7 @@ impl FontSystem {
             text: text.to_owned(),
             pixels_per_em: pixels_per_em.to_bits(),
             bold,
+            italic,
         };
         if let Some(shaped) = self.shaped_cache.get(&key).cloned() {
             if let Some(position) = self
@@ -497,7 +511,7 @@ impl FontSystem {
             }
             return Ok((shaped, true));
         }
-        let shaped = self.shape_text_uncached(text, pixels_per_em, bold)?;
+        let shaped = self.shape_text_uncached(text, pixels_per_em, bold, italic)?;
         if self.shaped_cache.len() == SHAPED_TEXT_CACHE_CAPACITY
             && let Some(oldest) = self.shaped_lru.pop_front()
         {
@@ -513,51 +527,77 @@ impl FontSystem {
         text: &str,
         pixels_per_em: f32,
         bold: bool,
+        italic: bool,
     ) -> Result<ShapedText, FontProcessingError> {
         let mut glyphs = Vec::new();
         let mut run_start = 0;
-        let mut run_face: Option<(ID, Option<u32>)> = None;
+        let mut run_face = None;
         for (offset, grapheme) in text.grapheme_indices(true) {
             let regular = self.face_for_grapheme(grapheme);
-            let instance = if bold {
-                let instance = self.bold_instance(regular);
-                if self.face_supports_grapheme(instance.0, grapheme) {
-                    instance
-                } else {
-                    (
-                        self.bold_companion(regular)
-                            .filter(|face| self.face_supports_grapheme(*face, grapheme))
-                            .unwrap_or(regular),
-                        None,
-                    )
-                }
-            } else {
-                (regular, None)
-            };
+            let (face_id, weight) = self.styled_face(regular, grapheme, bold, italic);
+            let run = FaceCacheIdentity { face_id, weight };
             if let Some(previous_face) = run_face
-                && instance != previous_face
+                && run != previous_face
             {
+                let is_fallback = !self.is_primary_style_face(previous_face.face_id, bold, italic);
                 self.shape_run(
                     &text[run_start..offset],
                     run_start as u32,
-                    previous_face.0,
-                    previous_face.1,
+                    previous_face,
+                    is_fallback,
                     pixels_per_em,
                     &mut glyphs,
                 )?;
                 run_start = offset;
             }
-            run_face = Some(instance);
+            run_face = Some(run);
         }
-        self.shape_run(
-            &text[run_start..],
-            run_start as u32,
-            run_face.unwrap_or((self.primary_face, None)).0,
-            run_face.unwrap_or((self.primary_face, None)).1,
-            pixels_per_em,
-            &mut glyphs,
-        )?;
+        if let Some(face) = run_face {
+            let is_fallback = !self.is_primary_style_face(face.face_id, bold, italic);
+            self.shape_run(
+                &text[run_start..],
+                run_start as u32,
+                face,
+                is_fallback,
+                pixels_per_em,
+                &mut glyphs,
+            )?;
+        }
         Ok(ShapedText { glyphs })
+    }
+
+    fn styled_face(
+        &mut self,
+        regular: ID,
+        grapheme: &str,
+        bold: bool,
+        italic: bool,
+    ) -> (ID, Option<u32>) {
+        if italic
+            && let Some(native) = self.italic_companion(regular, bold)
+            && self.face_supports_grapheme(native, grapheme)
+        {
+            if bold {
+                let instance = self.bold_instance(native);
+                if instance.0 == native || self.face_supports_grapheme(instance.0, grapheme) {
+                    return instance;
+                }
+            }
+            return (native, None);
+        }
+        if !bold {
+            return (regular, None);
+        }
+        let instance = self.bold_instance(regular);
+        if self.face_supports_grapheme(instance.0, grapheme) {
+            return instance;
+        }
+        (
+            self.bold_companion(regular)
+                .filter(|face| self.face_supports_grapheme(*face, grapheme))
+                .unwrap_or(regular),
+            None,
+        )
     }
 
     pub(super) fn rasterize_glyph(
@@ -597,6 +637,11 @@ impl FontSystem {
             return Ok(bitmap);
         }
         let synthesize = bold && glyph.weight.is_none() && !self.face_is_bold(glyph.face_id);
+        let shear = italic
+            && self
+                .database
+                .face(glyph.face_id)
+                .is_some_and(|face| face.style == Style::Normal);
         let scale_context = &mut self.scale_context;
         let bitmap = self
             .database
@@ -620,9 +665,8 @@ impl FontSystem {
                     Source::Bitmap(StrikeWith::BestFit),
                 ]);
                 renderer.format(Format::Alpha);
-                if italic {
-                    // Shear outlines around the baseline, retaining fixed cell
-                    // advances and the existing native Bold/variation selection.
+                if shear {
+                    // The upright fallback uses the same cell and baseline.
                     renderer.transform(Some(Transform::new(1.0, 0.0, 0.2, 1.0, 0.0, 0.0)));
                 }
                 if synthesize {
@@ -704,17 +748,8 @@ impl FontSystem {
                 .filter(|face| {
                     face.weight >= Weight::SEMIBOLD
                         && face.style == info.style
-                        && face.stretch == info.stretch
-                        && (!info.monospaced || face.monospaced)
-                        && face.families.iter().any(|(name, _)| {
-                            info.families.iter().any(|(original, _)| name == original)
-                        })
-                        && self
-                            .database
-                            .with_face_data(face.id, |data, index| {
-                                FontRef::from_index(data, index as usize).is_some()
-                            })
-                            .unwrap_or(false)
+                        && is_companion(info, face)
+                        && usable_face(&self.database, face.id)
                 })
                 .min_by_key(|face| {
                     (
@@ -770,25 +805,56 @@ impl FontSystem {
             // fontdb can return a nearest regular face: reject that substitute.
             if bold.weight < Weight::SEMIBOLD
                 || bold.style != info.style
-                || bold.stretch != info.stretch
-                || (info.monospaced && !bold.monospaced)
-                || !bold.families.iter().any(|(name, _)| {
-                    info.families
-                        .iter()
-                        .any(|(regular_name, _)| regular_name == name)
-                })
+                || !is_companion(info, bold)
             {
                 return None;
             }
-            self.database
-                .with_face_data(candidate, |data, index| {
-                    FontRef::from_index(data, index as usize).is_some()
-                })
-                .filter(|valid| *valid)
-                .map(|_| candidate)
+            usable_face(&self.database, candidate).then_some(candidate)
         });
         self.bold_companions.insert(regular, selected);
         selected
+    }
+
+    fn italic_companion(&mut self, regular: ID, bold: bool) -> Option<ID> {
+        let key = (regular, bold);
+        if let Some(face) = self.italic_companions.get(&key) {
+            return *face;
+        }
+        let selected = self.database.face(regular).and_then(|info| {
+            let target = if bold { Weight::BOLD } else { info.weight };
+            self.database
+                .faces()
+                .filter(|face| {
+                    face.style != Style::Normal
+                        && (face.weight >= Weight::SEMIBOLD) == (target >= Weight::SEMIBOLD)
+                        && is_companion(info, face)
+                        && usable_face(&self.database, face.id)
+                })
+                .min_by_key(|face| {
+                    (
+                        face.style != Style::Italic,
+                        face.weight.0.abs_diff(target.0),
+                        face.id.to_string(),
+                    )
+                })
+                .map(|face| face.id)
+        });
+        self.italic_companions.insert(key, selected);
+        selected
+    }
+
+    fn is_primary_style_face(&mut self, face: ID, bold: bool, italic: bool) -> bool {
+        let primary = self.primary_face;
+        if face == primary
+            || face == self.bold_instance(primary).0
+            || Some(face) == self.bold_companion(primary)
+        {
+            return true;
+        }
+        italic
+            && self.italic_companion(primary, bold).is_some_and(|native| {
+                face == native || (bold && face == self.bold_instance(native).0)
+            })
     }
 
     fn face_for_character(&mut self, character: char) -> ID {
@@ -902,14 +968,12 @@ impl FontSystem {
         &mut self,
         text: &str,
         source_offset: u32,
-        face_id: ID,
-        weight: Option<u32>,
+        face: FaceCacheIdentity,
+        is_fallback: bool,
         pixels_per_em: f32,
         glyphs: &mut Vec<ShapedGlyph>,
     ) -> Result<(), FontProcessingError> {
-        let primary_face = self.primary_face;
-        let primary_bold = self.bold_instance(primary_face).0;
-        let primary_native_bold = self.bold_companion(primary_face);
+        let FaceCacheIdentity { face_id, weight } = face;
         let shape_context = &mut self.shape_context;
         self.database
             .with_face_data(face_id, |data, index| {
@@ -967,9 +1031,7 @@ impl FontSystem {
                     glyphs.extend(cluster.glyphs.iter().map(|glyph| ShapedGlyph {
                         face_id,
                         weight,
-                        is_fallback: face_id != primary_face
-                            && face_id != primary_bold
-                            && Some(face_id) != primary_native_bold,
+                        is_fallback,
                         glyph_id: glyph.id,
                         advance: glyph.advance,
                         offset_x: glyph.x,
@@ -1097,7 +1159,15 @@ fn face_source_is_path(source: &FontSource, path: &Path) -> bool {
     }
 }
 
-#[cfg(any(target_os = "linux", test))]
+fn is_companion(base: &FaceInfo, candidate: &FaceInfo) -> bool {
+    candidate.stretch == base.stretch
+        && (!base.monospaced || candidate.monospaced)
+        && candidate
+            .families
+            .iter()
+            .any(|(name, _)| base.families.iter().any(|(original, _)| name == original))
+}
+
 fn usable_face(database: &Database, id: ID) -> bool {
     database
         .with_face_data(id, |data, index| {
@@ -1282,6 +1352,18 @@ mod tests {
                         .shape_text_cached_with_bold("Ae\u{301}", size, bold)
                         .unwrap()
                         .0;
+                    assert_eq!(
+                        system
+                            .shape_text_cached_with_style("Ae\u{301}", size, bold, true)
+                            .unwrap(),
+                        (shaped.clone(), false)
+                    );
+                    assert_eq!(
+                        system
+                            .shape_text_cached_with_style("Ae\u{301}", size, bold, true)
+                            .unwrap(),
+                        (shaped.clone(), true)
+                    );
                     let glyph = &shaped.glyphs()[0];
                     let upright = system
                         .rasterize_glyph_with_style(glyph, size, bold, false)
@@ -1521,15 +1603,8 @@ mod tests {
     #[test]
     fn intensity_face_without_character_keeps_original_native_bold_coverage() {
         let (mut system, regular, bold) = paired_fixture_system();
-        let mut bytes = TEST_FONT.to_vec();
-        let tables = u16::from_be_bytes([bytes[4], bytes[5]]) as usize;
-        for offset in (12..12 + tables * 16).step_by(16) {
-            if &bytes[offset..offset + 4] == b"cmap" {
-                bytes[offset..offset + 4].copy_from_slice(b"xxxx");
-            }
-        }
         let mut face = system.database.face(bold).unwrap().clone();
-        face.source = Source::Binary(Arc::new(bytes));
+        face.source = Source::Binary(Arc::new(font_without_cmap()));
         face.weight = Weight::EXTRA_BOLD;
         let extra = system.database.push_face_info(face);
         system = system.with_bold_intensity(1.25);
@@ -1544,6 +1619,17 @@ mod tests {
                 && glyph.glyph_id != 0
                 && !glyph.uses_fallback())
         );
+    }
+
+    fn font_without_cmap() -> Vec<u8> {
+        let mut bytes = TEST_FONT.to_vec();
+        let tables = u16::from_be_bytes([bytes[4], bytes[5]]) as usize;
+        for offset in (12..12 + tables * 16).step_by(16) {
+            if &bytes[offset..offset + 4] == b"cmap" {
+                bytes[offset..offset + 4].copy_from_slice(b"xxxx");
+            }
+        }
+        bytes
     }
 
     #[test]
@@ -1922,7 +2008,11 @@ mod tests {
         ] {
             for cached in [false, true] {
                 for _ in 0..100 {
-                    black_box(system.shape_text_uncached(text, 20.0, false).unwrap());
+                    black_box(
+                        system
+                            .shape_text_uncached(text, 20.0, false, false)
+                            .unwrap(),
+                    );
                 }
                 for sample in 0..5 {
                     let started = Instant::now();
@@ -1930,7 +2020,11 @@ mod tests {
                         if cached {
                             black_box(system.shape_text(text, 20.0).unwrap());
                         } else {
-                            black_box(system.shape_text_uncached(text, 20.0, false).unwrap());
+                            black_box(
+                                system
+                                    .shape_text_uncached(text, 20.0, false, false)
+                                    .unwrap(),
+                            );
                         }
                     }
                     eprintln!(
@@ -2220,6 +2314,144 @@ mod tests {
         // A configured primary that is already Bold must not get more weight.
         system.primary_face = bold;
         assert_eq!(system.bold_companion(bold), Some(bold));
+    }
+
+    #[test]
+    fn native_italic_uses_the_requested_face_and_keeps_the_regular_grid() {
+        let (mut system, regular, bold) = paired_fixture_system();
+        let mut info = system.database.face(regular).unwrap().clone();
+        info.style = Style::Oblique;
+        system.database.push_face_info(info.clone());
+        info.style = Style::Italic;
+        let italic = system.database.push_face_info(info.clone());
+        info.weight = Weight::BOLD;
+        let bold_italic = system.database.push_face_info(info.clone());
+        info.weight = Weight::EXTRA_BOLD;
+        let extra_bold_italic = system.database.push_face_info(info);
+        for (intensity, weighted) in [(1.0, bold_italic), (1.25, extra_bold_italic)] {
+            system = system.with_bold_intensity(intensity);
+            for scale in [1.0, 1.25] {
+                let metrics = system.cell_metrics(scale, 16.0).unwrap();
+                let size = metrics.pixels_per_em();
+                for (is_bold, upright, slanted) in
+                    [(false, regular, italic), (true, bold, weighted)]
+                {
+                    let (normal, normal_hit) = system
+                        .shape_text_cached_with_style("Ae\u{301}", size, is_bold, false)
+                        .unwrap();
+                    let (styled, hit) = system
+                        .shape_text_cached_with_style("Ae\u{301}", size, is_bold, true)
+                        .unwrap();
+                    assert!(!normal_hit && !hit);
+                    assert_eq!(normal.glyphs().len(), styled.glyphs().len());
+                    for (normal, glyph) in normal.glyphs().iter().zip(styled.glyphs()) {
+                        assert_eq!(normal.face_id, upright);
+                        assert_eq!(glyph.face_id, slanted);
+                        assert!(!glyph.uses_fallback());
+                        assert_ne!(normal.face_cache_identity(), glyph.face_cache_identity());
+                        // The test faces share bytes, so only native face identity can differ.
+                        assert_eq!(normal.advance(), glyph.advance());
+                        assert_eq!(normal.cluster_range(), glyph.cluster_range());
+                        assert_eq!(
+                            system
+                                .rasterize_glyph_with_style(glyph, size, is_bold, true)
+                                .unwrap(),
+                            system.rasterize_glyph(glyph, size).unwrap()
+                        );
+                    }
+                    assert_eq!(
+                        system
+                            .shape_text_cached_with_style("Ae\u{301}", size, is_bold, true)
+                            .unwrap(),
+                        (styled, true)
+                    );
+                }
+                assert_eq!(system.cell_metrics(scale, 16.0).unwrap(), metrics);
+            }
+        }
+    }
+
+    #[test]
+    fn italic_face_without_grapheme_coverage_keeps_upright_bold_fallback() {
+        let (mut system, regular, bold) = paired_fixture_system();
+        let mut info = system.database.face(regular).unwrap().clone();
+        info.style = Style::Oblique;
+        let oblique = system.database.push_face_info(info.clone());
+        info.style = Style::Italic;
+        info.weight = Weight::BOLD;
+        info.source = Source::Binary(Arc::new(font_without_cmap()));
+        let bold_italic = system.database.push_face_info(info);
+        assert_eq!(system.italic_companion(regular, false), Some(oblique));
+        assert_eq!(system.italic_companion(regular, true), Some(bold_italic));
+        let text = "Ae\u{301}";
+        let (styled, _) = system
+            .shape_text_cached_with_style(text, 16.0, true, true)
+            .unwrap();
+        assert_eq!(
+            styled,
+            system
+                .shape_text_cached_with_bold(text, 16.0, true)
+                .unwrap()
+                .0
+        );
+        assert!(
+            styled
+                .glyphs()
+                .iter()
+                .all(|glyph| glyph.face_id == bold && glyph.glyph_id != 0)
+        );
+        let glyph = &styled.glyphs()[0];
+        assert_ne!(
+            system
+                .rasterize_glyph_with_style(glyph, 16.0, true, true)
+                .unwrap(),
+            system.rasterize_glyph_with_bold(glyph, 16.0, true).unwrap()
+        );
+    }
+
+    #[test]
+    fn italic_uses_native_companions_of_discovered_fallback_faces() {
+        let mut system = fallback_system(16);
+        let regular = system.fallback_candidates[0];
+        let mut companion = system.database.face(regular).unwrap().clone();
+        companion.style = Style::Italic;
+        let italic = system.database.push_face_info(companion);
+        let (normal, _) = system.shape_text_cached("Ae\u{301}", 20.0).unwrap();
+        let (styled, _) = system
+            .shape_text_cached_with_style("Ae\u{301}", 20.0, false, true)
+            .unwrap();
+        assert_eq!(normal.glyphs().len(), styled.glyphs().len());
+        for (normal, glyph) in normal.glyphs().iter().zip(styled.glyphs()) {
+            assert_eq!(normal.face_id, regular);
+            assert_eq!(glyph.face_id, italic);
+            assert!(glyph.uses_fallback());
+            assert_ne!(glyph.glyph_id(), 0);
+            assert_eq!(normal.cluster_range(), glyph.cluster_range());
+        }
+    }
+
+    #[test]
+    fn primary_style_faces_keep_their_identity_when_the_regular_face_lacks_a_glyph() {
+        let (system, regular, bold) = paired_fixture_system();
+        let mut database = system.database;
+        let mut primary = database.face(regular).unwrap().clone();
+        database.remove_face(regular);
+        primary.source = Source::Binary(Arc::new(font_without_cmap()));
+        let primary = database.push_face_info(primary);
+        let mut info = database.face(bold).unwrap().clone();
+        info.style = Style::Italic;
+        info.post_script_name = "Paired-BoldItalic".into();
+        let bold_italic = database.push_face_info(info);
+        let mut system = FontSystem::with_primary_face(database, primary, 16).unwrap();
+        assert_eq!(system.face_for_grapheme("A"), bold);
+        for (italic, face) in [(false, bold), (true, bold_italic)] {
+            let (shaped, _) = system
+                .shape_text_cached_with_style("A", 16.0, true, italic)
+                .unwrap();
+            let glyph = &shaped.glyphs()[0];
+            assert_eq!(glyph.face_id, face);
+            assert!(!glyph.uses_fallback());
+        }
     }
 
     #[test]

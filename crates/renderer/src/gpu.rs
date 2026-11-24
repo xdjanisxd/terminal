@@ -970,10 +970,11 @@ impl DrawResources {
             }
             let pixels_per_em = frame.cell_metrics.pixels_per_em();
             shape_calls += 1;
-            let Ok((shaped, cache_hit)) = font_system.shape_text_cached_with_bold(
+            let Ok((shaped, cache_hit)) = font_system.shape_text_cached_with_style(
                 cell.text.as_str(),
                 pixels_per_em,
                 cell.bold,
+                cell.italic,
             ) else {
                 continue;
             };
@@ -2021,6 +2022,85 @@ mod tests {
         .expect("native GPU device");
 
         let _resources = DrawResources::new(&device, wgpu::TextureFormat::Bgra8UnormSrgb);
+    }
+
+    #[test]
+    #[ignore = "requires a GPU and JetBrainsMono Nerd Font Mono Regular, Bold, Italic and Bold Italic"]
+    fn native_gpu_italic_styles_share_baseline_and_clip_to_cells() {
+        #[cfg(target_os = "linux")]
+        let _gpu_test = super::native_gpu_test_guard();
+        const WIDTH: u32 = 128;
+        const HEIGHT: u32 = 128;
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor::default());
+        let adapter = pollster::block_on(instance.request_adapter(&Default::default())).unwrap();
+        let (device, queue) =
+            pollster::block_on(adapter.request_device(&crate::renderer_device_descriptor()))
+                .unwrap();
+        let format = wgpu::TextureFormat::Rgba8Unorm;
+        let texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("italic clipping and baseline target"),
+            size: wgpu::Extent3d {
+                width: WIDTH,
+                height: HEIGHT,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
+            view_formats: &[],
+        });
+        let target = texture.create_view(&Default::default());
+        let mut fonts =
+            FontSystem::load_system(FontRequest::Family("JetBrainsMono Nerd Font Mono".into()))
+                .unwrap();
+        let mut state = TerminalState::new(TerminalDimensions::new(8, 4).unwrap());
+        terminal_core::TerminalParser::new()
+            .advance(&mut state, b"\x1b[0mH \x1b[1mH \x1b[0;3mH \x1b[1mH\r\n\r\n\x1b[0mf \x1b[1mf \x1b[0;3mf \x1b[1mf\x1b[0m")
+            .unwrap();
+        let theme = crate::RenderTheme::default();
+        let mut data = TerminalRenderData::from_terminal_with_theme(&state, &theme);
+        data.cursor = None;
+        let mut resources = DrawResources::new(&device, format);
+        for scale in [1.0, 1.25] {
+            let metrics = fonts.cell_metrics(scale, 16.0).unwrap();
+            let frame = || FrameContext {
+                target: &target,
+                surface_size: SurfaceSize::new(WIDTH, HEIGHT).unwrap(),
+                cell_metrics: metrics,
+                ui: &theme.ui,
+            };
+            assert_eq!(
+                resources
+                    .draw(&device, &queue, frame(), &data, &mut fonts)
+                    .raster_calls,
+                8
+            );
+            let warm = resources.draw(&device, &queue, frame(), &data, &mut fonts);
+            assert_eq!(warm.raster_calls, 0);
+            assert_eq!(warm.shape_misses, 0);
+            let pixels = read_rgba(&device, &queue, &texture);
+            let background = &pixels[..4];
+            let has_ink = |x, y| {
+                let red = pixels[((y * WIDTH + x) * 4) as usize];
+                red.abs_diff(background[0]) > 32
+            };
+            let width = metrics.width();
+            let height = metrics.height();
+            let mut cap_bottom = None;
+            for column in [0, 2, 4, 6] {
+                let span = column * width..(column + 1) * width;
+                let bottom = (0..height).rfind(|y| span.clone().any(|x| has_ink(x, *y)));
+                assert!(bottom.is_some());
+                assert_eq!(*cap_bottom.get_or_insert(bottom), bottom);
+                assert!((2 * height..3 * height).any(|y| span.clone().any(|x| has_ink(x, y))));
+                let gap = (column + 1) * width..(column + 2) * width;
+                assert!(!(0..4 * height).any(|y| gap.clone().any(|x| has_ink(x, y))));
+            }
+            assert!(!(height..2 * height).any(|y| (0..8 * width).any(|x| has_ink(x, y))));
+            assert!(!(3 * height..4 * height).any(|y| (0..8 * width).any(|x| has_ink(x, y))));
+        }
     }
 
     #[test]
