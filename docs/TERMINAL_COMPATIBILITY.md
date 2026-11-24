@@ -62,6 +62,54 @@ No material slowdown was observed in these workloads after the blank skip adjust
 - DECSCA/selective erase, horizontal margins, additional cursor-save protocols, private CPR/query variants, character sets beyond G0/G1 ASCII and DEC Special Graphics, and broader OSC/DCS/CSI coverage. Existing saved-cursor policy still cancels delayed wrap and does not save every historical DEC state field.
 - Unbounded/full Unicode shaping (bounded grapheme/ZWJ support is documented in [Unicode grapheme support](UNICODE_GRAPHEME_SUPPORT.md)), fuzz execution, Windows native verification, other GPUs, and measured input-to-present latency.
 
+## Synchronized screen updates (DEC 2026)
+
+`CSI ? 2026 h` begins a synchronized update for the current terminal pane.
+Terminal presents the existing contents while it accumulates the update.
+`CSI ? 2026 l` releases the accumulated output together. Other panes continue
+to receive and present their own output.
+
+An unfinished update is released 150 ms after the begin sequence or when
+its buffer reaches 2 MiB, whichever comes first. Another begin sequence
+inside the update keeps the original deadline. A terminal reset ends the
+update and applies the reset before the next frame.
+
+The Codex CLI 0.172.0 composer redraw fixture replays a captured update one
+byte at a time and verifies that the grid and cursor remain unchanged until
+the final byte of the end sequence.
+
+```sh
+cargo test -p terminal-core --test compatibility_fixtures codex_composer_trace
+```
+
+In a disposable pane, run the following with Python 3. The top row should
+change from `OLD` to `COMPLETE` without displaying `INTERMEDIATE`. The
+unterminated `TIMEOUT` update should become visible on its own.
+
+```sh
+python3 - <<'PY'
+import sys
+import time
+
+def emit(text):
+    sys.stdout.write(text)
+    sys.stdout.flush()
+
+emit("\x1b[2J\x1b[HOLD")
+time.sleep(1)
+emit("\x1b[?2026h\x1b[H\x1b[2KINTERMEDIATE")
+time.sleep(0.09)
+emit("\x1b[H\x1b[2KCOMPLETE\x1b[?2026l")
+time.sleep(1)
+emit("\x1b[?2026h\x1b[H\x1b[2KTIMEOUT")
+time.sleep(1)
+emit("\n")
+PY
+```
+
+In a split tab, run a repeating counter in the other pane. The counter
+should keep advancing while the synchronized update is pending.
+
 ## Recommended manual checks
 
 Use a fresh disposable pane for reset checks. On Linux use Bash/Zsh and Python 3 (`python3`); on Windows use PowerShell and Python (`py -3`, or `python`). `sys.stdout.write` emits the control bytes directly on either platform.

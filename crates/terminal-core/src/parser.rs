@@ -1,3 +1,4 @@
+use std::time::{Duration, Instant};
 use std::{error::Error, fmt};
 
 use crate::{
@@ -37,6 +38,9 @@ const ALTERNATE_SCROLL_MODE: u16 = 1007;
 const FOCUS_REPORTING_MODE: u16 = 1004;
 const SGR_MOUSE_MODE: u16 = 1006;
 const BRACKETED_PASTE_MODE: u16 = 2004;
+const SYNCHRONIZED_UPDATE_MODE: u16 = 2026;
+const SYNCHRONIZED_UPDATE_TIMEOUT: Duration = Duration::from_millis(150);
+const MAX_SYNCHRONIZED_UPDATE_BYTES: usize = 2 * 1024 * 1024;
 const CLEAR_CURRENT_TAB_STOP: u16 = 0;
 const CLEAR_ALL_TAB_STOPS: u16 = 3;
 
@@ -105,6 +109,8 @@ pub struct TerminalParser {
     parser: vte::Parser<MAX_OSC_BYTES>,
     osc52_policy: Osc52Policy,
     pending_color_query: Option<ColorQuery>,
+    synchronized_update: Option<SynchronizedUpdate>,
+    output_version: u64,
 }
 
 impl TerminalParser {
@@ -113,12 +119,37 @@ impl TerminalParser {
             parser: vte::Parser::new_with_size(),
             osc52_policy: policy,
             pending_color_query: None,
+            synchronized_update: None,
+            output_version: 0,
         }
     }
 
     /// Creates a parser in its initial ground state.
     pub fn new() -> Self {
         Self::with_osc52_policy(Osc52Policy::Deny)
+    }
+
+    /// Changes when output has been dispatched to the terminal model.
+    pub fn output_version(&self) -> u64 {
+        self.output_version
+    }
+
+    /// Returns the current deadline for publishing buffered output without more input.
+    pub fn synchronized_update_deadline(&self) -> Option<Instant> {
+        self.synchronized_update
+            .as_ref()
+            .map(|update| update.deadline)
+    }
+
+    /// Publishes buffered output if the current synchronized update has expired.
+    /// The result reports the first semantic error, if any, after publishing the update.
+    pub fn expire_synchronized_update(
+        &mut self,
+        terminal: &mut TerminalState,
+        now: Instant,
+    ) -> Option<Result<(), PrintError>> {
+        let deadline = self.synchronized_update_deadline()?;
+        (now >= deadline).then(|| self.finish_synchronized_update(terminal))
     }
 
     /// Advances the parser through one input chunk.
@@ -129,11 +160,87 @@ impl TerminalParser {
     /// zero when a byte invalidates a UTF-8 prefix retained from an earlier
     /// chunk and must itself be reprocessed. This bounds error storage to one
     /// explicit error without silently discarding later errors.
+    /// A synchronized update is published as a unit. If its previously accepted
+    /// bytes cause semantic errors, the first is reported at the publication
+    /// boundary and `bytes_consumed` still refers only to the current chunk.
     pub fn advance(
         &mut self,
         terminal: &mut TerminalState,
         bytes: &[u8],
     ) -> Result<(), TerminalParserError> {
+        self.advance_at(terminal, bytes, Instant::now())
+    }
+
+    fn advance_at(
+        &mut self,
+        terminal: &mut TerminalState,
+        bytes: &[u8],
+        now: Instant,
+    ) -> Result<(), TerminalParserError> {
+        if let Some(Err(semantic_error)) = self.expire_synchronized_update(terminal, now) {
+            return Err(TerminalParserError {
+                bytes_consumed: 0,
+                semantic_error,
+            });
+        }
+        let mut offset = 0;
+        while offset < bytes.len() {
+            if let Some(update) = self.synchronized_update.as_mut() {
+                let (consumed, finished) = update.advance(&bytes[offset..]);
+                offset += consumed;
+                if finished && let Err(semantic_error) = self.finish_synchronized_update(terminal) {
+                    return Err(TerminalParserError {
+                        bytes_consumed: offset,
+                        semantic_error,
+                    });
+                }
+            } else {
+                let (consumed, begin) = self
+                    .dispatch_bytes(terminal, &bytes[offset..], true)
+                    .map_err(|mut error| {
+                        error.bytes_consumed += offset;
+                        error
+                    })?;
+                offset += consumed;
+                if begin {
+                    self.synchronized_update = Some(SynchronizedUpdate {
+                        probe: vte::Parser::new_with_size(),
+                        deadline: now + SYNCHRONIZED_UPDATE_TIMEOUT,
+                        bytes: Vec::new(),
+                    });
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn finish_synchronized_update(
+        &mut self,
+        terminal: &mut TerminalState,
+    ) -> Result<(), PrintError> {
+        let update = self.synchronized_update.take().unwrap();
+        let mut remaining = update.bytes.as_slice();
+        let mut first_error = None;
+        while !remaining.is_empty() {
+            match self.dispatch_bytes(terminal, remaining, false) {
+                Ok(_) => break,
+                Err(error) => {
+                    first_error.get_or_insert(error.semantic_error);
+                    // A zero count cleared an invalid partial UTF-8 sequence.
+                    // Parse the same byte again in the new parser state.
+                    remaining = &remaining[error.bytes_consumed..];
+                }
+            }
+        }
+        first_error.map_or(Ok(()), Err)
+    }
+
+    fn dispatch_bytes(
+        &mut self,
+        terminal: &mut TerminalState,
+        bytes: &[u8],
+        stop_on_begin: bool,
+    ) -> Result<(usize, bool), TerminalParserError> {
         let mut performer =
             SemanticPerformer::new(terminal, self.osc52_policy, &mut self.pending_color_query);
 
@@ -141,6 +248,7 @@ impl TerminalParser {
             if let Some(query) = performer.pending_color_query.as_ref() {
                 if *byte == b'\\' {
                     query.reply(performer.terminal, false);
+                    performer.published_output = true;
                 }
                 *performer.pending_color_query = None;
             }
@@ -149,17 +257,86 @@ impl TerminalParser {
                 .parser
                 .advance_until_terminated(&mut performer, std::slice::from_ref(byte));
 
-            if let Some(semantic_error) = performer.semantic_error.take() {
-                return Err(TerminalParserError {
-                    bytes_consumed: index + consumed,
-                    semantic_error,
-                });
+            if performer.semantic_error.is_some() || (stop_on_begin && performer.begin_update) {
+                self.output_version = self
+                    .output_version
+                    .wrapping_add(u64::from(performer.published_output));
+                return match performer.semantic_error {
+                    Some(semantic_error) => Err(TerminalParserError {
+                        bytes_consumed: index + consumed,
+                        semantic_error,
+                    }),
+                    None => Ok((index + consumed, true)),
+                };
             }
 
             debug_assert_eq!(consumed, 1);
         }
 
-        Ok(())
+        self.output_version = self
+            .output_version
+            .wrapping_add(u64::from(performer.published_output));
+        Ok((bytes.len(), false))
+    }
+}
+
+struct SynchronizedUpdate {
+    probe: vte::Parser<MAX_OSC_BYTES>,
+    deadline: Instant,
+    bytes: Vec<u8>,
+}
+
+impl SynchronizedUpdate {
+    fn advance(&mut self, input: &[u8]) -> (usize, bool) {
+        // Run the same escape syntax parser across chunks so a canceled or
+        // embedded sequence cannot end the update. The terminal's semantic
+        // parser stays at the begin boundary until these bytes are published.
+        let available = MAX_SYNCHRONIZED_UPDATE_BYTES - self.bytes.len();
+        let input = &input[..input.len().min(available)];
+        let mut end = SynchronizedUpdateEnd::default();
+        let consumed = self.probe.advance_until_terminated(&mut end, input);
+        let len = self.bytes.len() + consumed;
+        if len > self.bytes.capacity() {
+            let capacity = (self.bytes.capacity() * 2).clamp(len, MAX_SYNCHRONIZED_UPDATE_BYTES);
+            self.bytes.reserve_exact(capacity - self.bytes.len());
+        }
+        self.bytes.extend_from_slice(&input[..consumed]);
+        (
+            consumed,
+            end.reached || len == MAX_SYNCHRONIZED_UPDATE_BYTES,
+        )
+    }
+}
+
+#[derive(Default)]
+struct SynchronizedUpdateEnd {
+    reached: bool,
+}
+
+impl vte::Perform for SynchronizedUpdateEnd {
+    fn esc_dispatch(&mut self, intermediates: &[u8], ignored: bool, action: u8) {
+        self.reached = !ignored && intermediates.is_empty() && action == b'c';
+    }
+
+    fn csi_dispatch(
+        &mut self,
+        params: &vte::Params,
+        intermediates: &[u8],
+        ignored: bool,
+        action: char,
+    ) {
+        self.reached = !ignored
+            && match (intermediates, action) {
+                (b"?", 'l') => params
+                    .into_iter()
+                    .any(|param| param == [SYNCHRONIZED_UPDATE_MODE]),
+                (b"!", 'p') => is_soft_reset(params),
+                _ => false,
+            };
+    }
+
+    fn terminated(&self) -> bool {
+        self.reached
     }
 }
 
@@ -210,6 +387,8 @@ struct SemanticPerformer<'a> {
     osc52_policy: Osc52Policy,
     pending_color_query: &'a mut Option<ColorQuery>,
     dispatch_byte: u8,
+    begin_update: bool,
+    published_output: bool,
 }
 
 impl<'a> SemanticPerformer<'a> {
@@ -224,6 +403,8 @@ impl<'a> SemanticPerformer<'a> {
             osc52_policy,
             pending_color_query,
             dispatch_byte: 0,
+            begin_update: false,
+            published_output: false,
         }
     }
 
@@ -232,6 +413,11 @@ impl<'a> SemanticPerformer<'a> {
             let [mode] = parameter else {
                 continue;
             };
+            if private && *mode == SYNCHRONIZED_UPDATE_MODE {
+                self.begin_update = enabled;
+                continue;
+            }
+            self.published_output = true;
 
             match (private, *mode) {
                 (true, MOUSE_PRESS_MODE) => self.terminal.set_mouse_press_tracking(enabled),
@@ -567,6 +753,7 @@ impl vte::Perform for SemanticPerformer<'_> {
         {
             return;
         }
+        self.published_output = true;
         if let Some(query) = ColorQuery::parse(params) {
             if bell_terminated {
                 query.reply(self.terminal, true);
@@ -643,6 +830,7 @@ impl vte::Perform for SemanticPerformer<'_> {
 
     fn print(&mut self, character: char) {
         if self.semantic_error.is_none() {
+            self.published_output = true;
             self.semantic_error = self.terminal.print_character(character).err();
         }
     }
@@ -651,6 +839,7 @@ impl vte::Perform for SemanticPerformer<'_> {
         if self.semantic_error.is_some() {
             return;
         }
+        self.published_output = true;
 
         match byte {
             0x08 => self.terminal.backspace(),
@@ -667,6 +856,7 @@ impl vte::Perform for SemanticPerformer<'_> {
         if self.semantic_error.is_some() || has_ignored_intermediates {
             return;
         }
+        self.published_output = true;
 
         if matches!(intermediates, [b'('] | [b')']) && matches!(byte, b'0' | b'B') {
             self.terminal
@@ -709,6 +899,7 @@ impl vte::Perform for SemanticPerformer<'_> {
             self.dispatch_mode(params, private, action == 'h');
             return;
         }
+        self.published_output = true;
 
         if action == 'm' {
             if intermediates == b">"
@@ -725,16 +916,16 @@ impl vte::Perform for SemanticPerformer<'_> {
             return;
         }
 
-        let Some((values, count)) = simple_csi_parameters(params) else {
-            return;
-        };
-
         if action == 'p' && intermediates == b"!" {
-            if count == 0 || (count == 1 && values[0] == 0) {
+            if is_soft_reset(params) {
                 self.terminal.soft_reset();
             }
             return;
         }
+
+        let Some((values, count)) = simple_csi_parameters(params) else {
+            return;
+        };
 
         if action == 'p'
             && intermediates == b"?$"
@@ -958,6 +1149,158 @@ fn simple_csi_parameters(params: &vte::Params) -> Option<([u16; 2], usize)> {
     Some((values, count))
 }
 
+fn is_soft_reset(params: &vte::Params) -> bool {
+    matches!(simple_csi_parameters(params), Some(([0, _], 0 | 1)))
+}
+
 fn default_one(value: u16) -> usize {
     usize::from(value.max(1))
+}
+
+#[cfg(test)]
+mod synchronized_update_tests {
+    use super::*;
+    use crate::TerminalDimensions;
+
+    const BEGIN: &[u8] = b"\x1b[?2026h";
+    const END: &[u8] = b"\x1b[?2026l";
+
+    fn terminal() -> TerminalState {
+        TerminalState::new(TerminalDimensions::new(8, 2).unwrap())
+    }
+
+    fn text(terminal: &TerminalState, columns: usize) -> String {
+        (0..columns)
+            .map(|column| terminal.screen().cell(0, column).unwrap().character())
+            .collect()
+    }
+
+    #[test]
+    fn synchronized_update_publishes_only_after_split_end() {
+        let mut parser = TerminalParser::new();
+        let mut terminal = terminal();
+        let now = Instant::now();
+        parser.advance_at(&mut terminal, b"old", now).unwrap();
+        let version = parser.output_version();
+        let input = [BEGIN, "\r界B\x1b[5n".as_bytes(), END].concat();
+        for byte in &input[..input.len() - 1] {
+            parser.advance_at(&mut terminal, &[*byte], now).unwrap();
+            assert_eq!(parser.output_version(), version);
+            assert_eq!(text(&terminal, 3), "old");
+            assert_eq!(terminal.take_reply(), None);
+        }
+        parser.advance_at(&mut terminal, b"l", now).unwrap();
+        assert_ne!(parser.output_version(), version);
+        assert_eq!(text(&terminal, 3), "界 B");
+        assert_eq!(
+            terminal.take_reply(),
+            Some(crate::TerminalReply::TerminalStatus)
+        );
+        assert_eq!(parser.synchronized_update_deadline(), None);
+    }
+
+    #[test]
+    fn adjacent_synchronized_updates_publish_at_their_own_boundaries() {
+        let mut parser = TerminalParser::new();
+        let mut terminal = terminal();
+        let now = Instant::now();
+        parser
+            .advance_at(&mut terminal, b"A\x1b[?2026hB\x1b[?2026l\x1b[?2026hC", now)
+            .unwrap();
+        assert_eq!(text(&terminal, 4), "AB  ");
+        assert!(parser.synchronized_update_deadline().is_some());
+        parser
+            .advance_at(&mut terminal, b"\x1b[?2026lD", now)
+            .unwrap();
+        assert_eq!(text(&terminal, 4), "ABCD");
+        assert_eq!(parser.synchronized_update_deadline(), None);
+    }
+
+    #[test]
+    fn synchronized_update_deadline_is_fixed_and_recovers_without_input() {
+        let mut parser = TerminalParser::new();
+        let mut terminal = terminal();
+        let now = Instant::now();
+        let deadline = now + SYNCHRONIZED_UPDATE_TIMEOUT;
+        let before_deadline = deadline - Duration::from_nanos(1);
+        parser.advance_at(&mut terminal, BEGIN, now).unwrap();
+        parser
+            .advance_at(&mut terminal, b"A\x1b[?2026hB", before_deadline)
+            .unwrap();
+        assert_eq!(parser.synchronized_update_deadline(), Some(deadline));
+        assert_eq!(
+            parser.expire_synchronized_update(&mut terminal, before_deadline),
+            None
+        );
+        assert_eq!(text(&terminal, 3), "   ");
+        assert_eq!(
+            parser.expire_synchronized_update(&mut terminal, deadline),
+            Some(Ok(()))
+        );
+        assert_eq!(
+            parser.expire_synchronized_update(&mut terminal, deadline),
+            None
+        );
+        parser.advance_at(&mut terminal, b"C", deadline).unwrap();
+        assert_eq!(text(&terminal, 3), "ABC");
+    }
+
+    #[test]
+    fn synchronized_update_cap_flushes_and_resumes_partial_escape_syntax() {
+        let mut parser = TerminalParser::new();
+        let mut terminal = terminal();
+        let now = Instant::now();
+        parser.advance_at(&mut terminal, BEGIN, now).unwrap();
+        // NUL is ignored. An escape prefix ends exactly at the payload cap.
+        let padding = vec![0; MAX_SYNCHRONIZED_UPDATE_BYTES - 4];
+        parser.advance_at(&mut terminal, b"A", now).unwrap();
+        parser.advance_at(&mut terminal, &padding, now).unwrap();
+        assert_eq!(text(&terminal, 3), "   ");
+        assert!(parser.synchronized_update_deadline().is_some());
+        parser.advance_at(&mut terminal, b"\x1b[2GB", now).unwrap();
+        assert_eq!(text(&terminal, 3), "AB ");
+        assert_eq!(parser.synchronized_update_deadline(), None);
+    }
+
+    #[test]
+    fn real_reset_ends_the_synchronized_update_but_cancellation_does_not() {
+        for (reset, expected) in [(b"\x1bc".as_slice(), "C  "), (b"\x1b[!p", "ABC")] {
+            let mut parser = TerminalParser::new();
+            let mut terminal = terminal();
+            let now = Instant::now();
+            parser.advance_at(&mut terminal, b"A", now).unwrap();
+            parser.advance_at(&mut terminal, BEGIN, now).unwrap();
+            parser
+                .advance_at(&mut terminal, b"B\x1b[?2026\x18\x1b[!\x1a", now)
+                .unwrap();
+            assert_eq!(text(&terminal, 3), "A  ");
+            for &byte in reset {
+                parser.advance_at(&mut terminal, &[byte], now).unwrap();
+            }
+            assert_eq!(parser.synchronized_update_deadline(), None);
+            parser.advance_at(&mut terminal, b"C", now).unwrap();
+            assert_eq!(text(&terminal, 3), expected);
+        }
+    }
+
+    #[test]
+    fn synchronized_update_recovers_replay_error_and_preserves_current_suffix() {
+        let mut parser = TerminalParser::new();
+        let mut terminal = terminal();
+        let now = Instant::now();
+        parser.advance_at(&mut terminal, BEGIN, now).unwrap();
+        parser.advance_at(&mut terminal, b"\xe2", now).unwrap();
+        let input = b"A\x1b[?2026lB";
+        let error = parser.advance_at(&mut terminal, input, now).unwrap_err();
+        assert_eq!(
+            error.semantic_error(),
+            PrintError::UnsupportedCharacter('\u{fffd}')
+        );
+        assert_eq!(error.bytes_consumed(), 1 + END.len());
+        assert_eq!(text(&terminal, 2), "A ");
+        parser
+            .advance_at(&mut terminal, &input[error.bytes_consumed()..], now)
+            .unwrap();
+        assert_eq!(text(&terminal, 2), "AB");
+    }
 }

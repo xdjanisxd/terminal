@@ -18,6 +18,63 @@ fn assert_row(state: &TerminalState, row: usize, expected: &str) {
 }
 
 #[test]
+fn codex_composer_trace_publishes_only_after_synchronized_update_ends() {
+    // One complete composer redraw captured from Codex CLI 0.172.0 (80×24).
+    // The workspace path is replaced with a string of the same width.
+    let trace = b"\x1b[?2026h\x1b[?25l\x1b[20;2H\x1b[0m\x1b[48;2;35;36;40m\x1b[K\
+        \x1b[22;2H\x1b[0m\x1b[48;2;35;36;40m\x1b[K\x1b[23;41H\x1b[0m\x1b[49m\x1b[K\
+        \x1b[20;1H\x1b[39;48;2;35;36;40m \x1b[21;1H\x1b[1m\xe2\x80\xba\
+        \x1b[21;3H\x1b[22m\x1b[2mAsk Codex to do anything\x1b[22;1H\x1b[22m \
+        \x1b[23;1H\x1b[39;49m  \x1b[38;2;246;226;183;49mGPT-6.2-Sol default\
+        \x1b[38;2;135;141;150;49m \xc2\xb7 \x1b[38;2;171;223;167;49m~/demo/workspace\
+        \x1b[24;3H\x1b[1m\x1b[38;2;223;231;243;49m\xe2\x86\x90\x1b[24;9H\
+        \x1b[22m\x1b[38;2;135;141;150;49magen\x1b[24;14Hs \xc2\xb7 \
+        \x1b[1m\x1b[38;2;223;231;243;49m?\x1b[22m\x1b[38;2;135;141;150;49m for shortcuts\
+        \x1b[39m\x1b[49m\x1b[0m\x1b[21;3H\x1b[?25h\x1b[?2026l";
+    let mut parser = TerminalParser::new();
+    let mut state = TerminalState::new(TerminalDimensions::new(80, 24).unwrap());
+    parser.advance(&mut state, b"previous frame").unwrap();
+    let previous = state.screen().clone();
+    let cursor = state.cursor();
+
+    // Let either update marker be split and permit a projection after every byte.
+    let (last, prefix) = trace.split_last().unwrap();
+    for (offset, byte) in prefix.iter().enumerate() {
+        parser
+            .advance(&mut state, std::slice::from_ref(byte))
+            .unwrap();
+        assert_eq!(state.screen(), &previous, "screen changed at byte {offset}");
+        assert_eq!(state.cursor(), cursor, "cursor changed at byte {offset}");
+        assert_eq!(
+            state.terminal_modes().cursor_visibility(),
+            CursorVisibility::Visible
+        );
+    }
+    parser
+        .advance(&mut state, std::slice::from_ref(last))
+        .unwrap();
+    assert_row(&state, 20, "› Ask Codex to do anything");
+    assert_eq!(
+        state
+            .screen()
+            .cell(19, 0)
+            .unwrap()
+            .attributes()
+            .background(),
+        CellColor::Rgb {
+            red: 35,
+            green: 36,
+            blue: 40
+        }
+    );
+    assert_ne!(state.cursor(), cursor);
+    assert_eq!(
+        state.terminal_modes().cursor_visibility(),
+        CursorVisibility::Visible
+    );
+}
+
+#[test]
 fn shell_prompt_redraw_fixture_preserves_output_and_title() {
     // Representative prompt redraw with OSC title, SGR, CR, EL, LF, and cursor visibility.
     let fixture = b"\x1b]0;dev@box\x07\x1b[?25l\x1b[1;32mdev@box\x1b[0m:\x1b[34m~\x1b[0m$ echo hi\r\x1b[2K\x1b[1;32mdev@box\x1b[0m:\x1b[34m~\x1b[0m$ echo hi\r\nhi\r\n\x1b[1;32mdev@box\x1b[0m:\x1b[34m~\x1b[0m$ \x1b[?25h";
