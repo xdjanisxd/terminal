@@ -255,6 +255,9 @@ choice lasts until the configuration is reloaded or the application restarts.
 Editing `preset` in the configuration file switches the theme on the next live
 reload.
 
+Programs can query the active terminal foreground and background with OSC 10
+and OSC 11. Replies report the theme RGB values before window compositing.
+
 ```toml
 [theme]
 preset = "solarized_light"

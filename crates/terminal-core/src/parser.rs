@@ -2,8 +2,8 @@ use std::{error::Error, fmt};
 
 use crate::{
     AutoWrapMode, CellColor, CharacterInsertionMode, CursorKeyMode, CursorMovement,
-    CursorVisibility, EraseDirection, EraseRegion, InverseVideo, ItalicStyle, MouseEncoding,
-    PrintError, TerminalState, TextIntensity, UnderlineStyle,
+    CursorVisibility, DefaultColorChannel, EraseDirection, EraseRegion, InverseVideo, ItalicStyle,
+    MouseEncoding, PrintError, TerminalState, TextIntensity, UnderlineStyle,
 };
 
 // Compile vte without its std feature so OSC buffering uses its fixed-capacity
@@ -59,6 +59,7 @@ enum ExtendedColorChannel {
 pub struct TerminalParser {
     parser: vte::Parser<MAX_OSC_BYTES>,
     osc52_policy: Osc52Policy,
+    pending_color_query: Option<DefaultColorChannel>,
 }
 
 impl TerminalParser {
@@ -66,15 +67,13 @@ impl TerminalParser {
         Self {
             parser: vte::Parser::new_with_size(),
             osc52_policy: policy,
+            pending_color_query: None,
         }
     }
 
     /// Creates a parser in its initial ground state.
     pub fn new() -> Self {
-        Self {
-            parser: vte::Parser::new_with_size(),
-            osc52_policy: Osc52Policy::Deny,
-        }
+        Self::with_osc52_policy(Osc52Policy::Deny)
     }
 
     /// Advances the parser through one input chunk.
@@ -90,9 +89,15 @@ impl TerminalParser {
         terminal: &mut TerminalState,
         bytes: &[u8],
     ) -> Result<(), TerminalParserError> {
-        let mut performer = SemanticPerformer::new(terminal, self.osc52_policy);
+        let mut performer =
+            SemanticPerformer::new(terminal, self.osc52_policy, &mut self.pending_color_query);
 
         for (index, byte) in bytes.iter().enumerate() {
+            if let Some(channel) = performer.pending_color_query.take()
+                && *byte == b'\\'
+            {
+                performer.terminal.request_default_color(channel, false);
+            }
             performer.dispatch_byte = *byte;
             let consumed = self
                 .parser
@@ -157,15 +162,21 @@ struct SemanticPerformer<'a> {
     terminal: &'a mut TerminalState,
     semantic_error: Option<PrintError>,
     osc52_policy: Osc52Policy,
+    pending_color_query: &'a mut Option<DefaultColorChannel>,
     dispatch_byte: u8,
 }
 
 impl<'a> SemanticPerformer<'a> {
-    fn new(terminal: &'a mut TerminalState, osc52_policy: Osc52Policy) -> Self {
+    fn new(
+        terminal: &'a mut TerminalState,
+        osc52_policy: Osc52Policy,
+        pending_color_query: &'a mut Option<DefaultColorChannel>,
+    ) -> Self {
         Self {
             terminal,
             semantic_error: None,
             osc52_policy,
+            pending_color_query,
             dispatch_byte: 0,
         }
     }
@@ -497,9 +508,9 @@ fn valid_working_directory_uri(uri: &str) -> bool {
 }
 
 impl vte::Perform for SemanticPerformer<'_> {
-    fn osc_dispatch(&mut self, params: &[&[u8]], _bell_terminated: bool) {
+    fn osc_dispatch(&mut self, params: &[&[u8]], bell_terminated: bool) {
         // vte dispatches OSC on CAN/SUB as well as BEL/ESC. Cancellation must
-        // not commit metadata, hyperlinks, prompt markers, or clipboard writes.
+        // not apply OSC actions.
         // Its callback also lacks an overflow flag: saturation is ambiguous,
         // so reject it conservatively. These checks run only on OSC dispatch.
         if self.semantic_error.is_some()
@@ -507,6 +518,20 @@ impl vte::Perform for SemanticPerformer<'_> {
             || params.len() >= MAX_OSC_PARAMS
             || params.iter().map(|param| param.len()).sum::<usize>() >= MAX_OSC_BYTES
         {
+            return;
+        }
+        let color_query = match params {
+            [b"10", b"?"] => Some(DefaultColorChannel::Foreground),
+            [b"11", b"?"] => Some(DefaultColorChannel::Background),
+            _ => None,
+        };
+        if let Some(channel) = color_query {
+            if bell_terminated {
+                self.terminal.request_default_color(channel, true);
+            } else {
+                // vte dispatches at ESC, before the backslash that completes ST.
+                *self.pending_color_query = Some(channel);
+            }
             return;
         }
         if params.len() >= 2 && (params[0] == b"0" || params[0] == b"2") {

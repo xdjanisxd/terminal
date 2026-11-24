@@ -4,7 +4,7 @@ pub const MAX_PENDING_REPLIES: usize = 16;
 const PRIMARY_DEVICE_ATTRIBUTES_BYTES: &[u8] = b"\x1b[?1;0c";
 const SECONDARY_DEVICE_ATTRIBUTES_BYTES: &[u8] = b"\x1b[>0;0;0c";
 const TERMINAL_STATUS_BYTES: &[u8] = b"\x1b[0n";
-const MAX_ENCODED_REPLY_BYTES: usize = 12;
+const MAX_ENCODED_REPLY_BYTES: usize = b"\x1b]10;rgb:0000/0000/0000\x1b\\".len();
 
 /// A bounded wire encoding of a project-owned terminal reply.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -42,6 +42,32 @@ impl TerminalReplyBytes {
         encoded
     }
 
+    fn default_color(channel: DefaultColorChannel, rgb: [u8; 3], bell_terminated: bool) -> Self {
+        const HEX: &[u8; 16] = b"0123456789abcdef";
+        let mut encoded = Self::from_static(match channel {
+            DefaultColorChannel::Foreground => b"\x1b]10;rgb:",
+            DefaultColorChannel::Background => b"\x1b]11;rgb:",
+        });
+        for (index, value) in rgb.into_iter().enumerate() {
+            if index != 0 {
+                encoded.push(b'/');
+            }
+            let high = HEX[usize::from(value >> 4)];
+            let low = HEX[usize::from(value & 0x0f)];
+            // An 8-bit channel expands to 16 bits by repeating its two hex digits.
+            for digit in [high, low, high, low] {
+                encoded.push(digit);
+            }
+        }
+        if bell_terminated {
+            encoded.push(b'\x07');
+        } else {
+            encoded.push(b'\x1b');
+            encoded.push(b'\\');
+        }
+        encoded
+    }
+
     fn push(&mut self, byte: u8) {
         let index = usize::from(self.len);
         self.bytes[index] = byte;
@@ -64,6 +90,13 @@ impl TerminalReplyBytes {
     }
 }
 
+/// The default color selected by an OSC color query.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DefaultColorChannel {
+    Foreground,
+    Background,
+}
+
 /// A terminal-generated reply intended to be written back to the host.
 #[non_exhaustive]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -78,6 +111,12 @@ pub enum TerminalReply {
     TerminalStatus,
     /// ANSI cursor-position report with captured one-based screen coordinates.
     CursorPosition { row: u16, column: u16 },
+    /// OSC default color reply with the RGB value captured at query time.
+    DefaultColor {
+        channel: DefaultColorChannel,
+        rgb: [u8; 3],
+        bell_terminated: bool,
+    },
 }
 
 impl TerminalReply {
@@ -101,6 +140,11 @@ impl TerminalReply {
             Self::CursorPosition { row, column } => {
                 TerminalReplyBytes::cursor_position(*row, *column)
             }
+            Self::DefaultColor {
+                channel,
+                rgb,
+                bell_terminated,
+            } => TerminalReplyBytes::default_color(*channel, *rgb, *bell_terminated),
         }
     }
 }

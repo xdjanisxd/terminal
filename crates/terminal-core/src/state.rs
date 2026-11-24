@@ -2,7 +2,7 @@ use std::{error::Error, fmt};
 
 use unicode_width::UnicodeWidthChar;
 
-use crate::reply::PendingReplies;
+use crate::reply::{DefaultColorChannel, PendingReplies};
 use crate::screens::{ScreenKind, ScreenSet};
 use crate::tabs::HorizontalTabStops;
 use crate::{
@@ -171,6 +171,8 @@ pub struct TerminalState {
     current_rendition: CellAttributes,
     character_sets: CharacterSets,
     horizontal_tab_stops: HorizontalTabStops,
+    default_foreground: [u8; 3],
+    default_background: [u8; 3],
     pending_replies: PendingReplies,
     pub(crate) selection: Option<crate::selection::Selection>,
     pending_osc52_write: Option<String>,
@@ -343,6 +345,9 @@ impl TerminalState {
             current_rendition: CellAttributes::default(),
             character_sets: CharacterSets::default(),
             horizontal_tab_stops: HorizontalTabStops::new(dimensions.columns()),
+            // Match the application's default terminal theme.
+            default_foreground: [230; 3],
+            default_background: [0; 3],
             pending_replies: PendingReplies::default(),
             selection: None,
             pending_osc52_write: None,
@@ -615,6 +620,28 @@ impl TerminalState {
     /// Removes and returns the oldest pending terminal reply.
     pub fn take_reply(&mut self) -> Option<TerminalReply> {
         self.pending_replies.pop()
+    }
+
+    /// Updates the host-configured foreground and background reported by OSC 10/11 queries.
+    pub fn set_default_colors(&mut self, foreground: [u8; 3], background: [u8; 3]) {
+        self.default_foreground = foreground;
+        self.default_background = background;
+    }
+
+    pub(crate) fn request_default_color(
+        &mut self,
+        channel: DefaultColorChannel,
+        bell_terminated: bool,
+    ) {
+        let rgb = match channel {
+            DefaultColorChannel::Foreground => self.default_foreground,
+            DefaultColorChannel::Background => self.default_background,
+        };
+        self.pending_replies.push(TerminalReply::DefaultColor {
+            channel,
+            rgb,
+            bell_terminated,
+        });
     }
 
     /// Queues the conservative primary Device Attributes response.
@@ -1314,16 +1341,19 @@ impl TerminalState {
     /// Restores this project-owned model to its initial state at the current dimensions.
     ///
     /// This clears the active screen, moves the cursor to `(0, 0)`, and restores all
-    /// supported terminal and input modes to their documented defaults. Dimensions and
-    /// already-generated pending replies are preserved. This is not an implementation
-    /// of DECSTR or RIS.
+    /// supported terminal and input modes to their documented defaults. Dimensions,
+    /// host-configured defaults, and already-generated pending replies are preserved.
+    /// This is not an implementation of DECSTR or RIS.
     pub fn reset(&mut self) {
         let keyboard_generation = self.keyboard_generation.wrapping_add(1);
         let cursor_style_default = self.cursor_style_default;
+        let default_foreground = self.default_foreground;
+        let default_background = self.default_background;
         let pending_replies = std::mem::take(&mut self.pending_replies);
         *self = Self::new(self.dimensions());
         self.keyboard_generation = keyboard_generation;
         self.set_cursor_style_default(cursor_style_default);
+        self.set_default_colors(default_foreground, default_background);
         self.pending_replies = pending_replies;
     }
 
