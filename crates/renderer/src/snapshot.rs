@@ -203,13 +203,14 @@ impl TerminalRenderData {
     }
 
     pub fn from_terminal_with_theme(state: &TerminalState, theme: &RenderTheme) -> Self {
-        Self::from_terminal_with_opacity(state, theme, 1.0)
+        Self::from_terminal_with_opacity(state, theme, 1.0, true)
     }
 
     pub(crate) fn from_terminal_with_opacity(
         state: &TerminalState,
         theme: &RenderTheme,
         opacity: f32,
+        transparent_background_colors: bool,
     ) -> Self {
         let mut surface_background = theme.background;
         surface_background.0[3] = opacity;
@@ -223,6 +224,9 @@ impl TerminalRenderData {
                     continue;
                 }
                 let attributes = cell.attributes();
+                let inverse = attributes.inverse() == InverseVideo::Enabled;
+                // Inverse uses the foreground slot, even when its color is default.
+                let default_background = !inverse && attributes.background() == CellColor::Default;
                 let selected = state.is_selected(row, column)
                     || (cell.occupancy() == CellOccupancy::WideLead
                         && state.is_selected(row, column + 1));
@@ -230,8 +234,7 @@ impl TerminalRenderData {
                 // resolving colors/styles while retaining selection/decorations.
                 if matches!(cell.character(), ' ' | '\0')
                     && cell.grapheme_tail().is_empty()
-                    && attributes.background() == CellColor::Default
-                    && attributes.inverse() == InverseVideo::Disabled
+                    && default_background
                     && attributes.underline() == UnderlineStyle::Disabled
                     && !attributes.strikethrough()
                     && !selected
@@ -242,7 +245,7 @@ impl TerminalRenderData {
                     color(attributes.foreground(), theme.foreground, theme),
                     color(attributes.background(), theme.background, theme),
                 );
-                if attributes.inverse() == InverseVideo::Enabled {
+                if inverse {
                     std::mem::swap(&mut foreground, &mut background);
                 }
                 if attributes.intensity() == TextIntensity::Faint {
@@ -250,7 +253,11 @@ impl TerminalRenderData {
                         *channel *= 0.66;
                     }
                 }
-                background.0[3] = opacity;
+                background.0[3] = if transparent_background_colors || default_background {
+                    opacity
+                } else {
+                    1.0
+                };
                 if selected {
                     foreground = theme.selection_foreground;
                     background = theme.selection_background;
@@ -447,7 +454,7 @@ mod tests {
         TerminalParser::new().advance(&mut state,
             "\x1b[38:2::120:150:180;48:2:30:60:90mA\x1b[2;3;4;9m界\u{301}\x1b[7mI\x1b[8mH\x1b[0mR".as_bytes()).unwrap();
         let theme = RenderTheme::default();
-        let data = TerminalRenderData::from_terminal_with_opacity(&state, &theme, 0.4);
+        let data = TerminalRenderData::from_terminal_with_opacity(&state, &theme, 0.4, true);
         let plain = &data.cells[0];
         let dim = &data.cells[1];
         assert_eq!(dim.width, 2);
@@ -473,7 +480,7 @@ mod tests {
         state.begin_selection(0, 1);
         state.extend_selection(0, 4);
         assert_eq!(state.selected_text().as_deref(), Some("界\u{301}IH"));
-        let selected = TerminalRenderData::from_terminal_with_opacity(&state, &theme, 0.4);
+        let selected = TerminalRenderData::from_terminal_with_opacity(&state, &theme, 0.4, true);
         assert_eq!(selected.cells[1].foreground, theme.selection_foreground);
         assert_eq!(selected.cells[1].background, theme.selection_background);
         assert!(selected.cells[3].concealed);
@@ -1070,17 +1077,33 @@ mod opacity_tests {
         terminal_core::TerminalParser::new()
             .advance(&mut state, b"\x1b[?25l\x1b[48;2;32;32;32m  \x1b[K\x1b[49m")
             .unwrap();
-        let theme = RenderTheme::default();
-        for opacity in [0.0, 0.85, 1.0] {
-            let data = TerminalRenderData::from_terminal_with_opacity(&state, &theme, opacity);
-            assert_eq!(data.cells.len(), 6);
-            for cell in &data.cells {
-                assert_eq!(
-                    cell.background,
-                    Rgba([32.0 / 255.0, 32.0 / 255.0, 32.0 / 255.0, opacity])
-                );
-                assert_eq!(cell.foreground, theme.foreground);
-                assert!(!cell.bold && !cell.underline);
+        let channel = 32.0 / 255.0;
+        let mut theme = RenderTheme::default();
+        for matches_theme in [false, true] {
+            if matches_theme {
+                theme.background = Rgba([channel, channel, channel, 1.0]);
+            }
+            for opacity in [0.0, 0.55, 1.0] {
+                for transparent in [true, false] {
+                    let data = TerminalRenderData::from_terminal_with_opacity(
+                        &state,
+                        &theme,
+                        opacity,
+                        transparent,
+                    );
+                    let alpha = if transparent { opacity } else { 1.0 };
+                    let expected_count = if matches_theme && alpha == opacity {
+                        0
+                    } else {
+                        6
+                    };
+                    assert_eq!(data.cells.len(), expected_count);
+                    for cell in &data.cells {
+                        assert_eq!(cell.background, Rgba([channel, channel, channel, alpha]));
+                        assert_eq!(cell.foreground, theme.foreground);
+                        assert!(!cell.bold && !cell.underline);
+                    }
+                }
             }
         }
     }
@@ -1092,23 +1115,40 @@ mod opacity_tests {
         state.print_character('A').unwrap();
         state.set_inverse_video(InverseVideo::Enabled);
         state.print_character('B').unwrap();
+        state.reset_rendition();
+        state.print_character('C').unwrap();
         let theme = RenderTheme::default();
         let original = TerminalRenderData::from_terminal_with_theme(&state, &theme);
-        for opacity in [0.0, 0.85, 1.0] {
-            let data = TerminalRenderData::from_terminal_with_opacity(&state, &theme, opacity);
-            assert_eq!(
-                &data.surface_background.0[..3],
-                &original.surface_background.0[..3]
-            );
-            assert_eq!(data.surface_background.0[3], opacity);
-            assert_eq!(data.cursor_color, original.cursor_color);
-            for (cell, old) in data.cells.iter().zip(&original.cells) {
-                assert_eq!(cell.foreground, old.foreground);
-                assert_eq!(&cell.background.0[..3], &old.background.0[..3]);
-                assert_eq!(cell.background.0[3], opacity);
-            }
-            if opacity == 1.0 {
-                assert_eq!(data, original);
+        assert_eq!(original.cells[1].background, theme.foreground);
+        assert_eq!(original.cells[1].foreground, theme.ansi[1]);
+        for opacity in [0.0, 0.55, 1.0] {
+            for transparent in [true, false] {
+                let data = TerminalRenderData::from_terminal_with_opacity(
+                    &state,
+                    &theme,
+                    opacity,
+                    transparent,
+                );
+                assert_eq!(
+                    &data.surface_background.0[..3],
+                    &original.surface_background.0[..3]
+                );
+                assert_eq!(data.surface_background.0[3], opacity);
+                assert_eq!(data.cursor_color, original.cursor_color);
+                assert_eq!(data.cells.len(), original.cells.len());
+                for (cell, old) in data.cells.iter().zip(&original.cells) {
+                    assert_eq!(cell.foreground, old.foreground);
+                    assert_eq!(&cell.background.0[..3], &old.background.0[..3]);
+                    let alpha = if transparent || cell.character == 'C' {
+                        opacity
+                    } else {
+                        1.0
+                    };
+                    assert_eq!(cell.background.0[3], alpha);
+                }
+                if opacity == 1.0 {
+                    assert_eq!(data, original);
+                }
             }
         }
     }
@@ -1121,7 +1161,7 @@ mod opacity_tests {
         state.begin_selection(0, 0);
         state.extend_selection(0, 1);
         let theme = RenderTheme::default();
-        let mut data = TerminalRenderData::from_terminal_with_opacity(&state, &theme, 0.0);
+        let mut data = TerminalRenderData::from_terminal_with_opacity(&state, &theme, 0.0, true);
         assert_eq!(data.cells[0].background, theme.selection_background);
         assert_eq!(data.cells[0].foreground, theme.selection_foreground);
         assert_eq!(data.cells[2].background.0[3], 0.0);

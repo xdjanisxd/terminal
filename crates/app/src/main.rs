@@ -1101,6 +1101,9 @@ impl Application {
                     }
                     if let Some(renderer) = self.renderer.as_mut() {
                         renderer.set_background_opacity(config.window.opacity);
+                        renderer.set_transparent_background_colors(
+                            config.window.transparent_background_colors,
+                        );
                     }
                     self.invalidate_frame();
                 }
@@ -2248,6 +2251,9 @@ impl Application {
         ) {
             Ok(mut renderer) => {
                 renderer.set_theme(render_theme(&self.config.theme));
+                renderer.set_transparent_background_colors(
+                    self.config.window.transparent_background_colors,
+                );
                 self.renderer = Some(renderer);
                 startup_milestone("renderer-ready");
                 self.fullscreen.observe(window.fullscreen().is_some());
@@ -8585,12 +8591,13 @@ mod tests {
         };
         fs::write(
             &path,
-            "[font]\nbold_intensity = 0.75\n[window]\nopacity = 0.85\nblur = true\n[theme]\npreset = 'solarized_dark'\nbackground = '#123456'\n[cursor]\nshape = 'underline'\nblinking = true\n[[bindings]]\nkey = 'Ctrl+Alt+X'\ncommand = 'copy'",
+            "[font]\nbold_intensity = 0.75\n[window]\nopacity = 0.85\ntransparent_background_colors = false\nblur = true\n[theme]\npreset = 'solarized_dark'\nbackground = '#123456'\n[cursor]\nshape = 'underline'\nblinking = true\n[[bindings]]\nkey = 'Ctrl+Alt+X'\ncommand = 'copy'",
         )
         .unwrap();
         app.reload_config();
         let valid_config = app.config.clone();
         assert_eq!(app.config.theme.background, Rgb(0x12, 0x34, 0x56));
+        assert!(!app.config.window.transparent_background_colors);
         assert_eq!(app.config.theme.preset, Some(ThemePreset::SolarizedDark));
         assert_eq!(app.config.font.bold_intensity, 0.75);
         assert_eq!(
@@ -8624,6 +8631,7 @@ mod tests {
         fs::write(&path, "[window]\nopacity = 0.5\nblur = false").unwrap();
         app.reload_config();
         assert_eq!(app.config.window.opacity, 0.5);
+        assert!(app.config.window.transparent_background_colors);
         assert!(!app.config.window.blur);
         fs::write(&path, "[window]\nblur = true").unwrap();
         app.reload_config();

@@ -164,6 +164,7 @@ pub struct Renderer {
     draw_resources: Option<DrawResources>,
     theme: RenderTheme,
     background_opacity: f32,
+    transparent_background_colors: bool,
     transparency_supported: bool,
     cursor_blink_visible: bool,
 }
@@ -297,6 +298,7 @@ impl Renderer {
             draw_resources: None,
             theme: RenderTheme::default(),
             background_opacity,
+            transparent_background_colors: true,
             transparency_supported: false,
             cursor_blink_visible: true,
         };
@@ -414,6 +416,7 @@ impl Renderer {
             state,
             &self.theme,
             self.effective_opacity(),
+            self.transparent_background_colors,
         );
         if let Some(overlay) = overlay {
             data.apply_text_overlay(overlay, &self.theme);
@@ -443,11 +446,8 @@ impl Renderer {
             panes,
             overlay,
             &self.theme,
-            if self.transparency_supported {
-                self.background_opacity
-            } else {
-                1.0
-            },
+            self.effective_opacity(),
+            self.transparent_background_colors,
         );
         if !self.cursor_blink_visible {
             for (pane, _, _) in &mut data {
@@ -488,6 +488,11 @@ impl Renderer {
         }
         #[cfg(not(target_os = "linux"))]
         let _ = opacity;
+    }
+
+    /// Whether window opacity also applies to explicit and inverse cell backgrounds.
+    pub fn set_transparent_background_colors(&mut self, transparent: bool) {
+        self.transparent_background_colors = transparent;
     }
 
     fn effective_opacity(&self) -> f32 {
@@ -1042,7 +1047,7 @@ fn project_panes(
     overlay: Option<&TextOverlay>,
     theme: &RenderTheme,
 ) -> Vec<(TerminalRenderData, [u32; 4], bool)> {
-    project_panes_with_opacity(panes, overlay, theme, 1.0)
+    project_panes_with_opacity(panes, overlay, theme, 1.0, true)
 }
 
 fn project_panes_with_opacity(
@@ -1050,13 +1055,18 @@ fn project_panes_with_opacity(
     overlay: Option<&TextOverlay>,
     theme: &RenderTheme,
     opacity: f32,
+    transparent_background_colors: bool,
 ) -> Vec<(TerminalRenderData, [u32; 4], bool)> {
     let multiple = panes.len() > 1;
     panes
         .iter()
         .map(|pane| {
-            let mut data =
-                TerminalRenderData::from_terminal_with_opacity(pane.terminal, theme, opacity);
+            let mut data = TerminalRenderData::from_terminal_with_opacity(
+                pane.terminal,
+                theme,
+                opacity,
+                transparent_background_colors,
+            );
             data.scrollbar_hover = pane.scrollbar_hover;
             if !pane.focused {
                 data.cursor = None;

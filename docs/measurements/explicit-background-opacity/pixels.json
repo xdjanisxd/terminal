@@ -1,0 +1,715 @@
+{
+  "backdrop_rgb": [
+    30,
+    102,
+    158
+  ],
+  "baseline_opacity_0_55": {
+    "default": [
+      25,
+      64,
+      93
+    ],
+    "painted": [
+      144,
+      103,
+      108
+    ],
+    "erased": [
+      144,
+      103,
+      108
+    ],
+    "inverse_default": [
+      144,
+      176,
+      201
+    ],
+    "explicit_equal": [
+      25,
+      64,
+      93
+    ],
+    "inverse_rgb": [
+      63,
+      148,
+      107
+    ]
+  },
+  "single": {
+    "0.55-True.left": {
+      "default": [
+        25,
+        64,
+        93
+      ],
+      "painted": [
+        144,
+        103,
+        108
+      ],
+      "erased": [
+        144,
+        103,
+        108
+      ],
+      "inverse_default": [
+        144,
+        176,
+        201
+      ],
+      "explicit_equal": [
+        25,
+        64,
+        93
+      ],
+      "inverse_rgb": [
+        63,
+        148,
+        107
+      ]
+    },
+    "0.55-False.left": {
+      "default": [
+        25,
+        64,
+        93
+      ],
+      "painted": [
+        238,
+        104,
+        67
+      ],
+      "erased": [
+        238,
+        104,
+        67
+      ],
+      "inverse_default": [
+        238,
+        238,
+        238
+      ],
+      "explicit_equal": [
+        21,
+        32,
+        41
+      ],
+      "inverse_rgb": [
+        90,
+        186,
+        65
+      ]
+    },
+    "0-True.left": {
+      "default": [
+        30,
+        102,
+        158
+      ],
+      "painted": [
+        30,
+        102,
+        158
+      ],
+      "erased": [
+        30,
+        102,
+        158
+      ],
+      "inverse_default": [
+        30,
+        102,
+        158
+      ],
+      "explicit_equal": [
+        30,
+        102,
+        158
+      ],
+      "inverse_rgb": [
+        30,
+        102,
+        158
+      ]
+    },
+    "0-False.left": {
+      "default": [
+        30,
+        102,
+        158
+      ],
+      "painted": [
+        238,
+        104,
+        67
+      ],
+      "erased": [
+        238,
+        104,
+        67
+      ],
+      "inverse_default": [
+        238,
+        238,
+        238
+      ],
+      "explicit_equal": [
+        21,
+        32,
+        41
+      ],
+      "inverse_rgb": [
+        90,
+        186,
+        65
+      ]
+    },
+    "1-True.left": {
+      "default": [
+        21,
+        32,
+        41
+      ],
+      "painted": [
+        238,
+        104,
+        67
+      ],
+      "erased": [
+        238,
+        104,
+        67
+      ],
+      "inverse_default": [
+        238,
+        238,
+        238
+      ],
+      "explicit_equal": [
+        21,
+        32,
+        41
+      ],
+      "inverse_rgb": [
+        90,
+        186,
+        65
+      ]
+    },
+    "1-False.left": {
+      "default": [
+        21,
+        32,
+        41
+      ],
+      "painted": [
+        238,
+        104,
+        67
+      ],
+      "erased": [
+        238,
+        104,
+        67
+      ],
+      "inverse_default": [
+        238,
+        238,
+        238
+      ],
+      "explicit_equal": [
+        21,
+        32,
+        41
+      ],
+      "inverse_rgb": [
+        90,
+        186,
+        65
+      ]
+    },
+    "0.55-False-reload.left": {
+      "default": [
+        40,
+        89,
+        91
+      ],
+      "painted": [
+        238,
+        104,
+        67
+      ],
+      "erased": [
+        238,
+        104,
+        67
+      ],
+      "inverse_default": [
+        238,
+        238,
+        238
+      ],
+      "explicit_equal": [
+        21,
+        32,
+        41
+      ],
+      "inverse_rgb": [
+        90,
+        186,
+        65
+      ]
+    }
+  },
+  "split": {
+    "0.55-True.left": {
+      "default": [
+        25,
+        64,
+        93
+      ],
+      "painted": [
+        144,
+        103,
+        108
+      ],
+      "erased": [
+        144,
+        103,
+        108
+      ],
+      "inverse_default": [
+        144,
+        176,
+        201
+      ],
+      "explicit_equal": [
+        25,
+        64,
+        93
+      ],
+      "inverse_rgb": [
+        63,
+        148,
+        107
+      ]
+    },
+    "0.55-True.right": {
+      "default": [
+        25,
+        64,
+        93
+      ],
+      "painted": [
+        144,
+        103,
+        108
+      ],
+      "erased": [
+        144,
+        103,
+        108
+      ],
+      "inverse_default": [
+        144,
+        176,
+        201
+      ],
+      "explicit_equal": [
+        25,
+        64,
+        93
+      ],
+      "inverse_rgb": [
+        63,
+        148,
+        107
+      ]
+    },
+    "0.55-False.left": {
+      "default": [
+        25,
+        64,
+        93
+      ],
+      "painted": [
+        238,
+        104,
+        67
+      ],
+      "erased": [
+        238,
+        104,
+        67
+      ],
+      "inverse_default": [
+        238,
+        238,
+        238
+      ],
+      "explicit_equal": [
+        21,
+        32,
+        41
+      ],
+      "inverse_rgb": [
+        90,
+        186,
+        65
+      ]
+    },
+    "0.55-False.right": {
+      "default": [
+        25,
+        64,
+        93
+      ],
+      "painted": [
+        238,
+        104,
+        67
+      ],
+      "erased": [
+        238,
+        104,
+        67
+      ],
+      "inverse_default": [
+        238,
+        238,
+        238
+      ],
+      "explicit_equal": [
+        21,
+        32,
+        41
+      ],
+      "inverse_rgb": [
+        90,
+        186,
+        65
+      ]
+    },
+    "0-True.left": {
+      "default": [
+        30,
+        102,
+        158
+      ],
+      "painted": [
+        30,
+        102,
+        158
+      ],
+      "erased": [
+        30,
+        102,
+        158
+      ],
+      "inverse_default": [
+        30,
+        102,
+        158
+      ],
+      "explicit_equal": [
+        30,
+        102,
+        158
+      ],
+      "inverse_rgb": [
+        30,
+        102,
+        158
+      ]
+    },
+    "0-True.right": {
+      "default": [
+        30,
+        102,
+        158
+      ],
+      "painted": [
+        30,
+        102,
+        158
+      ],
+      "erased": [
+        30,
+        102,
+        158
+      ],
+      "inverse_default": [
+        30,
+        102,
+        158
+      ],
+      "explicit_equal": [
+        30,
+        102,
+        158
+      ],
+      "inverse_rgb": [
+        30,
+        102,
+        158
+      ]
+    },
+    "0-False.left": {
+      "default": [
+        30,
+        102,
+        158
+      ],
+      "painted": [
+        238,
+        104,
+        67
+      ],
+      "erased": [
+        238,
+        104,
+        67
+      ],
+      "inverse_default": [
+        238,
+        238,
+        238
+      ],
+      "explicit_equal": [
+        21,
+        32,
+        41
+      ],
+      "inverse_rgb": [
+        90,
+        186,
+        65
+      ]
+    },
+    "0-False.right": {
+      "default": [
+        30,
+        102,
+        158
+      ],
+      "painted": [
+        238,
+        104,
+        67
+      ],
+      "erased": [
+        238,
+        104,
+        67
+      ],
+      "inverse_default": [
+        238,
+        238,
+        238
+      ],
+      "explicit_equal": [
+        21,
+        32,
+        41
+      ],
+      "inverse_rgb": [
+        90,
+        186,
+        65
+      ]
+    },
+    "1-True.left": {
+      "default": [
+        21,
+        32,
+        41
+      ],
+      "painted": [
+        238,
+        104,
+        67
+      ],
+      "erased": [
+        238,
+        104,
+        67
+      ],
+      "inverse_default": [
+        238,
+        238,
+        238
+      ],
+      "explicit_equal": [
+        21,
+        32,
+        41
+      ],
+      "inverse_rgb": [
+        90,
+        186,
+        65
+      ]
+    },
+    "1-True.right": {
+      "default": [
+        21,
+        32,
+        41
+      ],
+      "painted": [
+        238,
+        104,
+        67
+      ],
+      "erased": [
+        238,
+        104,
+        67
+      ],
+      "inverse_default": [
+        238,
+        238,
+        238
+      ],
+      "explicit_equal": [
+        21,
+        32,
+        41
+      ],
+      "inverse_rgb": [
+        90,
+        186,
+        65
+      ]
+    },
+    "1-False.left": {
+      "default": [
+        21,
+        32,
+        41
+      ],
+      "painted": [
+        238,
+        104,
+        67
+      ],
+      "erased": [
+        238,
+        104,
+        67
+      ],
+      "inverse_default": [
+        238,
+        238,
+        238
+      ],
+      "explicit_equal": [
+        21,
+        32,
+        41
+      ],
+      "inverse_rgb": [
+        90,
+        186,
+        65
+      ]
+    },
+    "1-False.right": {
+      "default": [
+        21,
+        32,
+        41
+      ],
+      "painted": [
+        238,
+        104,
+        67
+      ],
+      "erased": [
+        238,
+        104,
+        67
+      ],
+      "inverse_default": [
+        238,
+        238,
+        238
+      ],
+      "explicit_equal": [
+        21,
+        32,
+        41
+      ],
+      "inverse_rgb": [
+        90,
+        186,
+        65
+      ]
+    },
+    "0.55-False-reload.left": {
+      "default": [
+        40,
+        89,
+        91
+      ],
+      "painted": [
+        238,
+        104,
+        67
+      ],
+      "erased": [
+        238,
+        104,
+        67
+      ],
+      "inverse_default": [
+        238,
+        238,
+        238
+      ],
+      "explicit_equal": [
+        21,
+        32,
+        41
+      ],
+      "inverse_rgb": [
+        90,
+        186,
+        65
+      ]
+    },
+    "0.55-False-reload.right": {
+      "default": [
+        40,
+        89,
+        91
+      ],
+      "painted": [
+        238,
+        104,
+        67
+      ],
+      "erased": [
+        238,
+        104,
+        67
+      ],
+      "inverse_default": [
+        238,
+        238,
+        238
+      ],
+      "explicit_equal": [
+        21,
+        32,
+        41
+      ],
+      "inverse_rgb": [
+        90,
+        186,
+        65
+      ]
+    }
+  }
+}

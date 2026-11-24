@@ -1452,7 +1452,7 @@ fn native_gpu_test_guard() -> std::sync::MutexGuard<'static, ()> {
 #[cfg(test)]
 mod tests {
     use super::{
-        ATLAS_CAPACITY, ATLAS_COLUMNS, DrawResources, FrameContext, GpuGlyphKey,
+        ATLAS_CAPACITY, ATLAS_COLUMNS, DrawResources, FrameContext, GpuGlyphKey, PaneDraw,
         changed_instance_ranges, clip_rect_to_cell, find_atlas_region, glyph_origin,
         instance_buffer_capacity, instance_buffer_requires_allocation, scrollbar_geometry,
         tile_span, to_clip_rect,
@@ -1708,6 +1708,7 @@ mod tests {
                         &state,
                         &Default::default(),
                         opacity,
+                        true,
                     );
                     data.cursor = None;
                     let target = if opacity < 1.0 {
@@ -1795,6 +1796,7 @@ mod tests {
                         &state,
                         &Default::default(),
                         opacity,
+                        true,
                     );
                     selected.cursor = None;
                     resources.draw(&device, &queue, frame(), &selected, &mut fonts);
@@ -1832,8 +1834,9 @@ mod tests {
         ] {
             for opacity in [1.0, 0.5] {
                 let theme = crate::RenderTheme::default();
-                let mut data =
-                    TerminalRenderData::from_terminal_with_opacity(&terminal, &theme, opacity);
+                let mut data = TerminalRenderData::from_terminal_with_opacity(
+                    &terminal, &theme, opacity, true,
+                );
                 for cell in &mut data.cells {
                     // Four styles make 376 atlas keys using portable ASCII.
                     cell.bold = cell.row & 1 != 0;
@@ -2119,6 +2122,148 @@ mod tests {
         }
     }
 
+    #[test]
+    #[ignore = "requires a native GPU adapter and system monospace font"]
+    fn native_gpu_mixed_cell_background_alpha_in_single_and_split_panes() {
+        #[cfg(target_os = "linux")]
+        let _gpu_test = super::native_gpu_test_guard();
+        let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
+            backends: if cfg!(target_os = "windows") {
+                wgpu::Backends::DX12
+            } else {
+                wgpu::Backends::all()
+            },
+            ..Default::default()
+        });
+        let adapter = pollster::block_on(instance.request_adapter(&Default::default())).unwrap();
+        let (device, queue) =
+            pollster::block_on(adapter.request_device(&crate::renderer_device_descriptor()))
+                .unwrap();
+        let mut fonts = FontSystem::load_system(FontRequest::default()).unwrap();
+        let metrics = crate::CellMetrics::from_physical(8, 8, 8.0);
+        let size = SurfaceSize::new(128, 16).unwrap();
+        let mut terminal = TerminalState::new(TerminalDimensions::new(6, 2).unwrap());
+        terminal_core::TerminalParser::new()
+            .advance(
+                &mut terminal,
+                b"\x1b[?25l \x1b[48;2;32;64;96m \x1b[X\x1b[C\x1b[0;7m \x1b[0;44m \x1b[0m",
+            )
+            .unwrap();
+        terminal.begin_selection(0, 4);
+        terminal.extend_selection(0, 5);
+        let rgba = |[red, green, blue]: [u8; 3]| {
+            crate::Rgba([
+                red as f32 / 255.0,
+                green as f32 / 255.0,
+                blue as f32 / 255.0,
+                1.0,
+            ])
+        };
+        let theme = crate::RenderTheme {
+            background: rgba([32, 64, 96]),
+            foreground: rgba([160, 192, 224]),
+            selection_background: rgba([16, 112, 48]),
+            ..Default::default()
+        };
+        for format in [
+            wgpu::TextureFormat::Rgba8Unorm,
+            wgpu::TextureFormat::Rgba8UnormSrgb,
+        ] {
+            let texture = device.create_texture(&wgpu::TextureDescriptor {
+                label: Some("terminal mixed alpha readback"),
+                size: wgpu::Extent3d {
+                    width: size.width(),
+                    height: size.height(),
+                    depth_or_array_layers: 1,
+                },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format,
+                usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
+                view_formats: &[],
+            });
+            let view = texture.create_view(&Default::default());
+            let mut resources = DrawResources::new(&device, format);
+            for opacity in [0.0, 0.55, 1.0] {
+                let target = if opacity < 1.0 {
+                    resources.composition_target(&device, size)
+                } else {
+                    view.clone()
+                };
+                for transparent in [true, false] {
+                    for pane_count in [1, 2] {
+                        let pane_width = size.width() / pane_count;
+                        let panes: Vec<_> = (0..pane_count)
+                            .map(|index| crate::PaneRenderInput {
+                                terminal: &terminal,
+                                rect: [index * pane_width, 0, pane_width, size.height()],
+                                focused: index == 0,
+                                scrollbar_hover: None,
+                            })
+                            .collect();
+                        let data = crate::project_panes_with_opacity(
+                            &panes,
+                            None,
+                            &theme,
+                            opacity,
+                            transparent,
+                        );
+                        for (index, (data, rect, focused_border)) in data.iter().enumerate() {
+                            resources.draw_pane(
+                                &device,
+                                &queue,
+                                FrameContext {
+                                    target: &target,
+                                    surface_size: size,
+                                    cell_metrics: metrics,
+                                    ui: &theme.ui,
+                                },
+                                data,
+                                &mut fonts,
+                                PaneDraw {
+                                    rect: *rect,
+                                    clear: index == 0,
+                                    focused_border: *focused_border,
+                                    text_offset: [0.0; 2],
+                                    rectangles: &[],
+                                },
+                            );
+                        }
+                        if opacity < 1.0 {
+                            resources.compose(&device, &queue, &view);
+                        }
+                        let pixels = read_rgba(&device, &queue, &texture);
+                        let cell_alpha = if transparent { opacity } else { 1.0 };
+                        for pane in panes {
+                            for (column, (rgb, alpha)) in [
+                                ([32, 64, 96], opacity),       // default
+                                ([32, 64, 96], cell_alpha),    // painted with matching RGB
+                                ([32, 64, 96], cell_alpha),    // erased with matching RGB
+                                ([160, 192, 224], cell_alpha), // inverse defaults
+                                ([16, 112, 48], 1.0),          // selection over indexed background
+                            ]
+                            .into_iter()
+                            .enumerate()
+                            {
+                                let x = pane.rect[0] as usize + column * 8 + 4;
+                                let byte = (4 * size.width() as usize + x) * 4;
+                                let pixel = &pixels[byte..byte + 4];
+                                let [r, g, b] = rgb;
+                                for (&actual, channel) in pixel.iter().zip([r, g, b, 255]) {
+                                    assert!(
+                                        (f32::from(actual) - channel as f32 * alpha).abs() <= 2.0,
+                                        "format={format:?}, opacity={opacity}, transparent={transparent}, panes={pane_count}, x={x}, rgba={pixel:?}"
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     fn render_native_frame(opacity: f32, format: wgpu::TextureFormat) {
         render_native_frame_with_palette(opacity, format, false);
     }
@@ -2261,7 +2406,8 @@ mod tests {
             background: crate::Rgba([0.2, 0.3, 0.4, 1.0]),
             ..Default::default()
         };
-        let mut data = TerminalRenderData::from_terminal_with_opacity(&terminal, &theme, opacity);
+        let mut data =
+            TerminalRenderData::from_terminal_with_opacity(&terminal, &theme, opacity, true);
         if palette {
             crate::palette::dim(&mut data, &theme);
         }
