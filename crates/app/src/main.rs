@@ -296,10 +296,12 @@ struct PaneRuntime {
 }
 
 impl PaneRuntime {
-    fn new(dimensions: TerminalDimensions) -> Self {
+    fn new(dimensions: TerminalDimensions, theme: &Theme) -> Self {
+        let mut terminal = TerminalState::new(dimensions);
+        set_terminal_default_colors(&mut terminal, theme);
         Self {
             parser: TerminalParser::with_osc52_policy(Osc52Policy::Deny),
-            terminal: TerminalState::new(dimensions),
+            terminal,
             pty: None,
             pending_startup_command: None,
             inherited_cwd: None,
@@ -695,8 +697,11 @@ impl Default for Application {
         let _state_stage = startup_stage("application-default-state");
         let workspace = Workspace::default();
         let active_runtime_pane = workspace.active_pane();
+        let config = Config::default();
+        let font_size = config.font.size;
         let mut terminal =
             TerminalState::new(TerminalDimensions::new(80, 24).expect("valid default"));
+        set_terminal_default_colors(&mut terminal, &config.theme);
         if std::env::var_os("TERMINAL_RENDERER_VISUAL_SMOKE").is_some_and(|value| value == "1") {
             populate_visual_smoke_state(&mut terminal);
         }
@@ -743,9 +748,9 @@ impl Default for Application {
             target_click_held: false,
             pending_target: None,
             modifiers: ModifiersState::empty(),
-            config: Config::default(),
-            base_font_size: Config::default().font.size,
-            font_size: Config::default().font.size,
+            config,
+            base_font_size: font_size,
+            font_size,
             config_path: config_path(),
             saved_workspaces_path: app_storage_directory().join("workspaces.toml"),
             project_root_override: None,
@@ -978,13 +983,14 @@ impl Application {
                 let dimensions = self.terminal.dimensions();
                 self.keyboard.clear();
                 self.terminal = TerminalState::new(dimensions);
+                set_terminal_default_colors(&mut self.terminal, &self.config.theme);
                 self.parser = TerminalParser::with_osc52_policy(Osc52Policy::Deny);
                 let active = workspace.active_pane();
                 self.inactive_panes = workspace
                     .panes()
                     .into_iter()
                     .filter(|pane| pane.id != active)
-                    .map(|pane| (pane.id, PaneRuntime::new(dimensions)))
+                    .map(|pane| (pane.id, PaneRuntime::new(dimensions, &self.config.theme)))
                     .collect();
                 self.workspace = workspace;
                 self.active_runtime_pane = active;
@@ -1097,10 +1103,7 @@ impl Application {
                     self.invalidate_frame();
                 }
                 if config.theme != self.config.theme {
-                    if let Some(renderer) = self.renderer.as_mut() {
-                        renderer.set_theme(render_theme(&config.theme));
-                    }
-                    self.invalidate_frame();
+                    self.apply_terminal_theme(&config.theme);
                 }
                 if config.cursor != self.config.cursor {
                     let cursor_style = configured_cursor_style(&config);
@@ -1124,6 +1127,17 @@ impl Application {
         }
     }
 
+    fn apply_terminal_theme(&mut self, theme: &Theme) {
+        set_terminal_default_colors(&mut self.terminal, theme);
+        for pane in self.inactive_panes.values_mut() {
+            set_terminal_default_colors(&mut pane.terminal, theme);
+        }
+        if let Some(renderer) = self.renderer.as_mut() {
+            renderer.set_theme(render_theme(theme));
+        }
+        self.invalidate_frame();
+    }
+
     fn load_workspace(&mut self, definition: &WorkspaceDefinition) {
         let _workspace_stage = startup_stage("workspace-model-and-runtimes");
         let workspace = Workspace::from_definition(definition).expect("validated workspace config");
@@ -1136,7 +1150,7 @@ impl Application {
             .panes()
             .into_iter()
             .filter(|pane| pane.id != active)
-            .map(|pane| (pane.id, PaneRuntime::new(dimensions)))
+            .map(|pane| (pane.id, PaneRuntime::new(dimensions, &self.config.theme)))
             .collect();
         let cursor_style = configured_cursor_style(&self.config);
         for pane in self.inactive_panes.values_mut() {
@@ -1360,7 +1374,7 @@ impl Application {
         emit_diagnostic(format_args!(
             "app event=pane-workspace-created pane={new_pane:?}"
         ));
-        let mut runtime = PaneRuntime::new(self.terminal.dimensions());
+        let mut runtime = PaneRuntime::new(self.terminal.dimensions(), &self.config.theme);
         if self.config.terminal.inherit_cwd
             && self
                 .workspace
@@ -1704,11 +1718,9 @@ impl Application {
             PaletteAction::Command(command) => self.dispatch_command(command),
             PaletteAction::SavedWorkspace(name) => self.open_saved_workspace(&name),
             PaletteAction::Theme(preset) => {
-                self.config.theme = Theme::from_preset(preset);
-                if let Some(renderer) = self.renderer.as_mut() {
-                    renderer.set_theme(render_theme(&self.config.theme));
-                }
-                self.invalidate_frame();
+                let theme = Theme::from_preset(preset);
+                self.apply_terminal_theme(&theme);
+                self.config.theme = theme;
             }
             PaletteAction::ProjectTab(root) => self.create_pane_at_root(None, Some(root)),
             PaletteAction::ProjectSplit(root, axis) => {
@@ -4515,6 +4527,11 @@ fn font_request(font: &FontConfig) -> FontRequest {
     }
 }
 
+fn set_terminal_default_colors(terminal: &mut TerminalState, theme: &Theme) {
+    let channels = |Rgb(red, green, blue)| [red, green, blue];
+    terminal.set_default_colors(channels(theme.foreground), channels(theme.background));
+}
+
 fn render_theme(theme: &terminal_config::Theme) -> RenderTheme {
     let rgba = |color: Rgb, alpha: f32| {
         Rgba([
@@ -5725,6 +5742,57 @@ mod tests {
         assert_eq!(terminal.screen().cell(0, 0).unwrap().character(), 'e');
         assert_eq!(terminal.screen().cell(1, 0).unwrap().character(), 'o');
         assert_eq!(terminal.screen().cell(1, 1).unwrap().character(), 'k');
+    }
+
+    #[test]
+    fn default_color_queries_follow_loaded_and_previewed_themes_across_panes() {
+        let state = saved_state_path();
+        let path = state.path();
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        let mut app = Application {
+            config_path: path.clone(),
+            ..Application::default()
+        };
+        app.reload_config();
+        app.create_pane(None);
+        fs::write(
+            &path,
+            "[theme]\nforeground = '#fedcba'\nbackground = '#123456'\n[window]\nopacity = 0.55",
+        )
+        .unwrap();
+        app.reload_config();
+        app.create_pane(None);
+        assert_eq!(app.inactive_panes.len(), 2);
+
+        let query = b"\x1b]10;?\x07\x1b]11;?\x07";
+        let expected = [
+            b"\x1b]10;rgb:fefe/dcdc/baba\x07".to_vec(),
+            b"\x1b]11;rgb:1212/3434/5656\x07".to_vec(),
+        ];
+        assert_eq!(
+            parse_terminal_output(&mut app.parser, &mut app.terminal, query),
+            expected,
+        );
+        for runtime in app.inactive_panes.values_mut() {
+            assert_eq!(
+                parse_terminal_output(&mut runtime.parser, &mut runtime.terminal, query),
+                expected,
+            );
+        }
+
+        app.dispatch_palette_action(PaletteAction::Theme(ThemePreset::SolarizedDark));
+        let query = b"\x1b]11;?\x07";
+        let expected = [b"\x1b]11;rgb:0000/2b2b/3636\x07".to_vec()];
+        assert_eq!(
+            parse_terminal_output(&mut app.parser, &mut app.terminal, query),
+            expected,
+        );
+        for runtime in app.inactive_panes.values_mut() {
+            assert_eq!(
+                parse_terminal_output(&mut runtime.parser, &mut runtime.terminal, query),
+                expected,
+            );
+        }
     }
 
     fn parsed_row_text(terminal: &TerminalState, row: usize) -> String {
@@ -8160,8 +8228,10 @@ mod tests {
         assert_eq!(app.title_bar_path(), "codes/terminal");
         let original = app.workspace.active_pane();
         let pane = app.workspace.split_active(SplitAxis::Vertical);
-        app.inactive_panes
-            .insert(pane, super::PaneRuntime::new(app.terminal.dimensions()));
+        app.inactive_panes.insert(
+            pane,
+            super::PaneRuntime::new(app.terminal.dimensions(), &app.config.theme),
+        );
         app.activate_pane(pane);
         assert_eq!(app.title_bar_path(), "Working directory unavailable");
         app.parser
