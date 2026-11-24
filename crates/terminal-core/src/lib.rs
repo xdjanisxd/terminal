@@ -12,6 +12,7 @@ pub use keyboard::{
     encode_kitty_key,
 };
 mod modes;
+mod palette;
 mod parser;
 mod reflow;
 mod reply;
@@ -40,6 +41,7 @@ pub use modes::{
     AutoWrapMode, CharacterInsertionMode, CursorKeyMode, CursorShape, CursorStyle,
     CursorVisibility, InputModes, MouseEncoding, MouseTracking, TerminalModes,
 };
+pub use palette::default_indexed_color;
 pub use parser::{MAX_OSC52_DECODED_BYTES, Osc52Policy, TerminalParser, TerminalParserError};
 pub use reply::{DefaultColorChannel, MAX_PENDING_REPLIES, TerminalReply, TerminalReplyBytes};
 pub use screens::ScreenKind;

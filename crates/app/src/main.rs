@@ -112,6 +112,7 @@ struct Application {
     fullscreen: FullscreenTransition,
     last_diagnostic_state: Option<AppDiagnosticState>,
     wheel_remainder: f64,
+    alternate_scroll_remainder: f64,
     mouse_wheel_remainder: f64,
     pointer_position: Option<PhysicalPosition<f64>>,
     pressed_mouse_button: Option<TerminalMouseButton>,
@@ -298,7 +299,7 @@ struct PaneRuntime {
 impl PaneRuntime {
     fn new(dimensions: TerminalDimensions, theme: &Theme) -> Self {
         let mut terminal = TerminalState::new(dimensions);
-        set_terminal_default_colors(&mut terminal, theme);
+        set_terminal_theme_colors(&mut terminal, theme);
         Self {
             parser: TerminalParser::with_osc52_policy(Osc52Policy::Deny),
             terminal,
@@ -701,7 +702,7 @@ impl Default for Application {
         let font_size = config.font.size;
         let mut terminal =
             TerminalState::new(TerminalDimensions::new(80, 24).expect("valid default"));
-        set_terminal_default_colors(&mut terminal, &config.theme);
+        set_terminal_theme_colors(&mut terminal, &config.theme);
         if std::env::var_os("TERMINAL_RENDERER_VISUAL_SMOKE").is_some_and(|value| value == "1") {
             populate_visual_smoke_state(&mut terminal);
         }
@@ -736,6 +737,7 @@ impl Default for Application {
             fullscreen: FullscreenTransition::default(),
             last_diagnostic_state: None,
             wheel_remainder: 0.0,
+            alternate_scroll_remainder: 0.0,
             mouse_wheel_remainder: 0.0,
             pointer_position: None,
             pressed_mouse_button: None,
@@ -983,7 +985,7 @@ impl Application {
                 let dimensions = self.terminal.dimensions();
                 self.keyboard.clear();
                 self.terminal = TerminalState::new(dimensions);
-                set_terminal_default_colors(&mut self.terminal, &self.config.theme);
+                set_terminal_theme_colors(&mut self.terminal, &self.config.theme);
                 self.parser = TerminalParser::with_osc52_policy(Osc52Policy::Deny);
                 let active = workspace.active_pane();
                 self.inactive_panes = workspace
@@ -1128,9 +1130,9 @@ impl Application {
     }
 
     fn apply_terminal_theme(&mut self, theme: &Theme) {
-        set_terminal_default_colors(&mut self.terminal, theme);
+        set_terminal_theme_colors(&mut self.terminal, theme);
         for pane in self.inactive_panes.values_mut() {
-            set_terminal_default_colors(&mut pane.terminal, theme);
+            set_terminal_theme_colors(&mut pane.terminal, theme);
         }
         if let Some(renderer) = self.renderer.as_mut() {
             renderer.set_theme(render_theme(theme));
@@ -1348,6 +1350,7 @@ impl Application {
         self.selection_edge = None;
         self.pressed_mouse_button = None;
         self.wheel_remainder = 0.0;
+        self.alternate_scroll_remainder = 0.0;
         self.mouse_wheel_remainder = 0.0;
         self.update_workspace_title();
         if self.workspace.active_tab().is_zoomed()
@@ -3490,6 +3493,17 @@ impl ApplicationHandler<PtyWake> for Application {
                 if let Some(metrics) = self.renderer.as_ref().map(Renderer::cell_metrics) {
                     if self.terminal.input_modes().mouse_tracking() == MouseTracking::Off {
                         self.mouse_wheel_remainder = 0.0;
+                        if let Some(inputs) = alternate_scroll_wheel_input(
+                            &self.terminal,
+                            delta,
+                            metrics.height(),
+                            &mut self.alternate_scroll_remainder,
+                        ) {
+                            self.wheel_remainder = 0.0;
+                            self.write_terminal_input(inputs);
+                            return;
+                        }
+                        self.alternate_scroll_remainder = 0.0;
                         if scroll_terminal_for_wheel(
                             &mut self.terminal,
                             delta,
@@ -3500,6 +3514,7 @@ impl ApplicationHandler<PtyWake> for Application {
                         }
                     } else {
                         self.wheel_remainder = 0.0;
+                        self.alternate_scroll_remainder = 0.0;
                         let rows = wheel_scroll_rows(
                             delta,
                             metrics.height(),
@@ -4026,6 +4041,30 @@ fn scroll_terminal_for_wheel(
     terminal.scroll_viewport_rows(wheel_scroll_rows(delta, cell_height, remainder))
 }
 
+fn alternate_scroll_wheel_input(
+    terminal: &TerminalState,
+    delta: MouseScrollDelta,
+    cell_height: u32,
+    remainder: &mut f64,
+) -> Option<Vec<u8>> {
+    if terminal.active_screen() != terminal_core::ScreenKind::Alternate
+        || !terminal.alternate_scroll()
+        || terminal.input_modes().mouse_tracking() != MouseTracking::Off
+    {
+        return None;
+    }
+    let rows = wheel_scroll_rows(delta, cell_height, remainder);
+    let key = if rows > 0 {
+        CursorKey::Up
+    } else {
+        CursorKey::Down
+    };
+    Some(
+        terminal_cursor_key_input(*terminal.input_modes(), key, ModifiersState::empty())
+            .repeat(rows.unsigned_abs().min(100) as usize),
+    )
+}
+
 /// Converts platform line/pixel wheel deltas to whole terminal rows, retaining
 /// sub-row motion so precision wheels and touchpads can eventually move a row.
 fn wheel_scroll_rows(delta: MouseScrollDelta, cell_height: u32, remainder: &mut f64) -> i32 {
@@ -4527,9 +4566,10 @@ fn font_request(font: &FontConfig) -> FontRequest {
     }
 }
 
-fn set_terminal_default_colors(terminal: &mut TerminalState, theme: &Theme) {
+fn set_terminal_theme_colors(terminal: &mut TerminalState, theme: &Theme) {
     let channels = |Rgb(red, green, blue)| [red, green, blue];
     terminal.set_default_colors(channels(theme.foreground), channels(theme.background));
+    terminal.set_ansi_colors(theme.ansi.map(channels));
 }
 
 fn render_theme(theme: &terminal_config::Theme) -> RenderTheme {
@@ -5355,9 +5395,9 @@ mod tests {
     use super::{
         Application, BasicKey, CliOptions, FrameState, PaletteAction, PendingResize,
         PhysicalSizeSync, RecoveryRedraw, SurfaceRestore, WindowsShellSource,
-        basic_backspace_byte_for_platform, basic_key_input, configured_command,
-        cursor_key_from_logical_key, editing_key_from_event, font_request, pane_dimensions,
-        parse_terminal_output, pty_size_for_terminal, queue_terminal_input,
+        alternate_scroll_wheel_input, basic_backspace_byte_for_platform, basic_key_input,
+        configured_command, cursor_key_from_logical_key, editing_key_from_event, font_request,
+        pane_dimensions, parse_terminal_output, pty_size_for_terminal, queue_terminal_input,
         scroll_terminal_for_wheel, select_windows_shell, spawn_config_for_session,
         target_at_pointer, terminal_cell_at, terminal_cursor_key_input,
         terminal_dimensions_for_viewport, terminal_key_input, wheel_scroll_rows,
@@ -5745,7 +5785,7 @@ mod tests {
     }
 
     #[test]
-    fn default_color_queries_follow_loaded_and_previewed_themes_across_panes() {
+    fn color_queries_follow_loaded_and_previewed_themes_across_panes() {
         let state = saved_state_path();
         let path = state.path();
         fs::create_dir_all(path.parent().unwrap()).unwrap();
@@ -5757,17 +5797,25 @@ mod tests {
         app.create_pane(None);
         fs::write(
             &path,
-            "[theme]\nforeground = '#fedcba'\nbackground = '#123456'\n[window]\nopacity = 0.55",
+            concat!(
+                "[theme]\nforeground = '#fedcba'\nbackground = '#123456'\n",
+                "ansi = ['#000000', '#abcdef', '#000000', '#000000', ",
+                "'#000000', '#000000', '#000000', '#000000', ",
+                "'#000000', '#000000', '#000000', '#000000', ",
+                "'#000000', '#000000', '#000000', '#000000']\n",
+                "[window]\nopacity = 0.55",
+            ),
         )
         .unwrap();
         app.reload_config();
         app.create_pane(None);
         assert_eq!(app.inactive_panes.len(), 2);
 
-        let query = b"\x1b]10;?\x07\x1b]11;?\x07";
+        let query = b"\x1b]10;?\x07\x1b]11;?\x07\x1b]4;1;?\x07";
         let expected = [
             b"\x1b]10;rgb:fefe/dcdc/baba\x07".to_vec(),
             b"\x1b]11;rgb:1212/3434/5656\x07".to_vec(),
+            b"\x1b]4;1;rgb:abab/cdcd/efef\x07".to_vec(),
         ];
         assert_eq!(
             parse_terminal_output(&mut app.parser, &mut app.terminal, query),
@@ -5781,8 +5829,11 @@ mod tests {
         }
 
         app.dispatch_palette_action(PaletteAction::Theme(ThemePreset::SolarizedDark));
-        let query = b"\x1b]11;?\x07";
-        let expected = [b"\x1b]11;rgb:0000/2b2b/3636\x07".to_vec()];
+        let query = b"\x1b]11;?\x07\x1b]4;1;?\x07";
+        let expected = [
+            b"\x1b]11;rgb:0000/2b2b/3636\x07".to_vec(),
+            b"\x1b]4;1;rgb:dcdc/3232/2f2f\x07".to_vec(),
+        ];
         assert_eq!(
             parse_terminal_output(&mut app.parser, &mut app.terminal, query),
             expected,
@@ -8832,6 +8883,65 @@ mod tests {
             &mut remainder,
         ));
         assert_eq!(terminal.viewport_offset(), 0);
+    }
+
+    #[test]
+    fn alternate_scroll_emits_cursor_keys_and_defers_to_mouse_reporting() {
+        let mut terminal = TerminalState::new(TerminalDimensions::new(4, 2).unwrap());
+        terminal.switch_to_alternate_screen();
+        let mut remainder = 0.0;
+        assert!(
+            alternate_scroll_wheel_input(
+                &terminal,
+                MouseScrollDelta::LineDelta(0.0, 1.0),
+                20,
+                &mut remainder,
+            )
+            .is_none()
+        );
+
+        terminal.set_alternate_scroll(true);
+        assert_eq!(
+            alternate_scroll_wheel_input(
+                &terminal,
+                MouseScrollDelta::LineDelta(0.0, 1.0),
+                20,
+                &mut remainder,
+            )
+            .unwrap(),
+            b"\x1b[A\x1b[A\x1b[A"
+        );
+        assert_eq!(
+            alternate_scroll_wheel_input(
+                &terminal,
+                MouseScrollDelta::LineDelta(0.0, -1.0),
+                20,
+                &mut remainder,
+            )
+            .unwrap(),
+            b"\x1b[B\x1b[B\x1b[B"
+        );
+        assert_eq!(
+            alternate_scroll_wheel_input(
+                &terminal,
+                MouseScrollDelta::LineDelta(0.0, 1000.0),
+                20,
+                &mut remainder,
+            )
+            .unwrap(),
+            b"\x1b[A".repeat(100),
+        );
+
+        terminal.set_mouse_press_tracking(true);
+        assert!(
+            alternate_scroll_wheel_input(
+                &terminal,
+                MouseScrollDelta::LineDelta(0.0, 1.0),
+                20,
+                &mut remainder,
+            )
+            .is_none()
+        );
     }
 
     fn terminal_with_history_selection() -> TerminalState {

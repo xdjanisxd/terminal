@@ -127,6 +127,7 @@ pub enum MouseEncoding {
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct InputModes {
     cursor_keys: CursorKeyMode,
+    alternate_scroll: bool,
     focus_reporting: bool,
     bracketed_paste: bool,
     mouse_press: bool,
@@ -138,6 +139,14 @@ pub struct InputModes {
 }
 
 impl InputModes {
+    /// Whether wheel motion in the alternate screen is sent as cursor keys.
+    pub const fn alternate_scroll(self) -> bool {
+        self.alternate_scroll
+    }
+    pub fn set_alternate_scroll(&mut self, enabled: bool) {
+        self.alternate_scroll = enabled;
+    }
+
     /// Reporting requests give shortcut ownership to the foreground app.
     /// Kitty flags and modifyOtherKeys both signal application ownership.
     pub const fn keyboard_reporting_requested(self) -> bool {

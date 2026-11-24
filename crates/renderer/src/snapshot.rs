@@ -2,7 +2,7 @@
 
 use terminal_core::{
     CellColor, CellOccupancy, CursorVisibility, InverseVideo, ItalicStyle, ScreenKind,
-    TerminalState, TextIntensity, UnderlineStyle,
+    TerminalState, TextIntensity, UnderlineStyle, default_indexed_color,
 };
 
 /// Straight-alpha encoded sRGB channels; alpha is linear coverage.
@@ -400,49 +400,11 @@ fn color(color: CellColor, default: Rgba, theme: &RenderTheme) -> Rgba {
 }
 
 fn indexed_color(index: u8) -> Rgba {
-    const ANSI: [[u8; 3]; 16] = [
-        [0, 0, 0],
-        [205, 49, 49],
-        [13, 188, 121],
-        [229, 229, 16],
-        [36, 114, 200],
-        [188, 63, 188],
-        [17, 168, 205],
-        [229, 229, 229],
-        [102, 102, 102],
-        [241, 76, 76],
-        [35, 209, 139],
-        [245, 245, 67],
-        [59, 142, 234],
-        [214, 112, 214],
-        [41, 184, 219],
-        [255, 255, 255],
-    ];
-    if index < 16 {
-        let c = ANSI[index as usize];
-        return Rgba([
-            c[0] as f32 / 255.0,
-            c[1] as f32 / 255.0,
-            c[2] as f32 / 255.0,
-            1.0,
-        ]);
-    }
-    if index >= 232 {
-        let c = 8 + (index - 232) * 10;
-        let value = c as f32 / 255.0;
-        return Rgba([value, value, value, 1.0]);
-    }
-    let index = index - 16;
-    let levels = [0, 95, 135, 175, 215, 255];
-    let c = [
-        levels[(index / 36) as usize],
-        levels[((index / 6) % 6) as usize],
-        levels[(index % 6) as usize],
-    ];
+    let [red, green, blue] = default_indexed_color(index);
     Rgba([
-        c[0] as f32 / 255.0,
-        c[1] as f32 / 255.0,
-        c[2] as f32 / 255.0,
+        red as f32 / 255.0,
+        green as f32 / 255.0,
+        blue as f32 / 255.0,
         1.0,
     ])
 }
