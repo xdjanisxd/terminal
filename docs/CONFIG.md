@@ -56,6 +56,7 @@ those deadlines.
 ```toml
 [window]
 opacity = 0.85
+transparent_background_colors = true
 blur = true
 ```
 
@@ -64,12 +65,18 @@ must be finite numbers in `0.0..=1.0`; out-of-range values, NaN, infinity, inval
 types, and unknown fields reject the configuration. Invalid reloads retain the
 last valid configuration.
 
-On Linux, valid changes reload while running. Opacity affects the default
-terminal background and explicit ANSI/RGB cell backgrounds, including inverse
-video backgrounds. Theme RGB values, foreground glyphs and underlines, cursor,
-selection, search highlights, and UI retain their existing rendering. At `0.0`,
-terminal backgrounds disappear while foreground and UI remain visible.
-Windows and macOS accept the setting but retain opaque window rendering.
+On Linux, valid changes reload while running. `transparent_background_colors`
+accepts a boolean and defaults to `true`. This applies opacity to the default
+background and to explicit ANSI/RGB and inverse-video backgrounds. With
+`false`, opacity applies only to the default background. Painted cells and
+cells erased with an explicit color remain opaque, even if that color
+matches the theme background. Inverse video uses the effective foreground
+color as an opaque background in this mode.
+
+Theme RGB values, foreground glyphs and underlines, cursor, selection, search
+highlights, and UI retain their existing rendering. At opacity `0.0`, the
+backgrounds affected by opacity disappear while foreground and UI remain
+visible. Windows and macOS accept these settings and render opaque windows.
 
 Transparency requires compositor support and a wgpu surface advertising
 `PreMultiplied` alpha. Other alpha modes currently fall back to opaque rendering

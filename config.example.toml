@@ -6,6 +6,7 @@
 # Foreground, selection, cursor, and UI retain their existing rendering.
 # [window]
 # opacity = 0.85 # Finite number in 0.0..=1.0; unsupported surfaces stay opaque.
+# transparent_background_colors = false # Keep explicit and inverse backgrounds opaque; default true.
 # blur = true # KDE Wayland compositor background blur; default false, live reload.
 
 # Optional shell override. Leave the entire section absent for platform defaults.

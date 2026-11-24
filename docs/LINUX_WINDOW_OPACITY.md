@@ -24,8 +24,43 @@ the setting does not multiply their alpha. Theme RGB values are unchanged.
 Theme and terminal RGB channels are encoded sRGB. Rendering to an sRGB attachment
 decodes them before linear-light blending; the attachment encodes the result on
 write. See the later [color/background correction](TRUECOLOR_BACKGROUND_RENDERING.md)
-for the original double-encoding defect and updated readback evidence. The opacity
-and explicit-background policy described here is unchanged.
+for the original double-encoding defect and updated readback evidence.
+
+## Keep explicit cell backgrounds opaque
+
+On Linux, the following setting makes the default background translucent and
+keeps explicit ANSI/RGB and inverse-video cell backgrounds opaque. The
+original all-background behavior remains the default.
+
+```toml
+[window]
+opacity = 0.55
+transparent_background_colors = false
+blur = false
+```
+
+In a disposable pane, run this shell command to draw an orange band beside
+the default background. Toggle `transparent_background_colors` in the
+configuration while the window is open. The orange band should change
+opacity and the surrounding default background should keep the same opacity.
+
+```sh
+printf '\033[48;2;238;104;67m                        \033[0m  default background\n'
+```
+
+The [KWin Wayland comparison](measurements/explicit-background-opacity/split-opacity-0.55.png)
+shows `true` above and `false` below, both at opacity 0.55 over an opaque
+`#1e669e` backdrop. The four upper bands show painted RGB, erase-to-end with
+the same RGB, inverse default foreground, and an explicit RGB equal to the
+theme background. The lowest band shows inverse explicit foreground.
+
+[Pixel samples](measurements/explicit-background-opacity/pixels.json) from a
+single pane and both sides of a split cover 0, 0.55, and 1 with both policies.
+At 0.55 the default sample stayed `#19405d` and the painted and erased samples
+changed from `#90676c` to the configured `#ee6843`. Reloading the background
+theme changed the default sample while the explicit colors kept their
+original RGB values. GPU readback also checks selection and both linear and
+sRGB targets.
 
 ## Implementation
 

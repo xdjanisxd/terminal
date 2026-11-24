@@ -86,7 +86,8 @@ fn renderer_workload_baselines() {
             foreground: crate::Rgba([0.2, 0.8, 0.4, 1.0]),
             ..theme.clone()
         };
-        let mut data = TerminalRenderData::from_terminal_with_opacity(&state, &theme, opacity);
+        let mut data =
+            TerminalRenderData::from_terminal_with_opacity(&state, &theme, opacity, true);
         let target = if opacity < 1.0 {
             resources.composition_target(&device, size)
         } else {
@@ -121,6 +122,7 @@ fn renderer_workload_baselines() {
                         &theme
                     },
                     opacity,
+                    true,
                 );
                 if name == "blink" && index % 2 == 0 {
                     data.cursor = None;

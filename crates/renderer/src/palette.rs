@@ -403,7 +403,8 @@ mod tests {
         state.print_character('x').unwrap();
         let theme = RenderTheme::default();
         for opacity in [0.0, 0.5, 0.85, 1.0] {
-            let mut data = TerminalRenderData::from_terminal_with_opacity(&state, &theme, opacity);
+            let mut data =
+                TerminalRenderData::from_terminal_with_opacity(&state, &theme, opacity, true);
             let before = data.clone();
             dim(&mut data, &theme);
             assert_eq!(data.surface_background.0[3], opacity);

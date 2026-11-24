@@ -577,6 +577,7 @@ impl Default for CursorConfig {
 #[derive(Clone, Debug, PartialEq)]
 pub struct WindowConfig {
     pub opacity: f32,
+    pub transparent_background_colors: bool,
     pub blur: bool,
 }
 
@@ -584,6 +585,7 @@ impl Default for WindowConfig {
     fn default() -> Self {
         Self {
             opacity: 1.0,
+            transparent_background_colors: true,
             blur: false,
         }
     }
@@ -711,6 +713,9 @@ impl Config {
         }
         if let Some(window) = raw.window {
             config.window.blur = window.blur.unwrap_or(false);
+            if let Some(transparent) = window.transparent_background_colors {
+                config.window.transparent_background_colors = transparent;
+            }
             if let Some(opacity) = window.opacity {
                 if !opacity.is_finite() || !(0.0..=1.0).contains(&opacity) {
                     return Err(ConfigError(
@@ -1012,6 +1017,7 @@ struct RawCursor {
 #[serde(default, deny_unknown_fields)]
 struct RawWindow {
     opacity: Option<f64>,
+    transparent_background_colors: Option<bool>,
     blur: Option<bool>,
 }
 
@@ -1754,6 +1760,28 @@ args = ["-NoLogo", "two words", "", "'literal'"]
 #[cfg(test)]
 mod window_tests {
     use super::Config;
+
+    #[test]
+    fn transparent_background_colors_defaults_to_true_and_requires_a_boolean() {
+        for source in ["", "[window]", "[window]\nopacity = 0.55"] {
+            assert!(
+                Config::parse(source)
+                    .unwrap()
+                    .window
+                    .transparent_background_colors
+            );
+        }
+        for transparent in [true, false] {
+            let config = Config::parse(&format!(
+                "[window]\ntransparent_background_colors = {transparent}"
+            ))
+            .unwrap();
+            assert_eq!(config.window.transparent_background_colors, transparent);
+        }
+        let error = Config::parse("[window]\ntransparent_background_colors = 'false'").unwrap_err();
+        assert!(error.to_string().contains("transparent_background_colors"));
+    }
+
     #[test]
     fn blur_defaults_and_boolean_values() {
         for source in ["", "[window]", "[window]\nopacity = 0.85"] {
