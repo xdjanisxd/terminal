@@ -14,7 +14,7 @@ This pass keeps protocol semantics in `terminal-core` and projects resolved attr
 
 | Area | Behavior |
 | --- | --- |
-| Italic | SGR 3/23 projects italic state. Swash shears outlines by 0.2 around the baseline with unchanged shaping advances, font metrics, existing cell clipping, native Bold selection, and variable weights. CPU bitmap and GPU atlas keys include italic state. Upright shaping cache entries can be shared because this transform is applied during rasterization. |
+| Italic | SGR 3/23 selects native Italic or Bold Italic faces where available. The renderer shears upright fallback outlines around the baseline. Shaping, bitmap and atlas cache keys distinguish italic style, and every style uses the regular cell grid. See the [matched Linux captures](measurements/alacritty-font-metrics/README.md). |
 | Faint | SGR 2 multiplies resolved foreground sRGB channels by 0.66 after inverse resolution and before selection colors. Alpha and backgrounds are preserved. Existing ordered/exclusive normal/bold/faint state and SGR 22 are preserved. |
 | Colon colors | Foreground/background accept `38/48:5:n`, `38/48:2:r:g:b`, and `38/48:2::r:g:b`; explicit zero color-space is also accepted. Components must fit bytes. Nonzero color spaces and malformed/extra subparameters are atomic no-ops. Existing semicolon colors retain grouped validation. |
 | Additional attributes | SGR 8/28 conceal/reveal and 9/29 strike-through/reset survive cell snapshots, edits, history, and saved rendition. Conceal suppresses glyphs and decorations while retaining text for selection/copy. Strike-through uses existing rectangle rendering, including on spaces. `4:0/1` maps to the existing single underline. Deferred SGR 58 semicolon color groups consume payload without changing other styles. |
@@ -57,7 +57,7 @@ No material slowdown was observed in these workloads after the blank skip adjust
 
 ## Deliberately deferred
 
-- Native Italic/Bold Italic companion discovery and variable italic/slant axes. Synthetic italics retain existing fixed cell clipping; edge overhang can be clipped, including at small sizes or fractional DPI.
+- Variable italic/slant axes. Italic glyphs retain existing fixed cell clipping, so edge overhang can be clipped at small sizes or fractional DPI.
 - Blink, double/curly/dotted underlines, underline colors, overline, independent simultaneous bold+faint, non-RGB color spaces, optional color tolerances, and mixed semicolon/colon color payload forms.
 - DECSCA/selective erase, horizontal margins, additional cursor-save protocols, private CPR/query variants, character sets beyond G0/G1 ASCII and DEC Special Graphics, and broader OSC/DCS/CSI coverage. Existing saved-cursor policy still cancels delayed wrap and does not save every historical DEC state field.
 - Unbounded/full Unicode shaping (bounded grapheme/ZWJ support is documented in [Unicode grapheme support](UNICODE_GRAPHEME_SUPPORT.md)), fuzz execution, Windows native verification, other GPUs, and measured input-to-present latency.
