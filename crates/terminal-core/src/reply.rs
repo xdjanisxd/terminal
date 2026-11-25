@@ -4,6 +4,7 @@ pub const MAX_PENDING_REPLIES: usize = 16;
 const PRIMARY_DEVICE_ATTRIBUTES_BYTES: &[u8] = b"\x1b[?1;0c";
 const SECONDARY_DEVICE_ATTRIBUTES_BYTES: &[u8] = b"\x1b[>0;0;0c";
 const TERMINAL_STATUS_BYTES: &[u8] = b"\x1b[0n";
+const SYNCHRONIZED_UPDATE_STATUS_BYTES: &[u8] = b"\x1b[?2026;2$y";
 const MAX_ENCODED_REPLY_BYTES: usize = b"\x1b]4;255;rgb:0000/0000/0000\x1b\\".len();
 
 /// A bounded wire encoding of a project-owned terminal reply.
@@ -124,6 +125,8 @@ pub enum TerminalReply {
     },
     /// DEC private mode report for alternate scroll mode.
     AlternateScrollStatus { enabled: bool },
+    /// DEC private mode report for synchronized updates.
+    SynchronizedUpdateStatus,
 }
 
 impl TerminalReply {
@@ -173,6 +176,9 @@ impl TerminalReply {
                 bytes.push(b'$');
                 bytes.push(b'y');
                 bytes
+            }
+            Self::SynchronizedUpdateStatus => {
+                TerminalReplyBytes::from_static(SYNCHRONIZED_UPDATE_STATUS_BYTES)
             }
         }
     }

@@ -1,0 +1,89 @@
+{
+  "name": "neovim",
+  "term": "xterm-256color",
+  "colorterm": "truecolor",
+  "provenance": {
+    "argv": [
+      "/opt/nvim-linux-x86_64/bin/nvim",
+      "-u",
+      "NONE",
+      "-i",
+      "NONE",
+      "--noplugin"
+    ],
+    "exit_input_hex": "3a7161210d",
+    "pty_size": "100x30",
+    "capture_seconds": 1.5,
+    "raw_output_bytes": 14198,
+    "raw_output_sha256": "c372315434b4d3d01d619dfec590d798a9a70315330f0199f0197957b121bfc4",
+    "query_extraction": "lossless matching CSI DA/DSR/DECRQM and OSC color queries; screen output omitted",
+    "control_sequence_extraction": "counts of relevant unique CSI/OSC/DCS terminal-query and gated feature controls; arbitrary screen content omitted"
+  },
+  "observed_controls": {
+    "CSI:\u001b[5n": 2,
+    "CSI:\u001b[?2026$p": 1,
+    "CSI:\u001b[?2027$p": 1,
+    "CSI:\u001b[?2031$p": 1,
+    "CSI:\u001b[?2048$p": 1,
+    "CSI:\u001b[?69$p": 1,
+    "CSI:\u001b[?u": 1,
+    "CSI:\u001b[c": 2,
+    "DCS:capability query": 1,
+    "OSC:11;?": 2,
+    "SGR:4:3m": 1
+  },
+  "writes": [
+    {
+      "hex": "1b5b3f36392470",
+      "label": "CSI query #1"
+    },
+    {
+      "hex": "1b5b3f323032362470",
+      "label": "CSI query #2"
+    },
+    {
+      "hex": "1b5b3f323032372470",
+      "label": "CSI query #3"
+    },
+    {
+      "hex": "1b5b3f323033312470",
+      "label": "CSI query #4"
+    },
+    {
+      "hex": "1b5b3f323034382470",
+      "label": "CSI query #5"
+    },
+    {
+      "hex": "1b5b306d1b5b343a336d1b5024716d1b5c",
+      "label": "DECRQSS rendition probe with exact SGR context #6"
+    },
+    {
+      "hex": "1b5b3f75",
+      "label": "CSI query #7"
+    },
+    {
+      "hex": "1b5b63",
+      "label": "CSI query #8"
+    },
+    {
+      "hex": "1b5d31313b3f07",
+      "label": "OSC color query #9"
+    },
+    {
+      "hex": "1b5b356e",
+      "label": "CSI query #10"
+    },
+    {
+      "hex": "1b5d31313b3f07",
+      "label": "OSC color query #11"
+    },
+    {
+      "hex": "1b5b356e",
+      "label": "CSI query #12"
+    },
+    {
+      "hex": "1b5b63",
+      "label": "CSI query #13"
+    }
+  ]
+}

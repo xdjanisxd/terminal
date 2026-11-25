@@ -1354,6 +1354,12 @@ impl TerminalState {
             })
     }
 
+    /// Queues the reset DEC private mode 2026 status reported outside synchronization.
+    pub(crate) fn request_synchronized_update_status(&mut self) {
+        self.pending_replies
+            .push(crate::TerminalReply::SynchronizedUpdateStatus);
+    }
+
     /// Updates terminal-requested focus reporting.
     pub fn set_focus_reporting(&mut self, enabled: bool) {
         self.input_modes.set_focus_reporting(enabled);

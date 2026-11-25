@@ -1,0 +1,51 @@
+{
+  "name": "tmux",
+  "term": "xterm-256color",
+  "colorterm": "truecolor",
+  "provenance": {
+    "argv": [
+      "/usr/bin/tmux",
+      "-f",
+      "/dev/null",
+      "-L",
+      "pty-parity-07c65b50da0f",
+      "new-session",
+      "-s",
+      "fixture",
+      "bash",
+      "--noprofile",
+      "--norc"
+    ],
+    "exit_input_hex": "657869740d",
+    "pty_size": "100x30",
+    "capture_seconds": 1.5,
+    "raw_output_bytes": 993,
+    "raw_output_sha256": "458b4269e9e0838662509df380658ce7ae3b2483c7d71cefcacc9115f75cf39b",
+    "query_extraction": "lossless matching CSI DA/DSR/DECRQM and OSC color queries; screen output omitted",
+    "control_sequence_extraction": "counts of relevant unique CSI/OSC/DCS terminal-query and gated feature controls; arbitrary screen content omitted"
+  },
+  "observed_controls": {
+    "CSI:\u001b[>c": 1,
+    "CSI:\u001b[c": 1,
+    "OSC:10;?": 1,
+    "OSC:11;?": 1
+  },
+  "writes": [
+    {
+      "hex": "1b5b63",
+      "label": "CSI query #1"
+    },
+    {
+      "hex": "1b5b3e63",
+      "label": "CSI query #2"
+    },
+    {
+      "hex": "1b5d31303b3f1b5c",
+      "label": "OSC color query #3"
+    },
+    {
+      "hex": "1b5d31313b3f1b5c",
+      "label": "OSC color query #4"
+    }
+  ]
+}
