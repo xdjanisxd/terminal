@@ -3,6 +3,9 @@
 The later [compatibility v2 audit](TERMINAL_COMPATIBILITY_V2.md) adds DEC
 G0/G1 Special Graphics, ED3 saved-line erasure, and VT/FF line-feed aliases.
 
+The [Alacritty PTY comparison](ALACRITTY_PTY_PARITY.md) covers Codex, Neovim,
+and tmux startup queries, including synchronized-update detection.
+
 This pass keeps protocol semantics in `terminal-core` and projects resolved attributes in `terminal-renderer`. The working tree was clean on `feat/terminal-compatibility-polish` before edits. Plan Mode could not be activated in the available session; inspection and the following bounded plan preceded implementation.
 
 1. Trace existing parsing, cell attributes, saved cursors, margins, resets, and renderer caches.

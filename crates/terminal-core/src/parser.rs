@@ -927,12 +927,18 @@ impl vte::Perform for SemanticPerformer<'_> {
             return;
         };
 
-        if action == 'p'
-            && intermediates == b"?$"
-            && count == 1
-            && values[0] == ALTERNATE_SCROLL_MODE
-        {
-            let _ = self.terminal.request_alternate_scroll_status();
+        if action == 'p' && intermediates == b"?$" && count == 1 {
+            match values[0] {
+                ALTERNATE_SCROLL_MODE => {
+                    let _ = self.terminal.request_alternate_scroll_status();
+                }
+                SYNCHRONIZED_UPDATE_MODE => {
+                    // Queries received during an update are dispatched after its buffer
+                    // has been taken for publication, when synchronized mode is reset.
+                    self.terminal.request_synchronized_update_status();
+                }
+                _ => {}
+            }
             return;
         }
 
@@ -1197,6 +1203,37 @@ mod synchronized_update_tests {
             Some(crate::TerminalReply::TerminalStatus)
         );
         assert_eq!(parser.synchronized_update_deadline(), None);
+    }
+
+    #[test]
+    fn synchronized_update_reports_the_mode_at_dispatch() {
+        let mut parser = TerminalParser::new();
+        let mut terminal = terminal();
+        let now = Instant::now();
+        let query = b"\x1b[?2026$p";
+        let disabled = b"\x1b[?2026;2$y";
+        parser.advance_at(&mut terminal, query, now).unwrap();
+        assert_eq!(
+            terminal.take_reply().unwrap().as_bytes().as_slice(),
+            disabled
+        );
+
+        parser.advance_at(&mut terminal, BEGIN, now).unwrap();
+        parser.advance_at(&mut terminal, query, now).unwrap();
+        assert_eq!(terminal.take_reply(), None);
+        let end_then_query = [END, query.as_slice()].concat();
+        parser
+            .advance_at(&mut terminal, &end_then_query, now)
+            .unwrap();
+        assert_eq!(
+            terminal.take_reply().unwrap().as_bytes().as_slice(),
+            disabled
+        );
+        assert_eq!(
+            terminal.take_reply().unwrap().as_bytes().as_slice(),
+            disabled
+        );
+        assert_eq!(terminal.take_reply(), None);
     }
 
     #[test]

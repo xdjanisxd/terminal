@@ -1,0 +1,63 @@
+{
+  "name": "codex",
+  "term": "xterm-256color",
+  "colorterm": "truecolor",
+  "provenance": {
+    "argv": [
+      "/home/dellian/.local/bin/codex"
+    ],
+    "exit_input_hex": "03",
+    "pty_size": "100x30",
+    "capture_seconds": 1.5,
+    "raw_output_bytes": 506,
+    "raw_output_sha256": "3add2de6078c4a7973a7664cfa9d8cc90f0e75937817c07fae4004ee6bd2ebd6",
+    "query_extraction": "lossless matching CSI DA/DSR/DECRQM and OSC color queries; screen output omitted",
+    "control_sequence_extraction": "counts of relevant unique CSI/OSC/DCS terminal-query and gated feature controls; arbitrary screen content omitted"
+  },
+  "observed_controls": {
+    "CSI:\u001b[6n": 1,
+    "CSI:\u001b[<1u": 2,
+    "CSI:\u001b[<u": 1,
+    "CSI:\u001b[>7u": 2,
+    "CSI:\u001b[?1007$p": 1,
+    "CSI:\u001b[?u": 1,
+    "CSI:\u001b[c": 1,
+    "DEC mode:?1007l": 2,
+    "OSC:10;?": 1,
+    "OSC:11;?": 1
+  },
+  "writes": [
+    {
+      "hex": "1b5b3e3775",
+      "label": "Kitty keyboard flags setup #1"
+    },
+    {
+      "hex": "1b5b3f75",
+      "label": "CSI query #2"
+    },
+    {
+      "hex": "1b5b3f313030372470",
+      "label": "CSI query #3"
+    },
+    {
+      "hex": "1b5b63",
+      "label": "CSI query #4"
+    },
+    {
+      "hex": "1b5b366e",
+      "label": "CSI query #5"
+    },
+    {
+      "hex": "1b5d31303b3f1b5c",
+      "label": "OSC color query #6"
+    },
+    {
+      "hex": "1b5d31313b3f1b5c",
+      "label": "OSC color query #7"
+    },
+    {
+      "hex": "1b5b3e3775",
+      "label": "Kitty keyboard flags setup #8"
+    }
+  ]
+}

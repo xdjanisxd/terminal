@@ -1,0 +1,76 @@
+{
+  "name": "existing color and alternate-scroll regressions",
+  "term": "xterm-256color",
+  "colorterm": "truecolor",
+  "provenance": {
+    "kind": "synthetic regression probes, not application captures",
+    "purpose": "keep OSC 4, OSC 10/11, and DEC 1007 behavior visible in the same Terminal/Alacritty replay",
+    "source": "existing terminal-core regression cases and configured-color query behavior"
+  },
+  "writes": [
+    {
+      "label": "OSC 4 palette set",
+      "hex": "1b5d343b313b2361626364656607"
+    },
+    {
+      "label": "OSC 4 palette query",
+      "hex": "1b5d343b313b3f07"
+    },
+    {
+      "label": "OSC 104 indexed palette reset",
+      "hex": "1b5d3130343b3107"
+    },
+    {
+      "label": "OSC 4 query after reset",
+      "hex": "1b5d343b313b3f07"
+    },
+    {
+      "label": "OSC 10 configured foreground set",
+      "hex": "1b5d31303b2331323334353607"
+    },
+    {
+      "label": "OSC 11 configured background set",
+      "hex": "1b5d31313b2334353637383907"
+    },
+    {
+      "label": "OSC 10 foreground query",
+      "hex": "1b5d31303b3f1b5c"
+    },
+    {
+      "label": "OSC 11 background query",
+      "hex": "1b5d31313b3f1b5c"
+    },
+    {
+      "label": "RIS reset",
+      "hex": "1b63"
+    },
+    {
+      "label": "OSC 10 foreground query after RIS",
+      "hex": "1b5d31303b3f07"
+    },
+    {
+      "label": "OSC 11 background query after RIS",
+      "hex": "1b5d31313b3f07"
+    },
+    {
+      "label": "DEC 1007 reset-state query",
+      "hex": "1b5b3f313030372470"
+    },
+    {
+      "label": "DEC 1007 set",
+      "hex": "1b5b3f3130303768"
+    },
+    {
+      "label": "DEC 1007 enabled query",
+      "hex": "1b5b3f313030372470"
+    },
+    {
+      "label": "DEC 1007 reset",
+      "hex": "1b5b3f313030376c"
+    },
+    {
+      "label": "DEC 1007 disabled query",
+      "hex": "1b5b3f313030372470"
+    }
+  ]
+}
